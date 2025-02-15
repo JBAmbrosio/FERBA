@@ -50,7 +50,8 @@
             "whatsapp_mail_messaging/static/src/js/mail_button.js"
         ],
         'web.assets_frontend': [
-            "whatsapp_mail_messaging/static/src/css/whatsapp.css"
+            "whatsapp_mail_messaging/static/src/css/whatsapp.css",
+            "whatsapp_mail_messaging/static/src/css/bootstrap.min.css"
         ],
         'web.assets_qweb': [
             'whatsapp_mail_messaging/static/src/xml/whatsapp_button.xml',
