@@ -11,7 +11,7 @@
                 <field name="x_studio_selection_field_1MYHO" widget="badge" string="Estatus"/>
 
                 <!-- Solo estas dos columnas tienen la sumatoria -->
-                <field name="x_studio_monto_de_pago" group_operator="sum" widget="monetary"/>
+                <field name="x_studio_monto_de_pago" group_operator="sum"  string="Monto de pago prueba" widget="monetary"/>
                 <field name="x_studio_monto_aprobado" group_operator="sum" widget="monetary"/>
             </tree>
         </field>
