@@ -1,5 +1,5 @@
 {
-    'name': 'gestion de pagos - Extensión',
+    'name': 'gestion de pagos',
     'version': '15.0.2.0.0',
     'author': 'Micompany',
     'category': 'Customization',

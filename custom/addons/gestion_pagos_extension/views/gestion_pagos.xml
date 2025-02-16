@@ -1,27 +1,25 @@
 <odoo>
-    <record id="view_tree_gestion_pagos" model="ir.ui.view">
-        <field name="name">gestion.pagos.tree</field>
-        <field name="model">x_gestion_de_pagos</field>
-        <field name="arch" type="xml">
-            <tree string="Gestión de Pagos" default_order="x_studio_moneda asc">
-                <field name="x_studio_moneda" />
-                <field name="x_studio_proyecto"/>
-                <field name="x_studio_cliente"/>
-                <field name="x_studio_proveedor"/>
-                <field name="x_studio_selection_field_1MYHO" widget="badge" string="Estatus"/>
+    <data>
+        <!-- HEREDAR LA VISTA ORIGINAL -->
+        <record id="view_tree_gestion_pagos_inherit" model="ir.ui.view">
+            <field name="name">gestion.pagos.tree.inherit</field>
+            <field name="model">x_gestion_de_pagos</field>
+            <field name="inherit_id" ref="x_gestion_de_pagos.view_tree_gestion_pagos"/>
+            <field name="arch" type="xml">
+                <xpath expr="//tree" position="attributes">
+                    <attribute name="default_order">x_studio_moneda asc</attribute>
+                </xpath>
 
-                <!-- Solo estas dos columnas tienen la sumatoria -->
-                <field name="x_studio_monto_de_pago" group_operator="sum"  string="Monto de pago prueba" widget="monetary"/>
-                <field name="x_studio_monto_aprobado" group_operator="sum" widget="monetary"/>
-            </tree>
-        </field>
-    </record>
+                <xpath expr="//field[@name='x_studio_monto_de_pago']" position="attributes">
+                    <attribute name="group_operator">sum</attribute>
+                    <attribute name="widget">monetary</attribute>
+                </xpath>
 
-    <!-- Asegurar la agrupación correcta en la acción -->
-    <record id="action_gestion_pagos" model="ir.actions.act_window">
-        <field name="name">Gestión de Pagos</field>
-        <field name="res_model">x_gestion_de_pagos</field>
-        <field name="view_mode">tree,form</field>
-        <field name="context">{'group_by': 'x_studio_moneda'}</field>
-    </record>
+                <xpath expr="//field[@name='x_studio_monto_aprobado']" position="attributes">
+                    <attribute name="group_operator">sum</attribute>
+                    <attribute name="widget">monetary</attribute>
+                </xpath>
+            </field>
+        </record>
+    </data>
 </odoo>
