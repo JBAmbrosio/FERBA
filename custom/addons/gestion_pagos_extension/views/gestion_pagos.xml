@@ -1,0 +1,27 @@
+<odoo>
+    <record id="view_tree_gestion_pagos" model="ir.ui.view">
+        <field name="name">gestion.pagos.tree</field>
+        <field name="model">x_gestion_de_pagos</field>
+        <field name="arch" type="xml">
+            <tree string="Gestión de Pagos" default_order="x_studio_moneda asc">
+                <field name="x_studio_moneda" />
+                <field name="x_studio_proyecto"/>
+                <field name="x_studio_cliente"/>
+                <field name="x_studio_proveedor"/>
+                <field name="x_studio_selection_field_1MYHO" widget="badge" string="Estatus"/>
+
+                <!-- Solo estas dos columnas tienen la sumatoria -->
+                <field name="x_studio_monto_de_pago" group_operator="sum" widget="monetary"/>
+                <field name="x_studio_monto_aprobado" group_operator="sum" widget="monetary"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Asegurar la agrupación correcta en la acción -->
+    <record id="action_gestion_pagos" model="ir.actions.act_window">
+        <field name="name">Gestión de Pagos</field>
+        <field name="res_model">x_gestion_de_pagos</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'group_by': 'x_studio_moneda'}</field>
+    </record>
+</odoo>
