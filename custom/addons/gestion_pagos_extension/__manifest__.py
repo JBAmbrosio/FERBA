@@ -5,7 +5,7 @@
     'category': 'Customization',
     'depends': ['base'],
     'data': [
-        'views/gestion_pagos_views.xml',
+        'views/gestion_pagos.xml',
     ],
     'installable': True,
     'application': False,
