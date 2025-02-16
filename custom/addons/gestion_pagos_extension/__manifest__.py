@@ -8,5 +8,5 @@
         'views/gestion_pagos.xml',
     ],
     'installable': True,
-    'application': False,
+    'application': True, 
 }
