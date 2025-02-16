@@ -1,9 +1,9 @@
 {
     'name': 'gestion de pagos - Extensión',
     'version': '15.0.2.0.0',
-    'author': 'SUINER',
+    'author': 'Micompany',
     'category': 'Customization',
-    'depends': ['base'],
+    'depends': ['x_gestion_de_pagos'],
     'data': [
         'views/gestion_pagos.xml',
     ],
