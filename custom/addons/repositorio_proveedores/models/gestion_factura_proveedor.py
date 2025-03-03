@@ -7,7 +7,7 @@ _logger = logging.getLogger(__name__)
  
 
 class GestionFacturaProveedor(models.Model):
-    _inherit = 'x_gestion_de_factura_proveedor' 
+    _inherit = 'x_gestion_de_factura_p' 
 
     @api.model
     def create(self, vals):
@@ -19,7 +19,7 @@ class GestionFacturaProveedor(models.Model):
         return record
     
     def read_invoice(self):
-        _logger.info(">>> Ejecutando read_invoice en x_gestion_de_factura_proveedor")
+        _logger.info(">>> Ejecutando read_invoice en x_gestion_de_factura_p")
 
         if self.x_studio_factura_xml:
 
