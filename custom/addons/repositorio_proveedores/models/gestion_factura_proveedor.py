@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import json
 import logging
+
 from odoo import models, api
 
 _logger = logging.getLogger(__name__)
@@ -24,13 +25,13 @@ class GestionFacturaProveedor(models.Model):
         # Buscar la orden de compra relacionada
         purchase_order = self.env['purchase.order'].search([('id', '=', self.x_studio_orden_de_compra.id)], limit=1)
 
-        if purchase_order and purchase_order.x_studio_xml:
+        if purchase_order and purchase_order.x_studio_factura_xml:
             
        
             try:
-                Factura_xml = self.x_studio_xml
+                #Factura_xml = self.x_studio_factura_xml
                 # Decodificar el XML (si está en binario)
-                xml_data = purchase_order.x_studio_xml.decode('base64')  # Decodificar el archivo
+                xml_data = purchase_order.x_studio_factura_xml.decode('base64')  # Decodificar el archivo
                 
                 #xml_str = Factura_xml.decode('utf-8') if isinstance(Factura_xml, bytes) else Factura_xml
 
