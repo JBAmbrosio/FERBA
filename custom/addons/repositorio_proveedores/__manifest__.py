@@ -4,6 +4,6 @@
     'autor': 'SUINER',
     'depends': ['base', 'purchase'],  
     'data': [],
-    'installable': True,
+    'installable': False,
     'application': False,
 }

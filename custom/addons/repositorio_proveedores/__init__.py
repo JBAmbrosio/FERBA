@@ -1,1 +1,1 @@
-from . import gestion_factura_proveedor
+from . import model

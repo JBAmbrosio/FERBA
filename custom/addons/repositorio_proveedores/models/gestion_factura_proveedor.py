@@ -1,8 +1,8 @@
 import xml.etree.ElementTree as ET
 import json
 import logging
+from odoo import models, _
 
-from odoo import models, api
 
 _logger = logging.getLogger(__name__)
  
@@ -12,7 +12,7 @@ class GestionFacturaProveedor(models.Model):
 
     @api.model
     def create(self, vals):
-        _logger.info(">>> Creando registro en x_gestion_de_factura_p")  # Agregar log
+        _logger.info(">>> Creando registro en x_gestion_de_factura_p")
         record = super(GestionFacturaProveedor, self).create(vals)
         
         if record:
