@@ -1,7 +1,8 @@
 {
-    'name': 'Módulo lectura de xml proveedores',
+    'name': 'Módulo lectura de archivos XML',
     'version': '1.0',
-    'autor': 'micompany',
+    'autor': 'SUINER',
+    'license': 'LGPL-3',  
     'depends': ['base', 'purchase'],  
     'data': [],
     'installable': True,
