@@ -29,7 +29,7 @@ class RepositorioProveedor(models.Model):
         folio_de_factura = self.x_folio_de_factura
 
         #se inicia la busqueda para evitar duplicados de registro
-        gestion = self.env['x_gestion_de_factura_p'].search([('x_studio_orden_de_compra','=',id_doc)])
+        gestion = env['x_gestion_de_factura_p'].search([('x_studio_orden_de_compra','=',id_doc)])
 
         try:
 
@@ -59,7 +59,7 @@ class RepositorioProveedor(models.Model):
             else:
 
                 try:
-                    repositorio_proveedores = self.env['x_gestion_de_factura_p'].create({
+                    repositorio_proveedores = env['x_gestion_de_factura_p'].create({
                                                     'x_studio_orden_de_compra':id_doc,
                                                     'x_studio_proveedor':proveedor.id,
                                                     #'x_studio_proyecto': proyecto,
@@ -94,9 +94,9 @@ class RepositorioProveedor(models.Model):
 
             
 
-class GestionFacturaProveedor(models.Model):
+class GestionFacturaProveedor(models.Model): 
     _inherit = 'x_gestion_de_factura_p'
-    _name = 'x_gestion_de_factura_p'   # Si es un modelo de estudio 
+    #_name = 'x_gestion_de_factura_p'   # Si es un modelo de estudio 
 
     @api.model
     def create(self, vals):
