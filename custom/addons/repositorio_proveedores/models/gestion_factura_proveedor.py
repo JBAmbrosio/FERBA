@@ -91,16 +91,15 @@ class RepositorioProveedor(models.Model):
             self.message_post(partner_ids=[self.env.user.partner_id.id],
                                 body=f"Error: {str(e)}",
                                 subject="Notificación" )
-
+ 
             
 
 class GestionFacturaProveedor(models.Model): 
     _inherit = 'x_gestion_de_factura_p'
-    #_name = 'x_gestion_de_factura_p'   # Si es un modelo de estudio 
 
     @api.model
     def create(self, vals):
-        _logger.info(">>> Creando registro en x_gestion_de_factura_p")
+
         record = super(GestionFacturaProveedor, self).create(vals)
         
         if record:
