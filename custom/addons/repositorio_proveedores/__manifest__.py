@@ -1,10 +1,10 @@
 {
-    'name': 'Módulo lectura de archivos XML',
+    'name': 'Módulo lectura XML',
     'version': '1.0',
-    'author': 'SUINER',
-    'depends': ['base', 'purchase'],  
+    'author': 'MiCompany',
+    'depends': ['base', 'purchase','mail'],  
     'data': [],
     'installable': True,
     'application': False, 
     'license': 'LGPL-3',  
-}
+} 
