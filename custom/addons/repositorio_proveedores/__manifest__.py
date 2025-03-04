@@ -1,9 +1,9 @@
 {
     'name': 'Módulo lectura de xml proveedores',
     'version': '1.0',
-    'autor': 'SUINER',
+    'autor': 'micompany',
     'depends': ['base', 'purchase'],  
     'data': [],
-    'installable': False,
-    'application': False,
+    'installable': True,
+    'application': False, 
 }
