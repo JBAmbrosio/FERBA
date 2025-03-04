@@ -95,7 +95,7 @@ class RepositorioProveedor(models.Model):
             
 
 class GestionFacturaProveedor(models.Model): 
-    _inherit = 'x_gestion_de_factura_p'
+    _inherit = 'x_gestion_de_factura_p' 
 
     @api.model
     def create(self, vals):
@@ -110,7 +110,6 @@ class GestionFacturaProveedor(models.Model):
         
         return record
     
-    @api.model 
     def read_invoice(self): 
     
         
@@ -133,7 +132,7 @@ class GestionFacturaProveedor(models.Model):
         try:
             #Factura_xml = self.x_studio_factura_xml
             # Decodificar el XML (si está en binario)
-            xml_data = purchase_order.x_studio_factura_xml.decode('base64')  # Decodificar el archivo
+            xml_data = base64.b64decode(purchase_order.x_studio_factura_xml)
             
             #xml_str = Factura_xml.decode('utf-8') if isinstance(Factura_xml, bytes) else Factura_xml
 
@@ -212,7 +211,8 @@ class GestionFacturaProveedor(models.Model):
                 json_data = json.dumps(cfdi, indent=4, ensure_ascii=False)
 
                 # Guardar el JSON en un campo personalizado en Odoo
-                self.write({"x_studio_json_factura":json_data})   
+                if len(self) == 1:
+                    self.write({"x_studio_json_factura": json_data}) 
 
                 
                 self.message_post(partner_ids=[self.env.user.partner_id.id],  
