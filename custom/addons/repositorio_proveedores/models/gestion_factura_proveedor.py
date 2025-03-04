@@ -8,8 +8,14 @@ from odoo import models, fields, api
 _logger = logging.getLogger(__name__)
  
 
+_logger.info(">>>>> Iniciando create_record_bucket()")  # Agrega este tipo de logs
 class RepositorioProveedor(models.Model):
     _inherit = 'purchase.order' 
+    
+    @api.model
+    def test_factura_xml(self):
+        _logger.info(f">>>>> Contenido de x_studio_factura_xml: {self.x_studio_factura_xml}")
+
 
     @api.onchange('x_studio_factura_xml')
     def _onchange_factura_xml(self):
@@ -19,6 +25,7 @@ class RepositorioProveedor(models.Model):
 
     @api.model        
     def create_record_bucket(self):
+        _logger.info(">>>>> Iniciando c---reate_record_bucket()")  # Agrega este tipo de logs
         # Available variables
         Factura_xml = self.x_studio_factura_xml
         Factura_pdf = self.x_studio_factura_pdf
@@ -28,7 +35,7 @@ class RepositorioProveedor(models.Model):
         folio_de_factura = self.x_folio_de_factura
 
         #se inicia la busqueda para evitar duplicados de registro
-        gestion = env['x_gestion_de_factura_p'].search([('x_studio_orden_de_compra','=',id_doc)])
+        gestion = self.env['x_gestion_de_factura_p'].search([('x_studio_orden_de_compra','=',id_doc)])
 
         try:
 
@@ -52,7 +59,7 @@ class RepositorioProveedor(models.Model):
             else:
 
                 try:
-                    repositorio_proveedores = env['x_gestion_de_factura_p'].create({
+                    repositorio_proveedores = self.env['x_gestion_de_factura_p'].create({
                                                     'x_studio_orden_de_compra':id_doc,
                                                     'x_studio_proveedor':proveedor.id,
                                                     #'x_studio_proyecto': proyecto,
@@ -75,7 +82,8 @@ class RepositorioProveedor(models.Model):
             self.message_post(body=f"Error: {str(e)} ")
 
 class GestionFacturaProveedor(models.Model):
-    _inherit = 'x_gestion_de_factura_p' 
+    _inherit = 'x_gestion_de_factura_p'
+    _name = 'x_gestion_de_factura_p'   # Si es un modelo de estudio 
 
     @api.model
     def create(self, vals):
@@ -91,7 +99,7 @@ class GestionFacturaProveedor(models.Model):
         return record
     
     @api.model 
-    def read_invoice(self):
+    def read_invoice(self): 
         _logger.info(">>> Ejecutando read_invoice en x_gestion_de_factura_p")
         
         if not self.x_studio_orden_de_compra:
