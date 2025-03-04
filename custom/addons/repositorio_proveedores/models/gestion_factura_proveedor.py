@@ -7,15 +7,9 @@ from odoo import models, fields, api
 
 _logger = logging.getLogger(__name__)
  
-
-_logger.info(">>>>> Iniciando create_record_bucket()")  # Agrega este tipo de logs
 class RepositorioProveedor(models.Model):
     _inherit = 'purchase.order' 
     
-    @api.model
-    def test_factura_xml(self):
-        _logger.info(f">>>>> Contenido de x_studio_factura_xml: {self.x_studio_factura_xml}")
-
 
     @api.onchange('x_studio_factura_xml')
     def _onchange_factura_xml(self):
@@ -50,11 +44,15 @@ class RepositorioProveedor(models.Model):
                                                 })
                     
                     if repositorio_proveedores:
-                       self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Repositorio {gestion.x_name} actualizado.",subject="Notificación")
+                        self.message_post(partner_ids=[self.env.user.partner_id.id], 
+                                           body=f"Repositorio {gestion.x_name} actualizado.",
+                                           subject="Notificación")
                                             
                 except Exception as e:
                    
-                    self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Error al actualizar repositorio proveedores: {str(e)} ",subject="Notificación")
+                    self.message_post(partner_ids=[self.env.user.partner_id.id], 
+                                        body=f"Error al actualizar repositorio proveedores: {str(e)} ",
+                                        subject="Notificación")
 
 
                 
@@ -75,18 +73,24 @@ class RepositorioProveedor(models.Model):
                                                 })
                     if repositorio_proveedores:
                        
-                        self.message_notify(partner_ids=[self.env.user.partner_id.id],body="Reporitorio de proveedores actualizado",subject="Notificación" )
+                        self.message_post(partner_ids=[self.env.user.partner_id.id],
+                                            body="Reporitorio de proveedores actualizado",
+                                            subject="Notificación" )
 
                         
                 
                 except Exception as e:
-                    self.message_notify(partner_ids=[self.env.user.partner_id.id],body=f"Error al crear registro en repositorio proveedores: {str(e)}  ",subject="Notificación" )
+                    self.message_post(partner_ids=[self.env.user.partner_id.id],
+                                        body=f"Error al crear registro en repositorio proveedores: {str(e)}  ",
+                                        subject="Notificación" )
 
                     
             
             
         except Exception as e:
-            self.message_notify(partner_ids=[self.env.user.partner_id.id],body=f"Error: {str(e)}",subject="Notificación" )
+            self.message_post(partner_ids=[self.env.user.partner_id.id],
+                                body=f"Error: {str(e)}",
+                                subject="Notificación" )
 
             
 
@@ -211,13 +215,15 @@ class GestionFacturaProveedor(models.Model):
                 self.write({"x_studio_json_factura":json_data})   
 
                 
-                self.message_notify(partner_ids=[self.env.user.partner_id.id],  
+                self.message_post(partner_ids=[self.env.user.partner_id.id],  
                                         body="XML procesado y convertido a JSON correctamente.",
                                         subject="Notificación")
 
 
         except Exception as e:
-            self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Error procesando XML: {str(e)}",subject="Notificación")
+            self.message_post(partner_ids=[self.env.user.partner_id.id], 
+                                body=f"Error procesando XML: {str(e)}",
+                                subject="Notificación")
        
 
             
