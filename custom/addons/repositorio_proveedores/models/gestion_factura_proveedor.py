@@ -50,10 +50,12 @@ class RepositorioProveedor(models.Model):
                                                 })
                     
                     if repositorio_proveedores:
-                        self.message_post(body=f"Repositorio {gestion.x_name} actualizado.")
+                       self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Repositorio {gestion.x_name} actualizado.",subject="Notificación")
                                             
                 except Exception as e:
-                    self.message_post(body=f"Error al actualizar repositorio proveedores: {str(e)} ")
+                   
+                    self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Error al actualizar repositorio proveedores: {str(e)} ",subject="Notificación")
+
 
                 
             else:
@@ -72,14 +74,21 @@ class RepositorioProveedor(models.Model):
                 
                                                 })
                     if repositorio_proveedores:
-                        self.message_post(body=f"Reporitorio de proveedores actualizado")
+                       
+                        self.message_notify(partner_ids=[self.env.user.partner_id.id],body="Reporitorio de proveedores actualizado",subject="Notificación" )
+
+                        
                 
                 except Exception as e:
-                    self.message_post(body=f"Error al crear registro en repositorio proveedores: {str(e)} ")
+                    self.message_notify(partner_ids=[self.env.user.partner_id.id],body=f"Error al crear registro en repositorio proveedores: {str(e)}  ",subject="Notificación" )
+
+                    
             
             
         except Exception as e:
-            self.message_post(body=f"Error: {str(e)} ")
+            self.message_notify(partner_ids=[self.env.user.partner_id.id],body=f"Error: {str(e)}",subject="Notificación" )
+
+            
 
 class GestionFacturaProveedor(models.Model):
     _inherit = 'x_gestion_de_factura_p'
@@ -201,10 +210,14 @@ class GestionFacturaProveedor(models.Model):
                 # Guardar el JSON en un campo personalizado en Odoo
                 self.write({"x_studio_json_factura":json_data})   
 
-                self.message_post(body="XML procesado y convertido a JSON correctamente.")
+                
+                self.message_notify(partner_ids=[self.env.user.partner_id.id],  
+                                        body="XML procesado y convertido a JSON correctamente.",
+                                        subject="Notificación")
+
 
         except Exception as e:
-            self.message_post(body=f"Error procesando XML: {str(e)}")
+            self.message_notify(partner_ids=[self.env.user.partner_id.id], body=f"Error procesando XML: {str(e)}",subject="Notificación")
        
 
             
