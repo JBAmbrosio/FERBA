@@ -1,11 +1,78 @@
 import xml.etree.ElementTree as ET
 import json
 import logging
-from odoo import models, _
+import base64
+from odoo import models, fields, api
 
 
 _logger = logging.getLogger(__name__)
  
+
+class RepositorioProveedor(models.Model):
+    _inherit = 'purchase.order' 
+
+    @api.onchange('x_studio_factura_xml')
+    def _onchange_factura_xml(self):
+        if self.x_studio_factura_xml:
+            #Llamar al método para crear o actualizar el registro
+            self.create_record_bucket()
+
+    @api.model        
+    def create_record_bucket(self):
+        # Available variables
+        Factura_xml = self.x_studio_factura_xml
+        Factura_pdf = self.x_studio_factura_pdf
+        id_doc = self.id
+        proveedor = self.partner_id
+        fecha_de_factura = self.x_fecha_de_factura
+        folio_de_factura = self.x_folio_de_factura
+
+        #se inicia la busqueda para evitar duplicados de registro
+        gestion = env['x_gestion_de_factura_p'].search([('x_studio_orden_de_compra','=',id_doc)])
+
+        try:
+
+            if gestion:
+                try:
+                    repositorio_proveedores = gestion.write({
+                                                    'x_name':proveedor.name,
+                                                    'x_studio_proveedor':proveedor.id,
+                                                    'x_studio_orden_de_compra':id_doc,
+                                                    'x_fecha_factura': fecha_de_factura,
+                                                    'x_folio_factura':folio_de_factura,
+                                                })
+                    
+                    if repositorio_proveedores:
+                        self.message_post(body=f"Repositorio {gestion.x_name} actualizado.")
+                                            
+                except Exception as e:
+                    self.message_post(body=f"Error al actualizar repositorio proveedores: {str(e)} ")
+
+                
+            else:
+
+                try:
+                    repositorio_proveedores = env['x_gestion_de_factura_p'].create({
+                                                    'x_studio_orden_de_compra':id_doc,
+                                                    'x_studio_proveedor':proveedor.id,
+                                                    #'x_studio_proyecto': proyecto,
+                                                    #'c_studio_presupuesto': presupuesto,
+                                                    'x_fecha_factura': fecha_de_factura,
+                                                    'x_folio_factura':folio_de_factura,
+                                                    'x_name':'repositorio',
+                                                    
+                
+                
+                                                })
+                    if repositorio_proveedores:
+                        self.message_post(body=f"Reporitorio de proveedores actualizado")
+                
+                except Exception as e:
+                    self.message_post(body=f"Error al crear registro en repositorio proveedores: {str(e)} ")
+            
+            
+        except Exception as e:
+            self.message_post(body=f"Error: {str(e)} ")
 
 class GestionFacturaProveedor(models.Model):
     _inherit = 'x_gestion_de_factura_p' 
@@ -23,6 +90,7 @@ class GestionFacturaProveedor(models.Model):
         
         return record
     
+    @api.model 
     def read_invoice(self):
         _logger.info(">>> Ejecutando read_invoice en x_gestion_de_factura_p")
         
@@ -131,4 +199,22 @@ class GestionFacturaProveedor(models.Model):
             self.message_post(body=f"Error procesando XML: {str(e)}")
        
 
-       
+            
+   
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
