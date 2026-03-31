@@ -1,0 +1,25 @@
+<odoo>
+    <data>
+        <!-- HEREDAR LA VISTA ORIGINAL -->
+        <record id="view_tree_gestion_pagos_inherit" model="ir.ui.view">
+            <field name="name">gestion.pagos.tree.inherit</field>
+            <field name="model">x_gestion_de_pagos</field>
+            <field name="inherit_id" ref="x_gestion_de_pagos.view_tree_gestion_pagos"/>
+            <field name="arch" type="xml">
+                <xpath expr="//tree" position="attributes">
+                    <attribute name="default_order">x_studio_moneda asc</attribute>
+                </xpath>
+
+                <xpath expr="//field[@name='x_studio_monto_de_pago']" position="attributes">
+                    <attribute name="group_operator">sum</attribute>
+                    <attribute name="widget">monetary</attribute>
+                </xpath>
+
+                <xpath expr="//field[@name='x_studio_monto_aprobado']" position="attributes">
+                    <attribute name="group_operator">sum</attribute>
+                    <attribute name="widget">monetary</attribute>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
