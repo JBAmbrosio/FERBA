@@ -1,15 +1,16 @@
 {
     'name': 'x_rfq',
-    'version': '15.0.1.0.0',
+    'version': '17.0.1.0.0',
     'author': 'SUINER',
     'category': 'Customization',
-    'depends': [],
+    'depends': [web],
     'data': [],
     'assets': {
         'web.assets_frontend': [
-            'x_rfq/static/src/css/bootstrap.min.css',
+            #'x_rfq/static/src/css/bootstrap.min.css',
         ],
     },
     'installable': True,
     'application': False,
+    'license': 'LGPL-3',
 }
