@@ -1,0 +1,31 @@
+<?version="1.0" encoding="utf-8"?>
+<odoo>
+    <record>
+        <field  name="name">request_componentes_proyect_list_custom</field>
+        <field  name="model">mrp.production</field>
+        <field  name="inherit_id" ref="mrp.production.view.form.custom"/>
+        <field name="arch" type="xml">
+        
+        <xpath>
+            <notebook >
+
+                <page name="terminos" string="Terminos">
+                    <group string="Terminos">
+                        <group>
+                            <field name="terminos" string="Terminos" id="terminos"/>
+                        </group>
+                    </group>
+
+                </page>
+
+            </notebook>
+
+        </xpath>
+
+
+        </field>
+
+
+    </record>
+
+</odoo>
