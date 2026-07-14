@@ -8,9 +8,8 @@
     'depends': [
         'web',
         'sale',
-        'purchase',
-        'project',
-        'x_reporte'
+        
+        
 
     ],
     'data': [
