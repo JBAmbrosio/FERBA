@@ -14,9 +14,9 @@
         </field>
     </record>
 
-    <record id="action_configuration_report" model="ir.actions.act_window">
+    <record id="action_x_reporte" model="ir.actions.act_window">
         <field name="name">Configuración de Reportes</field>
-        <field name="res_model">configuration.report</field>
+        <field name="res_model">x_reporte</field>
         <field name="view_mode">list,form</field>
     </record>
 
@@ -28,7 +28,7 @@
     <menuitem id="menu_configuration_report_sub" 
               name="Configuraciones" 
               parent="menu_configuration_report_root" 
-              action="action_configuration_report" 
+              action="action_x_reporte" 
               sequence="10"/>
 
 </odoo>
