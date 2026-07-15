@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="reports_config_custom_form" model="ir.ui.view">
+        <field name="name">configuration.x_report.form</field>
         <field name="model">x_reporte</field>
         <field name="arch" type="xml">
             <form>
@@ -13,13 +14,13 @@
 
                     <notebook colspan="4">
                         <page name="Encabezado" string="Encabezado">
-                            <group string="encabezado">
+                            <group string="encabezado"> 
                                 <group>
                                     <field name="x_studio_compaia" string="Compañia" id="compaia"/>
-                                    <field name="x_studio_direccin" string="Compañia" id="compaia"/>
-                                    <field name="x_studio_estado" string="Compañia" id="compaia"/>
-                                    <field name="x_studio_rfc" string="Compañia" id="compaia"/>
-                                    <field name="x_studio_header" string="Compañia" id="compaia"/>
+                                    <field name="x_studio_direccin" string="Dirección" id="compaia"/>
+                                    <field name="x_studio_estado" string="Estado" id="compaia"/>
+                                    <field name="x_studio_rfc" string="RFC" id="compaia"/>
+                                    <field name="x_studio_header" string="Imagen header" id="compaia"/>
                                 </group>
                             </group>
 
