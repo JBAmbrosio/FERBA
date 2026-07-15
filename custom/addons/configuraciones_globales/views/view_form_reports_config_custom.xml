@@ -6,7 +6,7 @@
             <form>
                 <sheet>
                     <group string="Nombre">
-                        <field name="name" string="Nombre de Configuración" id="name"/>
+                        <field name="x_name" string="Nombre de Configuración" id="name"/>
                     </group>
 
                    
