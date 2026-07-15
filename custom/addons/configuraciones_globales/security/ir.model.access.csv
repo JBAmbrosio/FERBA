@@ -1,2 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_x_reporte_user,access.x.reporte.user,model_x_reporte,base.group_user,1,1,1,1
+Reporte_group_empleado_encargado,Reporte.group.empleado.encargado,studio_customization.reporte_2701f814-86ee-428d-bdf8-5aa804b8ea36,hr.group_hr_user,1,1,1,0
+Reporte_group_empleado_admin,Reporte.group.empleado.admin,studio_customization.reporte_2701f814-86ee-428d-bdf8-5aa804b8ea36,hr.group_hr_manager,1,1,1,0
+Reporte_group_system,Reporte.group.system,studio_customization.reporte_2701f814-86ee-428d-bdf8-5aa804b8ea36,base.group_system,1,1,1,1
+Reporte_group_user,Reporte.group.user,studio_customization.reporte_2701f814-86ee-428d-bdf8-5aa804b8ea36,base.group_user,1,1,1,0
