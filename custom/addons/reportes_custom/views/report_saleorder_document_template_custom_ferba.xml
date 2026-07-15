@@ -17,6 +17,29 @@
             
                 
                 <div class="page">
+
+
+                     <div class="row" style="margin-top:1px !important;">
+            <div class="col-4 text-start">
+                
+                <div style="font-family: 'Arial Narrow', Arial, sans-serif; font-size: 10px; line-height: 1.1; color: #333333;">
+                    
+                    <div style="font-size: 10px; text-align:justify !important;">
+                        <span t-field="doc.partner_id.contact_address"/>
+                    </div>
+                    
+                    <t t-if="doc.x_studio_rfc_cliente">
+                        <span style="font-size: 11px; font-weight:bold; text-align:left !important;" t-esc="doc.x_studio_rfc_cliente"/>
+                    </t>
+                    
+                    <t t-if="doc.x_studio_moneda_cliente">
+                        <div><strong>Moneda:</strong> <span t-esc="doc.x_studio_moneda_cliente"/></div>
+                    </t>
+                    
+                </div>
+                
+            </div>
+        </div>
                     <div class="oe_structure"/>
 
                     <t t-set="is_proforma" t-value="env.context.get('proforma', False) or is_pro_forma"/>
@@ -26,6 +49,29 @@
                         <span t-else="">Order # </span>
                         <span t-field="doc.name">SO0000</span>
                     </t>
+
+                     <div class="row">   
+            <div class="col-12 text-center"> 
+                <h3 style="font-weight:bold; font-family: 'Arial Narrow', Arial, sans-serif; font-size:20px !important;">
+                    <t t-if="not (env.context.get('proforma', False) or is_pro_forma)">
+                        <span t-if="doc.state not in ['draft','sent']">PEDIDO: </span>
+                        <span t-if="doc.state in ['draft','sent']">COTIZACIÓN: </span>
+                    </t>
+                    <t t-if="env.context.get('proforma', False) or is_pro_forma">
+                        <span>PRO-FORMA: </span>
+                    </t>
+                    <span t-esc="doc.x_studio_n_proyecto"> - <span t-field="doc.name"/></span>
+                </h3>
+            </div>
+        </div>
+
+             
+        <div class="row">
+            <div class="col-12 text-center" style="text-align: center;"> 
+                <p style="font-weight:bold; font-size:14px; font-family: 'Times New Roman', Times, serif;" t-esc="doc.x_studio_nombre_proyecto"/>
+            </div>
+        </div>
+
 
                     <div class="row mb-4" id="informations">
                         <div t-if="doc.client_order_ref" class="col" name="informations_reference">
@@ -66,9 +112,10 @@
                         <!-- In case we want to repeat the header, remove "display: table-row-group" -->
                         <thead style="display: table-row-group">
                             <tr>
-                                <th name="th_description" class="text-start">Description</th>
+                                <th name="th_id" class="text-center">ID</th>
+                                <th name="th_description" class="text-start">Concepto</th>
                                 <th name="th_quantity" class="text-end text-nowrap">Quantity</th>
-                                <th name="th_priceunit" class="text-end text-nowrap">Unit Price</th>
+                                <th name="th_priceunit" class="text-end text-nowrap">P. UNITARIO</th>
                                 <th name="th_discount" t-if="display_discount" class="text-end">
                                     <span>Disc.%</span>
                                 </th>
@@ -78,9 +125,11 @@
                                 <th name="th_subtotal" class="text-end">
                                     <span>Amount</span>
                                 </th>
+                                <th name="th_ImgProduct" class="text-center">PRODUCTO</th>
                             </tr>
                         </thead>
                         <tbody class="sale_tbody">
+                             <t t-set="idv" t-value="1"/>
 
                             <t t-set="current_section" t-value="None"/>
                             <t t-set="current_subsection" t-value="None"/>
@@ -149,8 +198,19 @@
                                         </td>
                                     </tr>
                                     <tr t-else="" name="tr_product">
-                                        <td name="td_product_name" t-att-class="padding_class">
-                                            <span t-field="line.name">Bacon Burger</span>
+                                     <td name="td_idv" class="text-center align-middle" style="border: 1px solid #dee2e6 !important;">
+                                        <t t-if="not line.display_type">
+                                            <span style="font-size:13px; font-weight:bold; font-family: 'Times New Roman', Times, serif;" t-esc="line_index + 1"/>
+                                        </t>
+                                    </td>
+                                        
+                                          <td name="td_name" class="text-center">
+                                            <t t-if="not line.display_type">
+                                                <span style="font-size:15px; font-family: 'Times New Roman', Times, serif;" t-field="line.product_id.name"/>
+                                            </t>
+                                            <t t-else="">
+                                                <span t-field="line.name"/>
+                                            </t>
                                         </td>
                                         <td name="td_product_quantity" class="o_td_quantity text-end">
                                             <span t-field="line.product_uom_qty" class="text-nowrap">3</span>
@@ -185,6 +245,12 @@
                                                     27.00
                                                 </span>
                                             </t>
+                                        </td>
+                                         <td name="td_ImgProduct_line" class="text-center align-middle" style="border: 1px solid #dee2e6 !important; width: 80px; min-width: 80px;">
+                                            <t t-if="not line.display_type and line.x_studio_foto">
+                                                <img t-att-src="image_data_uri(line.x_studio_foto)" style="max-height: 50px; max-width: 50px; object-fit: contain;" alt="Producto"/>
+                                            </t>
+                                             <t t-set="idv" t-value="idv + 1"/>
                                         </td>
                                     </tr>
                                 </t>
@@ -262,6 +328,157 @@
                             <span t-field="doc.fiscal_position_id.sudo().note">No further requirements for this payment</span>
                         </p>
                     </div>
+
+
+                       <!--Esta tabla controla formas de pago, condiciones de venta-->
+        <div>
+        <!-- genera una nueva pagina  <div style="page-break-before: always;"> <p style="page-break-after:always;">   </p>-->
+          
+
+                    
+            <!-- Incia Reporte FErba-->
+            <section id="ReporteCotizacionesFerba">
+                <t t-foreach="request.env['x_reporte'].search([], limit=1)" t-as="obj_product">
+                    
+                    <!-- Is there a discount on at least one line? -->
+                    <t t-set="display_discount" t-value="any(l.discount for l in doc.order_line)"/>
+                    
+                   <table class="table table-sm table-borderless" style="border-tope:none !importat; border:none;">
+                        <tbody>
+                            
+                            <!--<t t-if="doc.x_studio_formas_de_pago">-->
+                            <t t-if="doc.x_studio_detalles_de_pago">
+                                <tr class="table-active text-center" style=" background-color: rgba(192, 192, 192, 0.4);  color: black;  text-transform: uppercase;">
+                                    <td style="font-size:15px;   margin:0 !important; padding:0;">  
+                                        <p style="  margin:0 !important; padding:0 !important; font-weight:bold; font-family: 'Times New Roman', Times, serif;">Forma de Pago</p>
+                                    </td>
+                                </tr>
+                              
+                            <tr>
+                                <td>
+                                    <p style=" font-size:11px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+  
+                                          <!--Variable Formas de Pago -->
+                                      
+                                            <!--<t style="font-size:11px;"  t-esc="doc.x_studio_formas_de_pago"/>-->
+                                             <t style="font-size:9px;" t-esc="doc.x_studio_detalles_de_pago"/>
+                                     
+                                          <!--Variable Formas de Pago-->
+                                      </p>
+                                  </td>
+                              </tr>
+                            </t>
+
+                             <t t-if="doc.x_studio_condiciones_de_venta">
+                              <tr class="table-active text-center" style=" background-color: rgba(192, 192, 192, 0.4);  color: black;  text-transform: uppercase;">
+  
+                               <td style="font-size:15px; margin:0 !important; padding:0;">  
+                                    <p style="  margin:0 !important; padding:0 !important; font-weight:bold; font-family: 'Times New Roman', Times, serif;">
+                                    Condiciones De Venta
+                                    </p>
+                                  </td>
+                                  
+                              </tr>
+                              <tr>
+                                  <td>
+                                  <p style=" font-size:11px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+  
+                                          <!--Variable Condiciones De Venta-->
+                                           <t style="font-size:11px;" t-esc="doc.x_studio_condiciones_de_venta"/>
+                                         <!-- <t t-esc="obj_product.x_studio_condiciones_de_venta"/>-->
+                                          <!--Variable Condiciones De Venta-->
+                                      </p>
+                                  </td>
+                              </tr>
+                            </t>
+                            
+                             <t t-if="doc.x_tiempo_entrega">
+                              <tr class="table-active text-center" style=" background-color: rgba(192, 192, 192, 0.4);  color: black;  text-transform: uppercase;">
+  
+                               <td style="font-size:15px; margin:0 !important; padding:0;">  
+                                    <p style="  margin:0 !important; padding:0 !important; font-weight:bold; font-family: 'Times New Roman', Times, serif;">
+                                    Tiempo de Entrega
+                                    </p>
+                                  </td>
+                                  
+                              </tr>
+                              <tr>
+                                  <td>
+                                  <p style=" font-size:11px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+  
+                                          <!--Variable Tiempos de entrega-->
+                                           <t style="font-size:11px;" t-esc="doc.x_tiempo_entrega.display_name"/>
+                                   
+                                      </p>
+                                  </td>
+                              </tr>
+                            </t>
+                            
+                            <t t-if="doc.x_studio_garantia">
+                              <tr class="table-active text-center" style=" background-color: rgba(192, 192, 192, 0.4);  color: black;  text-transform: uppercase;">
+                                
+                                  <td style="font-size:15px; margin:0 !important; padding:0;">  
+                                    <p style="  margin:0 !important; padding:0 !important; font-weight:bold; font-family: 'Times New Roman', Times, serif;">
+                                    Garantia
+                                    </p>
+                                  </td>
+                              </tr>
+                              <tr>
+                                  <td>
+                                      <p style=" font-size:11px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+  
+                                          <!--Variable Garantia-->
+                                          <t style="font-size:11px;" t-esc="doc.x_studio_garantia"/>
+                                          <!--<t t-esc="obj_product.x_studio_garantia"/>-->
+                                          <!--Variable Garantia-->
+                                      </p>
+                                  </td>
+                              </tr>
+                            </t>
+                            
+                            <tr class="table-active text-center" style=" background-color: rgba(192, 192, 192, 0.4);  color: black;  text-transform: uppercase;">
+                               
+                                <td style="font-size:15px; margin:0 !important; padding:0;">  
+                                  <p style="  margin:0 !important; padding:0 !important; font-weight:bold; font-family: 'Times New Roman', Times, serif;">
+                                  Cuentas De Deposito
+                                  </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-center">   
+                                  
+                                    <p style=" font-size:13px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+                                        <!--Variable Cuentas de Deposito-->
+                                        <t t-esc="obj_product.x_studio_cuentas_deposito"/>
+                                        <!--Variable Cuentas de Deposito-->
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr style="border-top:1px solid silver;">
+                                <td>
+                                    <p style=" text-align:center; font-weight:bold; color:black; font-size:12px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+
+                                        <!--Variable Leyenda-->
+                                        <t t-esc="obj_product.x_studio_leyenda"/>
+                                        <!--Variable Leyenda-->
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <tr style="border-top:1px solid silver;">
+                                <td>
+                                    <p style=" text-align:center; font-weight:bold; color:#ff0000; font-size:15px; margin:0 !important; padding:0 !important; font-family: 'Times New Roman', Times, serif;">
+                                        <!--Variable Leyenda-->
+                                            <t t-esc="obj_product.x_studio_notificacin"/>
+                                        <!--Variable Leyenda-->
+                                    </p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t> <!--cierra el foreach-->
+            </section>
+        </div>
                     <div class="oe_structure"/>
                     <t t-set="base_address" t-value="doc.env['ir.config_parameter'].sudo().get_param('web.base.url')"/>
                     <t t-set="portal_url" t-value="base_address + '/my/orders/' + str(doc.id) + '#portal_connect_software_modal_btn'"/>

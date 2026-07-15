@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_report_config_list_custom" model="ir.ui.view">
+        <field name="name">configuration.report.list</field>
+        <field name="model">configuration.report</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" string="Nombre"/>
+                <field name="create_uid" string="Creado por"/>
+                <field name="create_date" string="Creado el"/>
+                <field name="write_date" string="actualizado el"/>
+                <field name="write_uid" string="Actualizado por"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_configuration_report" model="ir.actions.act_window">
+        <field name="name">Configuración de Reportes</field>
+        <field name="res_model">configuration.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_configuration_report_root" 
+              name="Reportes" 
+              web_icon="base,static/description/pen-to-square.png"
+              sequence="30"/>
+
+    <menuitem id="menu_configuration_report_sub" 
+              name="Configuraciones" 
+              parent="menu_configuration_report_root" 
+              action="action_configuration_report" 
+              sequence="10"/>
+
+</odoo>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="reports_config_custom_form" model="ir.ui.view">
+        <field name="model">configuration.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group string="Nombre">
+                        <field name="name" string="Nombre de Configuración" id="name"/>
+                    </group>
+
+                   
+
+                    <notebook colspan="4">
+                        <page name="Encabezado" string="Encabezado">
+                            <group string="encabezado">
+                                <group>
+                                    <field name="x_studio_compaia" string="Compañia" id="compaia"/>
+                                    <field name="x_studio_direccin" string="Compañia" id="compaia"/>
+                                    <field name="x_studio_estado" string="Compañia" id="compaia"/>
+                                    <field name="x_studio_rfc" string="Compañia" id="compaia"/>
+                                    <field name="x_studio_header" string="Compañia" id="compaia"/>
+                                </group>
+                            </group>
+
+                        </page>
+
+                        <page string="Pie de Pagina" name="Pie_de_pagina">
+                            <group string="Pie de pagina">
+                                <group>
+                                    <field name="x_studio_sitio_web" string="Sitio web" id="site"/>
+                                    <field name="x_studio_correo" string="Correo" id="correo"/>
+                                    <field name="x_studio_tel_1" string="Tel 1" id="tel1"/>
+                                    <field name="x_studio_tel_2" string="Tel 2" id="tel2"/>
+                                    <field name="x_studio_imagen_pie_de_pagina_1" string="Pie de pagina" id="piepagina"/>
+                                </group>
+                            </group>
+                        
+                        </page>
+
+                        <page name="cuentas_deposito" string="Cuentas Deposito">
+                            <group string="Cuentas deposito">
+                                <group string="Cuentas">
+                                    <field name="x_studio_cuentas_deposito" string="Cuentas deposito" id="cuentas_deposito"/>
+                                
+                                </group>
+                                
+                            </group>
+
+                        </page>
+
+                        <page string="Leyendas">
+                            <group id="leyendas" string="Leyendas">
+                                <group id="aviso" string="aviso">
+                                    <field name="x_studio_leyenda"  string="Aviso" />
+                                </group>
+                                <group id="notify" string="Notificación">
+                                    <field name="x_studio_notificacin" string="Notificación"  />
+                                    
+                                </group>
+                            </group>
+                        </page>
+                    
+                    </notebook>
+                </sheet>
+            </form>
+        
+        </field>
+    
+    </record>
+
+</odoo>
