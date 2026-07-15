@@ -1,8 +1,7 @@
 from odoo import models, fields
 
-
 class xReports(models.Model):
-    _name= 'x_reporte'
+    _name = 'x_reporte'
     _description = 'Parametriza cualquier reporte qweb de odoo'
 
     x_name = fields.Char(string="Name")
