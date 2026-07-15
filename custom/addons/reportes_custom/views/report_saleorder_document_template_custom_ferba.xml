@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
 <odoo>
-    <template id="report_saleorder_document_template_custom_ferba" inherit_id="sale.report_saleorder_document" >
+    <template id="report_saleorder_document_template_custom" inherit_id="sale.report_saleorder_document" >
         <xpath expr="." position="replace">
 
             <t t-call="web.external_layout">
@@ -336,8 +336,8 @@
           
 
                     
-            <!-- Incia Reporte FErba-->
-            <section id="ReporteCotizacionesFerba">
+            <!-- Incia Reporte -->
+            <section id="ReporteCotizaciones">
                 <t t-foreach="request.env['x_reporte'].search([], limit=1)" t-as="obj_product">
                     
                     <!-- Is there a discount on at least one line? -->
