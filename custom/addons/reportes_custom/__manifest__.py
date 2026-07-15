@@ -8,6 +8,7 @@
     'depends': [
         'web',
         'sale',
+        'x_reporte',
         
         
 

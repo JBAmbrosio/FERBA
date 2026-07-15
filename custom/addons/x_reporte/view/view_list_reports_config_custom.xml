@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_report_config_list_custom" model="ir.ui.view">
-        <field name="name">configuration.report.list</field>
-        <field name="model">configuration.report</field>
+        <field name="name">configuration.x_report.list</field>
+        <field name="model">x_reporte</field>
         <field name="arch" type="xml">
             <list>
                 <field name="name" string="Nombre"/>
