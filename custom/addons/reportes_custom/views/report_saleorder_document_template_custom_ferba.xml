@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
 <odoo>
-
+    <template id="report_saleorder_document_custom" inherit_id="sale.report_saleorder_document">
         <xpath expr="." position="replace">
 
             <t t-call="web.external_layout">
@@ -489,6 +489,6 @@
             </t>
           
         </xpath>
- 
+    </template>
 
 </odoo>
