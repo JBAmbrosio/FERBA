@@ -3,7 +3,7 @@
 <odoo>
     <template id="external_layout_standar_custom" inherit_id="web.external_layout_standard">
   
-        <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'justify-content-between')]" position="replace">
+         <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'justify-content-between')]" position="replace">
             <t t-set="obj_product" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
             <t t-if="obj_product">
                 <div class="row" style="text-align:right; width: 100%;">
@@ -38,7 +38,7 @@
             <div name="company_address" style="display:none;"/>
         </xpath>
 
-        <xpath expr="//div[contains(@class, 'o_footer_content')]" position="replace">
+        <xpath  expr="//div[contains(@class, 'o_footer_content')]" position="replace">
             <t t-set="obj_reporte" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
             <t t-if="obj_reporte">
                 <img t-if="obj_reporte.x_studio_imagen_pie_de_pagina_1" style="width: 100%; height: auto; position:absolute;" t-att-src="image_data_uri(obj_reporte.x_studio_imagen_pie_de_pagina_1)" alt="footer background"/> 
