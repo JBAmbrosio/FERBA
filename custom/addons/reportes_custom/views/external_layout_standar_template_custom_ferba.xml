@@ -11,9 +11,7 @@
             </xpath>
             
             
-            <xpath expr="//div[contains(@name,'company_address')]" position="attributes">
-                <attribute name="style">display:none</attribute>
-            </xpath>
+           
     
             <!--Encabezado de reporte saleorder ferba customizado incluye pleca header infomacion del parner y direccion del partner-->
             <xpath expr="//div[contains(@t-attf-class,'header')]" position="inside">
