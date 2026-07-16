@@ -3,17 +3,14 @@
 <odoo>
     <template id="external_layout_standar_custom" inherit_id="web.external_layout_standard">
   
-           
-    <xpath expr="." position="replace">
-
-        <div t-attf-class="header o_company_#{company.id}_layout">
+        <xpath expr="//div[contains(@class, 'd-flex') and contains(@class, 'justify-content-between')]" position="replace">
             <t t-set="obj_product" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
             <t t-if="obj_product">
-                <div class="row" style="text-align:right;">
+                <div class="row" style="text-align:right; width: 100%;">
                     <img t-if="obj_product.x_studio_header" t-att-src="image_data_uri(obj_product.x_studio_header)" style="width:80%; max-height:120px; object-fit:contain;" alt="pleca header"/>
                 </div>
 
-                <div class="row">
+                <div class="row" style="width: 100%;">
                     <div class="col-5">
                         <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height:60px; width:auto;" alt="Logo"/>
                     </div>
@@ -35,26 +32,18 @@
                     </div>
                 </div>
             </t>
-        </div>
+        </xpath>
 
-        <t t-set="layout_background_url" t-value="'data:image/png;base64,%s' % company.layout_background_image.decode('utf-8') if company.layout_background_image and company.layout_background == 'Custom' else '/base/static/img/demo_logo_report.png' if company.layout_background == 'Demo logo' else ''"/>
-        
-        <div t-attf-class="article o_report_layout_standard o_table_standard o_company_#{company.id}_layout o_snail_mail {{'o_report_layout_background' if company.layout_background != 'Blank' else ''}}" 
-             t-attf-style="{{ 'background-image: url(%s);' % layout_background_url if layout_background_url else '' }}" 
-             t-att-data-oe-model="o and o._name" 
-             t-att-data-oe-id="o and o.id" 
-             t-att-data-oe-lang="o and o.env.context.get('lang')">
-            
-            <t t-out="0"/>
-            
-        </div>
-        
-        <div t-attf-class="footer o_company_#{company.id}_layout {{report_type != 'pdf' and 'mt-auto'}}">
+        <xpath expr="//div[@name='company_address']" position="replace">
+            <div name="company_address" style="display:none;"/>
+        </xpath>
+
+        <xpath expr="//div[contains(@class, 'o_footer_content')]" position="replace">
             <t t-set="obj_reporte" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
             <t t-if="obj_reporte">
-                <img style="width: 100%; height: auto; position:absolute;" t-att-src="image_data_uri(obj_reporte.x_studio_imagen_pie_de_pagina_1)" alt="footer background"/> 
-                <div class="row" style="position:relative; top:70px;">
-                    
+                <img t-if="obj_reporte.x_studio_imagen_pie_de_pagina_1" style="width: 100%; height: auto; position:absolute;" t-att-src="image_data_uri(obj_reporte.x_studio_imagen_pie_de_pagina_1)" alt="footer background"/> 
+                
+                <div class="row" style="position:relative; top:70px; width: 100%;">
                     <div class="col-4 text-center" style="margin-left:20px !important; font-size:11px !important; color:#ffffff; padding-top:20px !important;">
                         <p> 
                             <i class="fa fa-phone" style="font-size: 16px; color: white; vertical-align: middle;"/>
@@ -79,15 +68,12 @@
                     </div>
 
                     <div class="col-3 text-center" style="color:black;" t-if="report_type == 'pdf'">
-                        Page: <span class="page"/> / <span class="topage"/>
+                        Página: <span class="page"/> / <span class="topage"/>
                     </div>
                 </div>    
             </t>
-        </div>
+        </xpath>
 
-    </xpath>
-
-      
     </template>
 
 </odoo>
