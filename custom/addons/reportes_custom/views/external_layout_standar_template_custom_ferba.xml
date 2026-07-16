@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="web.external_layout_standard"/>
         <field name="arch" type="xml">
 
-            <xpath expr="//div[starts-with(@t-attf-class, 'header')]" position="replace">
+            <xpath expr="//div[@name='company_address']/ancestor::div[1]" position="replace">
                 <div t-attf-class="header o_company_#{company.id}_layout">
                     <t t-set="obj_product" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
                     <t t-if="obj_product">
@@ -43,7 +43,7 @@
                 </div>
             </xpath>
 
-            <xpath expr="//div[starts-with(@t-attf-class, 'footer')]" position="replace">
+            <xpath expr="//div[contains(@class, 'o_footer_content')]/.." position="replace">
                 <div t-attf-class="footer o_company_#{company.id}_layout {{report_type != 'pdf' and 'mt-auto'}}">
                     <t t-set="obj_reporte" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
                     <t t-if="obj_reporte">
@@ -80,7 +80,7 @@
                     </t>
                 </div>
             </xpath>
- 
+
         </field>
     </record>
 
