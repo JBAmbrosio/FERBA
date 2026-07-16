@@ -1,87 +1,93 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
 <odoo>
-    <record id="external_layout_standar_custom" model="ir.ui.view">
-        <field name="name">external_layout_standard_custom</field>
-        <field name="inherit_id" ref="web.external_layout_standard"/>
-        <field name="arch" type="xml">
+    <template id="external_layout_standar_custom" inherit_id="web.external_layout_standard">
+  
+           
+    <xpath expr="." position="replace">
 
-            <xpath expr="//div[@name='company_address']/ancestor::div[1]" position="replace">
-                <div t-attf-class="header o_company_#{company.id}_layout">
-                    <t t-set="obj_product" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
-                    <t t-if="obj_product">
-                        <div class="row" style="text-align:right;">
-                            <img t-if="obj_product.x_studio_header" t-att-src="image_data_uri(obj_product.x_studio_header)" style="width:80%; max-height:120px; object-fit:contain;" alt="pleca header"/>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-5">
-                                <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height:60px; width:auto;" alt="Logo"/>
-                            </div>
-
-                            <div class="col-7" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
-                                <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_compaia"/>
-                                <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_direccin"/>
-                                <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_estado"/>
-
-                                <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;"><b>RFC:</b> <span t-esc="obj_product.x_studio_rfc"/></p>
-
-                                <t t-if="o and o._name == 'sale.order'">
-                                    <p t-if="o.date_order" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
-                                        <b>Fecha:</b> 
-                                        <span t-esc="str(o.date_order)[:10]"/>
-                                    </p>
-                                    
-                                    <p t-if="'validity_date' in o._fields and o.validity_date" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
-                                        <b>Vencimiento:</b> 
-                                        <span t-esc="str(o.validity_date)[:10]"/> 
-                                    </p>
-                                </t>
-                            </div>
-                        </div>
-                    </t>
+        <div t-attf-class="header o_company_#{company.id}_layout">
+            <t t-set="obj_product" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
+            <t t-if="obj_product">
+                <div class="row" style="text-align:right;">
+                    <img t-if="obj_product.x_studio_header" t-att-src="image_data_uri(obj_product.x_studio_header)" style="width:80%; max-height:120px; object-fit:contain;" alt="pleca header"/>
                 </div>
-            </xpath>
 
-            <xpath expr="//div[contains(@class, 'o_footer_content')]/.." position="replace">
-                <div t-attf-class="footer o_company_#{company.id}_layout {{report_type != 'pdf' and 'mt-auto'}}">
-                    <t t-set="obj_reporte" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
-                    <t t-if="obj_reporte">
-                        <img style="width: 100%; height: auto; position:absolute;" t-att-src="image_data_uri(obj_reporte.x_studio_imagen_pie_de_pagina_1)" alt="footer background"/> 
-                        <div class="row" style="position:relative; top:70px;">
-                            
-                            <div class="col-4 text-center" style="margin-left:20px !important; font-size:11px !important; color:#ffffff; padding-top:20px !important;">
-                                <p> 
-                                    <i class="fa fa-phone" style="font-size: 16px; color: white; vertical-align: middle;"/>
-                                    <span style="margin:0 !important; font-weight:bold; padding-top:14px !important;" t-esc="obj_reporte.x_studio_tel_1"/>
-                                    /
-                                    <span style="margin:0 !important; font-weight:bold; padding-top:14px !important;" t-esc="obj_reporte.x_studio_tel_2"/>
-                                </p>
-                            </div> 
+                <div class="row">
+                    <div class="col-5">
+                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height:60px; width:auto;" alt="Logo"/>
+                    </div>
 
-                            <div class="col-2 text-center" style="color:#ffffff; padding:20px 2px 0 2px !important; font-size:10px !important;">
-                                <p>
-                                    <i class="fa fa-globe" style="font-size: 16px; color: white;"/>
-                                    <span style="margin:0 !important; padding-top:11px !important;" t-esc="obj_reporte.x_studio_sitio_web"/>
-                                </p>
-                            </div>
-                            
-                            <div class="col-3 text-center" style="color:#ffffff; text-align: left; padding-top:20px !important; font-size:11px !important;">
-                                <p>
-                                    <i class="fa fa-envelope" style="font-size: 16px; color: white; vertical-align: middle;"/>
-                                    <span style="margin:0 !important; font-weight:bold; padding-left: 5px; vertical-align: middle;" t-esc="obj_reporte.x_studio_correo"/>
-                                </p>
-                            </div>
+                    <div class="col-7" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
+                        <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_compaia"/>
+                        <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_direccin"/>
+                        <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;" t-esc="obj_product.x_studio_estado"/>
+                        <p style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;"><b>RFC:</b> <span t-esc="obj_product.x_studio_rfc"/></p>
 
-                            <div class="col-3 text-center" style="color:black;" t-if="report_type == 'pdf'">
-                                Page: <span class="page"/> / <span class="topage"/>
-                            </div>
-                        </div>    
-                    </t>
+                        <t t-if="o and o._name == 'sale.order'">
+                            <p t-if="o.date_order" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
+                                <b>Fecha:</b> <span t-esc="str(o.date_order)[:10]"/>
+                            </p>
+                            <p t-if="'validity_date' in o._fields and o.validity_date" style="text-align:right; line-height: 1; font-size:12px; margin-top:0px; margin-bottom:0px;">
+                                <b>Vencimiento:</b> <span t-esc="str(o.validity_date)[:10]"/> 
+                            </p>
+                        </t>
+                    </div>
                 </div>
-            </xpath>
+            </t>
+        </div>
 
-        </field>
-    </record>
+        <t t-set="layout_background_url" t-value="'data:image/png;base64,%s' % company.layout_background_image.decode('utf-8') if company.layout_background_image and company.layout_background == 'Custom' else '/base/static/img/demo_logo_report.png' if company.layout_background == 'Demo logo' else ''"/>
+        
+        <div t-attf-class="article o_report_layout_standard o_table_standard o_company_#{company.id}_layout o_snail_mail {{'o_report_layout_background' if company.layout_background != 'Blank' else ''}}" 
+             t-attf-style="{{ 'background-image: url(%s);' % layout_background_url if layout_background_url else '' }}" 
+             t-att-data-oe-model="o and o._name" 
+             t-att-data-oe-id="o and o.id" 
+             t-att-data-oe-lang="o and o.env.context.get('lang')">
+            
+            <t t-out="0"/>
+            
+        </div>
+        
+        <div t-attf-class="footer o_company_#{company.id}_layout {{report_type != 'pdf' and 'mt-auto'}}">
+            <t t-set="obj_reporte" t-value="env['x_reporte'].sudo().search([], limit=1)"/>
+            <t t-if="obj_reporte">
+                <img style="width: 100%; height: auto; position:absolute;" t-att-src="image_data_uri(obj_reporte.x_studio_imagen_pie_de_pagina_1)" alt="footer background"/> 
+                <div class="row" style="position:relative; top:70px;">
+                    
+                    <div class="col-4 text-center" style="margin-left:20px !important; font-size:11px !important; color:#ffffff; padding-top:20px !important;">
+                        <p> 
+                            <i class="fa fa-phone" style="font-size: 16px; color: white; vertical-align: middle;"/>
+                            <span style="margin:0 !important; font-weight:bold; padding-top:14px !important;" t-esc="obj_reporte.x_studio_tel_1"/>
+                            /
+                            <span style="margin:0 !important; font-weight:bold; padding-top:14px !important;" t-esc="obj_reporte.x_studio_tel_2"/>
+                        </p>
+                    </div> 
+
+                    <div class="col-2 text-center" style="color:#ffffff; padding:20px 2px 0 2px !important; font-size:10px !important;">
+                        <p>
+                            <i class="fa fa-globe" style="font-size: 16px; color: white;"/>
+                            <span style="margin:0 !important; padding-top:11px !important;" t-esc="obj_reporte.x_studio_sitio_web"/>
+                        </p>
+                    </div>
+                    
+                    <div class="col-3 text-center" style="color:#ffffff; text-align: left; padding-top:20px !important; font-size:11px !important;">
+                        <p>
+                            <i class="fa fa-envelope" style="font-size: 16px; color: white; vertical-align: middle;"/>
+                            <span style="margin:0 !important; font-weight:bold; padding-left: 5px; vertical-align: middle;" t-esc="obj_reporte.x_studio_correo"/>
+                        </p>
+                    </div>
+
+                    <div class="col-3 text-center" style="color:black;" t-if="report_type == 'pdf'">
+                        Page: <span class="page"/> / <span class="topage"/>
+                    </div>
+                </div>    
+            </t>
+        </div>
+
+    </xpath>
+
+      
+    </template>
 
 </odoo>
