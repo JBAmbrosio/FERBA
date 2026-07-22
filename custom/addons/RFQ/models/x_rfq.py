@@ -56,6 +56,94 @@ class RFQ(models.Model):
             }
         }
     
+
+    def crear_solicitud_inv(self):
+    
+        self.ensure_one()
+                     
+        Lproductos = self.x_studio_rfq # listado donde se anidadn todos los productos.
+        FechaDeOrder = self.x_studio_fecha_limite
+        FlatSendRFQ = self.x_studio_enviar_rfq
+        idDoc = self.id
+        presupuesto = self.x_studio_many2one_field_7YQia
+        Es_Presupuesto = self.x_studio_proyectos #model crossovered.budget
+        CentroDeCosto = self.x_studio_proyecto #model account.analitic.account
+        send_address = self.x_direccin_de_envio #direccin de envio
+        costumer = self.x_cliente_1 #model res.partner clientes
+        quotation = self.x_cotizacin #model sale.order
+
+
+        new_folio = 0
+        banderaError = 0 #si no tiene ningun error
+        faltantes = []  # Lista para almacenar los productos con cantidad 0
+
+        #Validar que el modelo line tenga registros 
+        if len(Lproductos) == 0:
+            raise UserError("La RFQ no tiene ningun concepto solicitado")
+        else:
+            
+            for linea in Lproductos:
+                if linea.x_studio_cantidad == 0:
+                    faltantes.append(linea.x_studio_many2one_field_BBoFT.name)  # Guardar productos con error
+                    linea.write({'x_studio_error': '1'})  # Actualizar el campo de error
+                 
+                    self.message_post(body=f"La cantidad ha solicitar del producto: {linea.x_studio_many2one_field_BBoFT.name} esta en 0, indique otra cantidad")
+                    banderaError = 1 # si tiene un error se activa la bandera
+                else:
+                    linea.write({"x_studio_error": '0'})
+        
+        if banderaError == 0:
+            solicitudes = self.env['x_solicitudes'].create({
+                                'x_studio_fecha': FechaDeOrder,
+                                'x_studio_proyecto' : Es_Presupuesto.id,
+                                'x_studio_proyectos' : CentroDeCosto.id,
+                                'x_studio_requisicin': idDoc,
+                                'x_direccion_de_envio' : send_address,
+                                'x_cliente_1' :costumer.id,
+                                'x_cotizacion' : quotation.id
+                            
+                            })
+                            
+            if solicitudes:
+
+                for linea in Lproductos: 
+                    try:
+                
+                        linea_producto = self.env['x_solicitudes_line_8cdc9'].create({
+                                                'x_solicitudes_id': solicitudes.id, #Esto es el id del modelox_solicitudes
+                                                'x_studio_many2one_field_Hc2Sw': linea.x_studio_many2one_field_BBoFT.id,  # ID del producto
+                                                'x_studio_solicitado': linea.x_studio_cantidad,  # Cantidad del producto
+                                                'x_name': linea.x_name
+                                                    
+                                                })
+                        
+                    except Exception as e:
+                        self.message_post(body=f"Error al crear línea para producto {linea.x_studio_many2one_field_BBoFT.id}: {str(e)}")
+            else:
+                self.message_post(body="Fallo en la creación de solicitud de requisición")
+                
+                
+                self.write({
+                    'x_studio_estatus_rfq': '1',
+                    'x_studio_selection_field_sO1tV': '1',
+                })
+            
+            if self.x_studio_estatus_rfq == "1":
+                folio = self.x_studio_secuencia
+                
+                rfq = self.env['ir.sequence'].next_by_code('x_rfq')
+                self.write({'x_studio_secuencia':rfq})
+                
+                self.write({'x_name':self.x_studio_secuencia})
+              
+        if banderaError == 1:
+            productos_faltantes = ", ".join(faltantes)  # Unir los productos con error
+            self.message_notify(
+                title="Advertencia",  # Título de la alerta
+                message=f"Faltan campos por llenar para los siguientes productos: {productos_faltantes}",  # Mensaje
+                type="warning",  # Tipo: 'warning', 'info', 'success', 'danger'
+                sticky=True  # La notificación se quedará hasta que se cierre
+            )
     
 class RFQLine(models.Model):
 
