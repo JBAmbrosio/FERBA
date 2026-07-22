@@ -163,14 +163,14 @@ class RFQ(models.Model):
 
 
     
-    class RFQLine(models.Model):
-        _name="x_rfq_line_f0aac"
-        _description="Modelo que guarda los registros de los productos que se solicitan"
+class RFQLine(models.Model):
+    _name="x_rfq_line_f0aac"
+    _description="Modelo que guarda los registros de los productos que se solicitan"
 
-        x_name = fields.Char(string="Nombre")
-        x_studio_cantidad = fields.Integer(string="Cantidad")
-        x_rfq_id = fields.Many2one(comodel_name="x_rfq",  string="Solicitud")
-        x_studio_error = fields.Selection([('0','0'),('1','1'),],string="name")
-        x_studio_imagen = fields.Binary(string="Imagén")
-        x_studio_many2one_field_BBoFT = fields.Many2one(comodel_name="product.product",  string="Producto")
-        x_studio_sequence = fields.Integer(string="Folio")
+    x_name = fields.Char(string="Nombre")
+    x_studio_cantidad = fields.Integer(string="Cantidad")
+    x_rfq_id = fields.Many2one(comodel_name="x_rfq",  string="Solicitud")
+    x_studio_error = fields.Selection([('0','0'),('1','1'),],string="name")
+    x_studio_imagen = fields.Binary(string="Imagén")
+    x_studio_many2one_field_BBoFT = fields.Many2one(comodel_name="product.product",  string="Producto")
+    x_studio_sequence = fields.Integer(string="Folio")
