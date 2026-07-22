@@ -238,8 +238,8 @@
                                     
                                     
                                     <td name="td_ImgProduct_line" class="text-center align-middle" style="border: 1px solid #dee2e6 !important; width: 80px; min-width: 80px;">
-                                        <t t-if="not line.display_type and line.x_studio_foto">
-                                            <img t-att-src="image_data_uri(line.x_studio_foto)" style="max-height: 50px; max-width: 50px; object-fit: contain;" alt="Producto"/>
+                                        <t t-if="not line.display_type and line.x_foto_producto">
+                                            <img t-att-src="image_data_uri(line.x_foto_producto)" style="max-height: 50px; max-width: 50px; object-fit: contain;" alt="Producto"/>
                                         </t>
                                         
                                     </td>

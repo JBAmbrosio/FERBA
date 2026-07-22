@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_x_rfq_form" model="ir.ui.view">
+        <field name="name">view_rfq_form</field> 
+        <field name="model">x_rfq</field>
+        <field name="arch" type="xml">
+            <form>
+
+                <header>
+                    <button string="Enviar RFQ" name="crear_solicitud_inv" type="object" class="btn-primary" invisible="x_studio_selection_field_sO1tV not in ['0']"/>
+                    <field widget="statusbar" options="{'clickable': '1'}" name="x_studio_selection_field_sO1tV" force_save="1" readonly="True"/>
+ 
+                </header>
+
+                <sheet>
+
+                    <group string="Nombre">
+                        <field name="x_name" string="Nombre de Configuración" id="name"/>
+                    </group>
+
+                    <group>
+                        
+                        <group >
+                            <field name="x_comentarios" string="Comentarios" id="summary"/>
+                            <field name="x_studio_proyecto" string="Proyecto" id="ccosto"/>
+                            <field name="x_studio_proyectos" string="Presupuesto" id="budget"/>
+                            <field name="x_almacen" string="Almacén" id="warehouse"/>
+                            <field name="x_direccin_de_envio" string="Dirección de envío" id="addrees"/>
+                        </group>
+
+                        <group >
+                            <field name="materiales_guia" string="Materiales Guía" id="materialsguide"/>
+                            <field name="x_cotizacin" string="Cotización" id="saleorder"/>
+                            <field name="x_cliente_1" string="Cliente" id="custumer"/>
+                            <field name="x_studio_fecha_limite" string="Fecha limite" id="limitdate"/>
+                            <field name="x_studio_secuencia" string="Folio" id="sequence"/>
+                        </group>
+                    </group>
+
+
+                    <notebook>
+                        <page string="Materiales" name="Page_materiales">
+                            <field name="x_studio_rfq" mode="list" readonly="x_studio_estatus_rfq == '1'">
+                                <list editable="bottom" decoration-danger="x_studio_error == '1'" decoration-info="x_studio_error == '0'">
+                                    <field name="x_studio_many2one_field_BBoFT" string="producto"/>
+                                    <field name="x_studio_imagen" widget="image" options="{'size': [40,40]}" string="Imagen"/>
+                                    <field name="x_studio_cantidad" string="Cantidad" required="1"/>
+                                    <field name="x_name" string="Descripción" />
+                                </list>
+
+                            </field>
+                        </page>
+                    </notebook>
+
+
+
+                </sheet>
+            </form>
+
+
+        </field>
+
+    </record>
+</odoo>
