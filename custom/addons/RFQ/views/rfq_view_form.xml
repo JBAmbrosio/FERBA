@@ -30,7 +30,7 @@
                         <group >
                             <field name="x_comentarios" string="Comentarios" id="summary"/>
                             <field name="x_studio_proyecto" string="Proyecto" id="ccosto"/>
-                            <field name="x_studio_proyectos" string="Presupuesto" id="budget"/>
+                            <!--<field name="x_studio_proyectos" string="Presupuesto" id="budget"/>-->
                             <field name="x_almacen" string="Almacén" id="warehouse"/>
                             <field name="x_direccin_de_envio" string="Dirección de envío" id="addrees"/>
                         </group>
