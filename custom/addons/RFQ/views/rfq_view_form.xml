@@ -1,14 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_x_rfq_form" model="ir.ui.view">
-        <field name="name">view_rfq_form</field> 
+        <field name="name">x_rfq_form</field> 
         <field name="model">x_rfq</field>
         <field name="arch" type="xml">
             <form>
 
                 <header> 
-                    <button string="Enviar RFQ" name="crear_solicitud_inv" type="object" class="btn-primary" invisible="x_studio_selection_field_sO1tV not in ['0']"/>
-                    <field widget="statusbar" options="{'clickable': '1'}" name="x_studio_selection_field_sO1tV" force_save="1" readonly="True"/>
+                    <button string="Enviar" 
+                            name="crear_solicitud_inv" 
+                            type="object" 
+                            class="oe_highlight"
+                            />
+
+                    <field widget="statusbar" 
+                            options="{'clickable': '1'}" 
+                            name="x_studio_selection_field_sO1tV" 
+                            force_save="1" 
+                            readonly="True"/>
  
                 </header>
 
