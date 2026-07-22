@@ -21,7 +21,7 @@ class RFQ(models.Model):
     x_studio_many2one_field_7YQia = fields.Many2one(string="Proyecto", comodel_name='project.project')
     x_studio_orden_de_venta = fields.Char(string="Orden de venta")
     x_studio_proyecto = fields.Many2one(string="Centro de costo", comodel_name='account.analytic.account')
-    #x_studio_proyectos = fields.Many2one(string="Presupuesto" , comodel_name='budget.analytic')
+    x_studio_proyectos = fields.Many2one(string="Presupuesto" , comodel_name='budget.analytic')
     x_studio_rfq = fields.One2many(string="RFQ", comodel_name='x_rfq_line_f0aac', inverse_name='x_rfq_id')
     x_studio_secuencia = fields.Char(string="Secuencia")
     x_studio_selection_field_sO1tV = fields.Selection([('0','REQUISICIÓN'),('1','RFQ ENVIADA')],string="name")
