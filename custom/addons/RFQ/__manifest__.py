@@ -3,7 +3,7 @@
 
     'name': 'Requisición',
     'version' :'19.0.0.0.0',
-    'author': 'Suiner',
+    'author': 'company',
     'summary': 'El modelo de RFQ permite crear solicitudes a inventario',
     'depends': [
             'base',
@@ -16,8 +16,9 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        #'views/rfq_view_form.xml',  
-        #'views/rfq_view_list.xml',
+        'data/ir_sequence.xml',
+        'views/rfq_view_form.xml',  
+        'views/rfq_view_list.xml',
     ],
 
 
