@@ -7,7 +7,7 @@
             <form>
 
                 <header>
-                    <button string="Enviar RFQ" name="crear_solicitud_inv" type="object" class="btn-primary" invisible="x_studio_selection_fields_sO1tV not in ['0']"/>
+                    <button string="Enviar RFQ" name="crear_solicitud_inv" type="object" class="btn-primary" invisible="x_studio_selection_field_sO1tV not in ['0']"/>
                     <field widget="statusbar" options="{'clickable': '1'}" name="x_studio_selection_field_sO1tV" force_save="1" readonly="True"/>
  
                 </header>

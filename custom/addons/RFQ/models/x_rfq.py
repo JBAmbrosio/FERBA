@@ -24,7 +24,7 @@ class RFQ(models.Model):
     x_studio_proyectos = fields.Many2one(string="Presupuesto" ,comodel_name='budget.analytic')
     x_studio_rfq = fields.One2many(string="RFQ", comodel_name='x_rfq_line_f0aac', inverse_name='x_rfq_id')
     x_studio_secuencia = fields.Char(string="Secuencia")
-    x_studio_selection_fields_sO1tV = fields.Selection([('0','REQUISICIÓN'),('1','RFQ ENVIADA'),],string="name")
+    x_studio_selection_field_sO1tV = fields.Selection([('0','REQUISICIÓN'),('1','RFQ ENVIADA'),],string="name")
     x_studio_sequence = fields.Integer(string="Secuencia")
     x_studio_solicitud = fields.Many2one(string="Solicitud", comodel_name='x_solicitudes')
 
@@ -135,7 +135,7 @@ class RFQ(models.Model):
                 
                 self.write({
                     'x_studio_estatus_rfq': '1',
-                    'x_studio_selection_fields_sO1tV': '1',
+                    'x_studio_selection_field_sO1tV': '1',
                 })
             
             if self.x_studio_estatus_rfq == "1":
