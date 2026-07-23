@@ -2,8 +2,9 @@ from odoo import models, fields
 
 class RFQ(models.Model):
 
-    _name = "x_rfq"
-
-    x_active = fields.Boolean(string="Activo")
+    _inherit = "x_rfq" 
+    _description = "Modelo utilizado para realizar requiciones a inventarios"
+  
+    x_active = fields.Boolean(string="Activo") 
     x_name = fields.Char(string="Nombre")
    
