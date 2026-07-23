@@ -16,8 +16,9 @@
     ],
     'data': [
         'security/ir.model.access.csv',
-        #'views/rfq_view_form.xml',  
-        #'views/rfq_view_list.xml',
+        'data/ir_sequence.xml',
+        'views/rfq_view_form.xml',  
+        'views/rfq_view_list.xml',
     ],
 
 
