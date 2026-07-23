@@ -8,14 +8,17 @@
 
                 <header> 
 
-                    <!--<button string="Enviar RFQ" name="crear_solicitud_inv" type="object" class="btn-primary" 
-                    invisible="x_studio_selection_field_sO1tV not in ['0']"/>--> 
+                        <button string="Enviar 
+                                RFQ" name="crear_solicitud_inv" 
+                                type="object" 
+                                class="btn-primary" 
+                                invisible="x_studio_selection_field_sO1tV not in ['0']"/>
                    
-                    <field widget="statusbar" 
-                            options="{'clickable': '1'}" 
-                            name="x_studio_selection_field_sO1tV" 
-                            force_save="1" 
-                            readonly="True"/>
+                        <field widget="statusbar" 
+                                options="{'clickable': '1'}" 
+                                name="x_studio_selection_field_sO1tV" 
+                                force_save="1" 
+                                readonly="True"/>
  
                 </header>
 
@@ -30,13 +33,13 @@
                         <group >
                             <field name="x_comentarios" string="Comentarios" id="summary"/>
                             <field name="x_studio_proyecto" string="Proyecto" id="ccosto"/>
-                            <!--<field name="x_studio_proyectos" string="Presupuesto" id="budget"/>-->
+                            <field name="x_studio_proyectos" string="Presupuesto" id="budget"/>
                             <field name="x_almacen" string="Almacén" id="warehouse"/>
                             <field name="x_direccin_de_envio" string="Dirección de envío" id="addrees"/>
                         </group>
 
                         <group >
-                            <!--<field name="materiales_guia" string="Materiales Guía" id="materialsguide"/>--> 
+                            <field name="materiales_guia" string="Materiales Guía" id="materialsguide"/>
                             <field name="x_cotizacin" string="Cotización" id="saleorder"/>
                             <field name="x_cliente_1" string="Cliente" id="custumer"/>
                             <field name="x_studio_fecha_limite" string="Fecha limite" id="limitdate"/>
