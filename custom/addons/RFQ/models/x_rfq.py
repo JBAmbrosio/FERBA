@@ -4,8 +4,7 @@ from odoo.exceptions import UserError
 class RFQ(models.Model):
 
     _inherit = "x_rfq"
-    _description = "Modelo utilizado para realizar requiciones a inventarios"
-  
+
     x_active = fields.Boolean(string="Activo")
     x_almacen = fields.Many2one(string="Almacén", comodel_name='stock.warehouse', help='Almacén')
     x_cliente_1 = fields.Many2one(string="Cliente", comodel_name='res.partner', help='Cliente realcionado a la cotización')
@@ -159,8 +158,8 @@ class RFQ(models.Model):
    
 class RFQLine(models.Model):
 
-    _name = "x_rfq_line_f0aac"
-    _description = "Modelo que guarda los registros de los productos que se solicitan"
+    _inherit = "x_rfq_line_f0aac"
+    _description = "Modelo que guarda los registros de los productos que se solicitan" 
     x_name = fields.Char(string="Nombre")
     x_studio_cantidad = fields.Integer(string="Cantidad")
     x_rfq_id = fields.Many2one(comodel_name="x_rfq",  string="Solicitud")
