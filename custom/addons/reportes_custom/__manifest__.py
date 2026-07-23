@@ -2,7 +2,7 @@
 {
     'name': 'Personalización de reportes qweb',
     'version': '1.0.1',
-    'author': 'SUINER',
+    'author': 'company',
     'category': 'Sales',
     'summary': 'Cambia la arquitectura de los diseños nativos de qweb',
     'depends': [

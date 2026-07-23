@@ -8,6 +8,8 @@
     'summary': 'El modelo de RFQ permite crear solicitudes a inventario',
     'depends': [
             'web',
+            'stock', 
+            'studio_customization',
           
     ],
     'data': [
