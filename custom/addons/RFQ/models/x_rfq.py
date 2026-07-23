@@ -3,7 +3,7 @@ from odoo.exceptions import UserError
 
 class RFQ(models.Model):
 
-    _name = "x_rfq"
+    _inherit = "x_rfq"
     _description = "Modelo utilizado para realizar requiciones a inventarios"
   
     x_active = fields.Boolean(string="Activo")
@@ -158,7 +158,6 @@ class RFQ(models.Model):
               
    
 class RFQLine(models.Model):
-
 
     _name = "x_rfq_line_f0aac"
     _description = "Modelo que guarda los registros de los productos que se solicitan"
