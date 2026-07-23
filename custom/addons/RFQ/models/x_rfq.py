@@ -155,11 +155,11 @@ class RFQ(models.Model):
             return True
    
               
-   
+""" 
 class RFQLine(models.Model):
 
     _inherit = "x_rfq_line_f0aac"
-    _description = "Modelo que guarda los registros de los productos que se solicitan" 
+    
     x_name = fields.Char(string="Nombre")
     x_studio_cantidad = fields.Integer(string="Cantidad")
     x_rfq_id = fields.Many2one(comodel_name="x_rfq",  string="Solicitud")
@@ -167,6 +167,8 @@ class RFQLine(models.Model):
     x_studio_imagen = fields.Binary(string="Imagén")
     x_studio_many2one_field_BBoFT = fields.Many2one(comodel_name="product.product",  string="Producto")
     x_studio_sequence = fields.Integer(string="Folio")
+
+""" 
 
 
 
