@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+RFQ_group_system,RFQ.group.system,studio_customization.rfq_7a60b6ec-86da-4911-9160-00c45f7a6263,base.group_system,1,1,1,1
+RFQ_group_user,RFQ.group.user,studio_customization.rfq_7a60b6ec-86da-4911-9160-00c45f7a6263,base.group_user,1,1,1,0

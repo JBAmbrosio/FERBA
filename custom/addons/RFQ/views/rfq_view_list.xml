@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<odoo>
+    <record id="view_rfq_list" model="ir.ui.view">
+        <field name="name">list_x_rfq</field>
+        <field name="model">x_rfq</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="x_name"/>
+                <field name="x_comentarios"/>
+                <field name="x_studio_fecha_limite"/>
+                <field name="x_studio_secuencia"/>
+                <field name="create_uid" string="Creado por"/>
+                <field name="create_date" string="Creado el"/>
+                <field name="write_date" string="actualizado el"/>
+                <field name="write_uid" string="Actualizado por"/>
+                <field name="x_studio_estatus_rfq" widget="badge" string="Estatus RFQ"/>
+            </list>
+
+        </field>
+    </record>
+
+
+    <record id="action_x_rfq" model="ir.actions.act_window">
+        <field name="name">rfq</field>
+        <field name="res_model">x_rfq</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_rfq_list" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_rfq_list"/>
+        <field name="act_window_id" ref="action_x_rfq"/>
+    </record>
+
+    <record id="action_rfq_form" model="ir.actions.act_window.view">
+        <field name="sequence">2</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_x_rfq_form"/>
+        <field name="act_window_id" ref="action_x_rfq"/>
+    </record>
+
+    <menuitem id="menu_x_rfq_root" 
+              name="RFQ python" 
+              web_icon="base,static/description/pen-to-square.png"
+              sequence="30"/>
+
+    <menuitem id="menu_x_rfq_sub" 
+              name="RFQ python" 
+              parent="menu_x_rfq_root" 
+              action="action_x_rfq" 
+              sequence="10"/>
+
+
+</odoo>
