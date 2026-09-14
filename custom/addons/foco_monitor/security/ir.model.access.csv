@@ -1,0 +1,19 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_foco_category_user,foco.category user,model_foco_category,group_foco_user,1,0,0,0
+access_foco_category_manager,foco.category manager,model_foco_category,group_foco_manager,1,1,1,1
+access_foco_app_user,foco.app user,model_foco_app,group_foco_user,1,0,0,0
+access_foco_app_manager,foco.app manager,model_foco_app,group_foco_manager,1,1,1,1
+access_foco_site_user,foco.site user,model_foco_site,group_foco_user,1,0,0,0
+access_foco_site_manager,foco.site manager,model_foco_site,group_foco_manager,1,1,1,1
+access_foco_computer_user,foco.computer user,model_foco_computer,group_foco_user,1,0,0,0
+access_foco_computer_manager,foco.computer manager,model_foco_computer,group_foco_manager,1,1,1,1
+access_foco_usage_user,foco.usage user,model_foco_usage,group_foco_user,1,0,0,0
+access_foco_usage_manager,foco.usage manager,model_foco_usage,group_foco_manager,1,1,1,1
+access_foco_command_user,foco.command user,model_foco_command,group_foco_user,1,0,0,0
+access_foco_command_manager,foco.command manager,model_foco_command,group_foco_manager,1,1,1,1
+access_foco_settings_user,foco.settings user,model_foco_settings,group_foco_user,1,0,0,0
+access_foco_settings_manager,foco.settings manager,model_foco_settings,group_foco_manager,1,1,1,1
+access_foco_invitation_user,foco.invitation user,model_foco_invitation,group_foco_user,1,0,0,0
+access_foco_invitation_manager,foco.invitation manager,model_foco_invitation,group_foco_manager,1,1,1,1
+access_foco_absence_user,foco.absence user,model_foco_absence,group_foco_user,1,0,0,0
+access_foco_absence_manager,foco.absence manager,model_foco_absence,group_foco_manager,1,1,1,1

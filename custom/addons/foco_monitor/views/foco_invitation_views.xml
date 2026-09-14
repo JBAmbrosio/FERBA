@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_invitation_view_list" model="ir.ui.view">
+        <field name="name">foco.invitation.list</field>
+        <field name="model">foco.invitation</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="employee_id"/>
+                <field name="email"/>
+                <field name="token"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'sent'"
+                       decoration-success="state == 'enrolled'"
+                       decoration-muted="state == 'draft'"
+                       decoration-danger="state == 'expired'"/>
+                <field name="computer_id"/>
+                <field name="sent_at"/>
+                <field name="enrolled_at"/>
+                <field name="expiry"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_invitation_view_form" model="ir.ui.view">
+        <field name="name">foco.invitation.form</field>
+        <field name="model">foco.invitation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send" type="object" string="Enviar invitación"
+                            class="btn-primary" invisible="state == 'enrolled'"/>
+                    <button name="action_regenerate" type="object" string="Regenerar código"
+                            class="btn-secondary"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent,enrolled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="email"/>
+                            <field name="token" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="expiry"/>
+                            <field name="computer_id"/>
+                            <field name="sent_at"/>
+                            <field name="enrolled_at"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_invitation_action" model="ir.actions.act_window">
+        <field name="name">Invitaciones</field>
+        <field name="res_model">foco.invitation</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Invita a tus empleados</p>
+            <p>Desde <b>Empleados › Acciones › Invitar a Foco</b> se crea aquí una invitación
+               y se envía el correo con el código. Aquí ves el estado de cada una.</p>
+        </field>
+    </record>
+</odoo>

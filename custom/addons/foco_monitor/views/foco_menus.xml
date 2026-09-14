@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_foco_root" name="Foco" sequence="90"/>
+
+    <menuitem id="menu_foco_dashboard" name="Tablero"
+              parent="menu_foco_root" action="foco_dashboard_action" sequence="10"/>
+
+    <menuitem id="menu_foco_detalle" name="Detalle de uso"
+              parent="menu_foco_root" action="foco_usage_action" sequence="15"/>
+
+    <menuitem id="menu_foco_ausencias" name="Periodos sin actividad"
+              parent="menu_foco_root" action="foco_absence_action" sequence="18"/>
+
+    <menuitem id="menu_foco_computers" name="Computadoras"
+              parent="menu_foco_root" action="foco_computer_action" sequence="20"/>
+
+    <menuitem id="menu_foco_apps" name="Aplicaciones"
+              parent="menu_foco_root" action="foco_app_action" sequence="30"/>
+
+    <menuitem id="menu_foco_sites" name="Sitios"
+              parent="menu_foco_root" action="foco_site_action" sequence="32"/>
+
+    <menuitem id="menu_foco_sites_cola" name="Sitios por clasificar"
+              parent="menu_foco_root" action="foco_usage_action_sitios" sequence="33"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_invitaciones" name="Invitaciones"
+              parent="menu_foco_root" action="foco_invitation_action" sequence="35"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_commands" name="Control remoto"
+              parent="menu_foco_root" action="foco_command_action" sequence="40"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_config" name="Configuracion"
+              parent="menu_foco_root" sequence="90"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_horario" name="Horario"
+              parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
+
+    <menuitem id="menu_foco_categories" name="Categorias"
+              parent="menu_foco_config" action="foco_category_action" sequence="10"/>
+</odoo>

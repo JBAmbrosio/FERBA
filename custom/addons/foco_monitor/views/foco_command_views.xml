@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_command_view_list" model="ir.ui.view">
+        <field name="name">foco.command.list</field>
+        <field name="model">foco.command</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="computer_id"/>
+                <field name="employee_id"/>
+                <field name="command_type"/>
+                <field name="payload"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'sent'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'error'"
+                       decoration-muted="state == 'pending'"/>
+                <field name="done_at"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_command_view_form" model="ir.ui.view">
+        <field name="name">foco.command.form</field>
+        <field name="model">foco.command</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_resend" type="object" string="Reenviar"
+                            class="btn-secondary" invisible="state == 'pending'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,sent,done"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="computer_id"/>
+                            <field name="command_type"/>
+                            <field name="payload"
+                                   placeholder="Mensaje, o ejecutable a cerrar (spotify.exe)"
+                                   invisible="command_type in ('lock', 'logoff')"/>
+                        </group>
+                        <group>
+                            <field name="sent_at"/>
+                            <field name="done_at"/>
+                        </group>
+                    </group>
+                    <field name="result" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_command_action" model="ir.actions.act_window">
+        <field name="name">Ordenes de control remoto</field>
+        <field name="res_model">foco.command</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Envia una orden a un equipo</p>
+            <p>Bloquear, mostrar un mensaje, cerrar una app o cerrar sesion.
+               El agente la recoge en su siguiente reporte y devuelve el resultado.</p>
+        </field>
+    </record>
+</odoo>
