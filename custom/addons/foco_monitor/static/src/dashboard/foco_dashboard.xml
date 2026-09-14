@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Dashboard">
+        <div class="foco_dash" t-att-class="{ 'fd-dark': state.dark }" t-ref="root">
+            <header class="fd_head">
+                <div class="fd_head_l">
+                    <h1>Productividad del equipo</h1>
+                    <p class="fd_sub">
+                        <t t-if="!state.loading">
+                            <span t-esc="state.team.monitored"/> empleados ·
+                            <span class="fd_on"><span class="fd_dot on"/><t t-esc="state.team.online"/> en línea</span>
+                        </t>
+                    </p>
+                </div>
+                <div class="fd_head_r">
+                    <t t-if="state.sinSenal">
+                        <span class="fd_attn sin_senal"
+                              title="Su agente dejó de reportar: los datos de esas personas están incompletos.">
+                            <t t-esc="state.sinSenal"/> sin señal
+                        </span>
+                    </t>
+                    <t t-if="state.attention">
+                        <span class="fd_attn"><t t-esc="state.attention"/> requiere<t t-if="state.attention > 1">n</t> atención</span>
+                    </t>
+                    <div class="fd_seg" role="group">
+                        <button t-att-class="state.days === 1 ? 'on' : ''" t-on-click="() => this.setDays(1)">Hoy</button>
+                        <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
+                        <button t-att-class="state.days === 30 ? 'on' : ''" t-on-click="() => this.setDays(30)">30 días</button>
+                    </div>
+                </div>
+            </header>
+
+            <t t-if="state.loading">
+                <div class="fd_loading">Cargando…</div>
+            </t>
+            <t t-else="">
+                <section class="fd_kpis">
+                    <div class="fd_kpi">
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Índice del equipo</span>
+                            <span t-attf-class="fd_pill {{ state.team.indexDelta >= 0 ? 'up' : 'down' }}">
+                                <t t-esc="state.team.indexDelta >= 0 ? '↑' : '↓'"/> <t t-esc="Math.abs(state.team.indexDelta)"/> pts
+                            </span>
+                        </div>
+                        <div class="fd_kpi_v"><t t-esc="state.team.index"/><span class="u">%</span></div>
+                        <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="width:{{ state.team.index }}%"/></div>
+                    </div>
+
+                    <div class="fd_kpi">
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Horas productivas</span>
+                            <span t-attf-class="fd_pill {{ state.team.prodDelta >= 0 ? 'up' : 'down' }}">
+                                <t t-esc="state.team.prodDelta >= 0 ? '↑' : '↓'"/> <t t-esc="fmtDelta(state.team.prodDelta).replace('+','').replace('−','')"/>
+                            </span>
+                        </div>
+                        <div class="fd_kpi_v"><t t-esc="fmt(state.team.prod)"/></div>
+                        <div class="fd_kpi_foot">de <t t-esc="fmt(state.team.active)"/> activas</div>
+                    </div>
+
+                    <div class="fd_kpi">
+                        <div class="fd_kpi_top"><span class="fd_kpi_label">Distracción</span></div>
+                        <div class="fd_kpi_v warn"><t t-esc="fmt(state.team.distr)"/></div>
+                        <div class="fd_kpi_foot"><t t-esc="state.team.distrPct"/>% del tiempo activo</div>
+                    </div>
+
+                    <div class="fd_kpi">
+                        <div class="fd_kpi_top"><span class="fd_kpi_label">Cobertura</span></div>
+                        <div class="fd_kpi_v"><t t-esc="state.team.online"/><span class="u">/<t t-esc="state.team.monitored"/></span></div>
+                        <div class="fd_kpi_foot">equipos en línea ahora</div>
+                    </div>
+                </section>
+
+                <section class="fd_card fd_table_card">
+                    <div class="fd_card_head">
+                        <h2>Empleados</h2>
+                        <span class="fd_card_hint">ordenado por índice de productividad</span>
+                    </div>
+                    <div class="fd_table_wrap">
+                        <table class="fd_table">
+                            <thead>
+                                <tr>
+                                    <th class="c_emp">Empleado</th>
+                                    <th class="c_idx">Índice</th>
+                                    <th class="c_num">Activo</th>
+                                    <th class="c_num">Productivo</th>
+                                    <th class="c_num">Distracción</th>
+                                    <th class="c_app">App principal</th>
+                                    <th class="c_st">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.employees" t-as="e" t-key="e.id">
+                                    <tr t-attf-class="fd_row {{ e.attention ? 'attn' : '' }}"
+                                        t-attf-style="animation-delay:{{ e_index * 28 }}ms"
+                                        t-on-click="() => this.openDetail(e)">
+                                        <td class="c_emp">
+                                            <span class="fd_emp">
+                                                <span class="fd_ava" t-attf-style="--h:{{ e.hue }}"><t t-esc="e.initials"/></span>
+                                                <span class="fd_emp_txt">
+                                                    <span class="fd_emp_name" t-esc="e.name"/>
+                                                    <t t-if="e.sinSenal">
+                                                        <span class="fd_tag sin_senal"
+                                                              t-attf-title="El agente dejó de reportar ({{ e.sinSenalLabel }}). Los números están incompletos.">
+                                                            sin señal · <t t-esc="e.sinSenalLabel"/>
+                                                        </span>
+                                                    </t>
+                                                    <t t-elif="e.attention"><span class="fd_tag">baja productividad</span></t>
+                                                </span>
+                                            </span>
+                                        </td>
+                                        <td class="c_idx">
+                                            <div class="fd_idx">
+                                                <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="width:{{ e.index }}%"/></div>
+                                                <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
+                                            </div>
+                                        </td>
+                                        <td class="c_num" t-esc="fmt(e.active)"/>
+                                        <td class="c_num good" t-esc="fmt(e.prod)"/>
+                                        <td class="c_num warn" t-esc="fmt(e.distr)"/>
+                                        <td class="c_app"><span class="fd_chip" t-esc="e.topApp"/></td>
+                                        <td class="c_st">
+                                            <span t-attf-class="fd_status {{ e.online ? 'on' : 'off' }}">
+                                                <span t-attf-class="fd_dot {{ e.online ? 'on' : 'off' }}"/>
+                                                <t t-esc="e.since"/>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <t t-if="!state.employees.length">
+                                    <tr><td colspan="7" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="fd_cols">
+                    <div class="fd_card">
+                        <div class="fd_card_head"><h2>En qué se va el tiempo</h2></div>
+                        <div class="fd_stack">
+                            <t t-foreach="state.composition" t-as="c" t-key="c.key">
+                                <div t-if="c.pct > 0" t-attf-class="fd_seg_bar {{ c.key }}"
+                                     t-attf-style="width:{{ c.pct }}%" t-attf-title="{{ c.label }}: {{ c.pct }}%"/>
+                            </t>
+                        </div>
+                        <div class="fd_legend">
+                            <t t-foreach="state.composition" t-as="c" t-key="c.key">
+                                <span class="fd_leg">
+                                    <span t-attf-class="fd_dot {{ c.key }}"/>
+                                    <t t-esc="c.label"/>
+                                    <b><t t-esc="fmt(c.hours)"/></b>
+                                </span>
+                            </t>
+                        </div>
+                        <t t-if="state.team.hasIdle">
+                            <p class="fd_note">
+                                Además, <b t-esc="fmt(state.team.idle)"/> con una ventana al
+                                frente sin teclado ni mouse. No cuenta como productivo y
+                                tampoco es automáticamente ociosidad: leer o revisar cae ahí.
+                            </p>
+                        </t>
+                    </div>
+
+                    <div class="fd_card">
+                        <div class="fd_card_head"><h2>Top distracciones</h2></div>
+                        <t t-foreach="state.distractions" t-as="d" t-key="d.name">
+                            <div class="fd_drow">
+                                <span class="n" t-esc="d.name"/>
+                                <span class="bar"><span class="fill" t-attf-style="width:{{ d.pct }}%"/></span>
+                                <span class="v" t-esc="fmt(d.hours)"/>
+                            </div>
+                        </t>
+                        <t t-if="!state.distractions.length">
+                            <div class="fd_empty small">Sin distracciones clasificadas.</div>
+                        </t>
+                    </div>
+
+                    <div class="fd_card">
+                        <div class="fd_card_head">
+                            <h2>Dónde se va el navegador</h2>
+                            <span class="fd_card_hint"><t t-esc="fmt(state.team.siteHours)"/> en total</span>
+                        </div>
+                        <t t-foreach="state.sites" t-as="s" t-key="s.name">
+                            <div class="fd_app site">
+                                <span t-attf-class="fd_dot {{ s.catKey }}" t-attf-title="{{ s.catLabel }}"/>
+                                <span class="n" t-esc="s.name"/>
+                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="width:{{ s.pct }}%"/></span>
+                                <span class="v" t-esc="fmt(s.hours)"/>
+                            </div>
+                        </t>
+                        <t t-if="!state.sites.length">
+                            <div class="fd_empty small">Sin navegación registrada en este rango.</div>
+                        </t>
+
+                        <!-- La cola que de verdad mueve el número: mientras un
+                             sitio no esté clasificado, sus horas pesan como el
+                             navegador entero y no como lo que realmente son. -->
+                        <t t-if="state.team.pendCount">
+                            <div class="fd_pend">
+                                <div class="fd_pend_head">
+                                    <span><b t-esc="state.team.pendCount"/> sitios sin clasificar
+                                        · <t t-esc="fmt(state.team.pendHours)"/></span>
+                                    <button class="fd_link" t-on-click="() => this.abrirSitios()">Clasificar</button>
+                                </div>
+                                <div class="fd_pend_list">
+                                    <t t-foreach="state.pendingSites" t-as="p" t-key="p.id">
+                                        <span class="fd_chip pend"><t t-esc="p.name"/> <b t-esc="fmt(p.hours)"/></span>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </section>
+            </t>
+
+            <t t-if="state.detail">
+                <div t-attf-class="fd_scrim {{ state.open ? 'open' : '' }}" t-on-click="() => this.closeDetail()"/>
+                <aside t-attf-class="fd_drawer {{ state.open ? 'open' : '' }}" role="dialog" aria-modal="true">
+                    <div class="fd_dw_head">
+                        <span class="fd_ava lg" t-attf-style="--h:{{ state.detail.hue }}"><t t-esc="state.detail.initials"/></span>
+                        <div class="fd_dw_id">
+                            <div class="fd_dw_name" t-esc="state.detail.name"/>
+                            <div class="fd_dw_meta">
+                                <t t-if="state.detail.dept"><span t-esc="state.detail.dept"/><span class="sep">·</span></t>
+                                <span t-attf-class="fd_status {{ state.detail.online ? 'on' : 'off' }}">
+                                    <span t-attf-class="fd_dot {{ state.detail.online ? 'on' : 'off' }}"/><t t-esc="state.detail.since"/>
+                                </span>
+                            </div>
+                        </div>
+                        <button class="fd_close" t-on-click="() => this.closeDetail()" aria-label="Cerrar">✕</button>
+                    </div>
+
+                    <div class="fd_dw_stats">
+                        <div class="s"><span class="l">Índice</span><span t-attf-class="v idx {{ state.detail.meter }}"><t t-esc="state.detail.index"/>%</span></div>
+                        <div class="s"><span class="l">Activo</span><span class="v" t-esc="fmt(state.detail.active)"/></div>
+                        <div class="s"><span class="l">Productivo</span><span class="v good" t-esc="fmt(state.detail.prod)"/></div>
+                        <div class="s"><span class="l">Distracción</span><span class="v warn" t-esc="fmt(state.detail.distr)"/></div>
+                    </div>
+
+                    <div class="fd_dw_sec" t-if="state.detail.hasAnomaly">
+                        <h3>Revisar con la persona</h3>
+                        <div class="fd_anom">
+                            <div class="r" t-if="state.detail.hasInjected">
+                                <span class="l">Tiempo activo con input generado por software</span>
+                                <span class="v" t-esc="fmt(state.detail.injected)"/>
+                            </div>
+                            <div class="r" t-if="state.detail.integrityAlert">
+                                <span class="l" t-esc="state.detail.integrityAlert"/>
+                            </div>
+                            <p class="fd_anom_nota">
+                                Son indicios verificables, no una conclusión. Conviene
+                                confirmarlos con la persona antes de cualquier decisión.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="fd_dw_sec" t-if="state.detail.hasExpected">
+                        <h3>La jornada, explicada
+                            <span class="cnt" t-if="state.detail.pendingAbs">
+                                <t t-esc="state.detail.pendingAbs"/> por justificar
+                            </span>
+                        </h3>
+                        <div class="fd_acct">
+                            <div class="r head">
+                                <span class="l">Esperado <small>(su calendario)</small></span>
+                                <span class="v" t-esc="fmt(state.detail.expected)"/>
+                            </div>
+                            <div class="r">
+                                <span class="l"><span class="fd_dot productiva"/>Medido activo</span>
+                                <span class="v" t-esc="fmt(state.detail.active)"/>
+                            </div>
+                            <div class="r sub" t-if="state.detail.hasCall">
+                                <span class="l"><span class="fd_dot navegador"/>de eso, en llamadas</span>
+                                <span class="v" t-esc="fmt(state.detail.call)"/>
+                            </div>
+                            <!-- Fuera de la resta a propósito: se traslapa con
+                                 las ausencias justificadas (quien sale al médico
+                                 deja su ventana enfocada). Restarlo contaría dos
+                                 veces el mismo rato. -->
+                            <div class="r sub" t-if="state.detail.hasIdle">
+                                <span class="l" title="La aplicación tenía el foco pero no hubo teclado ni mouse. Leer, revisar o pensar cae aquí; también salir un momento. Se traslapa con las ausencias justificadas, por eso no se resta.">
+                                    <span class="fd_dot neutral"/>aparte: pantalla al frente sin teclear
+                                </span>
+                                <span class="v" t-esc="fmt(state.detail.idle)"/>
+                            </div>
+                            <div class="r">
+                                <span class="l"><span class="fd_dot neutral"/>Ausencias justificadas</span>
+                                <span class="v" t-esc="fmt(state.detail.justified)"/>
+                            </div>
+                            <div t-attf-class="r {{ state.detail.unexplained > 0.25 ? 'attn' : '' }}">
+                                <span class="l"><span class="fd_dot sin"/>Sin explicar</span>
+                                <span class="v" t-esc="fmt(state.detail.unexplained)"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fd_dw_sec">
+                        <h3>Composición del tiempo</h3>
+                        <div class="fd_stack sm">
+                            <t t-foreach="state.detail.composition" t-as="c" t-key="c.key">
+                                <div t-if="c.pct > 0" t-attf-class="fd_seg_bar {{ c.key }}"
+                                     t-attf-style="width:{{ c.pct }}%" t-attf-title="{{ c.label }}: {{ c.pct }}%"/>
+                            </t>
+                        </div>
+                        <div class="fd_legend sm">
+                            <t t-foreach="state.detail.composition" t-as="c" t-key="c.key">
+                                <span t-if="c.pct > 0" class="fd_leg"><span t-attf-class="fd_dot {{ c.key }}"/><t t-esc="c.label"/> <b><t t-esc="c.pct"/>%</b></span>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="fd_dw_sec">
+                        <h3>Aplicaciones <span class="cnt"><t t-esc="state.detail.appList.length"/></span></h3>
+                        <t t-foreach="state.detail.appList" t-as="a" t-key="a.full">
+                            <div class="fd_app">
+                                <span t-attf-class="fd_dot {{ a.catKey }}"/>
+                                <span class="n" t-esc="a.name"/>
+                                <span class="bar"><span t-attf-class="fill {{ a.catKey }}" t-attf-style="width:{{ a.pct }}%"/></span>
+                                <span class="v" t-esc="fmt(a.hours)"/>
+                            </div>
+                        </t>
+                        <t t-if="!state.detail.appList.length"><div class="fd_empty small">Sin aplicaciones en el rango.</div></t>
+                    </div>
+
+                    <div class="fd_dw_sec" t-if="state.detail.siteList.length">
+                        <h3>Sitios <span class="cnt"><t t-esc="state.detail.siteList.length"/></span></h3>
+                        <t t-foreach="state.detail.siteList" t-as="s" t-key="s.full">
+                            <div class="fd_app site">
+                                <span t-attf-class="fd_dot {{ s.catKey }}" t-attf-title="{{ s.catLabel }}"/>
+                                <span class="n" t-esc="s.name"/>
+                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="width:{{ s.pct }}%"/></span>
+                                <span class="v" t-esc="fmt(s.hours)"/>
+                            </div>
+                        </t>
+                    </div>
+
+                    <t t-if="state.detail.pc">
+                        <div class="fd_dw_foot">Equipo: <b t-esc="state.detail.pc"/></div>
+                    </t>
+                </aside>
+            </t>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_usage_view_list" model="ir.ui.view">
+        <field name="name">foco.usage.list</field>
+        <field name="model">foco.usage</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="app_id"/>
+                <field name="site_id" optional="show"/>
+                <field name="category_id"/>
+                <field name="category_source" optional="hide"/>
+                <field name="fg_active" widget="float_time" sum="1er plano activo"/>
+                <field name="call_hours" widget="float_time" sum="En llamada" optional="show"/>
+                <!-- con sum: sin el, nadie ve cuanto tiempo total estuvo la
+                     pantalla al frente sin que nadie la tocara -->
+                <field name="fg_idle" widget="float_time" sum="Sin input"/>
+                <field name="background" widget="float_time" sum="2do plano"/>
+                <field name="injected_hours" widget="float_time" sum="Sintetico" optional="hide"/>
+                <field name="call_noinput_hours" widget="float_time" sum="Llamada sin input" optional="hide"/>
+                <field name="host_status" optional="hide"/>
+                <field name="productive_hours" widget="float_time" sum="Productivas"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_usage_view_pivot" model="ir.ui.view">
+        <field name="name">foco.usage.pivot</field>
+        <field name="model">foco.usage</field>
+        <field name="arch" type="xml">
+            <pivot sample="1">
+                <field name="employee_id" type="row"/>
+                <field name="category_id" type="col"/>
+                <field name="fg_active" type="measure" widget="float_time"/>
+                <field name="fg_idle" type="measure" widget="float_time"/>
+                <field name="productive_hours" type="measure" widget="float_time"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="foco_usage_view_graph" model="ir.ui.view">
+        <field name="name">foco.usage.graph</field>
+        <field name="model">foco.usage</field>
+        <field name="arch" type="xml">
+            <graph sample="1" type="bar">
+                <field name="employee_id"/>
+                <field name="productive_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="foco_usage_view_search" model="ir.ui.view">
+        <field name="name">foco.usage.search</field>
+        <field name="model">foco.usage</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="app_id"/>
+                <field name="site_id"/>
+                <field name="category_id"/>
+                <filter name="hoy" string="Hoy"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="semana" string="Ultimos 7 dias"
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <!-- La cola de trabajo del admin: lo que todavia no pesa bien -->
+                <filter name="sitio_sin_clasificar" string="Sitio sin clasificar"
+                        domain="[('site_id', '!=', False), ('site_id.category_id', '=', False)]"/>
+                <filter name="sin_categoria" string="Sin categoria"
+                        domain="[('category_id', '=', False)]"/>
+                <separator/>
+                <!-- Lo que amerita mirar con una persona, nunca un veredicto -->
+                <filter name="sintetico" string="Con input sintetico"
+                        domain="[('injected_hours', '&gt;', 0)]"/>
+                <filter name="llamada_sin_input" string="En llamada sin tocar nada"
+                        domain="[('call_noinput_hours', '&gt;', 0)]"/>
+                <filter name="navegador_ciego" string="Navegador no identificado"
+                        domain="[('host_status', '=', 'unreadable')]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_cat" string="Categoria" context="{'group_by': 'category_id'}"/>
+                <filter name="g_app" string="Aplicacion" context="{'group_by': 'app_id'}"/>
+                <filter name="g_site" string="Sitio" context="{'group_by': 'site_id'}"/>
+                <filter name="g_origen" string="Origen de la categoria"
+                        context="{'group_by': 'category_source'}"/>
+                <filter name="g_date" string="Dia" context="{'group_by': 'date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_usage_action" model="ir.actions.act_window">
+        <field name="name">Tablero de productividad</field>
+        <field name="res_model">foco.usage</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="foco_usage_view_search"/>
+        <field name="context">{'search_default_semana': 1, 'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay uso registrado</p>
+            <p>Cuando los agentes reporten, aqui veras horas activas y productivas
+               por empleado, departamento, categoria, app y sitio.</p>
+        </field>
+    </record>
+
+    <!-- Accion directa a la cola que de verdad mueve el numero: los sitios que
+         se comen las horas y todavia no estan clasificados. -->
+    <record id="foco_usage_action_sitios" model="ir.actions.act_window">
+        <field name="name">Sitios por clasificar (por impacto)</field>
+        <field name="res_model">foco.usage</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="search_view_id" ref="foco_usage_view_search"/>
+        <field name="context">{'search_default_sitio_sin_clasificar': 1,
+                               'search_default_semana': 1,
+                               'search_default_g_site': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay sitios pendientes</p>
+            <p>Todo el tiempo de navegador ya esta clasificado.</p>
+        </field>
+    </record>
+</odoo>

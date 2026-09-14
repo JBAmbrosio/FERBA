@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_absence_view_list" model="ir.ui.view">
+        <field name="name">foco.absence.list</field>
+        <field name="model">foco.absence</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="state == 'pendiente'"
+                  decoration-muted="state == 'auto'">
+                <field name="start"/>
+                <field name="stop"/>
+                <field name="employee_id"/>
+                <field name="duration" widget="float_time" sum="Total"/>
+                <field name="kind"/>
+                <field name="state"/>
+                <field name="reason"/>
+                <field name="note" optional="show"/>
+                <field name="answered_via" optional="hide"/>
+                <field name="computer_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_absence_view_form" model="ir.ui.view">
+        <field name="name">foco.absence.form</field>
+        <field name="model">foco.absence</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="employee_id" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Periodo">
+                            <field name="start" readonly="1"/>
+                            <field name="stop" readonly="1"/>
+                            <field name="duration" widget="float_time" readonly="1"/>
+                            <field name="kind" readonly="1"/>
+                            <field name="computer_id" readonly="1"/>
+                        </group>
+                        <group string="Justificacion">
+                            <field name="state"/>
+                            <field name="reason"/>
+                            <field name="note"/>
+                            <field name="answered_at" readonly="1"/>
+                            <field name="answered_via" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Diagnostico">
+                        <field name="expected_seconds" readonly="1"
+                               help="Cuanto de este periodo caia dentro de la jornada del empleado. Si es casi cero, el calendario ya lo explica y no se le pregunta."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_absence_view_search" model="ir.ui.view">
+        <field name="name">foco.absence.search</field>
+        <field name="model">foco.absence</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="reason"/>
+                <filter name="pendientes" string="Por justificar"
+                        domain="[('state', '=', 'pendiente')]"/>
+                <filter name="justificadas" string="Justificadas"
+                        domain="[('state', '=', 'justificada')]"/>
+                <filter name="auto" string="Explicadas por calendario"
+                        domain="[('state', '=', 'auto')]"/>
+                <separator/>
+                <filter name="semana" string="Ultimos 7 dias"
+                        domain="[('start', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_state" string="Estado" context="{'group_by': 'state'}"/>
+                <filter name="g_reason" string="Motivo" context="{'group_by': 'reason'}"/>
+                <filter name="g_kind" string="Tipo" context="{'group_by': 'kind'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_absence_action" model="ir.actions.act_window">
+        <field name="name">Periodos sin actividad</field>
+        <field name="res_model">foco.absence</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_absence_view_search"/>
+        <field name="context">{'search_default_pendientes': 1, 'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin periodos registrados</p>
+            <p>Aqui aparecen los huecos de la jornada que el sistema no puede
+               explicar solo. Los que caen fuera del horario o en la comida del
+               calendario entran como "Explicadas por calendario" y nadie tiene
+               que contestarlas.</p>
+        </field>
+    </record>
+</odoo>

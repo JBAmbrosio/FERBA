@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_site_view_list" model="ir.ui.view">
+        <field name="name">foco.site.list</field>
+        <field name="model">foco.site</field>
+        <field name="arch" type="xml">
+            <!-- editable: clasificar 30 sitios tiene que costar 30 clics, no 30
+                 formularios. Es la diferencia entre que el catalogo se mantenga
+                 o se pudra. -->
+            <list editable="bottom" sample="1">
+                <field name="host" readonly="1"/>
+                <field name="category_id"/>
+                <field name="classified" column_invisible="1"/>
+                <field name="last_seen" readonly="1"/>
+                <button name="action_ver_uso" type="object" icon="fa-bar-chart"
+                        title="Ver quien y cuanto"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_site_view_search" model="ir.ui.view">
+        <field name="name">foco.site.search</field>
+        <field name="model">foco.site</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="host"/>
+                <field name="category_id"/>
+                <filter name="sin_clasificar" string="Sin clasificar"
+                        domain="[('classified', '=', False)]"/>
+                <filter name="clasificados" string="Clasificados"
+                        domain="[('classified', '=', True)]"/>
+                <separator/>
+                <filter name="group_cat" string="Categoria"
+                        context="{'group_by': 'category_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_site_action" model="ir.actions.act_window">
+        <field name="name">Sitios</field>
+        <field name="res_model">foco.site</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="foco_site_view_search"/>
+        <field name="context">{'search_default_sin_clasificar': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay sitios descubiertos</p>
+            <p>Los sitios aparecen solos cuando alguien usa el navegador. Al
+               clasificar uno, ESE peso manda sobre el de la aplicacion: asi el
+               ERP deja de valer lo mismo que YouTube solo porque los dos se
+               abren en Chrome.</p>
+            <p>El mismo sitio puede ser trabajo en un puesto y distraccion en
+               otro, por eso no viene ninguna lista predefinida.</p>
+        </field>
+    </record>
+</odoo>

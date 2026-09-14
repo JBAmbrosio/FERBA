@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_category_view_list" model="ir.ui.view">
+        <field name="name">foco.category.list</field>
+        <field name="model">foco.category</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="weight"/>
+                <field name="is_system"/>
+                <field name="app_count"/>
+                <field name="color" widget="color_picker"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_category_action" model="ir.actions.act_window">
+        <field name="name">Categorias</field>
+        <field name="res_model">foco.category</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Define como se clasifica el uso</p>
+            <p>El peso alimenta el indice de productividad. Marca "Ruido del sistema"
+               para excluir apps del sistema operativo del tiempo activo.</p>
+        </field>
+    </record>
+</odoo>

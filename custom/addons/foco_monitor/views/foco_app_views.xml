@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_app_view_list" model="ir.ui.view">
+        <field name="name">foco.app.list</field>
+        <field name="model">foco.app</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" sample="1">
+                <field name="exe" readonly="1"/>
+                <field name="name"/>
+                <!-- Se enciende solo en cuanto editas el nombre de al lado.
+                     Apagado = el agente lo mantiene al dia con el nombre que
+                     declara el propio ejecutable. -->
+                <field name="name_manual" optional="show"/>
+                <field name="category_id"/>
+                <field name="foreground_only"/>
+                <field name="classified" column_invisible="1"/>
+                <field name="last_seen" readonly="1"/>
+                <button name="action_soltar_nombre" type="object"
+                        icon="fa-refresh" title="Devolver el nombre al agente"
+                        invisible="not name_manual"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_app_view_search" model="ir.ui.view">
+        <field name="name">foco.app.search</field>
+        <field name="model">foco.app</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="exe"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <filter name="sin_clasificar" string="Sin clasificar"
+                        domain="[('classified', '=', False)]"/>
+                <filter name="clasificadas" string="Clasificadas"
+                        domain="[('classified', '=', True)]"/>
+                <separator/>
+                <filter name="nombre_admin" string="Nombre puesto por el admin"
+                        domain="[('name_manual', '=', True)]"/>
+                <filter name="nombre_del_binario" string="Nombre automatico"
+                        domain="[('name_manual', '=', False)]"/>
+                <separator/>
+                <filter name="group_cat" string="Categoria"
+                        context="{'group_by': 'category_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_app_action" model="ir.actions.act_window">
+        <field name="name">Aplicaciones</field>
+        <field name="res_model">foco.app</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="foco_app_view_search"/>
+        <field name="context">{'search_default_sin_clasificar': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay apps descubiertas</p>
+            <p>Las aplicaciones aparecen aqui solas cuando los agentes reportan uso.
+               Asignales una categoria para que cuenten en el indice.</p>
+        </field>
+    </record>
+</odoo>

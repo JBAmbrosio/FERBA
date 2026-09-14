@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_computer_view_list" model="ir.ui.view">
+        <field name="name">foco.computer.list</field>
+        <field name="model">foco.computer</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="windows_user"/>
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <field name="last_seen"/>
+                <field name="health" decoration-warning="health in ('stale','never')"
+                       decoration-muted="health == 'resting'"/>
+                <field name="minutes_since_seen" string="Min. sin reportar" optional="hide"/>
+                <field name="pending_command_count" string="Ordenes pend."/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_computer_view_form" model="ir.ui.view">
+        <field name="name">foco.computer.form</field>
+        <field name="model">foco.computer</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_reset_key" type="object"
+                            string="Regenerar API key" class="btn-secondary"
+                            confirm="El agente actual dejara de conectar hasta actualizar la key. Continuar?"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Hostname del equipo"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="windows_user"/>
+                            <field name="last_seen"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="api_key" password="True"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ordenes de control remoto">
+                            <field name="command_ids">
+                                <list editable="bottom">
+                                    <field name="command_type"/>
+                                    <field name="payload"/>
+                                    <field name="state"/>
+                                    <field name="sent_at"/>
+                                    <field name="done_at"/>
+                                    <field name="result"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Uso reciente">
+                            <field name="usage_ids">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="app_id"/>
+                                    <field name="category_id"/>
+                                    <field name="fg_active" widget="float_time"/>
+                                    <field name="background" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_computer_action" model="ir.actions.act_window">
+        <field name="name">Computadoras</field>
+        <field name="res_model">foco.computer</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registra un equipo</p>
+            <p>Crea un equipo, copia su API key y ponla en el agente
+               (variable FOCO_ODOO_KEY). El equipo se liga a un empleado.</p>
+        </field>
+    </record>
+</odoo>

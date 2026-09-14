@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Settings">
+        <div class="fs_wrap" t-att-class="{ 'fd-dark': state.dark }" t-ref="root">
+            <div class="fs_card" t-if="!state.loading">
+                <header class="fs_head">
+                    <h1>Horario de medición</h1>
+                    <p>Define cuándo los agentes registran actividad. Se aplica a todos los equipos.</p>
+                </header>
+
+                <div class="fs_switch_row">
+                    <div class="fs_switch_txt">
+                        <span class="t">Aplicar horario</span>
+                        <span class="s">Si se apaga, los agentes miden 24/7.</span>
+                    </div>
+                    <button t-attf-class="fs_switch {{ state.enabled ? 'on' : '' }}"
+                            t-on-click="() => this.setEnabled(!state.enabled)"
+                            t-att-aria-pressed="state.enabled">
+                        <span class="knob"/>
+                    </button>
+                </div>
+
+                <div class="fs_body" t-att-class="{ 'off': !state.enabled }">
+                    <div class="fs_times">
+                        <label class="fs_field">
+                            <span class="fs_label">Desde</span>
+                            <input type="time" step="1800" class="fs_time"
+                                   t-att-value="state.from"
+                                   t-on-change="(ev) => this.setTime('from', ev.target.value)"/>
+                        </label>
+                        <span class="fs_dash">→</span>
+                        <label class="fs_field">
+                            <span class="fs_label">Hasta</span>
+                            <input type="time" step="1800" class="fs_time"
+                                   t-att-value="state.to"
+                                   t-on-change="(ev) => this.setTime('to', ev.target.value)"/>
+                        </label>
+                    </div>
+
+                    <div class="fs_field">
+                        <span class="fs_label">Días activos</span>
+                        <div class="fs_days">
+                            <t t-foreach="DAYS" t-as="d" t-key="d[0]">
+                                <button t-attf-class="fs_day {{ state.days[d[0]] ? 'on' : '' }}"
+                                        t-on-click="() => this.toggleDay(d[0])"
+                                        t-att-aria-pressed="state.days[d[0]]">
+                                    <t t-esc="d[1]"/>
+                                </button>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="fs_summary" t-esc="summary"/>
+
+                <footer class="fs_foot">
+                    <button class="fs_btn ghost" t-on-click="() => this.discard()"
+                            t-att-disabled="!state.dirty">Descartar</button>
+                    <button class="fs_btn primary" t-on-click="() => this.save()"
+                            t-att-disabled="!state.dirty || state.saving">
+                        <t t-esc="state.saving ? 'Guardando…' : 'Guardar'"/>
+                    </button>
+                </footer>
+            </div>
+        </div>
+    </t>
+</templates>

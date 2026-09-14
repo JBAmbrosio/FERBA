@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_foco_user" model="res.groups">
+        <field name="name">Foco / Consulta</field>
+        <field name="comment">Puede ver equipos, uso y reportes de productividad.</field>
+    </record>
+
+    <record id="group_foco_manager" model="res.groups">
+        <field name="name">Foco / Administrador</field>
+        <field name="comment">Clasifica apps, configura categorias y envia ordenes de control remoto.</field>
+    </record>
+
+    <record id="base.user_admin" model="res.users">
+        <field name="group_ids" eval="[(4, ref('group_foco_manager'))]"/>
+    </record>
+</odoo>

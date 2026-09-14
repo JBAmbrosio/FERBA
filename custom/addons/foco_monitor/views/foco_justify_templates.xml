@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<template id="justify_styles" name="Foco justificacion - estilos">
+    <style>
+        :root {
+            --bg: #f4f6f9; --card: #fff; --line: #e4e8ef;
+            --ink: #111826; --ink2: #5b6676; --ink3: #8b95a6;
+            --accent: #2f6fed; --accent-soft: #eef3fe; --ok: #16a34a;
+            --raise: 0 1px 2px rgba(16,21,31,.06);
+            --ease: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #10141c; --card: #171c27; --line: #2b3442;
+                --ink: #e9edf4; --ink2: #aab4c4; --ink3: #7c8797;
+                --accent: #6b9bff; --accent-soft: #1b2740; --ok: #22c55e;
+                --raise: 0 1px 2px rgba(0,0,0,.35);
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; background: var(--bg); color: var(--ink);
+            font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .fj_wrap { max-width: 560px; margin: 0 auto; padding: 28px 16px 40px; }
+
+        .fj_brand {
+            margin: 0 0 18px; font-size: 12px; font-weight: 700;
+            letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+        }
+        h1 { margin: 0 0 8px; font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+        .fj_sub { margin: 0 0 24px; color: var(--ink2); font-size: 14.5px; }
+
+        .fj_flash {
+            display: flex; gap: 9px; align-items: center;
+            margin: 0 0 20px; padding: 12px 14px; border-radius: 12px;
+            background: color-mix(in srgb, var(--ok) 12%, transparent);
+            color: var(--ok); font-size: 14px; font-weight: 600;
+        }
+        .fj_flash svg { flex: 0 0 18px; }
+
+        .fj_card {
+            background: var(--card); border: 1px solid var(--line);
+            border-radius: 16px; box-shadow: var(--raise);
+            padding: 18px 18px 16px; margin-bottom: 14px;
+            opacity: 0; transform: translateY(8px);
+            animation: fj_in 320ms var(--ease) forwards;
+        }
+        .fj_card:nth-child(1) { animation-delay: 0ms; }
+        .fj_card:nth-child(2) { animation-delay: 55ms; }
+        .fj_card:nth-child(3) { animation-delay: 110ms; }
+        .fj_card:nth-child(4) { animation-delay: 165ms; }
+        .fj_card:nth-child(n+5) { animation-delay: 200ms; }
+        @keyframes fj_in { to { opacity: 1; transform: translateY(0); } }
+
+        .fj_when { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .fj_time { font-size: 20px; font-weight: 650; letter-spacing: -0.01em;
+                   font-variant-numeric: tabular-nums; }
+        .fj_dur { font-size: 12.5px; font-weight: 600; color: var(--ink2);
+                  background: var(--bg); border-radius: 999px; padding: 3px 10px; }
+        .fj_meta { margin: 6px 0 16px; color: var(--ink3); font-size: 13px; }
+
+        .fj_label { display: block; font-size: 12px; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: .05em;
+                    color: var(--ink3); margin-bottom: 9px; }
+
+        .fj_reasons { display: flex; flex-wrap: wrap; gap: 8px; }
+        .fj_pill input { position: absolute; opacity: 0; pointer-events: none; }
+        .fj_pill span {
+            display: block; min-height: 44px; padding: 11px 16px;
+            border: 1px solid var(--line); border-radius: 12px;
+            background: var(--card); color: var(--ink2);
+            font-size: 14px; font-weight: 550; cursor: pointer;
+            transition: transform 140ms var(--ease), background 160ms var(--ease),
+                        color 160ms var(--ease), border-color 160ms var(--ease);
+        }
+        .fj_pill span:active { transform: scale(0.97); }
+        .fj_pill input:checked + span {
+            background: var(--accent); border-color: var(--accent);
+            color: #fff; font-weight: 600;
+        }
+        .fj_pill input:focus-visible + span {
+            outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .fj_pill input:not(:checked) + span:hover { border-color: var(--ink3); }
+        }
+
+        .fj_note {
+            width: 100%; margin-top: 14px; padding: 11px 13px;
+            border: 1px solid var(--line); border-radius: 11px;
+            background: var(--bg); color: var(--ink); font-size: 14px; font-family: inherit;
+            transition: border-color 150ms var(--ease);
+        }
+        .fj_note::placeholder { color: var(--ink3); }
+        .fj_note:focus { outline: none; border-color: var(--accent); }
+
+        /* Estatico a proposito: con position:sticky la barra se encimaba sobre
+           la ultima tarjeta cuando la lista es corta (que es el caso normal). */
+        .fj_bar { margin-top: 20px; }
+        .fj_save {
+            width: 100%; min-height: 50px; border: 0; border-radius: 13px;
+            background: var(--accent); color: #fff;
+            font-size: 15.5px; font-weight: 650; font-family: inherit; cursor: pointer;
+            transition: transform 140ms var(--ease), opacity 160ms var(--ease);
+        }
+        .fj_save:active { transform: scale(0.985); }
+
+        .fj_done { text-align: center; padding: 40px 0 24px; }
+        .fj_done_ico {
+            width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 50%;
+            display: grid; place-items: center;
+            background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok);
+        }
+        .fj_done h2 { margin: 0 0 6px; font-size: 19px; font-weight: 650; }
+        .fj_done p { margin: 0; color: var(--ink2); font-size: 14px; }
+
+        .fj_foot { margin-top: 28px; color: var(--ink3); font-size: 12.5px; text-align: center; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fj_card { animation: none; opacity: 1; transform: none; }
+            .fj_pill span, .fj_save { transition: background 150ms ease, color 150ms ease; }
+            .fj_pill span:active, .fj_save:active { transform: none; }
+        }
+    </style>
+</template>
+
+<template id="justify_page" name="Foco - justificar periodos">
+    <html t-att-data-theme="''">
+        <head>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+            <link rel="icon" href="data:,"/>
+            <title>Foco - Periodos sin actividad</title>
+            <t t-call="foco_monitor.justify_styles"/>
+        </head>
+        <body>
+            <div class="fj_wrap">
+                <p class="fj_brand">Foco</p>
+
+                <t t-if="saved">
+                    <div class="fj_flash">
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                            <path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.2"
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span t-if="saved == 1">Listo, quedo registrado.</span>
+                        <span t-else="">Listo, quedaron registrados <t t-out="saved"/> periodos.</span>
+                    </div>
+                </t>
+
+                <t t-if="items">
+                    <h1>Periodos sin actividad</h1>
+                    <p class="fj_sub">
+                        Hola <t t-out="employee.name.split(' ')[0]"/>. Encontramos
+                        <t t-out="len(items)"/>
+                        <t t-if="len(items) == 1"> periodo </t><t t-else=""> periodos </t>
+                        de tu jornada sin registro. Cuentanos que paso y tu historial queda completo.
+                    </p>
+
+                    <form method="post">
+                        <t t-foreach="items" t-as="item">
+                            <article class="fj_card">
+                                <div class="fj_when">
+                                    <span class="fj_time">
+                                        <t t-out="item['start']"/> &#8211; <t t-out="item['end']"/>
+                                    </span>
+                                    <span class="fj_dur" t-out="item['dur_label']"/>
+                                </div>
+                                <p class="fj_meta">
+                                    <t t-out="item['when_label']"/> &#183; <t t-out="item['kind_label']"/>
+                                </p>
+
+                                <span class="fj_label">Que paso</span>
+                                <div class="fj_reasons">
+                                    <t t-foreach="reasons" t-as="r">
+                                        <label class="fj_pill">
+                                            <input type="radio"
+                                                   t-attf-name="reason_#{item['id']}"
+                                                   t-att-value="r[0]"
+                                                   t-att-checked="'checked' if r[0] == item['suggested'] else None"/>
+                                            <span t-out="r[1]"/>
+                                        </label>
+                                    </t>
+                                </div>
+
+                                <input class="fj_note" type="text" maxlength="200"
+                                       t-attf-name="note_#{item['id']}"
+                                       placeholder="Nota (opcional)"/>
+                            </article>
+                        </t>
+
+                        <div class="fj_bar">
+                            <button class="fj_save" type="submit">Guardar</button>
+                        </div>
+                    </form>
+                </t>
+
+                <t t-else="">
+                    <div class="fj_done">
+                        <div class="fj_done_ico">
+                            <svg width="26" height="26" viewBox="0 0 20 20" fill="none">
+                                <path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.2"
+                                      stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h2>Todo al dia</h2>
+                        <p>No tienes periodos pendientes por ahora.</p>
+                    </div>
+                </t>
+
+                <p class="fj_foot">
+                    Esta liga es personal y solo muestra tus propios periodos.
+                </p>
+            </div>
+        </body>
+    </html>
+</template>
+
+<template id="justify_invalid" name="Foco - liga no valida">
+    <html>
+        <head>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <title>Foco</title>
+            <t t-call="foco_monitor.justify_styles"/>
+        </head>
+        <body>
+            <div class="fj_wrap">
+                <p class="fj_brand">Foco</p>
+                <div class="fj_done">
+                    <h2>Esta liga ya no es valida</h2>
+                    <p>Las ligas caducan por seguridad. Pide una nueva a tu administrador
+                       o usa la ventana de Foco en tu equipo.</p>
+                </div>
+            </div>
+        </body>
+    </html>
+</template>
+
+</odoo>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="mail_tpl_invite" model="mail.template">
+            <field name="name">Foco: invitación de instalación</field>
+            <field name="model_id" ref="foco_monitor.model_foco_invitation"/>
+            <field name="subject">Instala Foco en tu equipo</field>
+            <field name="email_to">{{ object.email }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; color:#1a1a1a; max-width:520px;">
+                    <p>Hola <t t-out="object.employee_id.name or ''"/>,</p>
+                    <p>Instala <b>Foco</b> en tu computadora de trabajo:</p>
+                    <p>
+                        <a t-att-href="object.get_base_url() + '/foco/download'"
+                           style="background:#e30613;color:#ffffff;padding:11px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">
+                            Descargar Foco
+                        </a>
+                    </p>
+                    <p>Cuando el instalador te pida el <b>código de invitación</b>, ingresa:</p>
+                    <p style="font-size:22px;font-weight:bold;letter-spacing:3px;color:#e30613;">
+                        <t t-out="object.token or ''"/>
+                    </p>
+                    <p style="color:#777;font-size:12px;">
+                        Este código es personal y caduca. Si tienes dudas, contacta a tu administrador.<br/>
+                        FERBA · Postharvest Technology
+                    </p>
+                </div>
+            </field>
+        </record>
+        <record id="mail_tpl_absences" model="mail.template">
+            <field name="name">Foco: periodos sin actividad por completar</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="subject">¿Nos ayudas a completar tu registro de jornada?</field>
+            <field name="email_to">{{ object.work_email }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; color:#111826; max-width:520px;">
+                    <p>Hola <t t-out="object.name and object.name.split(' ')[0] or ''"/>,</p>
+                    <p>Encontramos algunos periodos de tu jornada sin registro.
+                       Si nos cuentas qué pasó, tu historial queda completo.</p>
+
+                    <!-- Tarjetas con tablas anidadas y barra de acento lateral: es lo
+                         unico que Outlook (motor de Word) renderiza de forma fiable.
+                         Nada de flexbox, grid ni variables CSS. -->
+                    <div style="margin:20px 0;">
+                        <t t-foreach="object.foco_pending_absences()" t-as="p">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+                                   style="width:100%; border-collapse:collapse; margin-bottom:12px;">
+                                <tr>
+                                    <td width="5" style="width:5px; background-color:#2f6fed; font-size:0; line-height:0;">&#160;</td>
+                                    <td style="background-color:#f7f9fc; border:1px solid #e1e7f0; border-left:0; padding:16px 18px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+                                            <tr>
+                                                <td style="font-size:19px; font-weight:bold; color:#111826;">
+                                                    <t t-out="p['start']"/> &#8211; <t t-out="p['end']"/>
+                                                </td>
+                                                <td align="right" style="white-space:nowrap;">
+                                                    <span style="background-color:#e8f0fe; color:#2f6fed; font-size:12px; font-weight:bold; padding:5px 11px; border-radius:11px;">
+                                                        <t t-out="p['dur_label']"/>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <div style="margin-top:7px; font-size:12.5px; color:#7c8797;">
+                                            <t t-out="p['when_label']"/> &#183; <t t-out="p['kind_label']"/>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </t>
+                    </div>
+
+                    <p>
+                        <a t-att-href="object.foco_justify_url()"
+                           style="background:#2f6fed;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">
+                            Completar mi registro
+                        </a>
+                    </p>
+                    <p style="color:#8b95a6;font-size:12px;">
+                        La liga es personal, solo muestra tus propios periodos y caduca por seguridad.<br/>
+                        También puedes hacerlo desde la ventana de Foco en tu equipo.<br/>
+                        FERBA · Postharvest Technology
+                    </p>
+                </div>
+            </field>
+        </record>
+
+        <record id="cron_foco_agent_health" model="ir.cron">
+            <field name="name">Foco: vigilar agentes sin señal</field>
+            <field name="model_id" ref="foco_monitor.model_foco_computer"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_check_health()</field>
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <record id="cron_foco_absences_digest" model="ir.cron">
+            <field name="name">Foco: avisar periodos sin actividad</field>
+            <field name="model_id" ref="foco_monitor.model_foco_absence"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_digest()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>
