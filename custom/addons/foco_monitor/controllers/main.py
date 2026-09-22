@@ -475,6 +475,11 @@ class FocoController(http.Controller):
             if meta.get(k_in):
                 dvals[k_field] = meta[k_in]
 
+        # Salud del agente (P0-3): va SIEMPRE, aunque el monitoreo este apagado
+        # -es telemetria del equipo, no del empleado-. Se mezcla en dvals para
+        # escribirse en una sola operacion en cualquiera de las dos ramas.
+        dvals.update(dev._health_vals(data.get('health')))
+
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
             dev.sudo().write(dvals)

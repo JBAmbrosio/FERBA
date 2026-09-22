@@ -72,6 +72,81 @@ class FocoMobileDevice(models.Model):
     last_lon = fields.Float(string='Ultima longitud', digits=(10, 7), readonly=True)
     last_fix_at = fields.Datetime(string='Ultima ubicacion', readonly=True)
 
+    # --- Salud del agente (P0-3) --------------------------------------------
+    # Telemetria del PROPIO equipo (no del empleado): permite ver en el tablero
+    # POR QUE un telefono no reporta bien -ubicacion apagada, permiso revocado,
+    # bateria matando el proceso, buffer sin vaciar- sin cable ni adb. El
+    # telefono la manda en CADA envio, aunque el monitoreo este apagado.
+    health_at = fields.Datetime(string='Salud reportada', readonly=True)
+    health_device_owner = fields.Boolean(string='Gestionado (Device Owner)', readonly=True)
+    health_location_on = fields.Boolean(string='Ubicacion encendida', readonly=True)
+    health_perm_location = fields.Boolean(string='Permiso de ubicacion', readonly=True)
+    health_perm_bg_location = fields.Boolean(string='Ubicacion en 2º plano', readonly=True)
+    health_perm_calls = fields.Boolean(string='Permiso de llamadas', readonly=True)
+    health_perm_contacts = fields.Boolean(string='Permiso de contactos', readonly=True)
+    health_usage_access = fields.Boolean(string='Acceso a uso de apps', readonly=True)
+    health_battery_unrestricted = fields.Boolean(string='Bateria sin restriccion', readonly=True)
+    health_accessibility = fields.Boolean(string='Accesibilidad activa', readonly=True)
+    health_service_running = fields.Boolean(string='Servicio activo', readonly=True)
+    health_uptime_s = fields.Integer(string='Uptime del servicio (s)', readonly=True)
+    health_buffered = fields.Integer(string='Eventos sin enviar', readonly=True)
+    health_status = fields.Selection([
+        ('unknown', 'Sin datos'), ('ok', 'OK'),
+        ('warn', 'Atencion'), ('bad', 'Problema'),
+    ], string='Salud', compute='_compute_health', store=True, default='unknown')
+    health_issues = fields.Char(string='Problemas', compute='_compute_health', store=True)
+
+    @api.depends('health_at', 'health_location_on', 'health_perm_location',
+                 'health_service_running', 'health_perm_bg_location',
+                 'health_usage_access', 'health_battery_unrestricted',
+                 'health_buffered')
+    def _compute_health(self):
+        for r in self:
+            if not r.health_at:
+                r.health_status = 'unknown'
+                r.health_issues = ''
+                continue
+            bad, warn = [], []
+            if not r.health_location_on:
+                bad.append('Ubicación apagada')
+            if not r.health_perm_location:
+                bad.append('Sin permiso de ubicación')
+            if not r.health_service_running:
+                bad.append('Servicio detenido')
+            if not r.health_perm_bg_location:
+                warn.append('Sin ubicación en 2º plano')
+            if not r.health_usage_access:
+                warn.append('Sin acceso a uso de apps')
+            if not r.health_battery_unrestricted:
+                warn.append('Batería puede matarlo')
+            if r.health_buffered and r.health_buffered > 50:
+                warn.append('%d eventos sin enviar' % r.health_buffered)
+            r.health_status = 'bad' if bad else ('warn' if warn else 'ok')
+            r.health_issues = ' · '.join(bad + warn)
+
+    def _health_vals(self, health):
+        """Traduce el bloque `health` que manda el telefono a valores del modelo.
+        Devuelve {} si no vino (agente viejo), para no pisar lo anterior."""
+        if not isinstance(health, dict) or not health:
+            return {}
+        def b(k):
+            return bool(health.get(k))
+        return {
+            'health_at': fields.Datetime.now(),
+            'health_device_owner': b('device_owner'),
+            'health_location_on': b('location_on'),
+            'health_perm_location': b('perm_location'),
+            'health_perm_bg_location': b('perm_bg_location'),
+            'health_perm_calls': b('perm_calls'),
+            'health_perm_contacts': b('perm_contacts'),
+            'health_usage_access': b('usage_access'),
+            'health_battery_unrestricted': b('battery_unrestricted'),
+            'health_accessibility': b('accessibility'),
+            'health_service_running': b('service_running'),
+            'health_uptime_s': int(health.get('uptime_s') or 0),
+            'health_buffered': int(health.get('buffered') or 0),
+        }
+
     active = fields.Boolean(default=True)
 
     location_ids = fields.One2many('foco.location', 'device_id', string='Ubicaciones')
@@ -197,6 +272,7 @@ class FocoMobileDevice(models.Model):
                 'last_seen': fields.Datetime.to_string(dv.last_seen) if dv.last_seen else '',
                 'last_lat': dv.last_lat, 'last_lon': dv.last_lon,
                 'points': puntos.get(dv.id, 0), 'calls': llam.get(dv.id, 0),
+                'health': dv.health_status, 'health_issues': dv.health_issues or '',
             })
             if dv.last_lat or dv.last_lon:
                 marcadores.append({
@@ -255,6 +331,8 @@ class FocoMobileDevice(models.Model):
             'kpis': {
                 'devices': len(devices), 'online': en_linea,
                 'retirados': retirados, 'sin_senal': sin_senal,
+                'con_problemas': sum(1 for r in dev_rows
+                                     if r.get('health') in ('bad', 'warn')),
                 'points': sum(puntos.values()),
                 'calls': sum(por_dir.values()),
                 'calls_in': por_dir['in'], 'calls_out': por_dir['out'],

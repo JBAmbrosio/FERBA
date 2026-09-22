@@ -6,12 +6,19 @@
         <field name="name">foco.mobile.device.list</field>
         <field name="model">foco.mobile.device</field>
         <field name="arch" type="xml">
-            <list string="Dispositivos moviles" decoration-danger="removed">
+            <list string="Dispositivos moviles" decoration-danger="removed"
+                  decoration-warning="health_status == 'bad' and not removed">
                 <field name="name"/>
                 <field name="employee_id"/>
                 <field name="department_id" optional="show"/>
                 <field name="phone_number" optional="show"/>
                 <field name="battery"/>
+                <field name="health_status" widget="badge" string="Salud"
+                       decoration-success="health_status == 'ok'"
+                       decoration-warning="health_status == 'warn'"
+                       decoration-danger="health_status == 'bad'"
+                       decoration-muted="health_status == 'unknown'"/>
+                <field name="health_issues" string="Problemas" optional="show"/>
                 <field name="os_version" optional="hide"/>
                 <field name="app_version" optional="hide"/>
                 <field name="last_fix_at"/>
@@ -68,6 +75,35 @@
                             <field name="last_lon"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="health_status != 'bad' or not health_at">
+                        Este equipo tiene un problema que le impide reportar bien.
+                        Revisa "Salud del equipo" aquí abajo.
+                    </div>
+                    <group string="Salud del equipo" invisible="not health_at">
+                        <group>
+                            <field name="health_status" widget="badge"
+                                   decoration-success="health_status == 'ok'"
+                                   decoration-warning="health_status == 'warn'"
+                                   decoration-danger="health_status == 'bad'"/>
+                            <field name="health_issues" invisible="not health_issues"/>
+                            <field name="health_at"/>
+                            <field name="health_device_owner"/>
+                            <field name="health_service_running"/>
+                            <field name="health_uptime_s"/>
+                            <field name="health_buffered"/>
+                        </group>
+                        <group>
+                            <field name="health_location_on"/>
+                            <field name="health_perm_location"/>
+                            <field name="health_perm_bg_location"/>
+                            <field name="health_usage_access"/>
+                            <field name="health_battery_unrestricted"/>
+                            <field name="health_accessibility"/>
+                            <field name="health_perm_calls"/>
+                            <field name="health_perm_contacts"/>
+                        </group>
+                    </group>
                     <div class="alert alert-danger" role="alert" invisible="not removed">
                         Este equipo avisó que lo están retirando. Dejó de reportar
                         por la vía normal (desactivación del administrador). Volverá
@@ -95,8 +131,14 @@
                 <field name="phone_number"/>
                 <separator/>
                 <filter name="activos" string="Activos" domain="[('active','=',True)]"/>
+                <filter name="problemas" string="Con problemas"
+                        domain="[('health_status','in',['bad','warn'])]"/>
+                <filter name="ubic_off" string="Ubicación apagada"
+                        domain="[('health_location_on','=',False),('health_at','!=',False)]"/>
+                <filter name="retirados" string="Retirados" domain="[('removed','=',True)]"/>
                 <separator/>
                 <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_salud" string="Salud" context="{'group_by': 'health_status'}"/>
             </search>
         </field>
     </record>
