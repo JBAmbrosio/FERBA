@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_foco" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.foco</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <!-- name="foco_monitor" es lo que hace que Ajustes tome el
+                     icono del modulo para la barra lateral. -->
+                <app data-string="Foco" string="Foco" name="foco_monitor"
+                     groups="foco_monitor.group_foco_manager">
+                    <block title="Accesos"
+                           help="Foco mide la actividad de personas. Quien no aparezca en ninguna de las dos listas no vera la aplicacion en su menu."
+                           name="foco_accesos">
+                        <setting id="foco_ver" string="Pueden ver Foco"
+                                 help="Ven el tablero y el detalle de uso.">
+                            <field name="foco_user_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"/>
+                        </setting>
+                        <setting id="foco_admin" string="Administran Foco"
+                                 help="Ademas de ver, clasifican aplicaciones y sitios, envian ordenes remotas y deciden estos accesos. Incluye el permiso de consulta.">
+                            <field name="foco_manager_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"/>
+                        </setting>
+                    </block>
+                    <block title="Alcance del dato"
+                           help="Quien ve Foco no tiene por que ver a toda la empresa. Aqui se decide, persona por persona, de que departamentos ve la actividad."
+                           name="foco_alcance">
+                        <setting id="foco_alcance_dep" string="Que ve cada quien"
+                                 help="Sin departamentos asignados, la persona ve la actividad de TODA la empresa. Quien administra Foco ve todo en cualquier caso.">
+                            <button name="action_foco_alcance" type="object"
+                                    string="Repartir departamentos"
+                                    class="btn-link" icon="fa-arrow-right"/>
+                        </setting>
+                    </block>
+                    <block title="Navegacion permitida"
+                           help="Que sitios puede abrir cada equipo. La lista se escribe en la politica de empresa del navegador, asi que el usuario no la puede quitar; y apagar el interruptor la suelta de verdad, no la deja pegada."
+                           name="foco_bloqueo">
+                        <setting id="foco_bloqueo_on" string="Aplicar bloqueo de sitios"
+                                 help="Apagado, los equipos LIMPIAN la lista que tuvieran puesta. Encendido, cada equipo aplica su perfil en el siguiente envio.">
+                            <field name="foco_block_enabled"/>
+                            <div class="content-group mt8" invisible="not foco_block_enabled">
+                                <label for="foco_default_policy_id" string="Perfil por omision"
+                                       class="o_light_label"/>
+                                <field name="foco_default_policy_id"
+                                       class="o_light_label" options="{'no_create_edit': True}"/>
+                                <div class="text-muted mt4">
+                                    Lo toma un equipo que no tenga uno propio.
+                                    Vacio = ese equipo no bloquea nada.
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Capturas de pantalla"
+                           help="Lo mas invasivo que puede hacer Foco. Nace apagado y no debe encenderse mientras el aviso de privacidad firmado diga que no se toman capturas."
+                           name="foco_capturas">
+                        <setting id="foco_capturas_on" string="Permitir capturas de pantalla"
+                                 help="Apagado, ningun equipo toma ni guarda una sola captura, sin importar que ordenes se manden desde Control remoto.">
+                            <field name="foco_screenshot_enabled"/>
+                            <div class="content-group mt8 text-muted"
+                                 invisible="not foco_screenshot_enabled">
+                                <div class="alert alert-warning" role="alert">
+                                    El aviso de privacidad vigente dice
+                                    <b>en negritas</b> que no se toman capturas.
+                                    Encender esto sin un aviso nuevo firmado
+                                    rompe una promesa escrita al personal.
+                                </div>
+                                Hay <b>dos</b> disparadores y ninguno es el reloj:
+                                una orden con motivo escrito desde Control
+                                remoto, y una unica captura cuando alguien lleva
+                                mucho tiempo en una aplicacion que el catalogo
+                                no reconoce.
+                                <div class="mt8">
+                                    <span class="o_form_label">Minutos en una app sin clasificar</span>
+                                    <field name="foco_screenshot_unclassified_minutes" class="oe_inline ml8"/>
+                                    <div class="mt4">
+                                        0 apaga ese disparador y deja solo las
+                                        que se piden a mano. Esa aplicacion no
+                                        vuelve a disparar nunca.
+                                    </div>
+                                </div>
+                                <div class="mt8">
+                                    <span class="o_form_label">Conservar las capturas (dias)</span>
+                                    <field name="foco_screenshot_retention_days" class="oe_inline ml8"/>
+                                    <div class="mt4">
+                                        Plazo propio y mas corto que el del resto
+                                        del dato: una imagen de la pantalla de
+                                        alguien envejece mal.
+                                    </div>
+                                </div>
+                                <div class="mt8">
+                                    En Foco › Aplicaciones se puede marcar
+                                    <b>«nunca capturar»</b> por aplicacion: el
+                                    gestor de contrasenas, el portal de nomina,
+                                    la banca. Vale tambien para las capturas que
+                                    se piden a mano.
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="El archivo abierto"
+                           help="Registrar en que archivo esta trabajando la persona, para poder contrastarlo contra el proyecto que declaro. Es el dato mas sensible que recoge Foco: en la paqueteria, el titulo de la ventana ES el documento."
+                           name="foco_documento">
+                        <setting id="foco_documento_on" string="Reportar el archivo abierto"
+                                 help="Apagado, NINGUN equipo reporta el nombre de ningun archivo, sin importar que aplicaciones esten marcadas en Foco › Aplicaciones. Se puede dejar todo configurado y encenderlo el dia que el aviso de privacidad este firmado.">
+                            <field name="foco_document_enabled"/>
+                            <div class="content-group mt8 text-muted"
+                                 invisible="not foco_document_enabled">
+                                Se registra el <b>nombre</b> del archivo. Nunca su
+                                ubicacion, nunca su contenido, y solo en las
+                                aplicaciones que se marquen una por una.
+                                <div class="mt4">
+                                    Un nombre de archivo puede ser
+                                    <i>"Demanda laboral.docx"</i>. Esto tiene que
+                                    estar en el aviso de privacidad que firma el
+                                    personal.
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Conservacion de datos"
+                           help="Cuanto tiempo se guarda el detalle de actividad. En un sistema que mide a personas, poder responder esta pregunta es parte del sistema."
+                           name="foco_retencion">
+                        <setting id="foco_retencion_meses"
+                                 string="Conservar el detalle"
+                                 help="0 = no se borra nada, nunca. Con un numero, un proceso diario elimina el uso y los periodos sin actividad mas antiguos que esos meses. El borrado NO se puede deshacer.">
+                            <div class="content-group">
+                                <div class="mt8">
+                                    <field name="foco_retention_months"
+                                           class="o_light_label w-25"/>
+                                    <span class="ms-2">meses</span>
+                                </div>
+                                <div class="mt8 text-muted">
+                                    <field name="foco_retention_note"
+                                           nolabel="1" readonly="1"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

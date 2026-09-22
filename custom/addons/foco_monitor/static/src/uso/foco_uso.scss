@@ -1,0 +1,252 @@
+// "En que se fue el tiempo."
+//
+// Mismos tokens y mismas reglas que la pestana de Jornada, a proposito: en una
+// herramienta de trabajo la consistencia entre pantallas vale mas que la
+// sorpresa, y las dos viven a un clic de distancia en el mismo menu.
+//
+// Dos reglas heredadas:
+//   1. La LONGITUD codifica la cantidad. Es la codificacion visual mas exacta
+//      que existe y por eso la barra no cambia de color segun el valor.
+//   2. El ambar se reserva para lo unico que pide una accion: aqui, el sitio
+//      que nadie ha clasificado y que por eso no cuenta como productivo.
+
+.foco_uso {
+
+    --card: #ffffff;
+    --line: #e7eaf0;
+    --hair: #eef1f6;
+    --ink: #0f1520;
+    --ink2: #5a6577;
+    --ink3: #8b95a6;
+    --track: rgba(15, 21, 32, .05);
+    --hover: rgba(15, 21, 32, .035);
+    --accent: #2f6fed;
+    --mid: #b45309;
+    --mid-fill: #f59e0b;
+    --mid-soft: rgba(245, 158, 11, .10);
+    // La densidad de la tinta sale del PESO de la categoria, no de una paleta:
+    // el peso ya es el dato, asi que el dibujo no se puede desviar del numero.
+    --t-alta: rgba(15, 21, 32, .82);
+    --t-media: rgba(15, 21, 32, .42);
+    --t-baja: rgba(15, 21, 32, .17);
+    --t-sistema: rgba(15, 21, 32, .10);
+    --raise: 0 1px 2px rgba(16, 21, 31, .06);
+    --ease: cubic-bezier(0.23, 1, 0.32, 1);
+
+    &.fu-dark {
+        --card: #171c27;
+        --line: #2b3442;
+        --hair: #212936;
+        --ink: #e9edf4;
+        --ink2: #aab4c4;
+        --ink3: #7c8797;
+        --track: rgba(255, 255, 255, .06);
+        --hover: rgba(255, 255, 255, .04);
+        --accent: #6b9bff;
+        --mid: #fbbf24;
+        --mid-fill: #f59e0b;
+        --mid-soft: rgba(245, 158, 11, .14);
+        --t-alta: rgba(233, 237, 244, .86);
+        --t-media: rgba(233, 237, 244, .46);
+        --t-baja: rgba(233, 237, 244, .20);
+        --t-sistema: rgba(233, 237, 244, .12);
+        --raise: 0 1px 2px rgba(0, 0, 0, .35);
+    }
+
+    // El scroll lo tiene que traer la accion, no esperarlo de Odoo.
+    //
+    // `.o_action_manager`, que es quien nos contiene, tiene alto fijo y
+    // `overflow: hidden`. Lo que se salga NO se ve, y no hay barra en ningun
+    // ancestro con que bajar. Medido en staging: 1167 px de contenido dentro de
+    // una caja de 604 px, o sea 563 px inalcanzables. Se veian los primeros
+    // renglones del desglose y el resto no existia para el usuario.
+    //
+    // El que scrollea es la RAIZ, a todo lo ancho, y el limite de ancho pasa a
+    // los hijos. Si el limite se quedara en la raiz, la barra de scroll
+    // aparecería pegada al contenido y no al borde de la pantalla, que se ve
+    // como un error.
+    height: 100%;
+    overflow-y: auto;
+    padding: 22px clamp(16px, 3vw, 34px) 48px;
+    > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    * { box-sizing: border-box; }
+    ::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+    // ------------------------------------------------------------ cabecera
+    .fu_head { display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+    .fu_quien h1 { margin: 2px 0 0; font-size: 26px; font-weight: 640;
+        letter-spacing: -0.022em; line-height: 1.1; }
+    .fu_sel { background: transparent; color: var(--ink3); border: 0; padding: 0;
+        font-size: 11px; font-weight: 600; letter-spacing: .07em;
+        text-transform: uppercase; cursor: pointer;
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } }
+
+    .fu_nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .fu_seg { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { border: 0; background: transparent; color: var(--ink2); font-size: 12.5px;
+            font-weight: 550; padding: 6px 13px; border-radius: 8px; cursor: pointer;
+            transition: color .15s var(--ease), transform .12s var(--ease);
+            &:hover { color: var(--ink); }
+            &:active { transform: scale(0.97); }
+            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); } } }
+    .fu_pager { display: flex; align-items: center; gap: 4px; }
+    .fu_periodo { font-size: 13px; font-weight: 600; min-width: 132px; text-align: center; }
+    .fu_ico, .fu_hoy { border: 1px solid var(--line); background: var(--card); color: var(--ink2);
+        border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 550;
+        transition: color .15s var(--ease), transform .12s var(--ease);
+        &:hover { color: var(--ink); }
+        &:active { transform: scale(0.96); } }
+    .fu_ico { width: 28px; height: 28px; font-size: 15px; line-height: 1; }
+    .fu_hoy { padding: 6px 12px; }
+
+    // ------------------------------------------------------------- resumen
+    .fu_resumen { display: flex; align-items: baseline; gap: 22px; flex-wrap: wrap;
+        padding-bottom: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .fu_hito { display: flex; flex-direction: column; gap: 1px;
+        .l { font-size: 10.5px; color: var(--ink3); font-weight: 600;
+            letter-spacing: .09em; text-transform: uppercase; }
+        .v { font-size: 40px; font-weight: 300; letter-spacing: -0.04em; line-height: 1; } }
+    .fu_frase { margin: 0; flex: 1; min-width: 260px; font-size: 12.5px;
+        color: var(--ink2); line-height: 1.7;
+        b { color: var(--ink); font-weight: 600; }
+        .sep { color: var(--ink3); margin: 0 7px; }
+        .fu_dato { border-bottom: 1px dotted var(--ink3); cursor: help; } }
+    .fu_tabla { align-self: center; border: 1px solid var(--line); background: var(--card);
+        color: var(--ink2); padding: 7px 13px; border-radius: 8px; font-size: 12.5px;
+        font-weight: 550; cursor: pointer; white-space: nowrap;
+        transition: color .15s var(--ease), border-color .15s var(--ease), transform .12s var(--ease);
+        &:hover { color: var(--ink); border-color: var(--ink3); }
+        &:active { transform: scale(0.97); } }
+
+    // ---------------------------------------------------------- pendiente
+    // Va ARRIBA del desglose porque es lo unico de esta pantalla que cambia el
+    // numero. Debajo de quince renglones, nadie lo hace.
+    .fu_pendiente { border: 1px solid var(--mid-fill); background: var(--mid-soft);
+        border-radius: 12px; padding: 12px 14px; margin-bottom: 18px;
+        .fu_pend_txt { font-size: 12.5px; color: var(--ink2); line-height: 1.6;
+            b { color: var(--mid); font-weight: 650; } } }
+    .fu_chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .fu_chip { display: inline-flex; align-items: baseline; gap: 7px;
+        border: 1px solid var(--mid-fill); background: var(--card); color: var(--ink);
+        border-radius: 999px; padding: 4px 11px; font-size: 12px; cursor: pointer;
+        transition: background .15s var(--ease), transform .12s var(--ease);
+        em { font-style: normal; color: var(--mid); font-size: 11px; font-weight: 620; }
+        &:hover { background: var(--mid-soft); }
+        &:active { transform: scale(0.97); } }
+
+    // ------------------------------------------------------------- lista
+    .fu_lista_head { display: flex; justify-content: space-between;
+        font-size: 10.5px; color: var(--ink3); font-weight: 600;
+        letter-spacing: .08em; text-transform: uppercase;
+        padding: 0 2px 8px; border-bottom: 1px solid var(--line); }
+
+    .fu_fila { display: grid; grid-template-columns: minmax(180px, 1.15fr) 1fr 104px;
+        align-items: center; gap: 16px; padding: 9px 8px; border-radius: 9px;
+        border-bottom: 1px solid var(--hair);
+        opacity: 0; transform: translateY(6px);
+        animation: fu_sube 240ms var(--ease) forwards;
+        transition: background .15s var(--ease);
+        &.abrible { cursor: pointer; }
+        &.abrible:hover { background: var(--hover); }
+        &.abierta { background: var(--hover); border-bottom-color: transparent; }
+        &.sistema { opacity: .55; }
+        &.sistema.abrible:hover { opacity: .8; } }
+    @keyframes fu_sube { to { opacity: 1; transform: translateY(0); } }
+    .fu_fila.sistema { animation-name: fu_sube_tenue; }
+    @keyframes fu_sube_tenue { to { opacity: .55; transform: translateY(0); } }
+
+    .fu_nombre { display: flex; align-items: baseline; gap: 8px; min-width: 0;
+        .n { font-size: 13px; font-weight: 550; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; }
+        .c { font-size: 11px; color: var(--ink3); white-space: nowrap; }
+        .fu_cuantos { font-size: 10.5px; color: var(--ink3); white-space: nowrap;
+            border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; } }
+
+    // El punto dice la CATEGORIA; la barra dice la CANTIDAD. Dos preguntas,
+    // dos canales: si el color de la barra cambiara con el valor, ninguna de
+    // las dos se leeria bien.
+    .fu_punto { width: 7px; height: 7px; border-radius: 2px; flex: none;
+        align-self: center;
+        &.alta { background: var(--t-alta); }
+        &.media { background: var(--t-media); }
+        &.baja { background: var(--t-baja); }
+        &.sistema { background: var(--t-sistema); }
+        &.sin { background: var(--t-baja); }
+        &.pendiente { background: var(--mid-fill); } }
+
+    .fu_barra { position: relative; height: 8px; background: var(--track);
+        border-radius: 4px; overflow: hidden;
+        &.sub { height: 6px; } }
+    // Se dibuja ENTERA y se recorta desde la derecha, en vez de animar el
+    // ancho. Animar `width` recalcula el layout en cada fotograma; `clip-path`
+    // va en el compositor y ademas conserva el radio -un scaleX lo deformaria
+    // justo en las barras cortas, que son la mayoria-.
+    .fu_relleno { position: absolute; inset: 0; border-radius: 4px;
+        transition: clip-path 260ms var(--ease);
+        &.alta { background: var(--t-alta); }
+        &.media { background: var(--t-media); }
+        &.baja { background: var(--t-baja); }
+        &.sistema { background: var(--t-sistema); }
+        &.sin { background: var(--t-baja); }
+        &.pendiente { background: var(--mid-fill); } }
+
+    .fu_cifras { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px;
+        .h { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+        .p { font-size: 11px; color: var(--ink3); min-width: 34px; text-align: right; } }
+
+    // ----------------------------------------------------------- detalle
+    .fu_detalle { padding: 2px 8px 12px 24px; background: var(--hover);
+        border-radius: 0 0 9px 9px; margin-bottom: 2px; }
+    .fu_sub { display: grid; grid-template-columns: minmax(160px, 1.15fr) 1fr 104px;
+        align-items: center; gap: 16px; padding: 5px 0;
+        .n { font-size: 12px; color: var(--ink2); white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; }
+        .h { font-size: 12px; text-align: right; color: var(--ink2); } }
+    .fu_mini { margin-left: 8px; border: 1px solid var(--mid-fill); background: transparent;
+        color: var(--mid); border-radius: 999px; padding: 0 7px; font-size: 10px;
+        cursor: pointer;
+        &:hover { background: var(--mid-soft); }
+        &:active { transform: scale(0.96); } }
+
+    // ------------------------------------------------------------ leyenda
+    .fu_leyenda { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px;
+        padding-top: 12px; border-top: 1px solid var(--line); }
+    .fu_leg { display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; color: var(--ink2);
+        .sw { display: block; width: 8px; height: 8px; border-radius: 2px;
+            &.alta { background: var(--t-alta); }
+            &.media { background: var(--t-media); }
+            &.baja { background: var(--t-baja); }
+            &.sistema { background: var(--t-sistema); }
+            &.sin { background: var(--t-baja); }
+            &.pendiente { background: var(--mid-fill); } } }
+
+    // ------------------------------------------------------------- estados
+    .fu_estado { padding: 54px 0; text-align: center; color: var(--ink3); font-size: 13.5px; }
+    .fu_vacio p { margin: 0 0 6px; line-height: 1.7;
+        b { color: var(--ink2); } }
+
+    // ---------------------------------------------------------- responsive
+    @media (max-width: 760px) {
+        .fu_hito .v { font-size: 32px; }
+        .fu_tabla { order: 3; }
+        .fu_fila, .fu_sub { grid-template-columns: 1fr 88px; }
+        // A este ancho la barra roba el espacio del nombre, que es lo que se
+        // lee primero. Se queda el nombre y la cifra; la proporcion sigue
+        // estando en el porcentaje.
+        .fu_barra { display: none; }
+        .fu_nombre .c, .fu_nombre .fu_cuantos { display: none; }
+        .fu_lista_head .der { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fu_fila { animation-duration: 1ms; animation-delay: 0ms !important; }
+        .fu_relleno { transition: none; }
+        .fu_seg button:active, .fu_ico:active, .fu_hoy:active,
+        .fu_tabla:active, .fu_chip:active { transform: none; }
+    }
+}

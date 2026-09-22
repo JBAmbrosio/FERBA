@@ -1,0 +1,408 @@
+// La jornada, con el tiempo en VERTICAL.
+//
+// Tres reglas gobiernan todo lo de abajo:
+//
+// 1. La escala manda. Las horas son UNA sola rejilla compartida por los siete
+//    dias, de modo que la hora de entrada se lee como una linea horizontal en
+//    vez de como siete bordes que hay que comparar de memoria.
+//
+// 2. La PRESENCIA se dibuja con un solo tono a distinta densidad. El color se
+//    reserva para lo que amerita una accion, que aqui es exactamente una cosa:
+//    el hueco sin explicar. Verde es productividad y es OTRO eje; si la
+//    actividad se pintara de verde, "estuvo" y "rindio" se leerian igual.
+//
+// 3. Las capas que llevan contexto (las horas, el ritmo de la persona) van
+//    DEBAJO del dato y translucidas. Por eso la pista y la franja son colores
+//    con alfa y no opacos: las lineas de hora tienen que atravesarlas.
+
+.foco_jor {
+
+    --pista: 430px;
+
+    --card: #ffffff;
+    --line: #e7eaf0;
+    --hair: #e4e9f1;
+    --ink: #0f1520;
+    --ink2: #5a6577;
+    --ink3: #8b95a6;
+    --track: rgba(15, 21, 32, .045);
+    --hover: rgba(15, 21, 32, .035);
+    // La densidad de la presencia va en el ALFA del relleno, no en la opacidad
+    // del elemento: `opacity` tambien apaga el contorno, y el contorno es el
+    // que avisa que algo sigue pendiente. Un aviso al 22 % no avisa.
+    --tinta-fuerte: rgba(15, 21, 32, .84);
+    --tinta-media: rgba(15, 21, 32, .22);
+    --tinta-tenue: rgba(15, 21, 32, .13);
+    --raya: rgba(255, 255, 255, .5);
+    --accent: #2f6fed;
+    --mid: #b45309;
+    --mid-fill: #f59e0b;
+    --mid-soft: rgba(245, 158, 11, .12);
+    --band: rgba(47, 111, 237, .07);
+    --band-edge: rgba(47, 111, 237, .20);
+    --raise: 0 1px 2px rgba(16, 21, 31, .06);
+    --ease: cubic-bezier(0.23, 1, 0.32, 1);
+
+    &.fj-dark {
+        --card: #171c27;
+        --line: #2b3442;
+        --hair: #242c3a;
+        --ink: #e9edf4;
+        --ink2: #aab4c4;
+        --ink3: #7c8797;
+        --track: rgba(255, 255, 255, .055);
+        --hover: rgba(255, 255, 255, .04);
+        --tinta-fuerte: rgba(233, 237, 244, .88);
+        --tinta-media: rgba(233, 237, 244, .24);
+        --tinta-tenue: rgba(233, 237, 244, .15);
+        --raya: rgba(23, 28, 39, .55);
+        --accent: #6b9bff;
+        --mid: #fbbf24;
+        --mid-fill: #f59e0b;
+        --mid-soft: rgba(245, 158, 11, .16);
+        --band: rgba(107, 155, 255, .10);
+        --band-edge: rgba(107, 155, 255, .26);
+        --raise: 0 1px 2px rgba(0, 0, 0, .35);
+    }
+
+    // Mismo arreglo que en «Detalle de uso», y por el mismo motivo: el
+    // contenedor de acciones de Odoo tiene alto fijo y `overflow: hidden`, asi
+    // que lo que se salga es inalcanzable. Aqui cortaba 200 px de 804 -menos
+    // escandaloso que en la otra pantalla y por eso no se habia notado, pero
+    // el mismo defecto-. La ficha del dia no se ve afectada: es `fixed`, o sea
+    // se posiciona contra la ventana y no contra este contenedor.
+    height: 100%;
+    overflow-y: auto;
+    padding: 22px clamp(16px, 3vw, 34px) 40px;
+    // El velo y la ficha quedan FUERA del limite de ancho: son hijos directos
+    // de la raiz y van `fixed` a toda la ventana. Con el limite puesto, el velo
+    // dejaria de cubrir el fondo en pantallas anchas.
+    > *:not(.fj_scrim):not(.fj_ficha) {
+        max-width: 1180px; margin-left: auto; margin-right: auto; }
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    * { box-sizing: border-box; }
+
+    // ------------------------------------------------------------ cabecera
+    .fj_head { display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 18px; flex-wrap: wrap; margin-bottom: 18px; }
+
+    // El nombre ES el titulo. Antes el titulo decia "Jornada" -que ya se sabe,
+    // esta en el menu- y la persona iba escondida dentro de un desplegable.
+    .fj_quien h1 { margin: 2px 0 0; font-size: 26px; font-weight: 640;
+        letter-spacing: -0.022em; line-height: 1.1; }
+    .fj_sel { background: transparent; color: var(--ink3); border: 0; padding: 0;
+        font-size: 11px; font-weight: 600; letter-spacing: .07em;
+        text-transform: uppercase; cursor: pointer;
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    }
+
+    .fj_nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .fj_seg { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { border: 0; background: transparent; color: var(--ink2); font-size: 12.5px;
+            font-weight: 550; padding: 6px 13px; border-radius: 8px; cursor: pointer;
+            transition: color .15s var(--ease), transform .12s var(--ease);
+            &:hover { color: var(--ink); }
+            &:active { transform: scale(0.97); }
+            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); }
+        }
+    }
+    .fj_pager { display: flex; align-items: center; gap: 4px; }
+    .fj_periodo { font-size: 13px; font-weight: 600; min-width: 132px; text-align: center; }
+    .fj_ico { border: 1px solid var(--line); background: var(--card); color: var(--ink2);
+        width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 15px;
+        line-height: 1; transition: color .15s var(--ease), transform .12s var(--ease);
+        &:hover { color: var(--ink); }
+        &:active { transform: scale(0.94); }
+    }
+    .fj_hoy { border: 1px solid var(--line); background: var(--card); color: var(--ink2);
+        padding: 6px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 550; cursor: pointer;
+        &:hover { color: var(--ink); }
+        &:active { transform: scale(0.97); }
+    }
+
+    // ------------------------------------------------------------- resumen
+    // Dos numeros grandes y una frase. El contraste de tamano ES el diseno: no
+    // hacen falta cinco tarjetas iguales para decir dos cosas.
+    .fj_resumen { display: flex; align-items: baseline; gap: 26px; flex-wrap: wrap;
+        padding: 0 0 18px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+
+    .fj_par { display: flex; align-items: flex-end; gap: 14px; }
+    .fj_hito { display: flex; flex-direction: column; gap: 1px;
+        .l { font-size: 10.5px; color: var(--ink3); font-weight: 600;
+            letter-spacing: .09em; text-transform: uppercase; }
+        .v { font-size: 42px; font-weight: 300; letter-spacing: -0.04em; line-height: 1; }
+    }
+    .fj_flecha { color: var(--ink3); font-size: 17px; padding-bottom: 6px; }
+
+    .fj_frase { margin: 0; font-size: 12.5px; color: var(--ink2); line-height: 1.7;
+        b { color: var(--ink); font-weight: 600; }
+        .sep { color: var(--ink3); margin: 0 7px; }
+        .fj_dato { border-bottom: 1px dotted var(--ink3); cursor: help; }
+        .fj_fuera b { color: var(--accent); }
+        .fj_alerta { color: var(--mid); text-decoration: none;
+            b { color: var(--mid); }
+            &:hover { text-decoration: underline; }
+        }
+    }
+
+    .fj_card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+        padding: 16px 18px 10px; box-shadow: var(--raise); }
+
+    // --------------------------------------------------------- la cuadricula
+    .fj_tabla { display: flex; gap: 8px; }
+
+    .fj_eje { position: relative; width: 26px; flex: none;
+        height: var(--pista); margin-top: 34px;
+        .fj_hora { position: absolute; right: 0; transform: translateY(-50%);
+            em { font-style: normal; font-size: 10.5px; color: var(--ink3); } }
+    }
+
+    .fj_rejilla { position: relative; flex: 1; display: grid;
+        grid-template-columns: repeat(7, 1fr); gap: 6px; }
+
+    // La capa de contexto ocupa EXACTAMENTE lo que ocupan las pistas: si se
+    // midiera contra la rejilla entera, las lineas de hora mentirian por el
+    // alto del encabezado y del pie.
+    .fj_capa { position: absolute; left: 0; right: 0; top: 34px; height: var(--pista);
+        pointer-events: none; }
+
+    // Andamio, no informacion: una hairline y nada mas.
+    .fj_guia { position: absolute; left: 0; right: 0; height: 1px; background: var(--hair); }
+
+    // Su propio ritmo. No un estandar de la empresa: SU mediana. Lo que se sale
+    // salta a la vista sin que nadie lo haya etiquetado de nada.
+    // La etiqueta va del lado vacio de cada linea -arriba de la entrada, abajo
+    // de la salida- para no caer encima del dato.
+    .fj_ref { position: absolute; left: -3px; right: -3px; height: 0; z-index: 3;
+        border-top: 1px dashed var(--accent); opacity: .55;
+        i { position: absolute; left: 1px; font-style: normal; font-size: 9.5px;
+            font-weight: 700; letter-spacing: .01em; color: var(--accent);
+            white-space: nowrap; }
+        &.entra i { bottom: 3px; }
+        &.sale i { top: 3px; }
+    }
+
+    // ------------------------------------------------------------ una columna
+    .fj_col { position: relative; z-index: 1; display: flex; flex-direction: column;
+        cursor: pointer; border-radius: 10px; padding: 0 2px 4px;
+        opacity: 0; transform: translateY(10px);
+        animation: fj_sube 260ms var(--ease) forwards;
+        transition: background .15s var(--ease);
+        &:hover { background: var(--hover); }
+        &.nolab { animation-name: fj_sube_tenue; }   // fin de semana: presente, apagado
+        &.futuro { animation-name: fj_sube_futuro; cursor: default; }
+        &.hoy .fj_dia_head .n { color: var(--accent); }
+        &.hoy .fj_pista { box-shadow: inset 0 0 0 1px var(--band-edge); }
+    }
+    @keyframes fj_sube        { to { opacity: 1;   transform: translateY(0); } }
+    @keyframes fj_sube_tenue  { to { opacity: .5;  transform: translateY(0); } }
+    @keyframes fj_sube_futuro { to { opacity: .28; transform: translateY(0); } }
+
+    .fj_dia_head { height: 34px; display: flex; align-items: baseline;
+        justify-content: center; gap: 5px;
+        .d { font-size: 10.5px; color: var(--ink3); text-transform: lowercase; }
+        .n { font-size: 15px; font-weight: 620; letter-spacing: -0.01em; }
+    }
+
+    // Translucida a proposito: las lineas de hora de la capa de abajo tienen
+    // que atravesarla, o la rejilla se parte en siete rejillas sueltas.
+    .fj_pista { position: relative; height: var(--pista); background: var(--track);
+        border-radius: 7px; overflow: hidden; }
+
+    // La jornada es un LUGAR, no un color: el trabajo fuera de horario se ve
+    // porque los bloques se salen de la banda, sin necesidad de pintarlo.
+    .fj_franja { position: absolute; left: 0; right: 0; background: var(--band);
+        border-top: 1px solid var(--band-edge); border-bottom: 1px solid var(--band-edge); }
+
+    // Empiezan en 9px porque los primeros 7 son el canal de las marcas del
+    // equipo. Encimarlos era perderlos: una marca gris sobre un bloque de
+    // tinta no se ve, y la que hay que ver -un apagon- es justo una de esas.
+    .fj_bloque { position: absolute; left: 9px; right: 3px; border-radius: 3px;
+        background: var(--tinta-fuerte);
+        // La llamada pesa IGUAL que el teclado: estar en junta es trabajo. Se
+        // distingue por trama, no por tono ni por grosor.
+        &.llamada { left: 8px; right: 1px;
+            background-image: repeating-linear-gradient(45deg,
+                var(--raya) 0 2px, transparent 2px 5px); }
+        &.sin_input { background: var(--tinta-media); }
+        &.bloqueado { background: var(--tinta-tenue);
+            background-image: repeating-linear-gradient(0deg,
+                var(--raya) 0 1px, transparent 1px 4px); }
+        // Apagado y suspendido NO se dibujan: la ausencia de tinta es la
+        // ausencia de la persona. Pintarlos competiria con el dato.
+        &.apagado, &.suspendido { background: transparent; }
+        // El unico que toma color, porque es el unico que pide una accion.
+        &.sin_explicar { background: var(--mid-fill);
+            box-shadow: inset 0 0 0 1px var(--mid); }
+        // Y el color lo toma por el ESTADO, no por el tipo de hueco. Un rato
+        // sin teclado que sigue pendiente de justificar cuenta en el numero de
+        // "sin explicar" de arriba: si el dibujo lo pintara gris como cualquier
+        // otro, el numero y la grafica dirian cosas distintas del mismo hecho.
+        &.pendiente { box-shadow: inset 0 0 0 2px var(--mid-fill); }
+    }
+
+    // Marcas del equipo, en un canal propio de 7 px a la izquierda. Se
+    // distinguen por FORMA y por largo, no solo por color.
+    .fj_pin { position: absolute; left: 1px; width: 4px; height: 1px;
+        background: var(--ink2); opacity: .75; border-radius: 1px;
+        &.fuerte { width: 7px; height: 2px; opacity: 1; }
+        &.suspendido, &.reanudado { width: 7px; background: var(--ink3); }
+        &.bloqueo, &.desbloqueo { width: 3px; background: var(--ink3); opacity: .6; }
+        &.apagado_inesperado { width: 7px; height: 3px; background: var(--mid-fill);
+            opacity: 1; }
+    }
+
+    .fj_nota { position: absolute; left: 50%; top: 50%; transform-origin: center;
+        transform: translate(-50%, -50%) rotate(-90deg);
+        font-size: 10px; letter-spacing: .04em; white-space: nowrap; color: var(--ink3);
+        &.mid { color: var(--mid); cursor: help; }
+    }
+
+    .fj_dia_pie { padding-top: 7px; text-align: center; min-height: 32px;
+        .rango { display: block; font-size: 11.5px; font-weight: 600; letter-spacing: -0.01em;
+            &.muted { color: var(--ink3); font-weight: 500; } }
+        .tot { display: block; font-size: 10.5px; color: var(--ink3); margin-top: 1px;
+            .fuera { font-style: normal; color: var(--accent); margin-left: 4px; } }
+    }
+
+    // -------------------------------------------------------------- leyenda
+    .fj_leyenda { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 2px 4px;
+        margin-top: 10px; border-top: 1px solid var(--line); }
+    .fj_leg { display: inline-flex; align-items: center; gap: 6px;
+        font-size: 11px; color: var(--ink2);
+        &.sep { color: var(--ink3); margin-left: auto; }
+        .sw { display: block; width: 9px; height: 16px; border-radius: 2px;
+            background: var(--tinta-fuerte);
+            &.llamada { background-image: repeating-linear-gradient(45deg,
+                var(--raya) 0 2px, transparent 2px 5px); }
+            &.sin_input { background: var(--tinta-media); }
+            &.bloqueado { background: var(--tinta-tenue); }
+            &.sin_explicar { background: var(--mid-fill); box-shadow: inset 0 0 0 1px var(--mid); }
+            &.franja { background: var(--band); box-shadow: inset 0 0 0 1px var(--band-edge); }
+        }
+    }
+
+    // ------------------------------------------------------------ el mes
+    // Pequenos multiplos de la MISMA columna: el ojo ya aprendio a leerla en la
+    // vista de semana y aqui no tiene que aprender nada nuevo.
+    .fj_mes_head { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+        padding: 0 0 8px;
+        span { font-size: 10.5px; color: var(--ink3); text-align: center; } }
+    .fj_mes_fila { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+        margin-bottom: 6px; }
+    .fj_celda { display: flex; flex-direction: column; align-items: center; gap: 5px;
+        border: 1px solid var(--line); border-radius: 10px; padding: 7px 6px 5px; cursor: pointer;
+        transition: background .15s var(--ease), border-color .15s var(--ease);
+        &:hover { background: var(--hover); }
+        &.hoy { border-color: var(--accent); }
+        &.nolab { opacity: .48; }
+        &.futuro { opacity: .25; cursor: default; }
+        .num { align-self: flex-start; font-size: 12px; font-weight: 620; color: var(--ink2); }
+        .mini { position: relative; display: block; width: 20px; height: 76px;
+            border-radius: 4px; background: var(--track); overflow: hidden;
+            .fj_bloque { left: 2px; right: 2px; border-radius: 1px; } }
+        .pie { font-size: 10px; color: var(--ink3); min-height: 12px; }
+    }
+
+    // --------------------------------------------------------------- ficha
+    .fj_scrim { position: fixed; inset: 0; background: rgba(8, 12, 20, .32); z-index: 1040;
+        animation: fj_fade 180ms var(--ease); }
+    @keyframes fj_fade { from { opacity: 0; } to { opacity: 1; } }
+
+    .fj_ficha { position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 94vw;
+        background: var(--card); border-left: 1px solid var(--line); z-index: 1041;
+        padding: 22px 24px 32px; overflow-y: auto;
+        box-shadow: -8px 0 28px rgba(8, 12, 20, .14);
+        animation: fj_entra 300ms cubic-bezier(0.32, 0.72, 0, 1); }
+    @keyframes fj_entra { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+    .fj_ficha_head { display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 10px; margin-bottom: 20px;
+        h2 { margin: 0; font-size: 19px; font-weight: 640; letter-spacing: -0.015em;
+            text-transform: capitalize; }
+        p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink2); } }
+
+    .fj_ficha_par { display: flex; align-items: flex-end; gap: 14px;
+        div { display: flex; flex-direction: column; gap: 1px; }
+        .l { font-size: 10.5px; color: var(--ink3); font-weight: 600;
+            letter-spacing: .08em; text-transform: uppercase; }
+        .v { font-size: 30px; font-weight: 300; letter-spacing: -0.035em; line-height: 1; } }
+    .fj_ficha_nota { margin: 8px 0 0; font-size: 11px; color: var(--ink3); cursor: help; }
+
+    .fj_reparto { display: flex; gap: 18px; margin-top: 18px; font-size: 12.5px; color: var(--ink2);
+        b { color: var(--ink); margin-left: 4px; }
+        .fuera b { color: var(--accent); } }
+
+    .fj_ficha h3 { margin: 26px 0 8px; font-size: 12px; font-weight: 600; color: var(--ink3);
+        letter-spacing: .06em; text-transform: uppercase; }
+
+    // En que trabajo. Mismo vocabulario que «Detalle de uso»: el punto dice el
+    // estado de la clasificacion y el numero dice el tiempo. Sin barras: en
+    // 440 px de ficha competirian con el texto sin agregar precision.
+    .fj_apps { list-style: none; margin: 0; padding: 0;
+        li { display: grid; grid-template-columns: 7px 1fr auto; align-items: center;
+            gap: 9px; padding: 5px 0; border-bottom: 1px solid var(--hair);
+            font-size: 12.5px;
+            .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .h { color: var(--ink2); font-variant-numeric: tabular-nums; } }
+        li.sub { grid-template-columns: 1fr auto; padding: 2px 0 2px 16px;
+            border-bottom: 0; font-size: 11.5px; color: var(--ink3); }
+        .pt { width: 7px; height: 7px; border-radius: 2px;
+            &.ok { background: var(--tinta-fuerte); }
+            &.sin { background: var(--mid-fill); }
+            &.sistema { background: var(--hair); } } }
+
+    .fj_bitacora { list-style: none; margin: 0; padding: 0;
+        li { display: flex; align-items: baseline; gap: 10px; padding: 7px 0;
+            border-bottom: 1px solid var(--hair); font-size: 12.5px;
+            &:last-child { border-bottom: 0; } }
+        .h { width: 42px; flex: none; color: var(--ink2); font-weight: 620; }
+        .q { flex: 1; }
+        // La procedencia SIEMPRE a la vista: es la diferencia entre un dato y
+        // una acusacion, y el dia que alguien discuta la hora ya esta ahi.
+        .src { font-size: 10px; color: var(--ink3); border: 1px solid var(--line);
+            border-radius: 999px; padding: 1px 7px; white-space: nowrap;
+            &.os { color: var(--accent); border-color: var(--accent); opacity: .75; } }
+    }
+
+    .fj_vacio_ficha { margin: 0; font-size: 12.5px; color: var(--ink3); }
+
+    .fj_aviso { margin-top: 20px; border: 1px solid var(--mid); border-radius: 12px;
+        padding: 11px 13px; font-size: 12.5px; color: var(--ink2); background: var(--mid-soft);
+        b { color: var(--mid); }
+        a { display: block; margin-top: 6px; color: var(--accent); text-decoration: none;
+            &:hover { text-decoration: underline; } } }
+
+    .fj_loading, .fj_empty { padding: 48px 0; text-align: center;
+        color: var(--ink3); font-size: 13.5px; }
+
+    // ---------------------------------------------------------- responsive
+    @media (max-width: 900px) {
+        & { --pista: 340px; }
+        .fj_hito .v { font-size: 34px; }
+        .fj_leg.sep { display: none; }
+        .fj_dia_pie .tot { display: none; }
+    }
+    @media (max-width: 620px) {
+        // A este ancho el eje de horas seria una columna de ruido; la rejilla
+        // se sigue leyendo porque las lineas de hora se quedan.
+        & { --pista: 260px; }
+        .fj_eje { display: none; }
+        .fj_rejilla { gap: 3px; }
+        .fj_dia_head .d { display: none; }
+        .fj_dia_pie .rango { font-size: 9.5px; }
+        .fj_ref i { display: none; }
+        .fj_celda .mini { width: 13px; height: 48px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        // Menos movimiento, no cero. Se conserva el fotograma final de cada
+        // columna -que es el que lleva su opacidad- y se quitan el
+        // desplazamiento y el escalonado.
+        .fj_col { animation-duration: 1ms; animation-delay: 0ms !important; }
+        .fj_ficha { animation-duration: 1ms; }
+        .fj_seg button:active, .fj_ico:active, .fj_hoy:active { transform: none; }
+    }
+}

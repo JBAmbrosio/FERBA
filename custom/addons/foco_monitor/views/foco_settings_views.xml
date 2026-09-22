@@ -4,4 +4,58 @@
         <field name="name">Horario</field>
         <field name="tag">foco_settings</field>
     </record>
+
+    <record id="foco_settings_view_form_accesos" model="ir.ui.view">
+        <field name="name">foco.settings.accesos</field>
+        <field name="model">foco.settings</field>
+        <field name="arch" type="xml">
+            <form string="Accesos">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Quien puede ver Foco</h1>
+                        <p class="text-muted">
+                            Foco mide la actividad de personas. El acceso se
+                            concede aqui, de forma explicita, y solo quien
+                            administra Foco puede cambiarlo.
+                        </p>
+                    </div>
+                    <group>
+                        <field name="access_user_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Selecciona los usuarios..."/>
+                    </group>
+                    <group>
+                        <field name="access_manager_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Selecciona los usuarios..."/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Quien no aparezca en ninguna de las dos listas no vera la
+                        aplicacion en su menu. Administrar incluye ver, asi que no
+                        hace falta repetir a una persona en ambas listas.
+                    </div>
+                    <group string="Alcance">
+                        <div colspan="2">
+                            <p>
+                                Dar acceso no es lo mismo que dar acceso a todo.
+                                Mientras una persona no tenga departamentos
+                                asignados, ve la actividad de TODA la empresa.
+                                Quien administra Foco ve todo en cualquier caso.
+                            </p>
+                            <button name="action_alcance" type="object"
+                                    string="Repartir departamentos"
+                                    class="btn btn-secondary"/>
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_access_action" model="ir.actions.server">
+        <field name="name">Accesos</field>
+        <field name="model_id" ref="model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_accesos()</field>
+    </record>
 </odoo>

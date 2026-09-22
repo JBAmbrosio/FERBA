@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- "En que se fue el tiempo": una pregunta, una pantalla.
+         La tabla dinamica y la lista completa siguen existiendo y se abren
+         desde aqui con el periodo y la persona ya puestos: simplificar no
+         puede significar esconder. -->
+    <record id="foco_uso_client" model="ir.actions.client">
+        <field name="name">Detalle de uso</field>
+        <field name="tag">foco_uso</field>
+    </record>
+</odoo>

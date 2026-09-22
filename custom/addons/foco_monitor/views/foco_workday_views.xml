@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- La pantalla principal de la jornada es la CINTA: una vista OWL propia,
+         porque la pregunta que contesta es "cuando" y ninguna vista de lista o
+         de grafico dibuja el tiempo como un lugar. La lista de abajo queda
+         para exportar y para filtrar en grande. -->
+    <record id="foco_jornada_client" model="ir.actions.client">
+        <field name="name">Jornada</field>
+        <field name="tag">foco_jornada</field>
+    </record>
+
+    <record id="foco_workday_view_list" model="ir.ui.view">
+        <field name="name">foco.workday.list</field>
+        <field name="model">foco.workday</field>
+        <field name="arch" type="xml">
+            <list string="Jornadas" create="0" delete="0" edit="0">
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="first_signal" string="Primera senal" widget="datetime"/>
+                <field name="last_signal" string="Ultima senal" widget="datetime"/>
+                <field name="span_hours" string="De la primera a la ultima" widget="float_time"/>
+                <field name="active_hours" widget="float_time" sum="Activo"/>
+                <field name="in_shift_hours" widget="float_time" sum="Dentro"/>
+                <field name="off_shift_hours" widget="float_time" sum="Fuera"
+                       decoration-bf="off_shift_hours > 0"/>
+                <field name="call_hours" widget="float_time" optional="show"/>
+                <field name="expected_hours" widget="float_time" optional="hide"/>
+                <field name="unexplained_minutes" optional="show"
+                       decoration-warning="unexplained_minutes > 0"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state == 'sin_dato'"
+                       decoration-warning="state == 'sin_detalle' or state == 'solo_equipo'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_workday_view_search" model="ir.ui.view">
+        <field name="name">foco.workday.search</field>
+        <field name="model">foco.workday</field>
+        <field name="arch" type="xml">
+            <search string="Jornadas">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <filter name="f_fuera" string="Trabajo fuera de jornada"
+                        domain="[('off_shift_hours', '&gt;', 0)]"/>
+                <filter name="f_sin_explicar" string="Con tiempo sin explicar"
+                        domain="[('unexplained_minutes', '&gt;', 0)]"/>
+                <separator/>
+                <filter name="f_hoy" string="Hoy"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="f_sin_detalle" string="Sin detalle de horas"
+                        domain="[('state', '=', 'sin_detalle')]"/>
+                <filter name="f_solo_equipo" string="Solo actividad del equipo"
+                        domain="[('state', '=', 'solo_equipo')]"/>
+                <separator/>
+                    <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                    <filter name="g_dia" string="Dia" context="{'group_by': 'date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_workday_action" model="ir.actions.act_window">
+        <field name="name">Jornadas (detalle)</field>
+        <field name="res_model">foco.workday</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="foco_workday_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavia no hay jornadas calculadas</p>
+            <p>Se arman solas cuando los equipos reportan. Un equipo que nunca
+               ha reportado no aparece aqui.</p>
+        </field>
+    </record>
+</odoo>

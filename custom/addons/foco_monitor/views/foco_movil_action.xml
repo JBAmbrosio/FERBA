@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_movil_client" model="ir.actions.client">
+        <field name="name">Tablero móvil</field>
+        <field name="tag">foco_movil</field>
+    </record>
+</odoo>

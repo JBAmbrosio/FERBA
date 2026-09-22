@@ -5,7 +5,7 @@
             <div class="fs_card" t-if="!state.loading">
                 <header class="fs_head">
                     <h1>Horario de medición</h1>
-                    <p>Define cuándo los agentes registran actividad. Se aplica a todos los equipos.</p>
+                    <p>Define cuándo los agentes registran actividad.</p>
                 </header>
 
                 <div class="fs_switch_row">
@@ -52,6 +52,41 @@
                 </div>
 
                 <p class="fs_summary" t-esc="summary"/>
+
+                <!-- A quien gobierna de verdad esta pantalla. El calendario del
+                     empleado tiene preferencia (ver schedule_for), asi que sin
+                     esto el ajuste puede no aplicar a nadie y no decirlo. -->
+                <section class="fs_cobertura" t-if="state.cobertura and state.cobertura.total">
+                    <div class="fs_cob_head">
+                        <span class="fs_label">A quién aplica</span>
+                        <span class="fs_cob_resumen" t-esc="gobierna"/>
+                    </div>
+
+                    <p class="fs_cob_nota" t-if="state.cobertura.global">
+                        Sin calendario laboral asignado:
+                        <t t-esc="state.cobertura.nombres_global.join(', ')"/><t t-if="state.cobertura.global > state.cobertura.nombres_global.length">…</t>
+                    </p>
+
+                    <t t-if="state.cobertura.con_calendario">
+                        <p class="fs_cob_aviso">
+                            Estas personas tienen calendario laboral, que tiene preferencia:
+                            este horario <b>no les surte efecto</b>. Se cambia en su calendario.
+                        </p>
+                        <t t-foreach="state.cobertura.calendarios" t-as="cal" t-key="cal.id">
+                            <div class="fs_cal">
+                                <span class="n">
+                                    <b t-esc="cal.nombre"/>
+                                    <small t-esc="cal.quienes.join(', ')"/>
+                                </span>
+                                <span class="c"><t t-esc="cal.personas"/></span>
+                                <button class="fs_btn ghost sm"
+                                        t-on-click="() => this.abrirCalendario(cal.id, cal.nombre)">
+                                    Modificar
+                                </button>
+                            </div>
+                        </t>
+                    </t>
+                </section>
 
                 <footer class="fs_foot">
                     <button class="fs_btn ghost" t-on-click="() => this.discard()"

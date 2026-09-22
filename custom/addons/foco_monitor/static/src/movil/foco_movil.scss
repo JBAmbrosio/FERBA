@@ -1,0 +1,163 @@
+.foco_movil {
+    --card: #ffffff; --line: #e7eaf0; --ink: #0f1520; --ink2: #5a6577; --ink3: #8b95a6;
+    --track: #eef1f6; --accent: #2f6fed; --good-fill: #16a34a; --low: #c0341d;
+    --raise: 0 1px 2px rgba(16,21,31,.06); --ease: cubic-bezier(0.23,1,0.32,1);
+
+    &.fm-dark {
+        --card: #171c27; --line: #2b3442; --ink: #e9edf4; --ink2: #aab4c4; --ink3: #7c8797;
+        --track: #232c3a; --accent: #6b9bff; --good-fill: #22c55e; --low: #f87171;
+        --raise: 0 1px 2px rgba(0,0,0,.35);
+    }
+
+    height: 100%;
+    overflow-y: auto;
+    padding: 22px clamp(16px, 3vw, 32px) 40px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    * { box-sizing: border-box; }
+    > *:not(.fm_loading) { max-width: 1320px; margin-left: auto; margin-right: auto; }
+
+    // Encabezados con color EXPLICITO: Odoo/Bootstrap le fijan a los <h1..h3>
+    // su propio color y gana a la herencia; sin esto salen negros en oscuro.
+    h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
+
+    .fm_head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; }
+    .fm_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center;
+        .sep { color: var(--ink3); margin: 0 2px; } }
+    .fm_on { display: inline-flex; align-items: center; gap: 5px; }
+    .fm_head_r { display: flex; align-items: center; gap: 12px; }
+
+    .fm_seg { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 13px; font-weight: 550;
+            padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: color .15s var(--ease);
+            &:hover { color: var(--ink); }
+            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); } } }
+    .fm_refrescar { display: inline-flex; align-items: center; gap: 7px; background: var(--card);
+        border: 1px solid var(--line); color: var(--ink2); border-radius: 10px; padding: 7px 12px;
+        font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+        .ico { font-size: 15px; line-height: 1; }
+        &:hover { color: var(--ink); background: var(--track); } }
+
+    .fm_kpis { display: grid; gap: 14px; margin-bottom: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    .fm_kpi { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+        box-shadow: var(--raise); display: flex; flex-direction: column; gap: 6px;
+        .fm_kpi_label { font-size: 12.5px; color: var(--ink2); font-weight: 550; }
+        .fm_kpi_v { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink); }
+        .fm_kpi_foot { font-size: 12px; color: var(--ink3); display: flex; gap: 10px;
+            .fm_in { color: var(--good-fill); } .fm_out { color: var(--accent); } .fm_miss { color: var(--low); } } }
+
+    .fm_card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--raise);
+        padding: 4px 4px 10px; margin-bottom: 16px; }
+    .fm_card_head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 18px 10px;
+        h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }
+        .fm_card_hint { font-size: 12px; color: var(--ink3); } }
+
+    // Mapa + equipos, lado a lado; a lo angosto se apilan.
+    .fm_main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 0; }
+    .fm_map_card, .fm_dev_card { margin-bottom: 16px; }
+    .fm_map { height: 460px; margin: 0 12px; border-radius: 12px; overflow: hidden; background: var(--track);
+        .leaflet-container { height: 100%; width: 100%; font: inherit; background: var(--track); } }
+
+    .fm_dev_card { display: flex; flex-direction: column; }
+    .fm_dev_list { overflow-y: auto; max-height: 470px; padding: 0 6px 4px; }
+    .fm_dev { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer;
+        transition: background .15s var(--ease);
+        &:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+        &.sel { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+        .fm_dev_txt { flex: 1; min-width: 0; }
+        .fm_dev_emp { font-size: 13.5px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fm_dev_meta { font-size: 12px; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fm_dev_nums { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; color: var(--ink2); white-space: nowrap; } }
+    .fm_pdot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--ink3);
+        &.on { background: var(--good-fill); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good-fill) 22%, transparent); } }
+
+    .fm_duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+    .fm_grafica { padding-bottom: 14px; }
+    .fm_lienzo { position: relative; height: 230px; margin: 4px 16px 0; }
+
+    .fm_top { padding: 2px 8px 6px; }
+    .fm_trow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px;
+        border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+        &:last-child { border-bottom: 0; }
+        .fm_tname { min-width: 0; font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            small { display: block; font-size: 11.5px; color: var(--ink3); } }
+        .fm_tnums { display: flex; gap: 12px; white-space: nowrap; font-size: 12.5px;
+            .fm_tc { color: var(--ink2); font-weight: 600; } .fm_tm { color: var(--ink3); } } }
+
+    .fm_empty { color: var(--ink3); font-size: 13px; text-align: center; padding: 22px 0;
+        &.small { padding: 14px 18px; } }
+    .fm_loading { color: var(--ink3); padding: 40px 0; text-align: center; }
+
+    .fm_dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; background: var(--ink3);
+        &.on { background: #22c55e; box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 22%, transparent); } }
+
+    // ---- craft: iconos, switch PC/Móvil, batería, micro-interacciones ----
+    .fm_kpi { position: relative; }
+    .fm_kpi_top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .fm_kpi_ico { color: var(--ink3); font-size: 14px; opacity: .7; }
+    .fm_kpi_foot { align-items: center;
+        .fm_dot { width: 7px; height: 7px; } }
+
+    .fm_switch { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+            color: var(--ink2); font: inherit; font-size: 13px; font-weight: 550; padding: 6px 12px;
+            border-radius: 8px; cursor: pointer; transition: color .15s var(--ease), transform .12s var(--ease);
+            i { font-size: 13px; }
+            &:hover { color: var(--ink); }
+            &:active { transform: scale(0.97); }
+            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); } } }
+
+    .fm_seg button:active, .fm_refrescar:active { transform: scale(0.97); }
+    .fm_refrescar { transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);
+        .ico { font-size: 13px; } }
+
+    .fm_dev { transition: background .15s var(--ease), transform .12s var(--ease);
+        &:active { transform: scale(0.99); } }
+    .fm_dev_right { display: flex; align-items: center; gap: 16px; }
+    .fm_dev_nums { flex-direction: row; gap: 12px;
+        span { display: inline-flex; align-items: center; gap: 4px; }
+        i { color: var(--ink3); font-size: 11px; } }
+
+    // Batería: pictograma + %; el color dice el nivel (verde/ámbar/rojo).
+    .fm_bat { display: inline-flex; align-items: center; gap: 6px;
+        .fm_bat_body { position: relative; width: 26px; height: 13px; border: 1.5px solid var(--ink3);
+            border-radius: 3px; padding: 1.5px; box-sizing: border-box;
+            &::after { content: ""; position: absolute; right: -4px; top: 3.5px; width: 2.5px; height: 5px;
+                background: var(--ink3); border-radius: 0 2px 2px 0; } }
+        .fm_bat_fill { display: block; height: 100%; border-radius: 1px; transition: width .5s var(--ease); }
+        .fm_bat_txt { font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
+        &.good .fm_bat_fill { background: var(--good-fill); }
+        &.mid  .fm_bat_fill { background: #f59e0b; }
+        &.low  .fm_bat_fill { background: var(--low); }
+        &.low  .fm_bat_body { border-color: var(--low); }
+        &.low  .fm_bat_txt  { color: var(--low); } }
+
+    // Aparición escalonada, sobria: transform + opacity, 34ms de paso.
+    .fm_kpi { animation: fm_in .34s var(--ease) both; }
+    .fm_kpi:nth-child(2) { animation-delay: .04s; }
+    .fm_kpi:nth-child(3) { animation-delay: .08s; }
+    .fm_kpi:nth-child(4) { animation-delay: .12s; }
+    @keyframes fm_in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    // Retiro / sin señal
+    .fm_alerta { color: var(--low); font-weight: 650;
+        i { font-size: 11px; margin-right: 2px; } }
+    .fm_aviso { color: var(--ink3); }
+    .fm_pdot.retirado { background: var(--low);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--low) 22%, transparent); }
+    .fm_dev_estado { font-size: 11.5px; margin-top: 2px; color: var(--ink3);
+        display: inline-flex; align-items: center; gap: 4px;
+        i { font-size: 10px; }
+        &.retirado { color: var(--low); font-weight: 650; } }
+
+    @media (max-width: 980px) {
+        .fm_main { grid-template-columns: 1fr; }
+        .fm_dev_list { max-height: 280px; }
+        .fm_switch button span { display: none; }   // en angosto, solo iconos
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .foco_movil .fm_kpi { animation: none; }
+    .foco_movil .fm_bat_fill { transition: none; }
+}

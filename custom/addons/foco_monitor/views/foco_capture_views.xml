@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_capture_view_list" model="ir.ui.view">
+        <field name="name">foco.capture.list</field>
+        <field name="model">foco.capture</field>
+        <field name="arch" type="xml">
+            <list string="Capturas de pantalla" create="0">
+                <field name="at"/>
+                <field name="employee_id"/>
+                <field name="computer_id"/>
+                <field name="trigger"
+                       decoration-warning="trigger == 'manual'"/>
+                <field name="app_id"/>
+                <field name="reason"/>
+                <field name="requested_by" optional="show"/>
+                <!-- Que la persona haya sido avisada es parte del expediente,
+                     no un detalle: es lo que permite contestar «se le dijo» con
+                     un dato en vez de con una intencion. -->
+                <field name="notified" string="Avisada" widget="boolean_toggle" readonly="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_capture_view_form" model="ir.ui.view">
+        <field name="name">foco.capture.form</field>
+        <field name="model">foco.capture</field>
+        <field name="arch" type="xml">
+            <form string="Captura" create="0" edit="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="employee_id" readonly="1"/></h1>
+                        <h3><field name="at" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="trigger" readonly="1"/>
+                            <field name="reason" readonly="1"/>
+                            <field name="requested_by" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="computer_id" readonly="1"/>
+                            <field name="app_id" readonly="1"/>
+                            <field name="notified" readonly="1"/>
+                            <field name="width" readonly="1"/>
+                            <field name="height" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="image" widget="image" readonly="1"
+                           options="{'size': [1280, 0]}"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_capture_view_search" model="ir.ui.view">
+        <field name="name">foco.capture.search</field>
+        <field name="model">foco.capture</field>
+        <field name="arch" type="xml">
+            <search string="Capturas">
+                <field name="employee_id"/>
+                <field name="app_id"/>
+                <field name="reason"/>
+                <separator/>
+                <filter name="manuales" string="Las pidió alguien"
+                        domain="[('trigger','=','manual')]"/>
+                <filter name="sin_clasificar" string="Por app sin clasificar"
+                        domain="[('trigger','=','sin_clasificar')]"/>
+                <separator/>
+                <filter name="sin_aviso" string="Sin aviso a la persona"
+                        domain="[('notified','=',False)]"/>
+                <separator/>
+                <!-- Los filtros de agrupacion van sueltos tras un separador, sin
+                     envolverlos en <group expand="0">. Es el patron que ya usan
+                     las demas vistas de este modulo, y el envoltorio hacia que
+                     Odoo 19 rechazara la vista entera. -->
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_trig" string="Por qué" context="{'group_by': 'trigger'}"/>
+                <filter name="g_dia" string="Día" context="{'group_by': 'at:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_capture_action" model="ir.actions.act_window">
+        <field name="name">Capturas de pantalla</field>
+        <field name="res_model">foco.capture</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aquí no hay ninguna captura</p>
+            <p>
+                Las capturas están <b>apagadas de fábrica</b> y así deben seguir
+                mientras el aviso de privacidad firmado diga que no se toman.
+            </p>
+            <p>
+                Cuando se enciendan, hay dos maneras de que aparezca una imagen
+                aquí: que un administrador la pida desde Control remoto
+                <b>escribiendo el motivo</b>, o que alguien lleve mucho tiempo
+                en una aplicación que el catálogo no reconoce — en ese caso se
+                toma <b>una sola</b>, para poder identificarla, y esa aplicación
+                no vuelve a disparar nunca.
+            </p>
+            <p>
+                En los dos casos la persona ve un aviso en su pantalla en el
+                momento de la captura.
+            </p>
+        </field>
+    </record>
+</odoo>

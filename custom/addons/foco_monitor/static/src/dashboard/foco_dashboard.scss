@@ -32,15 +32,29 @@
         --raise: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
+    // Mismo arreglo que en Jornada y en Detalle de uso: el contenedor de
+    // acciones de Odoo tiene alto fijo y `overflow: hidden`, asi que una accion
+    // de cliente que no traiga su propio scroll pierde todo lo que se salga. En
+    // este tablero era lo mas grave de los tres, porque la mitad inferior
+    // -el reparto, las distracciones, los sitios- quedaba fuera del alcance.
+    // El cajon de detalle no se ve afectado: es `fixed`.
+    height: 100%;
+    overflow-y: auto;
     padding: 22px clamp(16px, 3vw, 32px) 40px;
-    max-width: 1280px;
-    margin: 0 auto;
+    > *:not(.fd_scrim):not(.fd_drawer) {
+        max-width: 1280px; margin-left: auto; margin-right: auto; }
     color: var(--ink);
     font-variant-numeric: tabular-nums;
     * { box-sizing: border-box; }
 
     .fd_head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;
-        h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
+        // `color` EXPLICITO, no heredado. Odoo/Bootstrap le fijan a los <h1..h3>
+        // su propio color de encabezado -un casi-negro-, y una regla con color
+        // gana siempre a la herencia, sin importar especificidad. Sin esto el
+        // titulo ignora `--ink` y sale NEGRO: invisible sobre el fondo oscuro
+        // -era el reporte de "letras negras"-, y en claro pasaba por bueno de
+        // pura casualidad. Mismo motivo en los <h2> de las tarjetas.
+        h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
         .fd_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center; }
         .fd_on { display: inline-flex; align-items: center; gap: 5px; }
     }
@@ -65,7 +79,24 @@
         }
     }
 
-    .fd_kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+    // Salto PC <-> Móvil sin pasar por el menu. Mismo lenguaje que el segmento
+    // de periodo -pastilla, activo en blanco-, con icono + etiqueta.
+    .fd_switch { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+            color: var(--ink2); font: inherit; font-size: 13px; font-weight: 550; padding: 6px 12px;
+            border-radius: 8px; cursor: pointer;
+            transition: color .15s var(--ease), transform .12s var(--ease);
+            i { font-size: 13px; }
+            &:hover { color: var(--ink); }
+            &:active { transform: scale(0.97); }
+            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); }
+        }
+    }
+
+    // Cinco tarjetas: se reparten solas y bajan a dos y a una columna sin
+    // que haya que tocar el numero en dos lados cada vez que se agrega una.
+    .fd_kpis { display: grid; gap: 14px; margin-bottom: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
     .fd_kpi { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
         box-shadow: var(--raise); display: flex; flex-direction: column; gap: 8px;
         .fd_kpi_top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -74,7 +105,9 @@
             .u { font-size: 16px; font-weight: 600; color: var(--ink3); margin-left: 2px; }
             &.warn { color: var(--low); }
         }
-        .fd_kpi_foot { font-size: 12px; color: var(--ink3); }
+        .fd_kpi_foot { font-size: 12px; color: var(--ink3);
+            &.warn { color: var(--mid); }   // dato faltante, no mal desempeno
+        }
     }
     .fd_pill { font-size: 11.5px; font-weight: 650; padding: 3px 8px; border-radius: 999px; white-space: nowrap;
         &.up { color: var(--good); background: color-mix(in srgb, var(--good-fill) 14%, transparent); }
@@ -83,15 +116,20 @@
 
     .fd_meter { background: var(--track); border-radius: 999px; height: 7px; overflow: hidden; flex: 1;
         &.big { height: 9px; margin-top: 2px; }
-        .fill { display: block; height: 100%; border-radius: 999px; background: var(--accent);
-            transition: width .55s var(--ease);
+        // Se dibuja ENTERA y se recorta desde la derecha, igual que en «Detalle
+        // de uso». Animar `width` recalcula el layout en cada fotograma;
+        // `clip-path` va en el compositor y ademas conserva el radio -un
+        // `scaleX` lo deformaria justo en las barras cortas, que son la mayoria-.
+        .fill { display: block; width: 100%; height: 100%; border-radius: 999px;
+            background: var(--accent);
+            transition: clip-path .55s var(--ease);
             &.good { background: var(--good-fill); } &.mid { background: var(--mid-fill); } &.low { background: var(--low-fill); }
         }
     }
 
     .fd_card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--raise); padding: 4px 4px 8px; }
     .fd_card_head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 18px 10px;
-        h2 { margin: 0; font-size: 14px; font-weight: 650; }
+        h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }  // ver nota en .fd_head h1
         .fd_card_hint { font-size: 12px; color: var(--ink3); }
     }
     .fd_table_card { margin-bottom: 16px; }
@@ -121,11 +159,54 @@
     .fd_emp_name { font-weight: 600; color: var(--ink); }
     .fd_tag { font-size: 10.5px; font-weight: 600; color: var(--low); text-transform: uppercase; letter-spacing: .03em;
         &.sin_senal { color: var(--mid); }   // aviso tecnico, no acusacion
+        // Cobertura parcial: mismo tono que "sin senal" porque es la misma
+        // clase de aviso -falta dato-, y nunca el rojo de bajo desempeno.
+        &.cobertura { color: var(--mid); text-transform: none; letter-spacing: 0;
+            font-variant-numeric: tabular-nums; }
+    }
+
+    // Presencia. Regla de color: lo explicado va en tinta secundaria -apagar el
+    // equipo e irse a casa es normalidad, no una alerta- y solo lo que nadie
+    // explica toma color. Hoy el punto gris grita lo mismo a las 3 de la manana
+    // que a media jornada.
+    .fd_presencia { display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; color: var(--ink3); white-space: nowrap;
+        &.activo, &.en_llamada { color: var(--ink2); }
+        &.sin_senal { color: var(--mid); font-weight: 550; }
+    }
+    .fd_pdot { width: 7px; height: 7px; border-radius: 50%; flex: none;
+        background: var(--ink3);
+        &.activo { background: var(--good-fill); }
+        // En llamada tiene su propia forma, no solo su color: un anillo se
+        // distingue de un punto aunque el monitor este mal calibrado.
+        &.en_llamada { background: transparent; box-shadow: inset 0 0 0 2px var(--good-fill); }
+        &.ausente { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink3); }
+        &.bloqueado { background: var(--ink3); border-radius: 2px; }
+        &.suspendido, &.apagado { background: transparent;
+            box-shadow: inset 0 0 0 1px var(--line); }
+        &.sin_senal { background: var(--mid-fill); }
+        &.nunca { background: transparent; box-shadow: inset 0 0 0 1px var(--ink3); opacity: .5; }
     }
 
     .fd_idx { display: flex; align-items: center; gap: 10px; }
     .fd_idx_v { font-weight: 700; font-size: 13px; width: 40px; text-align: right;
         &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
+
+    .fd_ultimo { color: var(--ink3); }
+    .fd_sub .sep { color: var(--ink3); margin: 0 2px; }
+
+    .fd_refrescar { display: inline-flex; align-items: center; gap: 7px;
+        background: var(--card); border: 1px solid var(--line); color: var(--ink2);
+        border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px;
+        font-weight: 550; cursor: pointer;
+        transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);
+        .ico { font-size: 15px; line-height: 1; display: inline-block; }
+        &:hover:not(:disabled) { background: var(--track); color: var(--ink); }
+        &:active:not(:disabled) { transform: scale(0.97); }
+        &:disabled { opacity: .6; cursor: default; }
+        &.girando .ico { animation: fd_girar .9s linear infinite; }
+    }
+    @keyframes fd_girar { to { transform: rotate(360deg); } }
 
     .fd_chip { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         vertical-align: middle; font-size: 12.5px; color: var(--ink2); background: var(--track); border-radius: 7px; padding: 3px 9px;
@@ -139,12 +220,53 @@
         &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); }
     }
 
+    // ------------------------------------------------------------ graficas
+    //
+    // El lienzo lleva ALTO EXPLICITO. Chart.js con `maintainAspectRatio: false`
+    // mide el contenedor, y un contenedor sin alto mide cero: la grafica se
+    // dibuja de 0 px y la tarjeta se ve vacia, sin error en ningun lado.
+    .fd_grafica { padding-bottom: 14px; }
+    .fd_lienzo { position: relative; height: 210px; margin: 2px 16px 0;
+        &.alto { height: 280px; } }
+    .fd_pie { margin: 10px 18px 2px; font-size: 11.5px; color: var(--ink3);
+        line-height: 1.6; max-width: 62ch; }
+
+    // Dos tarjetas, no tres: cada una necesita ancho para que las barras se
+    // puedan comparar, y a 300 px las etiquetas se amontonan.
+    // margin-bottom ademas del top: sin el, la fila de la dona y las columnas
+    // quedaba pegada a la tarjeta de Empleados de abajo, sin aire entre ambas.
+    .fd_duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+        gap: 16px; margin-top: 16px; margin-bottom: 16px; }
+
+    // ----------------------------------------------------------- exportar
+    .fd_export { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .fd_exp_sel { background: transparent; color: var(--ink2); font-size: 12px;
+        border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px;
+        cursor: pointer; font-family: inherit;
+        &:hover { color: var(--ink); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
+    .fd_exp_btn { background: transparent; color: var(--ink2); font-size: 12px;
+        font-weight: 550; border: 1px solid var(--line); border-radius: 8px;
+        padding: 4px 11px; cursor: pointer; font-family: inherit;
+        // Sin esto el boton se angosta y parte «Exportar CSV» en dos renglones,
+        // que deja la cabecera de la tarjeta desalineada.
+        white-space: nowrap;
+        transition: color .15s var(--ease), border-color .15s var(--ease),
+                    transform .12s var(--ease);
+        &:hover { color: var(--ink); border-color: var(--ink3); }
+        &:active { transform: scale(0.97); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
+
     // auto-fit: la seccion pasó de dos tarjetas a tres. Dejar que el ancho
     // decida cuantas caben evita fijar un numero que se rompe al agregar otra.
     .fd_cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
     .fd_stack { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 4px 18px 14px; background: var(--track);
         &.sm { margin: 2px 0 10px; height: 14px; }
-        .fd_seg_bar { height: 100%; transition: width .5s var(--ease);
+        // Sin transicion: aqui el ancho ES la proporcion de cada tramo, o sea
+        // no hay forma de animarlo sin recalcular el layout. Y tampoco hace
+        // falta: el reparto se repinta cada diez minutos y nadie lo esta
+        // mirando en ese instante.
+        .fd_seg_bar { height: 100%;
             &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
             &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); }
         }
@@ -157,7 +279,7 @@
     .fd_drow { display: grid; grid-template-columns: 1fr 40% 56px; align-items: center; gap: 12px; padding: 7px 18px;
         .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bar { background: var(--track); border-radius: 6px; height: 10px; overflow: hidden; }
-        .bar .fill { display: block; height: 100%; border-radius: 6px; background: var(--dis); transition: width .5s var(--ease); }
+        .bar .fill { display: block; width: 100%; height: 100%; border-radius: 6px; background: var(--dis); transition: clip-path .5s var(--ease); }
         .v { text-align: right; font-size: 12.5px; color: var(--ink2); font-weight: 550; }
     }
     .fd_note { margin: 0; padding: 0 18px 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink3);
@@ -247,7 +369,7 @@
     .fd_app { display: grid; grid-template-columns: 10px 1fr 30% 54px; align-items: center; gap: 10px; padding: 6px 0;
         .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .bar { background: var(--track); border-radius: 6px; height: 8px; overflow: hidden; }
-        .bar .fill { display: block; height: 100%; border-radius: 6px; background: var(--accent); transition: width .5s var(--ease);
+        .bar .fill { display: block; width: 100%; height: 100%; border-radius: 6px; background: var(--accent); transition: clip-path .5s var(--ease);
             &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
             &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); } }
         .v { text-align: right; font-size: 12.5px; color: var(--ink2); font-weight: 550; }
@@ -268,11 +390,13 @@
     @media (max-width: 560px) {
         .fd_table th.c_app, .fd_table td.c_app { display: none; }
         .fd_dw_stats { grid-template-columns: repeat(2, 1fr); }
+        .fd_switch button span { display: none; }   // en angosto, solo iconos
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .foco_dash .fd_row { animation: none; }
+    .foco_dash .fd_refrescar.girando .ico { animation: none; }
     .foco_dash .fd_meter .fill,
     .foco_dash .fd_seg_bar,
     .foco_dash .fd_app .bar .fill,

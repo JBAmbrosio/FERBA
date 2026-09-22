@@ -47,6 +47,7 @@
                     </group>
                     <field name="result" readonly="1"/>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>

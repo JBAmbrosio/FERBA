@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_event_view_list" model="ir.ui.view">
+        <field name="name">foco.event.list</field>
+        <field name="model">foco.event</field>
+        <field name="arch" type="xml">
+            <list string="Eventos del equipo" create="0" delete="0" edit="0">
+                <field name="at" string="Cuando"/>
+                <field name="employee_id"/>
+                <field name="computer_id"/>
+                <field name="kind" string="Que paso"/>
+                <!-- La procedencia va siempre a la vista: es la diferencia
+                     entre un dato y una acusacion. -->
+                <field name="source" string="De donde se supo" widget="badge"
+                       decoration-info="source == 'os'"/>
+                <field name="os_word" string="Palabra de Windows" optional="show"/>
+                <field name="process" optional="show"/>
+                <field name="user_name" optional="hide"/>
+                <field name="event_id" string="Id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_event_view_search" model="ir.ui.view">
+        <field name="name">foco.event.search</field>
+        <field name="model">foco.event</field>
+        <field name="arch" type="xml">
+            <search string="Eventos del equipo">
+                <field name="employee_id"/>
+                <field name="computer_id"/>
+                <field name="kind"/>
+                <filter name="f_energia" string="Encendido y apagado"
+                        domain="[('kind', 'in', ['encendido', 'apagado', 'apagado_inesperado', 'apagado_solicitado'])]"/>
+                <filter name="f_suspension" string="Suspension"
+                        domain="[('kind', 'in', ['suspendido', 'reanudado'])]"/>
+                <filter name="f_sesion" string="Bloqueo de sesion"
+                        domain="[('kind', 'in', ['bloqueo', 'desbloqueo'])]"/>
+                <filter name="f_agente" string="Arranque y paro del agente"
+                        domain="[('kind', 'in', ['agente_inicio', 'agente_fin'])]"/>
+                <separator/>
+                <filter name="f_inesperado" string="Apagados inesperados"
+                        domain="[('kind', '=', 'apagado_inesperado')]"/>
+                <separator/>
+                    <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_kind" string="Que paso" context="{'group_by': 'kind'}"/>
+                    <filter name="g_dia" string="Dia" context="{'group_by': 'date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_event_action" model="ir.actions.act_window">
+        <field name="name">Eventos del equipo</field>
+        <field name="res_model">foco.event</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="foco_event_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin eventos todavia</p>
+            <p>Aqui aparece lo que le pasa a cada equipo: cuando encendio, cuando
+               lo apagaron y quien lo pidio, cuando se suspendio. Es lo que
+               permite saber si un hueco fue una salida normal o algo que hay
+               que revisar.</p>
+        </field>
+    </record>
+</odoo>

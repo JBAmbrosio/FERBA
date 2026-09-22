@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Uso">
+        <div class="foco_uso" t-att-class="{ 'fu-dark': state.dark }" t-ref="root">
+
+            <header class="fu_head">
+                <div class="fu_quien">
+                    <select class="fu_sel" t-on-change="setEmpleado">
+                        <option value="">Toda la empresa</option>
+                        <t t-foreach="state.empleados" t-as="e" t-key="e.id">
+                            <option t-att-value="e.id"
+                                    t-att-selected="e.id === state.empleadoId"
+                                    t-esc="e.name"/>
+                        </t>
+                    </select>
+                    <h1 t-esc="quien"/>
+                </div>
+
+                <div class="fu_nav">
+                    <div class="fu_seg" role="group">
+                        <button t-att-class="state.vista === 'semana' ? 'on' : ''"
+                                t-on-click="() => this.setVista('semana')">Semana</button>
+                        <button t-att-class="state.vista === 'mes' ? 'on' : ''"
+                                t-on-click="() => this.setVista('mes')">Mes</button>
+                    </div>
+                    <div class="fu_pager">
+                        <button class="fu_ico" t-on-click="() => this.mover(-1)"
+                                title="Anterior (flecha izquierda)">&#8249;</button>
+                        <span class="fu_periodo" t-esc="periodoLabel"/>
+                        <button class="fu_ico" t-on-click="() => this.mover(1)"
+                                title="Siguiente (flecha derecha)">&#8250;</button>
+                    </div>
+                    <button class="fu_hoy" t-on-click="() => this.hoy()">Hoy</button>
+                </div>
+            </header>
+
+            <t t-if="state.loading">
+                <div class="fu_estado">Cargando…</div>
+            </t>
+            <t t-elif="!state.datos or !state.datos.filas.length">
+                <div class="fu_estado fu_vacio">
+                    <p><b>No hay actividad medida en este periodo.</b></p>
+                    <p>Si esperabas ver algo, revisa en <b>Computadoras</b> que el
+                       equipo esté reportando: la columna «Estado del agente» lo dice.</p>
+                </div>
+            </t>
+            <t t-else="">
+
+                <!-- LA RESPUESTA. Una frase, no cinco tarjetas: de las cinco,
+                     cuatro eran contexto y la que importaba se perdía. -->
+                <section class="fu_resumen">
+                    <div class="fu_hito">
+                        <span class="l">Tiempo medido</span>
+                        <span class="v" t-esc="dur(state.datos.base)"/>
+                    </div>
+                    <p class="fu_frase">
+                        en <b t-esc="state.datos.dias"/> día<t t-if="state.datos.dias != 1">s</t>
+                        con dato<span class="sep">·</span>
+                        <span class="fu_dato" title="Horas activas ponderadas por el peso que tenga cada categoría. Una hora en una categoría con peso 0.5 aporta media hora.">
+                            <b t-esc="dur(state.datos.total.productivas)"/> productivas
+                        </span>
+                        <t t-if="state.datos.total.llamada > 0.008">
+                            <span class="sep">·</span>
+                            <span><b t-esc="dur(state.datos.total.llamada)"/> en llamada</span>
+                        </t>
+                        <t t-if="state.datos.total.sin_input > 0.008">
+                            <span class="sep">·</span>
+                            <span class="fu_dato" title="La pantalla estuvo al frente sin teclado ni mouse. No es lo mismo que no trabajar: leer, revisar o pensar cae aquí.">
+                                <b t-esc="dur(state.datos.total.sin_input)"/> sin teclear
+                            </span>
+                        </t>
+                    </p>
+                    <button class="fu_tabla" t-on-click="() => this.verTabla()">
+                        Ver tabla completa
+                    </button>
+                </section>
+
+                <!-- LO QUE PIDE UNA ACCIÓN, antes del desglose: es lo único
+                     que cambia el número, y enterrarlo abajo es garantizar
+                     que nadie lo haga. -->
+                <t t-if="state.datos.pendientes.length">
+                    <section class="fu_pendiente">
+                        <div class="fu_pend_txt">
+                            <b t-esc="dur(state.datos.pendientes_horas)"/> en
+                            <b t-esc="state.datos.pendientes_total"/> cosa<t t-if="state.datos.pendientes_total != 1">s</t>
+                            sin clasificar — ese tiempo no cuenta como productivo
+                            hasta que alguien diga qué son.
+                        </div>
+                        <div class="fu_chips">
+                            <t t-foreach="state.datos.pendientes" t-as="p" t-key="p.id">
+                                <button class="fu_chip" t-on-click="() => this.resolver(p)">
+                                    <span t-esc="p.nombre"/>
+                                    <em t-esc="dur(p.horas)"/>
+                                </button>
+                            </t>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- EL DESGLOSE. Ordenado por tiempo, que es la pregunta. -->
+                <section class="fu_lista">
+                    <div class="fu_lista_head">
+                        <span>En qué se fue</span>
+                        <span class="der">del tiempo medido</span>
+                    </div>
+
+                    <t t-foreach="state.datos.filas" t-as="f" t-key="f.id">
+                        <div t-attf-class="fu_fila {{ f.detalle.length ? 'abrible' : '' }} {{ state.abierta === f.id ? 'abierta' : '' }} {{ f.sistema ? 'sistema' : '' }}"
+                             t-attf-style="animation-delay:{{ Math.min(f_index, 12) * 26 }}ms"
+                             t-on-click="() => this.abrir(f)">
+                            <div class="fu_nombre">
+                                <span t-attf-class="fu_punto {{ punto(f) }}"
+                                      t-att-title="f.sin_clasificar ? 'Sin clasificar: no aporta al índice' : f.categoria"/>
+                                <span class="n" t-esc="f.nombre"/>
+                                <span class="c" t-esc="f.categoria"/>
+                                <t t-if="f.detalle.length">
+                                    <span class="fu_cuantos">
+                                        <t t-esc="f.detalle.length"/>
+                                        <t t-if="f.detalle[0].tipo === 'archivo'"> archivo<t t-if="f.detalle.length != 1">s</t></t>
+                                        <t t-else=""> sitio<t t-if="f.detalle.length != 1">s</t></t>
+                                    </span>
+                                </t>
+                            </div>
+                            <div class="fu_barra">
+                                <span t-attf-class="fu_relleno {{ tinta(f) }}"
+                                      t-attf-style="clip-path:{{ recorte(f.horas) }}"/>
+                            </div>
+                            <div class="fu_cifras">
+                                <span class="h" t-esc="dur(f.horas)"/>
+                                <span class="p" t-esc="pct(f.pct)"/>
+                            </div>
+                        </div>
+
+                        <t t-if="state.abierta === f.id">
+                            <div class="fu_detalle">
+                                <t t-foreach="f.detalle" t-as="d" t-key="d.nombre">
+                                    <div class="fu_sub">
+                                        <span class="n">
+                                            <t t-esc="d.nombre"/>
+                                            <t t-if="d.sin_clasificar">
+                                                <button class="fu_mini" t-on-click.stop="() => this.clasificar(d.site_id)">clasificar</button>
+                                            </t>
+                                        </span>
+                                        <div class="fu_barra sub">
+                                            <span t-attf-class="fu_relleno {{ tinta(f) }}"
+                                                  t-attf-style="clip-path:{{ recorte(d.horas) }}"/>
+                                        </div>
+                                        <span class="h" t-esc="dur(d.horas)"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </t>
+                </section>
+
+                <!-- La escala de la tinta, dicha una vez. -->
+                <div class="fu_leyenda">
+                    <span class="fu_leg"><i class="sw alta"/>Productiva</span>
+                    <span class="fu_leg"><i class="sw media"/>Aporta a medias</span>
+                    <span class="fu_leg"><i class="sw baja"/>No aporta</span>
+                    <span class="fu_leg"><i class="sw pendiente"/>Sin clasificar</span>
+                    <span class="fu_leg"><i class="sw sistema"/>Del sistema, fuera del total</span>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

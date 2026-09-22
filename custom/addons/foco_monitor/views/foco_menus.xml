@@ -1,37 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_foco_root" name="Foco" sequence="90"/>
+    <!-- groups: sin pertenecer al grupo de consulta, la aplicacion no aparece
+         siquiera en el menu. Administrar implica ver (ver foco_security.xml).
 
+         ESTRUCTURA. Trece entradas de primer nivel saturaban la barra. Se
+         agrupan en cuatro secciones por lo que hace cada pantalla, mas el
+         Tablero suelto como portada:
+
+           Tablero        la portada, siempre a un clic
+           Actividad      lo que hizo la persona (jornada, uso, ausencias, eventos)
+           Equipos        lo que se hace SOBRE un equipo (control remoto, bloqueo, altaas)
+           Catalogo       lo que se clasifica (aplicaciones, sitios, categorias)
+           Configuracion  ajustes y accesos
+
+         Un menu padre sin accion solo se muestra si tiene un hijo visible para
+         quien mira, asi que un usuario de solo consulta ve Equipos con
+         Computadoras dentro pero sin las acciones de administrador, y no ve
+         Configuracion en absoluto. -->
+    <menuitem id="menu_foco_root" name="Foco" sequence="90"
+              groups="foco_monitor.group_foco_user"/>
+
+    <!-- Portada -->
     <menuitem id="menu_foco_dashboard" name="Tablero"
               parent="menu_foco_root" action="foco_dashboard_action" sequence="10"/>
 
+    <!-- ============================================ ACTIVIDAD (de la persona) -->
+    <menuitem id="menu_foco_sec_actividad" name="Actividad"
+              parent="menu_foco_root" sequence="20"/>
+
+    <menuitem id="menu_foco_jornada" name="Jornada"
+              parent="menu_foco_sec_actividad" action="foco_jornada_client" sequence="10"/>
+
     <menuitem id="menu_foco_detalle" name="Detalle de uso"
-              parent="menu_foco_root" action="foco_usage_action" sequence="15"/>
+              parent="menu_foco_sec_actividad" action="foco_uso_client" sequence="20"/>
 
     <menuitem id="menu_foco_ausencias" name="Periodos sin actividad"
-              parent="menu_foco_root" action="foco_absence_action" sequence="18"/>
+              parent="menu_foco_sec_actividad" action="foco_absence_action" sequence="30"/>
+
+    <menuitem id="menu_foco_eventos" name="Eventos del equipo"
+              parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
+
+    <!-- =================================================== EQUIPOS (acciones) -->
+    <menuitem id="menu_foco_sec_equipos" name="Equipos"
+              parent="menu_foco_root" sequence="30"/>
 
     <menuitem id="menu_foco_computers" name="Computadoras"
-              parent="menu_foco_root" action="foco_computer_action" sequence="20"/>
+              parent="menu_foco_sec_equipos" action="foco_computer_action" sequence="10"/>
 
-    <menuitem id="menu_foco_apps" name="Aplicaciones"
-              parent="menu_foco_root" action="foco_app_action" sequence="30"/>
+    <menuitem id="menu_foco_commands" name="Control remoto"
+              parent="menu_foco_sec_equipos" action="foco_command_action" sequence="20"
+              groups="foco_monitor.group_foco_manager"/>
 
-    <menuitem id="menu_foco_sites" name="Sitios"
-              parent="menu_foco_root" action="foco_site_action" sequence="32"/>
+    <!-- A la vista, agrupada con las demas acciones sobre equipos: una funcion
+         que fotografia la pantalla de las personas esta a un clic, no enterrada
+         en Configuracion. Que se vea cuantas hay es parte de que exista. -->
+    <menuitem id="menu_foco_capturas" name="Capturas de pantalla"
+              parent="menu_foco_sec_equipos" action="foco_capture_action" sequence="30"
+              groups="foco_monitor.group_foco_manager"/>
 
-    <menuitem id="menu_foco_sites_cola" name="Sitios por clasificar"
-              parent="menu_foco_root" action="foco_usage_action_sitios" sequence="33"
+    <menuitem id="menu_foco_policies" name="Navegacion permitida"
+              parent="menu_foco_sec_equipos" action="foco_policy_action" sequence="40"
               groups="foco_monitor.group_foco_manager"/>
 
     <menuitem id="menu_foco_invitaciones" name="Invitaciones"
-              parent="menu_foco_root" action="foco_invitation_action" sequence="35"
+              parent="menu_foco_sec_equipos" action="foco_invitation_action" sequence="50"
               groups="foco_monitor.group_foco_manager"/>
 
-    <menuitem id="menu_foco_commands" name="Control remoto"
-              parent="menu_foco_root" action="foco_command_action" sequence="40"
+    <!-- ===================================================== MOVIL (Android) -->
+    <!-- Telefonos de la empresa: ubicacion, uso de apps y llamadas. Todo el
+         menu es de administrador: es la parte mas sensible del sistema. -->
+    <menuitem id="menu_foco_sec_movil" name="Movil"
+              parent="menu_foco_root" sequence="35"
               groups="foco_monitor.group_foco_manager"/>
 
+    <menuitem id="menu_foco_movil_tablero" name="Tablero movil"
+              parent="menu_foco_sec_movil" action="foco_movil_client" sequence="5"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_devices" name="Dispositivos"
+              parent="menu_foco_sec_movil" action="foco_mobile_device_action" sequence="10"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_locations" name="Ubicaciones"
+              parent="menu_foco_sec_movil" action="foco_location_action" sequence="20"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_mobile_usage" name="Uso de apps"
+              parent="menu_foco_sec_movil" action="foco_mobile_usage_action" sequence="30"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_calls" name="Llamadas"
+              parent="menu_foco_sec_movil" action="foco_call_action" sequence="40"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_mobile_captures" name="Capturas"
+              parent="menu_foco_sec_movil" action="foco_mobile_capture_action" sequence="50"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <!-- ================================================= CATALOGO (clasificar) -->
+    <menuitem id="menu_foco_sec_catalogo" name="Catalogo"
+              parent="menu_foco_root" sequence="40"/>
+
+    <menuitem id="menu_foco_apps" name="Aplicaciones"
+              parent="menu_foco_sec_catalogo" action="foco_app_action" sequence="10"/>
+
+    <menuitem id="menu_foco_sites" name="Sitios"
+              parent="menu_foco_sec_catalogo" action="foco_site_action" sequence="20"/>
+
+    <menuitem id="menu_foco_sites_cola" name="Sitios por clasificar"
+              parent="menu_foco_sec_catalogo" action="foco_usage_action_sitios" sequence="30"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_categories" name="Categorias"
+              parent="menu_foco_sec_catalogo" action="foco_category_action" sequence="40"/>
+
+    <!-- ===================================================== CONFIGURACION -->
     <menuitem id="menu_foco_config" name="Configuracion"
               parent="menu_foco_root" sequence="90"
               groups="foco_monitor.group_foco_manager"/>
@@ -39,6 +122,38 @@
     <menuitem id="menu_foco_horario" name="Horario"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
 
-    <menuitem id="menu_foco_categories" name="Categorias"
-              parent="menu_foco_config" action="foco_category_action" sequence="10"/>
+    <!-- Monitoreo periodico de pantalla POR EMPLEADO: que apps, cada cuanto, y
+         cuanto viven las capturas. Vive en Configuracion porque es una politica
+         que se define, no una accion sobre un equipo. -->
+    <menuitem id="menu_foco_watch" name="Monitoreo por app"
+              parent="menu_foco_config" action="foco_watch_action" sequence="7"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_movil_ajustes" name="Movil (ubicacion y llamadas)"
+              parent="menu_foco_config" action="foco_settings_movil_action" sequence="8"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_accesos" name="Accesos"
+              parent="menu_foco_config" action="foco_access_action" sequence="10"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <!-- La tabla generica sigue accesible, pero deja de ser la puerta: abrir
+         una pestana en tabla dinamica es pedirle al usuario que construya la
+         pregunta antes de poder verla. Vive en Configuracion, como herramienta
+         avanzada, no como la entrada normal. -->
+    <menuitem id="menu_foco_detalle_tabla" name="Tabla de uso"
+              parent="menu_foco_config" action="foco_usage_action" sequence="20"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_jornadas_detalle" name="Jornadas (detalle)"
+              parent="menu_foco_config" action="foco_workday_action" sequence="30"/>
+
+    <!-- El icono del lanzador de aplicaciones sale de web_icon, NO de
+         static/description/icon.png (esa imagen solo se usa en la lista de
+         Aplicaciones). Y web_icon no se puede poner como atributo de
+         <menuitem>: el esquema de Odoo 19 solo admite id, name, sequence,
+         groups y active. Se asigna como campo del registro. -->
+    <record id="menu_foco_root" model="ir.ui.menu">
+        <field name="web_icon">foco_monitor,static/description/icon.png</field>
+    </record>
 </odoo>

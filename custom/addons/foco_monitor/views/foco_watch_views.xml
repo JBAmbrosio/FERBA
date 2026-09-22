@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Lista: agrupada por empleado, porque la pregunta natural es "a esta
+         persona, que le estoy monitoreando". Editable en linea para dar de alta
+         varias apps de un tiron sin abrir el formulario cada vez. -->
+    <record id="foco_watch_view_list" model="ir.ui.view">
+        <field name="name">foco.watch.list</field>
+        <field name="model">foco.watch</field>
+        <field name="arch" type="xml">
+            <list string="Monitoreo por app" editable="bottom">
+                <field name="employee_id"/>
+                <field name="app_ids_permitidas" column_invisible="1"/>
+                <field name="app_id"
+                       options="{'no_create': True, 'no_open': True}"/>
+                <field name="interval_minutes"/>
+                <field name="retention_days"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_watch_view_form" model="ir.ui.view">
+        <field name="name">foco.watch.form</field>
+        <field name="model">foco.watch</field>
+        <field name="arch" type="xml">
+            <form string="Monitoreo por app">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="app_ids_permitidas" invisible="1"/>
+                            <field name="app_id"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="interval_minutes"/>
+                            <field name="retention_days"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <p class="text-muted">
+                        Mientras esta aplicacion tenga una ventana abierta en el
+                        equipo de la persona (este o no al frente), se toma una
+                        captura de pantalla completa cada tantos minutos. Solo se
+                        listan las aplicaciones que el empleado ya ha usado, y todo
+                        depende del interruptor general de capturas en
+                        Configuracion &gt; Horario.
+                    </p>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_watch_view_search" model="ir.ui.view">
+        <field name="name">foco.watch.search</field>
+        <field name="model">foco.watch</field>
+        <field name="arch" type="xml">
+            <search string="Monitoreo por app">
+                <field name="employee_id"/>
+                <field name="app_id"/>
+                <separator/>
+                <filter name="activas" string="Activas" domain="[('active','=',True)]"/>
+                <filter name="archivadas" string="Archivadas" domain="[('active','=',False)]"/>
+                <separator/>
+                <!-- Filtro de agrupacion suelto tras el separador, sin envolverlo
+                     en <group expand="0">: es el patron que ya usan las demas
+                     vistas del modulo; el envoltorio hace que Odoo 19 rechace
+                     la vista entera. -->
+                <filter name="por_empleado" string="Empleado"
+                        context="{'group_by': 'employee_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_watch_action" model="ir.actions.act_window">
+        <field name="name">Monitoreo por app</field>
+        <field name="res_model">foco.watch</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_activas': 1, 'search_default_por_empleado': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavia no hay monitoreo por app</p>
+            <p>Elige un empleado y una de las aplicaciones que ya ha usado, y di
+               cada cuantos minutos capturar mientras la tenga al frente. Recuerda
+               encender las capturas en Configuracion &gt; Horario.</p>
+        </field>
+    </record>
+
+</odoo>

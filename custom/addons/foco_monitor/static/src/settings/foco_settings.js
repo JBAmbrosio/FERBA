@@ -17,13 +17,14 @@ export class FocoSettings extends Component {
 
     setup() {
         this.orm = useService("orm");
+        this.action = useService("action");
         this.notif = useService("notification");
         this.root = useRef("root");
         this.DAYS = DAYS;
         this.state = useState({
             loading: true, dark: false, saving: false, dirty: false,
             id: null, enabled: true, from: "09:00", to: "20:00",
-            days: {},
+            days: {}, cobertura: null,
         });
         onWillStart(() => this.load());
         onMounted(() => this.detectTheme());
@@ -32,7 +33,13 @@ export class FocoSettings extends Component {
     async load() {
         const fields = ["sched_enabled", "sched_from", "sched_to",
             ...DAYS.map((d) => d[0])];
-        const recs = await this.orm.searchRead("foco.settings", [], fields, { limit: 1 });
+        const [recs, cobertura] = await Promise.all([
+            this.orm.searchRead("foco.settings", [], fields, { limit: 1 }),
+            // Quien se rige de verdad por esta pantalla: si el empleado tiene
+            // calendario laboral, ese gana y este horario no le aplica.
+            this.orm.call("foco.settings", "cobertura_horario", []),
+        ]);
+        this.state.cobertura = cobertura;
         const r = recs[0] || {};
         this.state.id = r.id;
         this.state.enabled = r.sched_enabled !== undefined ? r.sched_enabled : true;
@@ -102,6 +109,28 @@ export class FocoSettings extends Component {
         } finally {
             this.state.saving = false;
         }
+    }
+
+    get gobierna() {
+        const c = this.state.cobertura;
+        if (!c || !c.total) return "";
+        const p = (n) => (n === 1 ? "persona monitoreada" : "personas monitoreadas");
+        if (!c.con_calendario) return `Se aplica a ${c.total === 1 ? "la" : "las"} ${c.total} ${p(c.total)}.`;
+        if (!c.global) return `No se aplica a nadie: ${c.total === 1 ? "la" : "las"} ${c.total} ${p(c.total)} se ${c.total === 1 ? "rige" : "rigen"} por su calendario laboral.`;
+        return `Se aplica a ${c.global} de ${c.total} ${p(c.total)}.`;
+    }
+
+    /** Abre el calendario en Odoo. Foco NO lo edita: duplicarlo crearia dos
+     *  verdades sobre la jornada de una persona. */
+    abrirCalendario(id, nombre) {
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            name: nombre,
+            res_model: "resource.calendar",
+            res_id: id,
+            views: [[false, "form"]],
+            target: "current",
+        });
     }
 
     discard() { this.load(); }

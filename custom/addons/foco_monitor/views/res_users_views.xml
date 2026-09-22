@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Una linea por persona con acceso y los departamentos que ve. Sin crear
+        ni borrar usuarios: aqui solo se reparte el alcance; quien entra se
+        decide en la pantalla de accesos.
+    -->
+    <record id="foco_res_users_view_list_alcance" model="ir.ui.view">
+        <field name="name">res.users.list.foco.alcance</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <list string="Que ve cada quien" editable="bottom"
+                  create="0" delete="0">
+                <field name="name" readonly="1"/>
+                <field name="login" readonly="1"/>
+                <field name="foco_department_ids" widget="many2many_tags"
+                       options="{'no_create': True}"
+                       placeholder="Todos los departamentos"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_res_users_view_form_alcance" model="ir.ui.view">
+        <field name="name">res.users.form.foco.alcance</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Foco" name="foco_alcance"
+                      groups="foco_monitor.group_foco_user">
+                    <group>
+                        <field name="foco_department_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Todos los departamentos"/>
+                    </group>
+                    <div class="text-muted">
+                        Si se deja vacio, esta persona ve la actividad de toda
+                        la empresa. Quien administra Foco ve todo en cualquier
+                        caso.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

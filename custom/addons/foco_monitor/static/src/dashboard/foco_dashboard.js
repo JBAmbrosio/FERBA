@@ -1,8 +1,25 @@
 /** @odoo-module **/
 
-import { Component, useState, onWillStart, onMounted, useRef, useExternalListener } from "@odoo/owl";
+import { Component, useState, onWillStart, onMounted, onWillUnmount, useRef, useExternalListener, useEffect } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { loadBundle } from "@web/core/assets";
+
+// Chart.js NO viaja en este modulo: Odoo ya lo trae (4.4.5) y lo publica en el
+// bundle `web.chartjs_lib`, que es el mismo que carga su vista de graficos. Se
+// pide bajo demanda, no en el manifiesto, porque el resto de las pantallas de
+// Foco no dibuja graficas y no tienen por que pagar la descarga.
+//
+// Un CDN estaba descartado de entrada: este modulo corre en Odoo.sh, y una
+// dependencia externa convierte «se cayo la red de un tercero» en «el tablero
+// no abre».
+let ChartJS = null;
+async function traerChart() {
+    if (ChartJS) return ChartJS;
+    await loadBundle("web.chartjs_lib");
+    ChartJS = window.Chart;
+    return ChartJS;
+}
 
 const CAT_KEY = {
     "Productiva": "productiva", "Navegador": "navegador", "Neutral": "neutral",
@@ -13,6 +30,10 @@ const CAT_LABEL = {
     distraccion: "Distracción", sistema: "Sistema", sin: "Sin clasificar",
 };
 const CAT_ORDER = ["productiva", "navegador", "neutral", "distraccion", "sistema", "sin"];
+
+// Cada cuanto se refresca solo. El agente empuja cada 5 min en produccion, asi
+// que refrescar mas seguido no traeria dato nuevo, solo carga.
+const REFRESCO_MS = 10 * 60 * 1000;
 
 export class FocoDashboard extends Component {
     static template = "foco_monitor.Dashboard";
@@ -26,33 +47,493 @@ export class FocoDashboard extends Component {
             loading: true, days: 7, dark: false,
             team: {}, employees: [], composition: [], distractions: [],
             sites: [], pendingSites: [],
-            attention: 0, sinSenal: 0,
+            attention: 0, sinSenal: 0, cobertura: {},
             detail: null, open: false,
+            refrescando: false, ultimo: null,
+            // analitica
+            serie: [], porPersona: [], jornada: [],
+            expEmpleado: "", expGrano: "dia",
         });
+        // Un lienzo por grafica. Se guardan las instancias para destruirlas:
+        // Chart.js deja listeners vivos, y redibujar sin destruir acumula una
+        // grafica encima de otra en cada refresco -se nota porque el tooltip
+        // empieza a mostrar series viejas-.
+        this.cTendencia = useRef("cTendencia");
+        this.cDonut = useRef("cDonut");
+        this.cJornada = useRef("cJornada");
+        this.graficas = {};
         onWillStart(() => this.load());
-        onMounted(() => this.detectTheme());
+        onMounted(() => {
+            this.detectTheme();
+            this.temporizador = setInterval(() => this.refrescoAutomatico(), REFRESCO_MS);
+            // Odoo cambia de claro a oscuro SIN recargar la pagina: repinta el
+            // tema en el <body>. Se vigila ese atributo para redibujar las
+            // graficas con la tinta correcta al instante; si no, la letra de
+            // los lienzos -que la pinta Chart.js, no el CSS- se queda con el
+            // color del tema anterior hasta el proximo refresco, y de ahi el
+            // reporte de "letras negras" sobre fondo oscuro. El resto de la
+            // pantalla es HTML y ya cambia solo con las variables CSS.
+            this.observadorTema = new MutationObserver(() => {
+                const antes = this.state.dark;
+                this.detectTheme();
+                if (this.state.dark !== antes) this.dibujar();
+            });
+            this.observadorTema.observe(document.body,
+                { attributes: true, attributeFilter: ["class", "style", "data-color-scheme"] });
+        });
+        onWillUnmount(() => {
+            clearInterval(this.temporizador);
+            if (this.observadorTema) this.observadorTema.disconnect();
+            this.tirarGraficas();
+        });
+        // Se redibuja cuando cambia el dato, no en cada render: el tablero
+        // repinta al abrir la ficha de un empleado y volver a construir tres
+        // graficas por eso seria trabajo tirado.
+        useEffect(
+            () => { this.dibujar(); },
+            () => [this.state.serie, this.state.porPersona, this.state.reparto,
+                   this.state.jornada, this.state.dark, this.state.days]
+        );
         useExternalListener(window, "keydown", (ev) => {
             if (ev.key === "Escape" && this.state.detail) this.closeDetail();
         });
     }
 
-    detectTheme() {
-        let el = this.root.el && this.root.el.parentElement;
-        for (let i = 0; el && i < 12; i++, el = el.parentElement) {
-            const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
-            if (m && m.length >= 3 && !(m.length === 4 && parseFloat(m[3]) === 0)) {
-                const lum = (0.299 * +m[0] + 0.587 * +m[1] + 0.114 * +m[2]) / 255;
-                this.state.dark = lum < 0.5;
-                return;
-            }
-        }
-        this.state.dark = false;
+    // ------------------------------------------------------------- graficas
+    //
+    // Tres graficas, cada una con UNA pregunta. La regla que gobierna las tres
+    // es la misma del resto de Foco: el ambar se reserva para lo unico
+    // accionable -el tiempo sin clasificar-, asi que aqui no se usa de adorno
+    // ni para «ojo, bajo». Si el ambar significara dos cosas, dejaria de
+    // significar la que importa.
+
+    get tinta() {
+        const d = this.state.dark;
+        return {
+            ink: d ? "#e9edf4" : "#0f1520",
+            ink2: d ? "#aab4c4" : "#5a6577",
+            ink3: d ? "#7c8797" : "#8b95a6",
+            linea: d ? "#2b3442" : "#e7eaf0",
+            accent: d ? "#6b9bff" : "#2f6fed",
+            fuerte: d ? "rgba(233,237,244,.86)" : "rgba(15,21,32,.82)",
+            flojo: d ? "rgba(233,237,244,.20)" : "rgba(15,21,32,.17)",
+            ambar: "#f59e0b",
+            card: d ? "#171c27" : "#ffffff",
+            // Categorias cualitativas de la dona. Aqui el color SI distingue
+            // -son clases distintas, no una escala de cantidad-, y el ambar
+            // sigue reservado para lo unico accionable: lo sin clasificar.
+            prod: d ? "#34d399" : "#10b981",
+            dist: d ? "#f87171" : "#ef4444",
+            otro: d ? "#64748b" : "#94a3b8",
+        };
     }
 
-    ymd(d) { return d.toISOString().slice(0, 10); }
+    /** Etiqueta corta de un día: «lun 14». El eje no necesita el año. */
+    ejeDia(iso) {
+        const [y, m, d] = iso.split("-").map(Number);
+        const f = new Date(y, m - 1, d);
+        const dias = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+        return `${dias[f.getDay()]} ${f.getDate()}`;
+    }
+
+    tirarGraficas() {
+        for (const k of Object.keys(this.graficas)) {
+            try { this.graficas[k].destroy(); } catch { /* ya no existe */ }
+            delete this.graficas[k];
+        }
+    }
+
+    /** «Hoy» no tiene tendencia que dibujar -un solo dia es un punto suelto-,
+     *  asi que el panel ancho pasa a comparar a las PERSONAS del dia: una
+     *  barra horizontal por cada quien, apilada en las MISMAS cuatro cubetas
+     *  que la dona para que el color diga lo mismo en ambas graficas. Van
+     *  ordenadas por tiempo activo, las mas largas arriba, que es como se lee
+     *  "quien esta cargando hoy" de un vistazo. */
+    dibujarPorPersona(Chart, t) {
+        const p = [...(this.state.porPersona || [])]
+            .filter((e) => e.activo > 0.008)
+            .sort((a, b) => b.activo - a.activo)
+            .slice(0, 12);
+        if (!p.length) return;
+        const corta = (n) => { n = n || "—"; return n.length > 20 ? n.slice(0, 19) + "…" : n; };
+        const cubeta = (label, key, col) => ({
+            label, data: p.map((e) => e[key] || 0),
+            backgroundColor: col, borderColor: t.card, borderWidth: 1,
+            borderRadius: 2, borderSkipped: false, maxBarThickness: 22,
+        });
+        this.graficas.tendencia = new Chart(this.cTendencia.el, {
+            type: "bar",
+            data: {
+                labels: p.map((e) => corta(e.nombre)),
+                datasets: [
+                    cubeta("Productivo", "productivo", t.prod),
+                    cubeta("Otro", "otro", t.otro),
+                    cubeta("Distracción", "distraccion", t.dist),
+                    cubeta("Sin clasificar", "sin_clasificar", t.ambar),
+                ],
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true, maintainAspectRatio: false,
+                animation: { duration: 420, easing: "easeOutQuart" },
+                interaction: { mode: "index", intersect: false },
+                plugins: {
+                    legend: { display: true, position: "bottom",
+                              labels: { color: t.ink2, boxWidth: 10, boxHeight: 10,
+                                        usePointStyle: true, pointStyle: "circle",
+                                        font: { size: 11 }, padding: 14 } },
+                    tooltip: {
+                        backgroundColor: t.card, titleColor: t.ink, bodyColor: t.ink2,
+                        borderColor: t.linea, borderWidth: 1, padding: 10, cornerRadius: 8,
+                        callbacks: {
+                            label: (c) => ` ${c.dataset.label}: ${this.fmt(c.parsed.x)}`,
+                        },
+                    },
+                },
+                scales: {
+                    x: { stacked: true, grid: { color: t.linea, drawTicks: false },
+                         border: { display: false },
+                         ticks: { color: t.ink3, font: { size: 10.5 },
+                                  callback: (v) => `${v}h` } },
+                    y: { stacked: true, grid: { display: false },
+                         border: { color: t.linea },
+                         ticks: { color: t.ink2, font: { size: 11.5 } } },
+                },
+            },
+        });
+    }
+
+    async dibujar() {
+        if (!this.cTendencia.el && !this.cDonut.el && !this.cJornada.el) return;
+        let Chart;
+        try {
+            Chart = await traerChart();
+        } catch {
+            // Sin libreria el tablero sigue sirviendo: los numeros y la tabla
+            // no dependen de ella. Se calla en vez de tirar la pantalla.
+            return;
+        }
+        if (!Chart) return;
+        this.tirarGraficas();
+        const t = this.tinta;
+
+        // Base comun. Sin animacion en el eje de valores al refrescar: el
+        // tablero se repinta cada diez minutos y ver tres graficas creciendo
+        // desde cero cada vez es ruido, no informacion.
+        const base = {
+            responsive: true, maintainAspectRatio: false,
+            animation: { duration: 420, easing: "easeOutQuart" },
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: t.card, titleColor: t.ink, bodyColor: t.ink2,
+                    borderColor: t.linea, borderWidth: 1, padding: 10,
+                    cornerRadius: 8, displayColors: true, boxPadding: 4,
+                    titleFont: { weight: "600", size: 12 },
+                    bodyFont: { size: 12 },
+                },
+            },
+            scales: {
+                x: { grid: { display: false }, border: { color: t.linea },
+                     ticks: { color: t.ink3, font: { size: 10.5 }, maxRotation: 0,
+                              autoSkipPadding: 12 } },
+                y: { grid: { color: t.linea, drawTicks: false },
+                     border: { display: false },
+                     ticks: { color: t.ink3, font: { size: 10.5 }, padding: 8 } },
+            },
+        };
+
+        // 1) EL PANEL ANCHO. Cambia de pregunta segun el periodo. En «Hoy» un
+        //    solo dia no dibuja tendencia -seria un punto suelto-, asi que
+        //    compara a las PERSONAS del dia (info de todos los equipos, hoy).
+        //    En 7 o 30 dias vuelve a ser la TENDENCIA como area: la pregunta de
+        //    todos los dias -vamos mejor o peor-. El area con gradiente le da
+        //    peso; la linea gruesa y el punto final con halo marcan donde
+        //    estamos hoy.
+        if (this.cTendencia.el && this.state.days === 1) {
+            this.dibujarPorPersona(Chart, t);
+        } else if (this.cTendencia.el && this.state.serie.length) {
+            const s = this.state.serie;
+            const ultimoConDato = (() => {
+                for (let i = s.length - 1; i >= 0; i--) if (s[i].activo) return i;
+                return -1;
+            })();
+            this.graficas.tendencia = new Chart(this.cTendencia.el, {
+                type: "line",
+                data: {
+                    labels: s.map((x) => this.ejeDia(x.date)),
+                    datasets: [{
+                        label: "Índice",
+                        data: s.map((x) => x.indice),
+                        borderColor: t.accent, borderWidth: 2.5,
+                        backgroundColor: (ctx) => {
+                            const { ctx: c, chartArea: a } = ctx.chart;
+                            if (!a) return "transparent";
+                            const g = c.createLinearGradient(0, a.top, 0, a.bottom);
+                            g.addColorStop(0, this.state.dark
+                                ? "rgba(107,155,255,.42)" : "rgba(47,111,237,.30)");
+                            g.addColorStop(0.55, this.state.dark
+                                ? "rgba(107,155,255,.12)" : "rgba(47,111,237,.09)");
+                            g.addColorStop(1, "rgba(47,111,237,0)");
+                            return g;
+                        },
+                        fill: true, tension: 0.35, spanGaps: false,
+                        // Todos los dias con dato llevan punto; el ULTIMO, mas
+                        // grande y con halo, para leer "hoy" de un vistazo.
+                        pointRadius: (c) => c.raw === null ? 0
+                            : (c.dataIndex === ultimoConDato ? 5 : 2.5),
+                        pointBackgroundColor: t.accent,
+                        pointBorderColor: t.card,
+                        pointBorderWidth: (c) => c.dataIndex === ultimoConDato ? 3 : 0,
+                        pointHoverRadius: 6,
+                        pointHoverBorderColor: t.card, pointHoverBorderWidth: 2,
+                    }],
+                },
+                options: {
+                    ...base,
+                    layout: { padding: { top: 8, right: 4 } },
+                    scales: {
+                        ...base.scales,
+                        y: { ...base.scales.y, min: 0, max: 100,
+                             ticks: { ...base.scales.y.ticks, stepSize: 25,
+                                      callback: (v) => `${v}%` } },
+                    },
+                    plugins: {
+                        ...base.plugins,
+                        tooltip: {
+                            ...base.plugins.tooltip,
+                            callbacks: {
+                                label: (c) => {
+                                    const f = this.state.serie[c.dataIndex];
+                                    if (!f.activo) return "Sin dato ese día";
+                                    return `Índice ${f.indice}% · ${this.fmt(f.productivo)} de ${this.fmt(f.activo)}`;
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
+
+        // 2) EL REPARTO DEL TIEMPO, como DONA con el indice al centro. Es la
+        //    grafica estrella: de un vistazo dice de que esta hecho el tiempo
+        //    del equipo, y el hueco central lleva el numero que resume todo. La
+        //    comparacion persona-a-persona vive en la tabla de abajo, asi que
+        //    la dona puede quedarse con el total sin perder nada.
+        if (this.cDonut.el) {
+            const r = this.state.reparto || {};
+            const partes = [
+                { et: "Productivo", v: r.productivo || 0, col: t.prod },
+                { et: "Otro (neutral)", v: r.otro || 0, col: t.otro },
+                { et: "Distracción", v: r.distraccion || 0, col: t.dist },
+                { et: "Sin clasificar", v: r.sin_clasificar || 0, col: t.ambar },
+            ].filter((x) => x.v > 0.008);
+            const totalHoras = partes.reduce((a, x) => a + x.v, 0);
+            const centro = { pct: r.indice || 0, has: totalHoras > 0 };
+            // Plugin propio: el numero grande y su etiqueta en el hueco. Chart.js
+            // no dibuja texto central; se hace a mano en afterDraw.
+            const centroPlugin = {
+                id: "centroDona",
+                afterDraw: (chart) => {
+                    const { ctx } = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const arc = meta.data[0];
+                    if (!arc) return;
+                    const cx = arc.x, cy = arc.y;
+                    ctx.save();
+                    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    if (centro.has) {
+                        ctx.fillStyle = t.ink;
+                        ctx.font = "700 30px system-ui, sans-serif";
+                        ctx.fillText(`${centro.pct}%`, cx, cy - 8);
+                        ctx.fillStyle = t.ink3;
+                        ctx.font = "600 11px system-ui, sans-serif";
+                        ctx.fillText("PRODUCTIVO", cx, cy + 16);
+                    } else {
+                        ctx.fillStyle = t.ink3;
+                        ctx.font = "500 13px system-ui, sans-serif";
+                        ctx.fillText("Sin datos", cx, cy);
+                    }
+                    ctx.restore();
+                },
+            };
+            this.graficas.donut = new Chart(this.cDonut.el, {
+                type: "doughnut",
+                data: {
+                    labels: partes.map((x) => x.et),
+                    datasets: [{
+                        data: partes.map((x) => x.v),
+                        backgroundColor: partes.map((x) => x.col),
+                        borderColor: t.card, borderWidth: 3,
+                        hoverOffset: 6, hoverBorderColor: t.card,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: "68%",
+                    animation: { duration: 480, easing: "easeOutQuart" },
+                    plugins: {
+                        legend: { display: true, position: "right",
+                                  labels: { color: t.ink2, boxWidth: 10, boxHeight: 10,
+                                            usePointStyle: true, pointStyle: "circle",
+                                            font: { size: 11.5 }, padding: 12,
+                                            generateLabels: (ch) => {
+                                                const ds = ch.data.datasets[0];
+                                                return ch.data.labels.map((l, i) => ({
+                                                    text: `${l}  ${this.fmt(ds.data[i])}`,
+                                                    fillStyle: ds.backgroundColor[i],
+                                                    strokeStyle: ds.backgroundColor[i],
+                                                    pointStyle: "circle",
+                                                    // fontColor EXPLICITO por item: cuando se da
+                                                    // un `generateLabels` propio, Chart.js pinta
+                                                    // CADA etiqueta con el `fontColor` del item y
+                                                    // NO con `labels.color`; sin esto cae en su gris
+                                                    // por defecto (~#666), que sobre el fondo oscuro
+                                                    // se ve casi negro -era esta leyenda, y solo
+                                                    // esta, la de las "letras negras"-.
+                                                    fontColor: t.ink2,
+                                                    index: i,
+                                                }));
+                                            } } },
+                        tooltip: {
+                            backgroundColor: t.card, titleColor: t.ink, bodyColor: t.ink2,
+                            borderColor: t.linea, borderWidth: 1, padding: 10, cornerRadius: 8,
+                            callbacks: {
+                                label: (c) => {
+                                    const pct = totalHoras ? Math.round(c.parsed / totalHoras * 100) : 0;
+                                    return ` ${this.fmt(c.parsed)} · ${pct}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+                plugins: [centroPlugin],
+            });
+        }
+
+        // 3) DENTRO O FUERA DEL HORARIO, en COLUMNAS. No dice cuanto se trabajo:
+        //    dice si cayo donde debia. La columna del dia con trabajo fuera de
+        //    jornada se ve crecer por encima en otro color, y esa es justo la
+        //    que abre la conversacion.
+        if (this.cJornada.el && this.state.jornada.length) {
+            const j = this.state.jornada;
+            const grad = (hex1, hex2) => (ctx) => {
+                const { ctx: c, chartArea: a } = ctx.chart;
+                if (!a) return hex1;
+                const g = c.createLinearGradient(0, a.bottom, 0, a.top);
+                g.addColorStop(0, hex2); g.addColorStop(1, hex1);
+                return g;
+            };
+            this.graficas.jornada = new Chart(this.cJornada.el, {
+                type: "bar",
+                data: {
+                    labels: j.map((x) => this.ejeDia(x.date)),
+                    datasets: [
+                        { label: "Dentro de jornada", data: j.map((x) => x.dentro),
+                          backgroundColor: t.fuerte, borderRadius: 5, borderSkipped: false,
+                          maxBarThickness: 34 },
+                        { label: "Fuera de jornada", data: j.map((x) => x.fuera),
+                          backgroundColor: t.accent, borderRadius: 5, borderSkipped: false,
+                          maxBarThickness: 34 },
+                    ],
+                },
+                options: {
+                    ...base,
+                    plugins: {
+                        ...base.plugins,
+                        legend: { display: true, position: "bottom",
+                                  labels: { color: t.ink2, boxWidth: 10, boxHeight: 10,
+                                            usePointStyle: true, pointStyle: "circle",
+                                            font: { size: 11 }, padding: 14 } },
+                        tooltip: {
+                            ...base.plugins.tooltip,
+                            callbacks: { label: (c) => ` ${c.dataset.label}: ${this.fmt(c.parsed.y)}` },
+                        },
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false },
+                             border: { color: t.linea },
+                             ticks: { color: t.ink3, font: { size: 10.5 }, maxRotation: 0 } },
+                        y: { stacked: true, grid: { color: t.linea, drawTicks: false },
+                             border: { display: false },
+                             ticks: { color: t.ink3, font: { size: 10.5 },
+                                      callback: (v) => `${v}h` } },
+                    },
+                },
+            });
+        }
+    }
+
+    // ------------------------------------------------------------ exportar
+    //
+    // Se arma la URL y se deja que el navegador descargue. No se construye el
+    // archivo aqui: el nombre lo pone el servidor -con la persona y las fechas
+    // dentro-, y el periodo no lo limita la memoria de la pestana.
+    get urlExport() {
+        const today = new Date();
+        const ini = new Date(today);
+        ini.setDate(today.getDate() - (this.state.days - 1));
+        const p = new URLSearchParams({
+            desde: this.ymd(ini), hasta: this.ymd(today),
+            grano: this.state.expGrano,
+        });
+        if (this.state.expEmpleado) p.set("empleado", this.state.expEmpleado);
+        return `/foco/reporte.csv?${p.toString()}`;
+    }
+
+    exportar() { window.location = this.urlExport; }
+
+    detectTheme() {
+        // El tema se lee del DOCUMENTO, no de un ancestro cercano del
+        // componente. La version anterior subia por los padres buscando el
+        // primer fondo no transparente; en modo oscuro esos padres suelen ser
+        // transparentes hasta el body, asi que no encontraba nada y caia en
+        // "claro" -y las graficas salian con tinta NEGRA sobre el fondo oscuro
+        // de Odoo, ilegibles-. `body` y `html` SI los pinta Odoo segun el tema
+        // activo, y existen aunque el componente aun no este montado.
+        const oscuro = (el) => {
+            if (!el) return null;
+            const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+            if (!m || m.length < 3) return null;
+            if (m.length === 4 && parseFloat(m[3]) === 0) return null;  // transparente
+            return (0.299 * +m[0] + 0.587 * +m[1] + 0.114 * +m[2]) / 255 < 0.5;
+        };
+        let v = oscuro(document.body);
+        if (v === null) v = oscuro(document.documentElement);
+        if (v === null) {
+            v = !!(window.matchMedia
+                   && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        }
+        this.state.dark = v;
+    }
+
+    // Fecha LOCAL, no UTC.
+    //
+    // Estaba con `toISOString()`, que convierte a UTC antes de recortar. En
+    // Mexico -UTC-6- a partir de las 18:00 devolvia el dia SIGUIENTE, asi que
+    // «Hoy» pedia el dia que todavia no empieza y el tablero se quedaba en
+    // blanco cada tarde. Las otras dos pantallas ya lo hacian asi; esta se
+    // habia quedado atras.
+    ymd(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
 
     async load() {
-        this.state.loading = true;
+        // `loading` solo la PRIMERA vez. En un refresco (manual o automatico)
+        // NO se pone: encenderla desmonta el bloque t-else -que contiene las
+        // graficas- y al remontarlo los <canvas> son elementos nuevos, con lo
+        // que las instancias de Chart.js quedan huerfanas y el tablero se queda
+        // en blanco hasta el siguiente redibujo. El dato viejo se queda a la
+        // vista mientras llega el nuevo, que es mejor que un parpadeo en vacio.
+        // El giro del boton (`refrescando`) ya avisa que se esta actualizando.
+        if (!this.state.ultimo) {
+            this.state.loading = true;
+        }
+        // Re-detecta el tema en cada carga: si cambio de claro a oscuro entre
+        // dos refrescos, las graficas se redibujan con la tinta correcta sin
+        // recargar la pagina. Cuesta una lectura de estilo, nada.
+        this.detectTheme();
         const days = this.state.days;
         const today = new Date();
         const curStart = new Date(today); curStart.setDate(today.getDate() - (days - 1));
@@ -62,7 +543,7 @@ export class FocoDashboard extends Component {
         const fields = ["employee_id", "app_id", "site_id", "category_id", "fg_active",
             "fg_idle", "background", "active_hours", "productive_hours", "call_hours",
             "injected_hours"];
-        const [cur, prev, comps, resumen, salud, pendientes] = await Promise.all([
+        const [cur, prev, comps, resumen, salud, pendientes, cobertura] = await Promise.all([
             this.orm.searchRead("foco.usage", [["date", ">=", this.ymd(curStart)]], fields),
             this.orm.searchRead("foco.usage",
                 [["date", ">=", this.ymd(prevStart)], ["date", "<=", this.ymd(prevEnd)]], fields),
@@ -78,7 +559,41 @@ export class FocoDashboard extends Component {
             // solo se pudre si nadie lo clasifica, y nadie clasifica 400
             // sitios. Casi siempre un punado explica la mayor parte del tiempo.
             this.orm.call("foco.usage", "sitios_por_clasificar", [days, 6]),
+            // Cobertura del dato: dias laborables del calendario de cada quien
+            // contra dias en los que su equipo reporto algo. Sin esto se
+            // comparan cosas que no son comparables: un 62% sobre 22 dias
+            // medidos y un 62% sobre 9 se ven identicos en la tabla.
+            this.orm.call("foco.usage", "cobertura",
+                [this.ymd(curStart), this.ymd(today)]),
         ]);
+
+        // La analitica se pide agregada, no cruda: el servidor devuelve
+        // decenas de filas donde antes viajaban cientos de miles.
+        const [analitica, jornada] = await Promise.all([
+            this.orm.call("foco.usage", "analitica",
+                [this.ymd(curStart), this.ymd(today)]),
+            this.orm.call("foco.workday", "jornada_serie",
+                [this.ymd(curStart), this.ymd(today)]),
+        ]);
+        this.state.serie = analitica.dias || [];
+        this.state.porPersona = analitica.empleados || [];
+        this.state.jornada = jornada || [];
+        // Reparto GLOBAL del tiempo activo del equipo, para la dona. El "otro"
+        // -tiempo activo que no es productivo, ni distraccion, ni sin
+        // clasificar: lo neutral y el navegador- se deriva aqui para que los
+        // cuatro segmentos sumen exactamente el activo.
+        const rp = analitica.reparto || {};
+        const tot = analitica.total || {};
+        const otro = Math.max((tot.activo || 0) - (rp.productivo || 0)
+            - (rp.distraccion || 0) - (rp.sin_clasificar || 0), 0);
+        this.state.reparto = {
+            productivo: rp.productivo || 0,
+            distraccion: rp.distraccion || 0,
+            sin_clasificar: rp.sin_clasificar || 0,
+            otro,
+            activo: tot.activo || 0,
+            indice: tot.indice || 0,
+        };
 
         const seen = {}, pcName = {};
         for (const c of comps) {
@@ -163,15 +678,30 @@ export class FocoDashboard extends Component {
             const ls = seen[e.id] || 0;
             const sal = (salud || {})[String(e.id)] || { health: "ok", minutes: 0 };
             const sinSenal = sal.health === "stale" || sal.health === "never";
+            const cb = (cobertura || {})[String(e.id)] || null;
             const res = (resumen || {})[String(e.id)] || {};
             const expected = res.expected || 0;
             const justified = res.justified || 0;
             // Lo unico que amerita conversacion: ni medido, ni justificado.
             const unexplained = Math.max(0, expected - e.active - justified);
             return {
+                // Que tan completo esta el dato de esta persona. No lleva
+                // umbral: "incompleto" es una igualdad exacta -faltan dias-,
+                // no un corte elegido.
+                cobDias: cb ? cb.dias_con_dato : 0,
+                cobEsperados: cb ? cb.dias_esperados : 0,
+                cobPct: cb ? cb.pct : 0,
+                cobFuente: cb ? cb.fuente : "",
+                cobParcial: !!cb && cb.dias_esperados > 0 && cb.dias_con_dato < cb.dias_esperados,
                 expected, justified, unexplained,
                 pendingAbs: res.pending || 0,
                 hasExpected: expected > 0,
+                // Presencia REAL, no un punto verde o gris. Los estados
+                // explicados (apagado, suspendido) son normalidad y van en
+                // tinta secundaria; solo "sin senal" toma color, porque es el
+                // unico sobre el que hay que hacer algo.
+                presencia: sal.presence || (sinSenal ? "sin_senal" : "activo"),
+                presenciaTxt: sal.presence_label || "",
                 health: sal.health, sinSenal,
                 sinSenalLabel: sal.health === "never" ? "nunca reportó"
                     : this.sinceMin(sal.minutes),
@@ -217,7 +747,31 @@ export class FocoDashboard extends Component {
         const pend = pendientes || [];
         const pendHours = pend.reduce((sum, p) => sum + (p.hours || 0), 0);
 
+        // Cobertura del equipo, en DIAS. Se suma sobre TODAS las personas
+        // monitoreadas, no solo sobre las que aparecen en la tabla: quien no
+        // reporto nada no genera renglones y hoy seria invisible, que es
+        // justamente el hueco que esto viene a tapar.
+        const conNombre = {};
+        for (const e of employees) conNombre[String(e.id)] = e.name;
+        for (const c of comps) {
+            if (c.employee_id) conNombre[String(c.employee_id[0])] = c.employee_id[1];
+        }
+        let cobDias = 0, cobEsp = 0, cobParciales = 0;
+        const sinDato = [];
+        for (const [eid, c] of Object.entries(cobertura || {})) {
+            cobDias += c.dias_con_dato; cobEsp += c.dias_esperados;
+            if (c.dias_esperados > 0 && c.dias_con_dato < c.dias_esperados) cobParciales++;
+            if (c.dias_esperados > 0 && c.dias_con_dato === 0) {
+                sinDato.push(conNombre[eid] || ("empleado " + eid));
+            }
+        }
+
         this.state.team = {
+            cobDias, cobEsp, cobParciales,
+            cobPct: cobEsp > 0 ? Math.round(cobDias / cobEsp * 100) : 0,
+            cobMedible: cobEsp > 0,
+            cobSinDato: sinDato.length,
+            cobSinDatoNombres: sinDato.slice(0, 8).join(", "),
             index: Math.round(idx), indexDelta: Math.round(idx - pIdx),
             active: tActive, prod: tProd, prodDelta: tProd - pProd,
             distr: tDistr, distrPct: tActive > 0 ? Math.round(tDistr / tActive * 100) : 0,
@@ -232,9 +786,37 @@ export class FocoDashboard extends Component {
         this.state.distractions = distractions;
         this.state.sites = topSites;
         this.state.pendingSites = pend.map((p) => ({ ...p, name: this.appLabel(p.host) }));
+        this.state.cobertura = cobertura || {};
         this.state.attention = employees.filter((e) => e.attention).length;
         this.state.sinSenal = employees.filter((e) => e.sinSenal).length;
+        this.state.ultimo = new Date();
         this.state.loading = false;
+    }
+
+    /** Refresco de fondo. NO interrumpe si hay una ficha abierta ni si la
+     *  pestana no se esta viendo: recargar debajo de las manos del usuario es
+     *  peor que mostrar un dato de hace un minuto. */
+    async refrescoAutomatico() {
+        if (this.state.detail || this.state.refrescando || document.hidden) return;
+        await this.refrescar();
+    }
+
+    async refrescar() {
+        if (this.state.refrescando) return;
+        this.state.refrescando = true;
+        try {
+            await this.load();
+        } finally {
+            this.state.refrescando = false;
+        }
+    }
+
+    get horaUltimo() {
+        if (!this.state.ultimo) return "";
+        const d = this.state.ultimo;
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
     }
 
     openDetail(e) {
@@ -246,6 +828,14 @@ export class FocoDashboard extends Component {
     closeDetail() {
         this.state.open = false;
         setTimeout(() => { this.state.detail = null; }, 300);
+    }
+
+    /** Saltar al tablero del movil sin pasar por el menu: es el mismo panel de
+     *  monitoreo, otra fuente. Se cambia la accion en el mismo sitio, que es
+     *  como el usuario piensa el switch -"ver los telefonos"-, no como una
+     *  navegacion nueva. */
+    verMovil() {
+        this.action.doAction("foco_monitor.foco_movil_client");
     }
 
     /** Del dato al acto: ver un sitio sin clasificar y poder clasificarlo ahi

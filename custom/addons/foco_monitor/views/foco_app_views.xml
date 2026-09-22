@@ -13,6 +13,22 @@
                 <field name="name_manual" optional="show"/>
                 <field name="category_id"/>
                 <field name="foreground_only"/>
+                <field name="mic_not_call" optional="show" widget="boolean_toggle"/>
+                <!-- Oculta de omision: casi ninguna app la necesita, y las que
+                     si -gestor de contrasenas, nomina, banca- se marcan una vez
+                     y se olvidan. -->
+                <field name="no_screenshot" optional="hide" widget="boolean_toggle"
+                       string="Nunca capturar"/>
+                <field name="product" optional="show" readonly="1"/>
+                <field name="report_document" optional="show"
+                       widget="boolean_toggle"/>
+                <!-- Lo que de verdad pasa, no lo que dice la casilla. Sin esta
+                     columna, alguien marca la casilla con el interruptor
+                     general apagado, no ocurre nada, y concluye que el sistema
+                     esta roto. -->
+                <field name="document_state" optional="show"
+                       decoration-warning="document_state == 'off'"
+                       decoration-muted="document_state == 'no'"/>
                 <field name="classified" column_invisible="1"/>
                 <field name="last_seen" readonly="1"/>
                 <button name="action_soltar_nombre" type="object"

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        ALCANCE DEL DATO.
+
+        Dos reglas por modelo, en grupos DISTINTOS. Odoo combina con OR las
+        reglas de grupos distintos, asi que la del administrador -sin filtro-
+        le devuelve todo aunque tambien pertenezca al grupo de consulta por
+        implicacion.
+
+        Lista de departamentos VACIA = ve todo. Es el comportamiento que ya
+        tenia el modulo, y quitarlo en una actualizacion dejaria a ciegas y sin
+        aviso a quien hoy consulta. La pantalla de Accesos lo dice con todas
+        sus letras para que "ve todo" sea una decision visible y no un permiso
+        concedido en silencio.
+    -->
+
+    <!--
+        CAPTURAS DE PANTALLA: una sola regla, y no por descuido.
+
+        El resto de los modelos tiene dos -administrador ve todo, consulta ve su
+        alcance-. Aqui el grupo de consulta NO tiene acceso en absoluto (ver
+        ir.model.access.csv), asi que una regla para el no tendria a quien
+        aplicarse. La del administrador se acota igual por departamento: quien
+        administra Foco de un area no tiene por que ver la pantalla de otra.
+    -->
+    <record id="rule_foco_capture_admin" model="ir.rule">
+        <field name="name">Foco: capturas del alcance asignado</field>
+        <field name="model_id" ref="model_foco_capture"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_usage_admin" model="ir.rule">
+        <field name="name">Foco: uso, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_usage"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_usage_alcance" model="ir.rule">
+        <field name="name">Foco: uso del alcance asignado</field>
+        <field name="model_id" ref="model_foco_usage"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_computer_admin" model="ir.rule">
+        <field name="name">Foco: equipos, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_computer"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_computer_alcance" model="ir.rule">
+        <field name="name">Foco: equipos del alcance asignado</field>
+        <field name="model_id" ref="model_foco_computer"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <!--
+        foco.absence no tiene departamento propio: se filtra por el del
+        empleado del equipo. Un periodo de un equipo sin empleado asignado no
+        pertenece a ningun area y por lo tanto no entra en ningun alcance.
+    -->
+    <record id="rule_foco_absence_admin" model="ir.rule">
+        <field name="name">Foco: ausencias, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_absence"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_absence_alcance" model="ir.rule">
+        <field name="name">Foco: ausencias del alcance asignado</field>
+        <field name="model_id" ref="model_foco_absence"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+    <!-- La jornada y los eventos siguen exactamente el mismo alcance que el
+         uso: quien ve a un departamento ve su jornada, y nadie mas. -->
+    <record id="rule_foco_event_admin" model="ir.rule">
+        <field name="name">Foco: eventos, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_event"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_event_alcance" model="ir.rule">
+        <field name="name">Foco: eventos del alcance asignado</field>
+        <field name="model_id" ref="model_foco_event"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_workday_admin" model="ir.rule">
+        <field name="name">Foco: jornadas, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_workday"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_workday_alcance" model="ir.rule">
+        <field name="name">Foco: jornadas del alcance asignado</field>
+        <field name="model_id" ref="model_foco_workday"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <!-- LADO MOVIL: mismo alcance por departamento que el resto. El dispositivo
+         tiene departamento propio; la ubicacion, el uso y las llamadas se
+         filtran por el departamento del empleado del dispositivo. -->
+    <record id="rule_foco_mobile_device_admin" model="ir.rule">
+        <field name="name">Foco: dispositivos, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_mobile_device"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_mobile_device_alcance" model="ir.rule">
+        <field name="name">Foco: dispositivos del alcance asignado</field>
+        <field name="model_id" ref="model_foco_mobile_device"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_location_admin" model="ir.rule">
+        <field name="name">Foco: ubicaciones, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_location"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_location_alcance" model="ir.rule">
+        <field name="name">Foco: ubicaciones del alcance asignado</field>
+        <field name="model_id" ref="model_foco_location"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_mobile_usage_admin" model="ir.rule">
+        <field name="name">Foco: uso movil, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_mobile_usage"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_mobile_usage_alcance" model="ir.rule">
+        <field name="name">Foco: uso movil del alcance asignado</field>
+        <field name="model_id" ref="model_foco_mobile_usage"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_call_admin" model="ir.rule">
+        <field name="name">Foco: llamadas, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_call"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_call_alcance" model="ir.rule">
+        <field name="name">Foco: llamadas del alcance asignado</field>
+        <field name="model_id" ref="model_foco_call"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+</odoo>
