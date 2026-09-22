@@ -3,6 +3,7 @@
     'version': '17.0.1.0.0',
     'author': 'Micompany',
     'category': 'Customization',
+    'license': 'LGPL-3',
     'depends': ['x_gestion_de_pagos'],
     'data': [
         'views/gestion_pagos.xml',
