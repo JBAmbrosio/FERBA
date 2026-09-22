@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Quién puede leer las señales del sitio.
+
+         Deliberadamente NO es base.group_user. Las señales son datos de
+         comportamiento de visitantes, y Odoo restringe el modelo del que
+         derivan (website.visitor) a website.group_website_designer y a
+         base.group_system: base.group_user no tiene línea de acceso, que en
+         Odoo significa denegado. Por eso los informes nativos «Visitantes» y
+         «Vistas de página» están ocultos para un empleado normal.
+
+         ferba.evento copia de website.visitor el contacto y el país en campos
+         related ALMACENADOS y expone el número de visitas. Los campos related
+         se computan como superusuario, así que nada falla cerrado: si el ACL
+         de esta tabla fuera más ancho que el del modelo de origen, el informe
+         enseñaría a toda la plantilla justo lo que Odoo esconde. Este grupo
+         existe para que no ocurra. -->
+    <record id="group_ferba_analitica" model="res.groups">
+        <field name="name">Ferba — Señales del sitio</field>
+        <field name="comment">Permite leer el informe «Señales de interés»: recorrido,
+            producto de interés, canal, país y, cuando el visitante se ha identificado
+            alguna vez, el contacto asociado. Asignar solo a quien hace las llamadas.</field>
+    </record>
+
+    <!-- Quien ya puede ver a los visitantes en Odoo puede ver las señales:
+         no tiene sentido pedirle dos permisos para el mismo dato. Al revés no:
+         pertenecer al grupo de señales no concede nada más. -->
+    <record id="website.group_website_designer" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('ferba_website.group_ferba_analitica'))]"/>
+    </record>
+
+</odoo>

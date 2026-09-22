@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ferba_evento_analitica,ferba.evento lectura,model_ferba_evento,ferba_website.group_ferba_analitica,1,0,0,0
+access_ferba_evento_disenador,ferba.evento diseñador del sitio,model_ferba_evento,website.group_website_designer,1,0,0,1

@@ -1,0 +1,11 @@
+# Bytecode de Python: se regenera solo y no debe viajar ni al repositorio ni
+# al artefacto que se despliega.
+__pycache__/
+*.py[cod]
+
+# Metadatos de extracción de activos. No los referencia ninguna plantilla ni
+# el bundle de assets, y bajo static/ se servirían a internet sin
+# autenticación sin cumplir ninguna función.
+static/src/img/_inventario.json
+static/src/img/iconos/_inicio.json
+static/src/img/iconos/_maq.json

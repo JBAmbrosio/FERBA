@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         MAQUINARIA  —  réplica de "MAQUINARIA.pdf"
+         Las ocho tarjetas llevan id: son el destino de los ocho mosaicos
+         de la portada (/maquinaria#lavado, #seleccion…).
+         ================================================================ -->
+    <template id="pagina_maquinaria" track="True" name="Ferba — Maquinaria">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Maquinaria postcosecha para<br/>cada <span class="o_ferba_hero__accent o_ferba_hero__accent--inline">etapa</span> del proceso</t>
+            <t t-set="fondo">maquinaria-01-1159x869.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Diseñamos, fabricamos e integramos maquinaria y sistemas de automatización
+                    para recepción, lavado, selección y empaque de frutas y hortalizas.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="#etapas" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Ver categorías</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Cotizar maquinaria</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">¿Buscas una máquina específica<br/>o una línea completa?</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar.
+                Nuestro equipo puede ayudarte a definir la solución más adecuada para tu operación.
+            </t>
+            <t t-set="cierre_foto">maquinaria-17-1728x972.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Cotizar maquinaria</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Equipos diseñados para integrarse a tu línea ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split">
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Equipos diseñados para integrarse a tu línea</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                La maquinaria <strong>FERBA</strong> está desarrollada para trabajar dentro de
+                                líneas hortofrutícolas de alto rendimiento, cuidando el producto en cada etapa
+                                y mejorando el flujo de operación desde la recepción hasta el empaque final.
+                            </p>
+                            <p>
+                                Ya sea como equipo individual, modernización de una línea existente o parte
+                                de un proyecto completo, cada máquina puede configurarse de acuerdo con el
+                                fruto, volumen de proceso y objetivo productivo del cliente.
+                            </p>
+                        </div>
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/maquinaria-02-1171x659.webp"
+                                 alt="Equipo FERBA en representación técnica"
+                                 width="1171" height="659" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Maquinaria por etapa ============ -->
+            <section id="etapas" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Maquinaria por etapa</t>
+                    </t>
+                    <t t-set="etapas" t-value="[
+                        ('recepcion',      'maqc-recepcion.svg',      'Recepción y alimentación',  'maquinaria-03-502x283.webp',
+                         'Equipos para recibir, elevar y alimentar el producto al inicio de la línea, asegurando un flujo constante y ordenado.'),
+                        ('lavado',         'maqc-lavado.svg',         'Lavado y tratamiento',      'maquinaria-04-502x283.webp',
+                         'Sistemas diseñados para limpiar, lavar y preparar frutas y hortalizas antes de su selección, clasificación o empaque.'),
+                        ('secado',         'maqc-secado.svg',         'Secado y cepillado',        'maquinaria-05-461x308.webp',
+                         'Unidades para retirar humedad, mejorar la presentación y preparar el producto para procesos posteriores.'),
+                        ('transportadores','maqc-seleccion.svg',      'Transportadores / bandas',  'maquinaria-10-271x150.webp',
+                         'Bandas, rodillos y sistemas de transporte para conectar cada etapa de la línea de forma continua, eficiente y segura.'),
+                        ('seleccion',      'maqc-seleccion.svg',      'Selección y calibrado',     'maquinaria-09-683x289.webp',
+                         'Equipos para ordenar, clasificar y separar el producto según criterios como tamaño, peso, color, calidad, entre otros.'),
+                        ('empaque',        'maqc-empaque.svg',        'Empaque',                   'maquinaria-07-313x215.webp',
+                         'Módulos y estaciones diseñados para facilitar el llenado, acomodo, pesado, etiquetado y preparación final del producto.'),
+                        ('automatizacion', 'maqc-automatizacion.svg', 'Automatización y control',  'maquinaria-08-200x200.webp',
+                         'Sistemas de control, sensores, pantallas, tableros e integración tecnológica para mejorar la operación y reducir errores.'),
+                        ('sembradoras',    'maqc-sembradoras.svg',    'Sembradoras',               'maquinaria-06-435x326.webp',
+                         'Equipos especializados para procesos agrícolas previos a la cosecha, diseñados para mejorar la precisión y eficiencia.'),
+                    ]"/>
+                    <div class="o_ferba_etapas" data-ferba-grupo="etapas">
+                        <t t-foreach="etapas" t-as="e">
+                            <article class="o_ferba_etapa o_ferba_reveal" t-att-id="e[0]">
+                                <div class="o_ferba_etapa__cabeza">
+                                    <span class="o_ferba_etapa__num" t-out="'%02d' % (e_index + 1)"/>
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{e[1]}" alt=""
+                                         class="o_ferba_etapa__icono" loading="lazy"/>
+                                    <span class="o_ferba_etapa__rotulo" t-out="e[2]"/>
+                                </div>
+                                <div class="o_ferba_etapa__media">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{e[3]}" t-att-alt="e[2]" loading="lazy"/>
+                                </div>
+                                <p class="o_ferba_etapa__texto" t-out="e[4]"/>
+                                <a href="/contactenos" class="o_ferba_etapa__enlace"
+                                   t-attf-data-ferba-senal="interes_maquina:#{e[0]}">
+                                    Ver equipos
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                            </article>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ De equipos individuales a líneas completas ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">De equipos individuales a líneas completas</t>
+                    </t>
+                    <t t-set="flujo" t-value="[
+                        ('flujo-recepcion.svg',      'Recepción y alimentación'),
+                        ('flujo-lavado.svg',         'Lavado y tratamiento'),
+                        ('flujo-secado.svg',         'Secado y cepillado'),
+                        ('flujo-seleccion.svg',      'Selección y calibrado'),
+                        ('flujo-flexquality.svg',    'FlexQuality (inspección IA)'),
+                        ('flujo-empaque.svg',        'Empaque'),
+                        ('flujo-automatizacion.svg', 'Automatización y control'),
+                    ]"/>
+                    <div class="o_ferba_flujo o_ferba_reveal">
+                        <t t-foreach="flujo" t-as="f">
+                            <span t-if="not f_first" class="o_ferba_flujo__chevron">
+                                <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
+                            </span>
+                            <div class="o_ferba_flujo__paso">
+                                <div class="o_ferba_flujo__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{f[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <span class="o_ferba_flujo__rotulo" t-out="f[1]"/>
+                            </div>
+                        </t>
+                    </div>
+                    <p class="o_ferba_seccion_titulo__texto o_ferba_reveal">
+                        Cada equipo puede trabajar de forma independiente o integrarse dentro de una línea
+                        completa de postcosecha. En <strong>FERBA</strong> diseñamos el flujo considerando
+                        el producto, espacio disponible, capacidad requerida y nivel de automatización deseado.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ============ Maquinaria adaptada al producto ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Maquinaria adaptada al producto que procesas</t>
+                        <t t-set="texto">
+                            Cada fruto requiere un manejo diferente. La configuración de una línea para tomate
+                            no es igual a una línea para mango, pepino, aguacate o cítricos. Adaptamos maquinaria,
+                            velocidad, materiales y sistemas según las características de cada producto.
+                        </t>
+                    </t>
+                    <t t-set="frutos" t-value="[
+                        ('inicio-22-1124x749.webp', 'tomate',    'Tomate'),
+                        ('inicio-17-1063x598.webp', 'pepino',    'Pepino'),
+                        ('inicio-18-694x463.webp',  'pimiento',  'Pimiento'),
+                        ('inicio-23-1132x755.webp', 'calabaza',  'Calabaza'),
+                        ('inicio-24-1633x1225.webp','mango',     'Mango'),
+                        ('inicio-19-956x538.webp',  'melon',     'Melón'),
+                        ('inicio-20-1037x692.webp', 'aguacate',  'Aguacate'),
+                        ('inicio-25-1200x800.webp', 'citricos',  'Cítricos'),
+                        ('inicio-21-990x660.webp',  'esparrago', 'Espárrago'),
+                        ('inicio-26-1034x690.webp', 'sandia',    'Sandía'),
+                    ]"/>
+                    <div class="o_ferba_tira o_ferba_tira--cuadro" style="--ferba-cols:10" data-ferba-grupo="frutos">
+                        <t t-foreach="frutos" t-as="f">
+                            <a t-attf-href="/frutos##{f[1]}" class="o_ferba_tira__item o_ferba_reveal"
+                               t-attf-data-ferba-senal="interes_fruto:#{f[1]}">
+                                <span class="o_ferba_tira__img">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{f[0]}" t-att-alt="f[2]" loading="lazy"/>
+                                </span>
+                                <span class="o_ferba_tira__rotulo" t-out="f[2]"/>
+                            </a>
+                        </t>
+                    </div>
+                    <div class="o_ferba_centrado o_ferba_reveal">
+                        <a href="/frutos" class="o_ferba_btn o_ferba_btn--solid">
+                            <span class="o_ferba_btn__label">Ver soluciones por fruto</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

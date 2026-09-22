@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         SOLUCIONES  —  réplica de "SOLUCIONES.pdf"
+         ================================================================ -->
+    <template id="pagina_soluciones" track="True" name="Ferba — Soluciones">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Soluciones postcosecha<br/>diseñadas para tu operación</t>
+            <t t-set="fondo">soluciones-hero-pdf-1572x1185.webp</t>
+            <!-- Portada con la máquina completa (variante «entera» del hero; ver ferba_paginas.scss) -->
+            <t t-set="clase_hero" t-value="'o_ferba_hero--entera'"/>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Integramos maquinaria, automatizaciones y tecnología para mejorar el flujo,
+                    la eficiencia y la calidad en líneas de frutas y hortalizas.
+                </p>
+                <p class="o_ferba_hero__lead">
+                    Desde líneas completas hasta modernización de equipos existentes, en FERBA
+                    desarrollamos soluciones adaptadas al producto, capacidad, espacio y objetivos
+                    de cada cliente.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="#soluciones" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Ver soluciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">Diseñemos la solución ideal<br/>para tu línea</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar.
+                Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa,
+                modernización, automatización o un proyecto llave en mano.
+            </t>
+            <t t-set="cierre_foto">soluciones-06-768x432.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Cotizar solución</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Cada línea requiere una solución diferente ============ -->
+            <section class="o_ferba_section o_ferba_section--dark o_ferba_section--bleed">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split o_ferba_split--bleed-izq">
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/soluciones-02-869x652.webp"
+                                 alt="Línea de selección FERBA en operación"
+                                 width="869" height="652" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                        <div class="o_ferba_split__texto--der o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Cada línea requiere una solución diferente</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                No todos los empaques y productores tienen el mismo producto, volumen,
+                                espacio o nivel de automatización. Por eso en FERBA analizamos cada
+                                proyecto de forma integral para definir la maquinaria, distribución,
+                                flujo de proceso y tecnología más adecuada.
+                            </p>
+                            <p>
+                                Nuestro enfoque combina experiencia postcosecha, fabricación de
+                                maquinaria, integración de equipos y acompañamiento técnico para
+                                construir soluciones eficientes, escalables y adaptadas a la operación
+                                real del cliente.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Nuestras soluciones ============ -->
+            <section id="soluciones" class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Nuestras soluciones</t>
+                    </t>
+                    <t t-set="soluciones" t-value="[
+                        ('soluciones-03-576x324.webp', 'sol-lineas.svg', 'Líneas completas postcosecha',
+                         'Diseñamos e integramos líneas completas para recepción, lavado, secado, selección, empaque, pesado y flejado de frutas y hortalizas.',
+                         ['Nuevas empacadoras', 'Ampliación de capacidad', 'Proyectos de crecimiento', 'Integración completa de proceso'],
+                         'Conocer más', '/maquinaria'),
+                        ('soluciones-04-576x324.webp', 'sol-modernizacion.svg', 'Modernización de líneas',
+                         'Actualizamos equipos y procesos existentes para mejorar eficiencia, capacidad, precisión y continuidad operativa sin necesidad de reemplazar toda la línea.',
+                         ['Líneas antiguas', 'Equipos con bajo rendimiento', 'Procesos manuales', 'Empacadoras que buscan mejorar sin empezar de cero'],
+                         'Modernizar línea', '/contactenos'),
+                        ('soluciones-05-576x324.webp', 'sol-automatizacion.svg', 'Automatización',
+                         'Integramos sistemas de control, sensores, tableros, pantallas, robots y tecnología de visión artificial para reducir errores y mejorar la operación.',
+                         ['Reducir inversión manual', 'Mejorar precisión', 'Controlar velocidad y flujo', 'Integrar datos y monitoreo'],
+                         'Ver automatización', '/maquinaria#automatizacion'),
+                        ('soluciones-06-768x432.webp', 'sol-llave.svg', 'Proyectos llave en mano',
+                         'Acompañamos al cliente desde el análisis inicial hasta el diseño, fabricación, instalación, puesta en marcha y capacitación del personal operativo.',
+                         ['Proyectos nuevos', 'Expansión de operaciones', 'Instalaciones completas', 'Clientes que buscan un solo proveedor integrador'],
+                         'Cotizar proyecto', '/contactenos'),
+                    ]"/>
+                    <div class="o_ferba_fichas" data-ferba-grupo="soluciones">
+                        <t t-foreach="soluciones" t-as="s">
+                            <article class="o_ferba_solucion o_ferba_reveal">
+                                <div class="o_ferba_solucion__media">
+                                    <span class="o_ferba_solucion__foto">
+                                        <img t-attf-src="/ferba_website/static/src/img/#{s[0]}" t-att-alt="s[2]" loading="lazy"/>
+                                    </span>
+                                    <span class="o_ferba_solucion__icono">
+                                        <img t-attf-src="/ferba_website/static/src/img/iconos/#{s[1]}" alt=""/>
+                                    </span>
+                                </div>
+                                <div class="o_ferba_solucion__cuerpo">
+                                    <h3 class="o_ferba_solucion__titulo" t-out="s[2]"/>
+                                    <p class="o_ferba_solucion__texto" t-out="s[3]"/>
+                                    <p class="o_ferba_solucion__ideal">Ideal para:</p>
+                                    <ul class="o_ferba_solucion__lista">
+                                        <li t-foreach="s[4]" t-as="i" t-out="i"/>
+                                    </ul>
+                                    <a t-att-href="s[6]" class="o_ferba_solucion__enlace"
+                                       t-att-data-ferba-senal="'interes_retrofit' if s[1] == 'sol-modernizacion.svg' else None">
+                                        <t t-out="s[5]"/>
+                                        <t t-call="ferba_website.flecha"/>
+                                    </a>
+                                </div>
+                            </article>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Nuestro proceso de trabajo ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Nuestro proceso de trabajo</t>
+                    </t>
+                    <t t-set="pasos" t-value="[
+                        ('proc-diagnostico.svg', 'Diagnóstico',              'Analizamos el producto, capacidad, espacio, flujo actual y necesidades del cliente.'),
+                        ('proc-diseno.svg',      'Diseño de solución',       'Definimos la maquinaria, distribución, automatización e integración necesaria.'),
+                        ('proc-fabricacion.svg', 'Fabricación e integración','Desarrollamos los equipos y componentes requeridos para el proyecto.'),
+                        ('proc-instalacion.svg', 'Instalación y puesta en marcha', 'Integramos la solución en sitio y validamos su funcionamiento operativo.'),
+                        ('proc-capacitacion.svg','Capacitación y soporte',   'Acompañamos al equipo del cliente para asegurar una operación correcta y continua.'),
+                    ]"/>
+                    <div class="o_ferba_pasos" style="--ferba-cols:5" data-ferba-grupo="pasos">
+                        <t t-foreach="pasos" t-as="p">
+                            <div class="o_ferba_paso o_ferba_reveal">
+                                <span class="o_ferba_paso__num" t-out="p_index + 1"/>
+                                <div class="o_ferba_paso__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{p[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_paso__titulo" t-out="p[1]"/>
+                                <p class="o_ferba_paso__texto" t-out="p[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Tres accesos: frutos, FlexQuality y presencia ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_trio" data-ferba-grupo="trio">
+
+                        <div class="o_ferba_panel o_ferba_reveal">
+                            <h3 class="o_ferba_panel__titulo">Soluciones adaptadas al producto que procesas</h3>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_panel__texto mt-3">
+                                Cada fruto requiere un manejo diferente. Adaptamos maquinaria, lavado,
+                                cepillado, selección, empaque y flejado según las características físicas
+                                y comerciales de cada producto.
+                            </p>
+                            <div class="o_ferba_redondos">
+                                <img src="/ferba_website/static/src/img/inicio-22-1124x749.webp" alt="" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/inicio-20-1037x692.webp" alt="" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/inicio-24-1633x1225.webp" alt="" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/inicio-26-1034x690.webp" alt="" loading="lazy"/>
+                            </div>
+                            <p class="o_ferba_panel__texto">
+                                Tomate, pepino, pimiento, aguacate, calabaza, mango, melón, entre otros.
+                            </p>
+                            <a href="/frutos" class="o_ferba_enlace">
+                                Ver soluciones por fruto
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+                        </div>
+
+                        <div class="o_ferba_panel o_ferba_reveal">
+                            <h3 class="o_ferba_panel__titulo">Integra visión artificial a tu proceso postcosecha</h3>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_panel__texto mt-3">
+                                Las soluciones FERBA pueden incorporar Flex<span class="o_ferba_q">Q</span>uality
+                                para llevar la selección a un nuevo nivel de precisión.
+                            </p>
+                            <p class="o_ferba_panel__texto">
+                                Con sus versiones Full y Lite, es posible integrar inspección visual en
+                                líneas nuevas o calibradores existentes, analizando la calidad del fruto.
+                            </p>
+                            <a href="/flexquality" class="o_ferba_enlace">
+                                <span>Conocer Flex<span class="o_ferba_q">Q</span>uality</span>
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+                        </div>
+
+                        <div class="o_ferba_panel o_ferba_reveal">
+                            <h3 class="o_ferba_panel__titulo">Presencia internacional</h3>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_panel__texto mt-3">
+                                Nuestra presencia comercial en Estados Unidos, España, México y Perú
+                                refleja el crecimiento de una marca enfocada en entregar soluciones de
+                                alto rendimiento para la agroindustria global.
+                            </p>
+                            <img src="/ferba_website/static/src/img/mapa-mundo-limpio.webp"
+                                 alt="Presencia comercial de FERBA" width="1522" height="1032"
+                                 class="o_ferba_mapa__img" loading="lazy"/>
+                            <div class="o_ferba_banderitas">
+                                <img src="/ferba_website/static/src/img/bandera-eua-216x150.webp" alt="Estados Unidos" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/bandera-espana-216x150.webp" alt="España" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/bandera-mexico-216x150.webp" alt="México" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/bandera-peru-216x150.webp" alt="Perú" loading="lazy"/>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

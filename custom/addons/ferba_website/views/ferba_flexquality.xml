@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         FLEXQUALITY  —  réplica de "FLEXQUALITY.pdf"
+         ================================================================ -->
+    <template id="pagina_flexquality" track="True" name="Ferba — FlexQuality">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Flex<span class="o_ferba_q">Q</span>uality</t>
+            <t t-set="clase_titulo">o_ferba_hero__title--marca</t>
+            <t t-set="subtitulo">Selección inteligente con<br/>visión artificial e inteligencia artificial</t>
+            <t t-set="fondo">flexquality-01-1171x658.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Flex<span class="o_ferba_q">Q</span>uality analiza cada fruto en tiempo real para
+                    evaluar color, tamaño, forma, calidad y defectos externos, mejorando la precisión
+                    de selección y elevando el valor de tu producto.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="#versiones" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Conocer versiones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">Agenda una asesoría<br/>sobre Flex<span class="o_ferba_q">Q</span>uality</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué producto procesas y qué nivel de análisis necesitas. Te ayudamos a definir
+                si tu línea requiere Flex<span class="o_ferba_q">Q</span>uality Full o Flex<span class="o_ferba_q">Q</span>uality Lite.
+            </t>
+            <t t-set="cierre_foto">flexquality-12-1152x648.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Agendar asesoría</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ ¿Qué es FlexQuality? + versiones ============ -->
+            <section id="versiones" class="o_ferba_section o_ferba_section--white"
+                     data-ferba-senal="interes_flexquality" data-ferba-ver="5000">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split o_ferba_split--fichas">
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">¿Qué es Flex<span class="o_ferba_q">Q</span>uality?</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                Flex<span class="o_ferba_q">Q</span>uality es un sistema de inspección visual
+                                diseñado para integrarse en líneas de selección y empaque para exportación.
+                                Mediante cámaras, iluminación controlada y algoritmos de análisis, el sistema
+                                evalúa cada fruto para clasificarlo según parámetros definidos por el cliente.
+                            </p>
+                            <p>
+                                Su objetivo es ayudar a las empacadoras a obtener una clasificación más precisa,
+                                reducir variaciones en la selección y mejorar el aprovechamiento comercial
+                                del producto.
+                            </p>
+                            <div class="o_ferba_hero__actions">
+                                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid">
+                                    <span class="o_ferba_btn__label">Más información</span>
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="o_ferba_versiones" data-ferba-grupo="versiones">
+                            <div class="o_ferba_version o_ferba_reveal">
+                                <h3 class="o_ferba_version__titulo">Flex<span class="o_ferba_q">Q</span>uality Full</h3>
+                                <p class="o_ferba_version__sub">Máximo nivel de análisis por módulo</p>
+                                <img src="/ferba_website/static/src/img/fq-full-608x424.webp"
+                                     alt="Módulo FlexQuality Full con tres cámaras" width="608" height="424"
+                                     class="o_ferba_version__img" loading="lazy"/>
+                                <div class="o_ferba_version__specs">
+                                    <span><strong>2</strong><em>Líneas</em></span>
+                                    <span><strong>3</strong><em>Cámaras</em></span>
+                                </div>
+                                <p class="o_ferba_version__pie">
+                                    Mayor cobertura visual para una inspección más completa y una
+                                    clasificación más detallada.
+                                </p>
+                            </div>
+
+                            <div class="o_ferba_version o_ferba_version--lite o_ferba_reveal">
+                                <h3 class="o_ferba_version__titulo">Flex<span class="o_ferba_q">Q</span>uality Lite</h3>
+                                <p class="o_ferba_version__sub">Inspección inteligente en una versión más compacta</p>
+                                <img src="/ferba_website/static/src/img/fq-lite-608x424.webp"
+                                     alt="Módulo FlexQuality Lite con una cámara" width="608" height="424"
+                                     class="o_ferba_version__img" loading="lazy"/>
+                                <div class="o_ferba_version__specs">
+                                    <span><strong>2</strong><em>Líneas</em></span>
+                                    <span><strong>1</strong><em>Cámara</em></span>
+                                </div>
+                                <p class="o_ferba_version__pie">
+                                    Análisis esencial para modernizar tu línea de forma accesible y eficiente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ ¿Cómo funciona? ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">¿Cómo funciona?</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="pasos" t-value="[
+                        ('fq-paso-1-368x232.webp', 'El producto entra al módulo'),
+                        ('fq-paso-2-416x240.webp', 'Las cámaras capturan imágenes'),
+                        ('fq-paso-3-336x232.webp', 'El sistema analiza parámetros'),
+                        ('fq-paso-4-336x232.webp', 'Se interpreta la información'),
+                        ('fq-paso-5-548x232.webp', 'La línea clasifica según criterios configurados'),
+                    ]"/>
+                    <div class="o_ferba_pasos o_ferba_pasos--flujo" style="--ferba-cols:5" data-ferba-grupo="comofunciona">
+                        <t t-foreach="pasos" t-as="p">
+                            <div class="o_ferba_paso o_ferba_reveal">
+                                <span class="o_ferba_paso__disco" t-out="p_index + 1"/>
+                                <div class="o_ferba_paso__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{p[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <p class="o_ferba_paso__texto" t-out="p[1]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Parámetros de análisis ============ -->
+            <section class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Parámetros de análisis</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="params" t-value="[
+                        ('fq-p-color-336x285.webp',    'Color',            'Evalúa tonalidad, maduración y uniformidad visual.'),
+                        ('fq-p-tamano-336x285.webp',   'Tamaño',           'Analiza dimensiones del fruto para apoyar procesos de selección.'),
+                        ('fq-p-forma-336x285.webp',    'Forma',            'Identifica características geométricas y variaciones de apariencia.'),
+                        ('fq-p-calidad-336x285.webp',  'Calidad visual',   'Ayuda a clasificar el producto según estándares comerciales.'),
+                        ('fq-p-defectos-336x285.webp', 'Defectos externos','Detecta daños, golpes, manchas, deformaciones y otros criterios definidos.'),
+                    ]"/>
+                    <div class="o_ferba_fichas o_ferba_fichas--5" data-ferba-grupo="params">
+                        <t t-foreach="params" t-as="p">
+                            <div class="o_ferba_param o_ferba_reveal">
+                                <div class="o_ferba_param__marco">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{p[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_param__titulo" t-out="p[1]"/>
+                                <p class="o_ferba_param__texto" t-out="p[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Integración ============
+                 Este bloque es la señal de retrofit más honesta del sitio:
+                 quien se queda leyendo "calibradores existentes" ya tiene
+                 una máquina, no está comprando una nueva. -->
+            <section class="o_ferba_section o_ferba_section--light"
+                     data-ferba-senal="interes_retrofit" data-ferba-ver="4000">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split o_ferba_split--alto">
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/flexquality-12-1152x648.webp"
+                                 alt="Línea de selección con módulos FlexQuality integrados"
+                                 width="1152" height="648" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Integración en líneas nuevas o calibradores existentes</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                Flex<span class="o_ferba_q">Q</span>uality puede considerarse desde el diseño
+                                de una línea nueva o integrarse en equipos existentes, calibradores que
+                                requieren modernización tecnológica.
+                            </p>
+                            <p>
+                                Esto permite actualizar procesos de selección sin necesidad de reemplazar
+                                toda la línea, aprovechando la infraestructura actual y elevando el nivel
+                                de precisión del sistema.
+                            </p>
+                            <div class="o_ferba_minis">
+                                <div class="o_ferba_mini">
+                                    <img src="/ferba_website/static/src/img/fq-linea-nueva-264x116.webp"
+                                         alt="" width="264" height="116" class="o_ferba_mini__img" loading="lazy"/>
+                                    <div>
+                                        <h3 class="o_ferba_mini__titulo">Líneas nuevas</h3>
+                                        <p class="o_ferba_mini__texto">Integración desde el diseño del proyecto.</p>
+                                    </div>
+                                </div>
+                                <div class="o_ferba_mini">
+                                    <img src="/ferba_website/static/src/img/fq-calibrador-360x92.webp"
+                                         alt="" width="360" height="92" class="o_ferba_mini__img" loading="lazy"/>
+                                    <div>
+                                        <h3 class="o_ferba_mini__titulo">Calibradores existentes</h3>
+                                        <p class="o_ferba_mini__texto">Moderniza tu equipo actual sin reemplazarlo.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Beneficios ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Beneficios</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="beneficios" t-value="[
+                        ('ben-precision.svg',       'Mayor precisión de selección'),
+                        ('ben-manual.svg',          'Menor dependencia de inspección manual'),
+                        ('ben-clasificacion.svg',   'Clasificación más uniforme'),
+                        ('ben-modular.svg',         'Integración modular'),
+                        ('ben-fulllite.svg',        'Opciones Full y Lite según necesidad'),
+                        ('ben-aprovechamiento.svg', 'Mejor aprovechamiento del producto'),
+                        ('ben-criterios.svg',       'Adaptación a criterios comerciales'),
+                        ('ben-informacion.svg',     'Información más clara para la operación'),
+                    ]"/>
+                    <div class="o_ferba_valores" style="--ferba-cols:8" data-ferba-grupo="beneficios">
+                        <t t-foreach="beneficios" t-as="b">
+                            <div class="o_ferba_valor o_ferba_reveal">
+                                <div class="o_ferba_valor__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{b[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <p class="o_ferba_valor__texto" t-out="b[1]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Frutos compatibles ============ -->
+            <section class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Frutos compatibles</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="compatibles" t-value="[
+                        ('flexquality-19-731x548.webp', 'tomate',   'Tomate'),
+                        ('flexquality-13-930x597.webp', 'pepino',   'Pepino'),
+                        ('flexquality-14-507x344.webp', 'pimiento', 'Pimiento'),
+                        ('flexquality-15-1034x721.webp','calabaza', 'Calabaza'),
+                        ('flexquality-16-945x583.webp', 'aguacate', 'Aguacate'),
+                        ('flexquality-17-554x382.webp', 'mango',    'Mango'),
+                        ('flexquality-18-708x559.webp', 'citricos', 'Cítricos'),
+                    ]"/>
+                    <div class="o_ferba_tira" style="--ferba-cols:7" data-ferba-grupo="compatibles">
+                        <t t-foreach="compatibles" t-as="c">
+                            <a t-attf-href="/frutos##{c[1]}" class="o_ferba_tira__item o_ferba_reveal"
+                               t-attf-data-ferba-senal="interes_fruto:#{c[1]}">
+                                <span class="o_ferba_tira__img">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{c[0]}" t-att-alt="c[2]" loading="lazy"/>
+                                </span>
+                                <span class="o_ferba_tira__rotulo" t-out="c[2]"/>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

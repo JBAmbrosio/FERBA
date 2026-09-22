@@ -1,0 +1,34 @@
+// =====================================================================
+//  Poppins autoalojada — subconjunto latino, pesos 400 / 500 / 700.
+//  Licencia: SIL Open Font License 1.1 (ver static/src/fonts/OFL-Poppins.txt).
+//
+//  Va dentro del módulo y no desde Google Fonts: sin petición a terceros,
+//  sin problema de privacidad para visitantes en la UE (Ferba tiene
+//  presencia comercial en España), y el sitio se ve igual que la vista
+//  previa. font-display: swap para que el texto aparezca de inmediato con
+//  la fuente de respaldo y se cambie al cargar.
+//
+//  PENDIENTE: Poppins es una aproximación. Cuando el diseñador confirme la
+//  tipografía real, se sustituyen estos tres archivos y $ferba-font.
+// =====================================================================
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/ferba_website/static/src/fonts/poppins-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/ferba_website/static/src/fonts/poppins-500.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/ferba_website/static/src/fonts/poppins-700.woff2') format('woff2');
+}

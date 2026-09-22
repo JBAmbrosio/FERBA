@@ -1,0 +1,8 @@
+Poppins — Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+Full license text: https://openfontlicense.org/open-font-license-official-text/
+
+Los archivos poppins-400.woff2, poppins-500.woff2 y poppins-700.woff2 son el
+subconjunto latino servido por Google Fonts, autoalojado aquí para no depender
+de un tercero en tiempo de carga.

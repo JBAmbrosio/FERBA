@@ -1,0 +1,107 @@
+// =====================================================================
+//  Ferba — tokens de marca
+//  Valores tomados del diseño entregado por el cliente (9 PDFs, sep-2026).
+//  Los colores se leyeron directo de los PDFs, no se aproximaron a ojo.
+// =====================================================================
+
+// --- Color -----------------------------------------------------------
+$ferba-red:        #e41b17;   // acento de marca
+$ferba-red-dark:   #b81511;   // hover de botones
+
+// Matices del rojo SOLO para texto pequeño (antetítulos, la Q de FlexQuality
+// en cuerpo de texto). #E41B17 a 13 px negrita da 4.10:1 sobre #EFEFEF y
+// 4.45:1 sobre negro: no llega al 4.5:1 de WCAG AA. Estos dos sí:
+//   #CC1813 sobre #EFEFEF -> 4.93:1      #EE2E2A sobre #000 -> 5.06:1
+// Titulares, botones y todo lo de tamaño display siguen en $ferba-red.
+$ferba-red-text-light: #cc1813;
+$ferba-red-text-dark:  #ee2e2a;
+$ferba-black:      #000000;   // fondos de sección oscura
+$ferba-ink:        #1d1d1b;   // texto sobre claro
+$ferba-white:      #ffffff;
+$ferba-gray:       #929292;   // texto secundario sobre oscuro
+$ferba-gray-light: #efefef;   // fondo de sección clara
+$ferba-gray-card:  #e7e7e7;
+// Verde de la marca WhatsApp, no de la paleta de Ferba: al botón flotante
+// se le reconoce por el color antes que por el dibujo, y pintarlo de otro
+// color le quitaría la mitad de su eficacia.
+$ferba-whatsapp:      #25d366;
+$ferba-whatsapp-dark: #1da851;   // al pasar el ratón   // tarjeta Full/Lite: el gris exacto del PDF; las ilustraciones van exportadas sobre él
+$ferba-gray-line:  #d9d9d9;   // bordes de tarjeta
+
+// --- Tipografía ------------------------------------------------------
+// PENDIENTE: el diseño se exportó con las fuentes convertidas a trazos,
+// así que el nombre real no es recuperable del PDF. Poppins es la
+// aproximación más cercana a la sans geométrica del diseño.
+// Cuando el diseñador confirme la fuente, se cambia SOLO esta línea.
+$ferba-font:       'Poppins', -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+$ferba-fw-regular: 400;
+$ferba-fw-medium:  500;
+$ferba-fw-bold:    700;
+
+// Escala tipográfica: derivada de los tamaños medidos en el PDF
+// (60, 30, 27, 25, 23, 21, 20, 16, 15, 14, 12, 11, 10 pt sobre 1024 de ancho)
+//
+// El techo anterior (h1 2.8rem / h2 2.3rem) no era una decisión de diseño sino
+// una consecuencia del ancho disponible: "TECNOLOGÍA POSTCOSECHA" no cabía en
+// un renglón porque la foto del hero empezaba al 38%. Con la columna de texto
+// ensanchada, la escala puede subir a lo que el diseño pedía. El paso entre
+// niveles ahora es evidente (3.5 / 2.9 / 1.35), que es lo que hace que una
+// página se lea jerarquizada en lugar de plana.
+$ferba-h1:         clamp(2.4rem, 5.2vw, 3.5rem);
+$ferba-h2:         clamp(1.8rem, 3.4vw, 2.9rem);
+$ferba-h3:         clamp(1.05rem, 1.6vw, 1.35rem);
+$ferba-eyebrow:    0.82rem;   // se conserva solo donde nombra un producto
+$ferba-body:       1rem;
+$ferba-small:      0.87rem;
+
+// A tamaño display el interletrado por defecto de Poppins abre demasiado.
+// -0.03em es el valor que cierra la palabra sin que las mayúsculas se toquen;
+// -0.04em es el suelo y ya empieza a leerse apretado.
+$ferba-track-display: -0.03em;
+
+// Medida de lectura. El cuerpo de texto nunca pasa de aquí.
+$ferba-measure:    64ch;
+// Los titulares rompen antes que el cuerpo: un display a 60ch es una pared.
+// 26ch deja entrar "Soluciones postcosecha" completo en un renglón, que es la
+// ruptura que el diseño del cliente marca a mano; más estrecho la partiría.
+$ferba-measure-display: 26ch;
+
+// --- Ritmo vertical --------------------------------------------------
+// El aire entre secciones es la mitad de lo que separa una página cara de una
+// barata. 6rem en escritorio dejaba las secciones pegadas; 7.5 las separa sin
+// obligar a una pantalla entera de scroll vacío.
+$ferba-section-y:  clamp(3.75rem, 7.5vw, 7.5rem);
+$ferba-gap:        1.5rem;
+$ferba-radius:     4px;         // el diseño usa esquinas casi rectas
+$ferba-radius-lg:  10px;        // tarjetas de "elige el tipo de atención"
+
+// Las FOTOS son el caso aparte. Medido sobre los PDFs del cliente: cada
+// fotografía va redondeada a ~14 px y levantada con una sombra suave. No es
+// el mismo radio que las cajas de interfaz (4 px) y mezclarlos era justo lo
+// que hacía que la web se viera más pobre que el diseño entregado.
+$ferba-radius-foto: 14px;
+$ferba-sombra-foto: 0 16px 38px rgba(0, 0, 0, .16);
+
+// --- Movimiento ------------------------------------------------------
+// Las curvas nativas de CSS son demasiado débiles para que la animación
+// se sienta intencional. Estas son las de referencia, no inventadas.
+$ferba-ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+$ferba-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+// Llegada segura: desacelera fuerte al final. Es la curva de los momentos
+// autorales (entrada del hero, barridos de revelado).
+$ferba-ease-arrive: cubic-bezier(0.16, 1, 0.3, 1);
+
+// Presupuesto de duración. La UI (hover, pulsado) se queda bajo 300ms; lo
+// largo es narrativo: la entrada del hero y los revelados por scroll de una
+// portada que se ve una vez.
+$ferba-dur-press:   160ms;
+$ferba-dur-hover:   220ms;
+$ferba-dur-reveal:  700ms;
+$ferba-dur-focal:   900ms;
+$ferba-stagger:     80ms;
+
+// --- Contenedor ------------------------------------------------------
+// El diseño está maquetado sobre 1024 px con márgenes de ~72 px.
+$ferba-container:  1240px;
+$ferba-gutter:     1.5rem;

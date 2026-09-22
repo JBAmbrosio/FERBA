@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         CONTACTO  —  réplica de "CONTACTO.pdf"
+
+         El formulario usa el mecanismo nativo de Odoo (s_website_form,
+         POST a /website/form/ con data-model_name="mail.mail"), que es el
+         mismo que emplea la página "Contáctanos" que Odoo trae de fábrica.
+         Los campos que no existen en mail.mail (empresa, teléfono, fruto,
+         capacidad…) se envían como campos personalizados y Odoo los añade
+         al cuerpo del correo. El destinatario va en el campo oculto
+         email_to. Si más adelante se instala CRM, basta cambiar
+         data-model_name a crm.lead y renombrar tres campos.
+         ================================================================ -->
+    <template id="pagina_contacto" track="True" name="Ferba — Contacto">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Hablemos de tu<br/>proyecto postcosecha</t>
+            <t t-set="fondo">contacto-03-1920x1080.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa de tu línea
+                    quieres mejorar. Nuestro equipo puede ayudarte a definir la solución más adecuada
+                    para tu operación.
+                </p>
+                <p class="o_ferba_hero__lead">
+                    En FERBA desarrollamos maquinaria, líneas completas, modernización, automatización,
+                    Flex<span class="o_ferba_q">Q</span>uality, soporte técnico y refacciones para tu
+                    maquinaria postcosecha.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="#solicitud" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Solicitar asesoría</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">Diseñamos la solución ideal<br/>para tu línea</t>
+            <t t-set="cierre_texto">
+                Ya sea que busques una máquina específica, una línea completa, modernización,
+                automatización, Flex<span class="o_ferba_q">Q</span>uality, soporte técnico o
+                refacciones, nuestro equipo puede ayudarte a definir el siguiente paso.
+            </t>
+            <t t-set="cierre_foto">contacto-03-1920x1080.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="#solicitud" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Elige el tipo de atención ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Elige el tipo de atención que necesitas</t>
+                    </t>
+                    <t t-set="atenciones" t-value="[
+                        ('con-cotizar.svg',     'Cotizar proyecto',
+                         'Solicita información para una línea completa, modernización, maquinaria específica o integración de automatización.',
+                         'Cotizar proyecto'),
+                        ('con-flexquality.svg', 'FlexQuality',
+                         'Agenda una demostración o solicita asesoría para integrar visión artificial e inteligencia artificial en tu línea.',
+                         'Solicitar demo'),
+                        ('con-soporte.svg',     'Soporte técnico',
+                         'Recibe apoyo para diagnóstico, revisión o seguimiento de equipos y líneas instaladas.',
+                         'Solicitar soporte'),
+                        ('con-refacciones.svg', 'Refacciones',
+                         'Solicita cotización de componentes, piezas de desgaste, bandas, rodillos, sensores, motores u otras refacciones.',
+                         'Cotizar refacciones'),
+                    ]"/>
+                    <div class="o_ferba_fichas" data-ferba-grupo="atenciones">
+                        <t t-foreach="atenciones" t-as="a">
+                            <div class="o_ferba_ficha o_ferba_ficha--fila o_ferba_reveal">
+                                <div class="o_ferba_ficha__cabeza">
+                                    <div class="o_ferba_ficha__icono">
+                                        <img t-attf-src="/ferba_website/static/src/img/iconos/#{a[0]}" alt="" loading="lazy"/>
+                                    </div>
+                                    <h3 class="o_ferba_ficha__titulo" t-out="a[1]"/>
+                                </div>
+                                <p class="o_ferba_ficha__texto" t-out="a[2]"/>
+                                <a href="#solicitud" class="o_ferba_ficha__enlace">
+                                    <t t-out="a[3]"/>
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Formulario ============ -->
+            <section id="solicitud" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_form_grid">
+
+                        <div class="o_ferba_panel o_ferba_reveal">
+                            <h2 class="o_ferba_panel__titulo">Envíanos tu solicitud</h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_panel__texto mt-3">
+                                Completa el formulario y nuestro equipo se pondrá en contacto contigo para
+                                conocer más sobre tu operación y ayudarte a definir la mejor solución.
+                            </p>
+
+                            <div class="s_website_form o_ferba_form">
+                                <form action="/website/form/" method="post" enctype="multipart/form-data"
+                                      class="o_mark_required" data-mark="*" data-model_name="mail.mail"
+                                      data-success-mode="message" data-pre-fill="true">
+                                    <div class="s_website_form_rows">
+
+                                        <div class="s_website_form_field s_website_form_field--tercio s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_nombre">
+                                                <span class="s_website_form_label_content">Nombre completo</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_nombre" type="text" name="Nombre completo" required="required"
+                                                   placeholder="Ej. Juan Pérez"
+                                                   class="form-control s_website_form_input" data-fill-with="name"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_field--tercio s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_empresa">
+                                                <span class="s_website_form_label_content">Empresa</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_empresa" type="text" name="Empresa" required="required"
+                                                   placeholder="Ej. Empaque del Valle"
+                                                   class="form-control s_website_form_input" data-fill-with="commercial_company_name"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_field--tercio s_website_form_custom s_website_form_required" data-type="tel" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_telefono">
+                                                <span class="s_website_form_label_content">Teléfono</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_telefono" type="tel" name="Teléfono" required="required"
+                                                   placeholder="Ej. +52 667 123 4567"
+                                                   class="form-control s_website_form_input" data-fill-with="phone"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_required s_website_form_model_required" data-type="email" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_correo">
+                                                <span class="s_website_form_label_content">Correo electrónico</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_correo" type="email" name="email_from" required="required"
+                                                   placeholder="Ej. correo@empresa.com"
+                                                   class="form-control s_website_form_input" data-fill-with="email"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_ubicacion">
+                                                <span class="s_website_form_label_content">País / Estado / Ciudad</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_ubicacion" type="text" name="País / Estado / Ciudad" required="required"
+                                                   placeholder="Ej. México, Sinaloa, Culiacán"
+                                                   class="form-control s_website_form_input"/>
+                                        </div>
+
+                                        <!-- El "tipo de solicitud" viaja como asunto del correo: así el
+                                             equipo de Ferba clasifica la bandeja sin abrir el mensaje. -->
+                                        <div class="s_website_form_field s_website_form_required s_website_form_model_required" data-type="selection" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_tipo">
+                                                <span class="s_website_form_label_content">Tipo de solicitud</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <select id="ferba_tipo" name="subject" required="required" class="form-control s_website_form_input">
+                                                <option value="">Selecciona una opción</option>
+                                                <option value="Cotizar proyecto">Cotizar proyecto</option>
+                                                <option value="Modernización de línea">Modernización de línea</option>
+                                                <option value="Automatización">Automatización</option>
+                                                <option value="FlexQuality (visión artificial)">FlexQuality (visión artificial)</option>
+                                                <option value="Soporte técnico">Soporte técnico</option>
+                                                <option value="Refacciones">Refacciones</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_custom s_website_form_required" data-type="selection" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_fruto">
+                                                <span class="s_website_form_label_content">Fruto que procesa</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <select id="ferba_fruto" name="Fruto que procesa" required="required" class="form-control s_website_form_input">
+                                                <option value="">Selecciona una opción</option>
+                                                <option value="Tomate">Tomate</option>
+                                                <option value="Pepino">Pepino</option>
+                                                <option value="Pimiento">Pimiento</option>
+                                                <option value="Calabaza">Calabaza</option>
+                                                <option value="Mango">Mango</option>
+                                                <option value="Melón">Melón</option>
+                                                <option value="Aguacate">Aguacate</option>
+                                                <option value="Cítricos">Cítricos</option>
+                                                <option value="Espárrago">Espárrago</option>
+                                                <option value="Sandía">Sandía</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_custom s_website_form_required" data-type="char" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_capacidad">
+                                                <span class="s_website_form_label_content">Capacidad actual o requerida</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <input id="ferba_capacidad" type="text" name="Capacidad actual o requerida" required="required"
+                                                   placeholder="Ej. 10 toneladas por hora"
+                                                   class="form-control s_website_form_input"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_custom s_website_form_required" data-type="selection" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_etapa">
+                                                <span class="s_website_form_label_content">Etapa de la línea que deseas mejorar</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <select id="ferba_etapa" name="Etapa de la línea" required="required" class="form-control s_website_form_input">
+                                                <option value="">Selecciona una opción</option>
+                                                <option value="Recepción y alimentación">Recepción y alimentación</option>
+                                                <option value="Lavado y tratamiento">Lavado y tratamiento</option>
+                                                <option value="Secado y cepillado">Secado y cepillado</option>
+                                                <option value="Transportadores / bandas">Transportadores / bandas</option>
+                                                <option value="Selección y calibrado">Selección y calibrado</option>
+                                                <option value="Empaque">Empaque</option>
+                                                <option value="Automatización y control">Automatización y control</option>
+                                                <option value="Línea completa">Línea completa</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_field--ancho s_website_form_custom s_website_form_required" data-type="text" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_mensaje">
+                                                <span class="s_website_form_label_content">Cuéntanos más sobre tu proyecto o requerimiento</span>
+                                                <span class="s_website_form_mark"> *</span>
+                                            </label>
+                                            <textarea id="ferba_mensaje" name="description" required="required" rows="6"
+                                                      placeholder="Descripción del proyecto, objetivos, necesidades, etc."
+                                                      class="form-control s_website_form_input"/>
+                                        </div>
+
+                                        <div class="s_website_form_field s_website_form_field--ancho s_website_form_custom" data-type="binary" data-name="Field">
+                                            <label class="s_website_form_label" for="ferba_archivo">
+                                                <span class="s_website_form_label_content">Adjuntar archivo, foto o video (opcional)</span>
+                                            </label>
+                                            <!-- Zona de arrastrar y soltar. El <input type="file">
+                                                 sigue siendo el control real (Odoo lo necesita para
+                                                 recoger el adjunto) pero se oculta visualmente; el
+                                                 recuadro es un segundo <label> apuntando al mismo
+                                                 control, que es HTML válido y hace que funcione el
+                                                 clic incluso sin JavaScript. Arrastrar lo añade
+                                                 ferba_reveal.js. -->
+                                            <label class="o_ferba_soltar" for="ferba_archivo">
+                                                <svg class="o_ferba_soltar__icono" viewBox="0 0 48 34" fill="none"
+                                                     aria-hidden="true">
+                                                    <path d="M38.2 13.2a10.7 10.7 0 0 0-20.4-3.1A8.4 8.4 0 0 0 9 18.4 8.4 8.4 0 0 0 17.4 27h20.3a6.9 6.9 0 0 0 .5-13.8Z"
+                                                          stroke="currentColor" stroke-width="2"
+                                                          stroke-linejoin="round"/>
+                                                    <path d="M24 30V16m0 0-4.6 4.6M24 16l4.6 4.6"
+                                                          stroke="currentColor" stroke-width="2"
+                                                          stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                <span class="o_ferba_soltar__texto">
+                                                    <span class="o_ferba_soltar__accion"
+                                                          data-ferba-soltar-rotulo="Arrastra tu archivo aquí o haz clic para seleccionar">Arrastra tu archivo aquí o haz clic para seleccionar</span>
+                                                    <span class="o_ferba_soltar__formatos">Formatos: PDF, JPG, PNG, MP4 (máx. 20 MB)</span>
+                                                </span>
+                                                <input id="ferba_archivo" type="file" name="Adjunto"
+                                                       accept=".pdf,.jpg,.jpeg,.png,.mp4"
+                                                       class="s_website_form_input o_ferba_soltar__input"/>
+                                            </label>
+                                        </div>
+
+                                        <!-- El formulario sale como correo, así que la atribución
+                                             tiene que viajar DENTRO del mensaje: si no, llega
+                                             huérfano y no hay forma de saber qué lo trajo.
+                                             Los rellena ferba_analitica.js. -->
+                                        <div class="s_website_form_field s_website_form_dnone">
+                                            <input type="hidden" name="Origen" data-ferba-utm="origen"
+                                                   class="form-control s_website_form_input"/>
+                                            <input type="hidden" name="Campaña" data-ferba-utm="campana"
+                                                   class="form-control s_website_form_input"/>
+                                            <input type="hidden" name="Página de entrada" data-ferba-utm="entrada"
+                                                   class="form-control s_website_form_input"/>
+                                            <input type="hidden" name="email_to" value="ventas@ferba.net"
+                                                   class="form-control s_website_form_input"/>
+                                        </div>
+
+                                        <div class="s_website_form_submit" data-name="Submit Button">
+                                            <a href="#" role="button" class="o_ferba_btn o_ferba_btn--solid s_website_form_send">
+                                                <span class="o_ferba_btn__label">Enviar solicitud</span>
+                                                <t t-call="ferba_website.flecha"/>
+                                            </a>
+                                            <span id="s_website_form_result"/>
+                                        </div>
+
+                                    </div>
+                                </form>
+                                <div class="s_website_form_end_message d-none">
+                                    <p><strong>Gracias por escribirnos.</strong> Tu solicitud llegó al equipo de
+                                    FERBA. Te responderemos por correo o teléfono lo antes posible. Si es urgente,
+                                    llámanos al <a href="tel:+526671217267">+52 667 121 7267</a>.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="o_ferba_panel o_ferba_reveal">
+                            <h2 class="o_ferba_panel__titulo">Para ayudarte mejor, comparte la mayor información posible</h2>
+                            <span class="o_ferba_rule"/>
+                            <t t-set="ayudas" t-value="[
+                                ('info-producto.svg',  'Producto',           'Indica qué fruta u hortaliza procesas y si manejas diferentes variedades o calibres.'),
+                                ('info-capacidad.svg', 'Capacidad',          'Comparte tu capacidad o la capacidad objetivo que buscas alcanzar.'),
+                                ('info-proyecto.svg',  'Tipo de proyecto',   'Cuéntanos si necesitas una línea completa, una máquina específica, modernización, automatización, FlexQuality o soporte técnico.'),
+                                ('info-espacio.svg',   'Espacio disponible', 'Si cuentas con layout, plano, medidas del área o fotografías de tu línea actual, puedes adjuntarlas para agilizar la asesoría.'),
+                                ('info-objetivo.svg',  'Objetivo',           'Explícanos qué quieres mejorar: velocidad, precisión, reducción de mano de obra, calidad, clasificación, empaque o continuidad operativa.'),
+                            ]"/>
+                            <div class="o_ferba_benef o_ferba_benef--col mt-3">
+                                <t t-foreach="ayudas" t-as="a">
+                                    <div class="o_ferba_benef__item">
+                                        <img t-attf-src="/ferba_website/static/src/img/iconos/#{a[0]}" alt=""
+                                             class="o_ferba_benef__icono" loading="lazy"/>
+                                        <div>
+                                            <h3 class="o_ferba_benef__titulo" t-out="a[1]"/>
+                                            <p class="o_ferba_benef__texto" t-out="a[2]"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Contacto directo y ubicación ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_directo">
+
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">También puedes contactarnos directamente</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <ul class="o_ferba_directo__lista">
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/dir-telefono.svg" alt=""/>
+                                    <div>
+                                        <p class="o_ferba_directo__rotulo">Teléfono</p>
+                                        <p class="o_ferba_directo__dato"><a href="tel:+526671217267">+52 667 121 7267</a></p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/dir-correo.svg" alt=""/>
+                                    <div>
+                                        <p class="o_ferba_directo__rotulo">Correo</p>
+                                        <p class="o_ferba_directo__dato"><a href="mailto:ventas@ferba.net">ventas@ferba.net</a></p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/dir-ubicacion.svg" alt=""/>
+                                    <div>
+                                        <p class="o_ferba_directo__rotulo">Ubicación</p>
+                                        <p class="o_ferba_directo__dato">
+                                            Carretera a Navolato km 7.5,<br/>Bachigualato, Culiacán,<br/>Sinaloa CP. 80140
+                                        </p>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <!-- PENDIENTE: Facebook ("FERBA LLC") y YouTube ("Ferba Postharvest
+                                 Technology") aparecen en el diseño con nombre pero sin URL, así que
+                                 van como texto y no como enlace roto. Instagram sí trae identificador
+                                 (@Ferba.mx) y se enlaza; conviene que Víctor lo confirme. -->
+                            <h3 class="o_ferba_directo__rotulo mt-4">Síguenos en redes sociales</h3>
+                            <ul class="o_ferba_directo__lista">
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/red-facebook.svg" alt=""/>
+                                    <div><p class="o_ferba_directo__dato o_ferba_directo__dato--pendiente">FERBA LLC</p></div>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/red-instagram.svg" alt=""/>
+                                    <div><p class="o_ferba_directo__dato">
+                                        <a href="https://www.instagram.com/ferba.mx/" target="_blank" rel="noopener">@Ferba.mx</a>
+                                    </p></div>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/red-whatsapp.svg" alt=""/>
+                                    <div><p class="o_ferba_directo__dato">
+                                        <a href="https://wa.me/526671217267" target="_blank" rel="noopener">+52 667 121 7267</a>
+                                    </p></div>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/contacto-01-480x480.webp" alt=""/>
+                                    <div><p class="o_ferba_directo__dato o_ferba_directo__dato--pendiente">Ferba Postharvest Technology</p></div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Encuentra a FERBA</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-3">
+                                Estamos ubicados en Culiacán, Sinaloa, México, desde donde atendemos proyectos
+                                para empacadoras, productores y agroindustrias que buscan soluciones postcosecha
+                                confiables, eficientes y adaptadas a su operación.
+                            </p>
+
+                            <!-- Mapa REAL, no una captura. Una imagen de un mapa no se
+                                 puede mover, ni acercar, ni abrir en el móvil para
+                                 trazar la ruta, que es exactamente para lo que alguien
+                                 mira el mapa de un proveedor.
+                                 Va con la URL de incrustación pública de Google Maps,
+                                 que no necesita clave de API. Carga diferida para que
+                                 no pese en el primer pintado.
+                                 OJO: es contenido de un tercero y fija cookies de
+                                 Google. En cuanto exista el aviso de privacidad hay que
+                                 mencionarlo ahí. -->
+                            <div class="o_ferba_mapa_vivo">
+                                <iframe class="o_ferba_mapa_vivo__marco"
+                                        title="Mapa con la ubicación de FERBA en Culiacán, Sinaloa"
+                                        src="https://maps.google.com/maps?q=FERBA%20Tecnolog%C3%ADa%20Agroindustrial%2C%20Culiac%C3%A1n%2C%20Sinaloa&amp;z=14&amp;output=embed"
+                                        loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                                        allowfullscreen="allowfullscreen"/>
+                            </div>
+                            <a class="o_ferba_enlace mt-3"
+                               href="https://maps.google.com/maps?q=FERBA%20Tecnolog%C3%ADa%20Agroindustrial%2C%20Culiac%C3%A1n%2C%20Sinaloa"
+                               target="_blank" rel="noopener">
+                                <span>Cómo llegar</span>
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+
+                            <div class="o_ferba_directo__horario">
+                                <div>
+                                    <img src="/ferba_website/static/src/img/iconos/dir-reloj.svg" alt=""/>
+                                    <p><strong>Horario de atención</strong>Lunes a viernes<br/>8:00 am – 5:30 pm</p>
+                                </div>
+                                <div>
+                                    <img src="/ferba_website/static/src/img/iconos/dir-globo.svg" alt=""/>
+                                    <p><strong>Atención en</strong>México y Latinoamérica</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

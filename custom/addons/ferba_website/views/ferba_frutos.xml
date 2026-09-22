@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         FRUTOS  —  réplica de "FRUTOS.pdf"
+         Las diez tarjetas llevan id: son el destino de los diez frutos de
+         la portada (/frutos#tomate, #aguacate…).
+         ================================================================ -->
+    <template id="pagina_frutos" track="True" name="Ferba — Frutos">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Soluciones postcosecha<br/>adaptadas a cada fruto</t>
+            <t t-set="fondo">frutos-01-900x1600.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Cada fruto requiere un manejo específico. En FERBA diseñamos maquinaria, líneas de
+                    proceso y automatización considerando la forma, tamaño, sensibilidad, volumen y
+                    criterios comerciales de cada producto.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="/soluciones" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Conocer soluciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/maquinaria" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Ver maquinaria</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">Diseñamos una solución<br/>para el producto que procesas</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué fruto procesas y qué capacidad o etapa deseas mejorar.
+                Nuestro equipo te proporcionará la solución postcosecha ideal.
+            </t>
+            <t t-set="cierre_foto">frutos-14-770x430.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Cotizar solución</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Cada producto necesita una línea diferente ============ -->
+            <section class="o_ferba_section o_ferba_section--dark o_ferba_section--bleed">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split o_ferba_split--bleed-izq">
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/frutos-02-1171x659.webp"
+                                 alt="Lavadora FERBA con producto en proceso"
+                                 width="1171" height="659" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                        <div class="o_ferba_split__texto--der o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Cada producto necesita una línea diferente</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                El tomate, pepino, mango, aguacate, cítricos y más requieren enfoques
+                                distintos en transporte, lavado, cepillado, selección y empaque.
+                            </p>
+                            <p>
+                                Nuestras soluciones se adaptan a las características de cada fruto para
+                                maximizar la calidad y eficiencia.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Frutos compatibles ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Frutos compatibles</t>
+                    </t>
+                    <t t-set="frutos" t-value="[
+                        ('tomate',    'frutos-03-587x400.webp', 'Tomate',    'Manejo cuidadoso para conservar firmeza y color.'),
+                        ('pepino',    'frutos-04-749x370.webp', 'Pepino',    'Líneas diseñadas para evitar golpes y mantener calidad.'),
+                        ('pimiento',  'frutos-05-574x312.webp', 'Pimiento',  'Clasificación precisa por tamaño, forma y color.'),
+                        ('calabaza',  'frutos-06-982x623.webp', 'Calabaza',  'Líneas diseñadas para evitar golpes.'),
+                        ('mango',     'frutos-07-774x517.webp', 'Mango',     'Procesamiento suave para proteger la piel y pulpa.'),
+                        ('melon',     'frutos-08-776x516.webp', 'Melón',     'Transporte y selección que preserva la calidad interna.'),
+                        ('aguacate',  'frutos-09-856x534.webp', 'Aguacate',  'Tecnología que cuida la piel y evita magulladuras.'),
+                        ('citricos',  'frutos-10-708x559.webp', 'Cítricos',  'Líneas de alta velocidad con lavado y selección.'),
+                        ('esparrago', 'frutos-11-836x479.webp', 'Espárrago', 'Manejo delicado para mantener frescura.'),
+                        ('sandia',    'frutos-12-605x568.webp', 'Sandía',    'Equipos adaptados para productos grandes.'),
+                    ]"/>
+                    <div class="o_ferba_frutos_grid" data-ferba-grupo="frutos">
+                        <t t-foreach="frutos" t-as="f">
+                            <a href="/contactenos" t-att-id="f[0]" class="o_ferba_frutocard o_ferba_reveal"
+                               t-attf-data-ferba-senal="interes_fruto:#{f[0]}">
+                                <span class="o_ferba_frutocard__media">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{f[1]}" t-att-alt="f[2]" loading="lazy"/>
+                                </span>
+                                <span class="o_ferba_frutocard__nombre" t-out="f[2]"/>
+                                <span class="o_ferba_frutocard__texto" t-out="f[3]"/>
+                                <span class="o_ferba_frutocard__enlace">
+                                    Ver soluciones
+                                    <t t-call="ferba_website.flecha"/>
+                                </span>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Cómo adaptamos la solución ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Cómo adaptamos la solución</t>
+                    </t>
+                    <t t-set="adaptacion" t-value="[
+                        ('adapt-forma.svg',        'Forma y tamaño',       'Diseñamos equipos y ajustes específicos según la geometría y dimensiones del fruto.'),
+                        ('adapt-sensibilidad.svg', 'Sensibilidad del fruto','Ajustamos velocidades, superficies y transiciones para minimizar daños.'),
+                        ('adapt-capacidad.svg',    'Capacidad requerida',  'Dimensionamos la línea para cumplir con el volumen y los picos de producción.'),
+                        ('adapt-calidad.svg',      'Criterios de calidad', 'Definimos parámetros de selección según estándares comerciales del mercado.'),
+                        ('adapt-empaque.svg',      'Tipo de empaque',      'Integramos soluciones según el empaque final: granel, cajas, clamshells, etc.'),
+                    ]"/>
+                    <div class="o_ferba_valores" style="--ferba-cols:5" data-ferba-grupo="adaptacion">
+                        <t t-foreach="adaptacion" t-as="a">
+                            <div class="o_ferba_valor o_ferba_reveal">
+                                <div class="o_ferba_valor__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{a[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_valor__titulo" t-out="a[1]"/>
+                                <p class="o_ferba_valor__texto" t-out="a[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ FlexQuality por fruto ============ -->
+            <!-- La foto es la de la banda del PDF de FRUTOS: la línea a oscuras con los
+                 módulos en rojo y el panel ANÁLISIS ya DENTRO de la imagen. Antes iba
+                 una foto genérica de FLEXQUALITY bajo un velo del 78 % y el panel como
+                 imagen aparte; ahora la banda es la del diseño y el texto ocupa solo la
+                 mitad izquierda, que en la foto es negro. -->
+            <section class="o_ferba_section o_ferba_section--foto o_ferba_section--foto-viva"
+                     style="--ferba-foto:url('/ferba_website/static/src/img/frutos-fq-banda-pdf.webp')">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_medida o_ferba_reveal">
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in">Flex<span class="o_ferba_q">Q</span>uality por fruto</span></h2>
+                        <span class="o_ferba_rule"/>
+                        <p class="mt-4">
+                            Flex<span class="o_ferba_q">Q</span>uality Full y Flex<span class="o_ferba_q">Q</span>uality Lite
+                            utilizan visión artificial e inteligencia artificial para analizar parámetros
+                            como color, tamaño, forma, calidad visual y defectos externos.
+                        </p>
+                        <p>
+                            Se integran en nuevas líneas o en calibradores existentes para mejorar la
+                            precisión y la toma de decisiones.
+                        </p>
+                        <div class="o_ferba_hero__actions">
+                            <a href="/flexquality" class="o_ferba_btn o_ferba_btn--solid">
+                                <span class="o_ferba_btn__label">Conocer Flex<span class="o_ferba_q">Q</span>uality</span>
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>
