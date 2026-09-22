@@ -3,11 +3,19 @@
     <record id="group_foco_user" model="res.groups">
         <field name="name">Foco / Consulta</field>
         <field name="comment">Puede ver equipos, uso y reportes de productividad.</field>
+        <!-- Foco es una aplicacion interna: quien la consulta es personal de la
+             empresa. Sin esta linea, un usuario al que solo se le da acceso a
+             Foco no puede ni leer la ficha de otro usuario, y la pantalla de
+             alcance le truena con un error de permisos que no explica nada. -->
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <record id="group_foco_manager" model="res.groups">
         <field name="name">Foco / Administrador</field>
-        <field name="comment">Clasifica apps, configura categorias y envia ordenes de control remoto.</field>
+        <field name="comment">Clasifica apps, configura categorias, envia ordenes de control remoto y decide quien tiene acceso.</field>
+        <!-- Administrar implica poder ver. Sin esta linea, restringir el menu
+             raiz al grupo de consulta dejaria fuera al propio administrador. -->
+        <field name="implied_ids" eval="[(4, ref('group_foco_user'))]"/>
     </record>
 
     <record id="base.user_admin" model="res.users">

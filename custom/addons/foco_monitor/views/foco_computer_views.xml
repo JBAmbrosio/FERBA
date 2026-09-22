@@ -13,6 +13,12 @@
                 <field name="health" decoration-warning="health in ('stale','never')"
                        decoration-muted="health == 'resting'"/>
                 <field name="minutes_since_seen" string="Min. sin reportar" optional="hide"/>
+                <field name="policy_id" string="Navegacion" optional="show"/>
+                <field name="policy_sync" string="Bloqueo"
+                       decoration-danger="policy_sync == 'drift'"
+                       decoration-warning="policy_sync in ('pendiente','nunca','sin_verificar')"
+                       decoration-muted="policy_sync in ('off','sin_perfil')"
+                       optional="show"/>
                 <field name="pending_command_count" string="Ordenes pend."/>
             </list>
         </field>
@@ -42,6 +48,17 @@
                         <group>
                             <field name="api_key" password="True"/>
                         </group>
+                        <group string="Navegacion">
+                            <field name="policy_id"/>
+                            <!-- Lo que el equipo dice tener PUESTO, no lo que se
+                                 le mando. Sin esta fila, "lo bloquee" y "esta
+                                 bloqueado" se leen igual. -->
+                            <field name="policy_sync"/>
+                            <field name="policy_applied_at"/>
+                            <field name="policy_verified_at"/>
+                            <field name="policy_drift"/>
+                            <field name="policy_detail"/>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Ordenes de control remoto">
@@ -69,6 +86,7 @@
                         </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>

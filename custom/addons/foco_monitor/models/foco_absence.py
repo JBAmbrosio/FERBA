@@ -100,7 +100,7 @@ class FocoAbsence(models.Model):
             return False
         if naive.tzinfo is not None:
             return naive.astimezone(pytz.UTC).replace(tzinfo=None)
-        tz = pytz.timezone(self.env['foco.settings']._tz_for(employee))
+        tz = self.env['foco.settings']._tzinfo_for(employee)
         return tz.localize(naive).astimezone(pytz.UTC).replace(tzinfo=None)
 
     @api.model
@@ -174,7 +174,7 @@ class FocoAbsence(models.Model):
         lunch = self.env['foco.settings'].lunch_intervals(calendar)
         if not lunch or not self.start or not self.stop:
             return False
-        tz = pytz.timezone(self.env['foco.settings']._tz_for(self.employee_id))
+        tz = self.env['foco.settings']._tzinfo_for(self.employee_id)
         ini = pytz.UTC.localize(self.start).astimezone(tz)
         fin = pytz.UTC.localize(self.stop).astimezone(tz)
         for spans in (lunch.get(ini.isoweekday()) or []), (lunch.get(fin.isoweekday()) or []):
@@ -194,7 +194,7 @@ class FocoAbsence(models.Model):
         tz_model = self.env['foco.settings']
         out = []
         for rec in self:
-            tz = pytz.timezone(tz_model._tz_for(rec.employee_id))
+            tz = tz_model._tzinfo_for(rec.employee_id)
             ini = pytz.UTC.localize(rec.start).astimezone(tz)
             fin = pytz.UTC.localize(rec.stop).astimezone(tz)
             mins = int(round(rec.duration * 60))
@@ -235,17 +235,19 @@ class FocoAbsence(models.Model):
         d_fin = fields.Date.to_date(date_to)
         if not d_ini or not d_fin:
             return {}
-        computers = self.env['foco.computer'].sudo().search(
+        # Sin sudo: la lista de personas que devuelve este resumen tiene que
+        # quedar acotada al alcance de quien pregunta.
+        computers = self.env['foco.computer'].search(
             [('employee_id', '!=', False)])
         out = {}
         for employee in computers.mapped('employee_id'):
-            tz = pytz.timezone(Settings._tz_for(employee))
+            tz = Settings._tzinfo_for(employee)
             ini = tz.localize(datetime.combine(d_ini, time(0, 0))) \
                     .astimezone(pytz.UTC).replace(tzinfo=None)
             fin = tz.localize(datetime.combine(d_fin, time(23, 59, 59))) \
                     .astimezone(pytz.UTC).replace(tzinfo=None)
-            recs = self.sudo().search([('employee_id', '=', employee.id),
-                                       ('start', '>=', ini), ('start', '<=', fin)])
+            recs = self.search([('employee_id', '=', employee.id),
+                                ('start', '>=', ini), ('start', '<=', fin)])
             out[str(employee.id)] = {
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
                 'justified': sum(recs.filtered(

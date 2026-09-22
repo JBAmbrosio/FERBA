@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Movil">
+        <div class="foco_movil" t-att-class="{ 'fm-dark': state.dark }" t-ref="root">
+
+            <header class="fm_head">
+                <div>
+                    <h1>Móvil</h1>
+                    <p class="fm_sub" t-if="!state.loading">
+                        <span t-esc="state.kpis.devices"/> dispositivos ·
+                        <span class="fm_on"><span class="fm_dot on"/><t t-esc="state.kpis.online"/> en línea</span>
+                        <t t-if="state.kpis.retirados">
+                            <span class="sep">·</span>
+                            <span class="fm_alerta"><i class="fa fa-ban"/> <t t-esc="state.kpis.retirados"/> retirado<t t-if="state.kpis.retirados > 1">s</t></span>
+                        </t>
+                        <t t-if="state.kpis.sin_senal">
+                            <span class="sep">·</span>
+                            <span class="fm_aviso"><t t-esc="state.kpis.sin_senal"/> sin señal</span>
+                        </t>
+                        <t t-if="state.ultimo"><span class="sep">·</span> actualizado <t t-esc="horaUltimo()"/></t>
+                    </p>
+                </div>
+                <div class="fm_head_r">
+                    <div class="fm_switch" role="group" title="Cambiar entre el tablero de laptop y el de móvil">
+                        <button t-on-click="() => this.verLaptop()"><i class="fa fa-laptop"/><span>PC</span></button>
+                        <button class="on"><i class="fa fa-mobile"/><span>Móvil</span></button>
+                    </div>
+                    <div class="fm_seg" role="group">
+                        <button t-att-class="{ on: state.days === 1 }" t-on-click="() => this.setDays(1)">Hoy</button>
+                        <button t-att-class="{ on: state.days === 7 }" t-on-click="() => this.setDays(7)">7 días</button>
+                        <button t-att-class="{ on: state.days === 30 }" t-on-click="() => this.setDays(30)">30 días</button>
+                    </div>
+                    <button class="fm_refrescar" t-on-click="() => this.refrescar()" title="Actualizar ahora">
+                        <i class="fa fa-refresh ico"/><span class="txt">Actualizar</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPIs -->
+            <section class="fm_kpis">
+                <div class="fm_kpi">
+                    <div class="fm_kpi_top">
+                        <span class="fm_kpi_label">Dispositivos</span>
+                        <span class="fm_kpi_ico"><i class="fa fa-mobile"/></span>
+                    </div>
+                    <div class="fm_kpi_v"><t t-esc="state.kpis.devices || 0"/></div>
+                    <div class="fm_kpi_foot"><span class="fm_dot on"/> <t t-esc="state.kpis.online || 0"/> en línea ahora</div>
+                </div>
+                <div class="fm_kpi">
+                    <div class="fm_kpi_top">
+                        <span class="fm_kpi_label">Puntos de ubicación</span>
+                        <span class="fm_kpi_ico"><i class="fa fa-map-marker"/></span>
+                    </div>
+                    <div class="fm_kpi_v"><t t-esc="state.kpis.points || 0"/></div>
+                    <div class="fm_kpi_foot">en el periodo</div>
+                </div>
+                <div class="fm_kpi">
+                    <div class="fm_kpi_top">
+                        <span class="fm_kpi_label">Llamadas</span>
+                        <span class="fm_kpi_ico"><i class="fa fa-phone"/></span>
+                    </div>
+                    <div class="fm_kpi_v"><t t-esc="state.kpis.calls || 0"/></div>
+                    <div class="fm_kpi_foot">
+                        <span class="fm_in"><i class="fa fa-arrow-down"/> <t t-esc="state.kpis.calls_in || 0"/></span>
+                        <span class="fm_out"><i class="fa fa-arrow-up"/> <t t-esc="state.kpis.calls_out || 0"/></span>
+                        <span class="fm_miss"><i class="fa fa-times"/> <t t-esc="state.kpis.calls_missed || 0"/></span>
+                    </div>
+                </div>
+                <div class="fm_kpi">
+                    <div class="fm_kpi_top">
+                        <span class="fm_kpi_label">Tiempo en llamada</span>
+                        <span class="fm_kpi_ico"><i class="fa fa-clock-o"/></span>
+                    </div>
+                    <div class="fm_kpi_v"><t t-esc="fmtMin(state.kpis.minutes || 0)"/></div>
+                    <div class="fm_kpi_foot">en el periodo</div>
+                </div>
+            </section>
+
+            <!-- MAPA + EQUIPOS -->
+            <section class="fm_main">
+                <div class="fm_card fm_map_card">
+                    <div class="fm_card_head">
+                        <h2>Dónde están</h2>
+                        <span class="fm_card_hint">última posición y recorrido del periodo</span>
+                    </div>
+                    <div class="fm_map" t-ref="map"/>
+                    <p class="fm_empty small" t-if="!state.loading and !state.markers.length">
+                        Todavía no hay ubicaciones en este periodo.
+                    </p>
+                </div>
+
+                <div class="fm_card fm_dev_card">
+                    <div class="fm_card_head">
+                        <h2>Equipos</h2>
+                        <span class="fm_card_hint">toca uno para verlo en el mapa</span>
+                    </div>
+                    <div class="fm_dev_list">
+                        <t t-foreach="state.devices" t-as="d" t-key="d.id">
+                            <div class="fm_dev" t-att-class="{ sel: state.sel === d.id }"
+                                 t-on-click="() => this.seleccionar(d.id)">
+                                <span class="fm_pdot" t-att-class="{ on: d.online, retirado: d.estado === 'removed' }"/>
+                                <div class="fm_dev_txt">
+                                    <div class="fm_dev_emp" t-esc="d.employee"/>
+                                    <div class="fm_dev_meta" t-esc="d.name"/>
+                                    <div class="fm_dev_estado retirado" t-if="d.estado === 'removed'">
+                                        <i class="fa fa-ban"/> Retirado
+                                    </div>
+                                    <div class="fm_dev_estado" t-elif="!d.online">
+                                        <i class="fa fa-circle-o"/> Sin señal
+                                    </div>
+                                </div>
+                                <div class="fm_dev_right">
+                                    <div class="fm_bat" t-if="d.battery >= 0" t-att-class="batClase(d.battery)"
+                                         t-attf-title="Batería {{ d.battery }}%">
+                                        <span class="fm_bat_body"><span class="fm_bat_fill"
+                                              t-attf-style="width: {{ batPct(d.battery) }}%"/></span>
+                                        <span class="fm_bat_txt"><t t-esc="d.battery"/>%</span>
+                                    </div>
+                                    <div class="fm_dev_nums">
+                                        <span title="puntos de ubicación"><i class="fa fa-map-marker"/> <t t-esc="d.points"/></span>
+                                        <span title="llamadas"><i class="fa fa-phone"/> <t t-esc="d.calls"/></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                        <p class="fm_empty small" t-if="!state.loading and !state.devices.length">
+                            No hay dispositivos en tu alcance.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LLAMADAS -->
+            <section class="fm_duo">
+                <div class="fm_card fm_grafica">
+                    <div class="fm_card_head"><h2>Llamadas</h2>
+                        <span class="fm_card_hint">entrantes · salientes · perdidas</span></div>
+                    <div class="fm_lienzo"><canvas t-ref="cDir"/></div>
+                </div>
+                <div class="fm_card">
+                    <div class="fm_card_head"><h2>Con quién más</h2>
+                        <span class="fm_card_hint">números y contactos más frecuentes</span></div>
+                    <div class="fm_top">
+                        <t t-foreach="state.calls.top or []" t-as="c" t-key="c_index">
+                            <div class="fm_trow">
+                                <div class="fm_tname">
+                                    <t t-esc="c.contact or c.number or '—'"/>
+                                    <small t-if="c.contact and c.number" t-esc="c.number"/>
+                                </div>
+                                <div class="fm_tnums">
+                                    <span class="fm_tc"><t t-esc="c.count"/> ll.</span>
+                                    <span class="fm_tm"><t t-esc="fmtMin(c.minutes)"/></span>
+                                </div>
+                            </div>
+                        </t>
+                        <p class="fm_empty small" t-if="!state.loading and !(state.calls.top and state.calls.top.length)">
+                            Sin llamadas en el periodo.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fm_duo">
+                <div class="fm_card fm_grafica">
+                    <div class="fm_card_head"><h2>Llamadas por día</h2>
+                        <span class="fm_card_hint">cuántas cada día</span></div>
+                    <div class="fm_lienzo"><canvas t-ref="cDia"/></div>
+                </div>
+                <div class="fm_card fm_grafica">
+                    <div class="fm_card_head"><h2>Apps del teléfono</h2>
+                        <span class="fm_card_hint">más usadas en el periodo</span></div>
+                    <div class="fm_lienzo"><canvas t-ref="cApps"/></div>
+                </div>
+            </section>
+
+            <div class="fm_loading" t-if="state.loading">Cargando…</div>
+        </div>
+    </t>
+</templates>

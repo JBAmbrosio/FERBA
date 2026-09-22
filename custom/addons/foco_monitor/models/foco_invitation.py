@@ -31,6 +31,9 @@ class FocoInvitation(models.Model):
     expiry = fields.Datetime(
         string='Caduca', default=lambda self: fields.Datetime.now() + timedelta(days=14))
     computer_id = fields.Many2one('foco.computer', string='Equipo', readonly=True)
+    # El MISMO codigo sirve para la laptop Y el celular de la persona: se
+    # enrola cada uno por su propio endpoint y aqui quedan los dos, sin pisarse.
+    mobile_id = fields.Many2one('foco.mobile.device', string='Movil', readonly=True)
     sent_at = fields.Datetime(readonly=True)
     enrolled_at = fields.Datetime(readonly=True)
 
@@ -47,7 +50,8 @@ class FocoInvitation(models.Model):
     def action_regenerate(self):
         for inv in self:
             inv.write({'token': _code(), 'state': 'draft',
-                       'computer_id': False, 'enrolled_at': False})
+                       'computer_id': False, 'mobile_id': False,
+                       'enrolled_at': False})
 
     @api.model
     def invite_employees(self, employee_ids):

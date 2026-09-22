@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class FocoSite(models.Model):
@@ -68,3 +69,40 @@ class FocoSite(models.Model):
             'domain': [('site_id', '=', self.id)],
             'context': {'search_default_g_emp': 1},
         }
+
+    def action_bloquear_en_perfil(self):
+        """Agrega ESTE sitio como regla de bloqueo del perfil desde donde se llamo.
+
+        El perfil viaja en el contexto (`foco_policy_id`) porque el boton vive
+        dentro de la lista «lo que se escapa» del formulario de un perfil: ahi no
+        hay ambiguedad sobre a cual se agrega, y preguntarlo con un dialogo
+        convertiria un clic en tres.
+
+        El caso que esto resuelve es el de `youtu.be`: bloquear `youtube.com` no
+        lo alcanza -son dominios distintos con el mismo contenido- y el
+        administrador se queda creyendo que cerro YouTube. El sitio ya esta en
+        el catalogo porque alguien lo abrio, asi que en vez de que lo adivine y
+        lo escriba, se bloquea de la lista donde ya aparecio.
+        """
+        self.ensure_one()
+        pid = self.env.context.get('foco_policy_id')
+        if not pid:
+            raise UserError(
+                'Este boton se usa desde el formulario de un perfil de '
+                'navegacion, que es lo que dice a cual se agrega la regla.')
+        perfil = self.env['foco.policy'].browse(pid)
+        Rule = self.env['foco.policy.rule']
+        # Si ya hay una regla con ese patron no se duplica: el boton puede
+        # quedar visible un instante mas por el refresco de la pantalla y dos
+        # clics no deben dejar dos renglones iguales.
+        if Rule.search_count([('policy_id', '=', perfil.id),
+                              ('pattern', '=', self.host)]):
+            return True
+        Rule.create({
+            'policy_id': perfil.id,
+            'pattern': self.host,
+            'action': 'block',
+            'sequence': max(perfil.rule_ids.mapped('sequence') or [0]) + 10,
+            'note': 'Visto en la empresa y clasificado como no productivo',
+        })
+        return True

@@ -9,6 +9,7 @@
                 <field name="employee_id"/>
                 <field name="app_id"/>
                 <field name="site_id" optional="show"/>
+                <field name="document" optional="show"/>
                 <field name="category_id"/>
                 <field name="category_source" optional="hide"/>
                 <field name="fg_active" widget="float_time" sum="1er plano activo"/>
@@ -58,6 +59,10 @@
                 <field name="employee_id"/>
                 <field name="app_id"/>
                 <field name="site_id"/>
+                <!-- Es el caso de uso que pidio el cliente: teclear 2704 y ver
+                     quien trabajo en ese proyecto y cuanto tiempo. -->
+                <field name="document" string="Archivo o proyecto"
+                       filter_domain="[('document', 'ilike', self)]"/>
                 <field name="category_id"/>
                 <filter name="hoy" string="Hoy"
                         domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
@@ -69,6 +74,11 @@
                         domain="[('site_id', '!=', False), ('site_id.category_id', '=', False)]"/>
                 <filter name="sin_categoria" string="Sin categoria"
                         domain="[('category_id', '=', False)]"/>
+                <separator/>
+                <filter name="con_archivo" string="Con archivo identificado"
+                        domain="[('document', '!=', '')]"/>
+                <filter name="por_archivo" string="Por archivo"
+                        context="{'group_by': 'document'}"/>
                 <separator/>
                 <!-- Lo que amerita mirar con una persona, nunca un veredicto -->
                 <filter name="sintetico" string="Con input sintetico"

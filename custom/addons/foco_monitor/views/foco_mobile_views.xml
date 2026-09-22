@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================= DISPOSITIVOS -->
+    <record id="foco_mobile_device_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.device.list</field>
+        <field name="model">foco.mobile.device</field>
+        <field name="arch" type="xml">
+            <list string="Dispositivos moviles" decoration-danger="removed">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="phone_number" optional="show"/>
+                <field name="battery"/>
+                <field name="os_version" optional="hide"/>
+                <field name="app_version" optional="hide"/>
+                <field name="last_fix_at"/>
+                <field name="last_seen"/>
+                <field name="removed" string="Retirado" optional="show"/>
+                <field name="removed_at" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_device_view_form" model="ir.ui.view">
+        <field name="name">foco.mobile.device.form</field>
+        <field name="model">foco.mobile.device</field>
+        <field name="arch" type="xml">
+            <form string="Dispositivo movil">
+                <header>
+                    <button name="action_solicitar_captura" type="object"
+                            string="Solicitar captura" icon="fa-camera"
+                            invisible="not id"/>
+                    <button name="action_reset_key" type="object"
+                            string="Regenerar API key"
+                            confirm="El telefono tendra que volver a enrolarse. ¿Continuar?"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_ubicaciones" type="object"
+                                class="oe_stat_button" icon="fa-map-marker">
+                            <field name="location_count" widget="statinfo" string="Ubicaciones"/>
+                        </button>
+                        <button name="action_ver_capturas" type="object"
+                                class="oe_stat_button" icon="fa-camera">
+                            <field name="capture_count" widget="statinfo" string="Capturas"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="employee_id"/>
+                            <field name="phone_number"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="os_version"/>
+                            <field name="app_version"/>
+                            <field name="battery"/>
+                            <field name="android_id"/>
+                            <field name="last_seen"/>
+                        </group>
+                    </group>
+                    <group string="Ultima ubicacion conocida">
+                        <group>
+                            <field name="last_fix_at"/>
+                            <field name="last_lat"/>
+                            <field name="last_lon"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-danger" role="alert" invisible="not removed">
+                        Este equipo avisó que lo están retirando. Dejó de reportar
+                        por la vía normal (desactivación del administrador). Volverá
+                        a estado normal si el teléfono reporta de nuevo.
+                    </div>
+                    <group string="Retiro" invisible="not removed">
+                        <field name="removed"/>
+                        <field name="removed_at"/>
+                        <field name="removed_reason"/>
+                    </group>
+                    <field name="call_count" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_device_view_search" model="ir.ui.view">
+        <field name="name">foco.mobile.device.search</field>
+        <field name="model">foco.mobile.device</field>
+        <field name="arch" type="xml">
+            <search string="Dispositivos">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="phone_number"/>
+                <separator/>
+                <filter name="activos" string="Activos" domain="[('active','=',True)]"/>
+                <separator/>
+                <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_mobile_device_action" model="ir.actions.act_window">
+        <field name="name">Dispositivos</field>
+        <field name="res_model">foco.mobile.device</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavia no hay telefonos enrolados</p>
+            <p>Invita al empleado (Empleados &gt; Acciones &gt; Invitar a Foco) y el
+               agente de Android se enrola con el mismo codigo, ligando el telefono
+               a su empleado.</p>
+        </field>
+    </record>
+
+    <!-- ==================================================== UBICACIONES -->
+    <record id="foco_location_view_list" model="ir.ui.view">
+        <field name="name">foco.location.list</field>
+        <field name="model">foco.location</field>
+        <field name="arch" type="xml">
+            <list string="Ubicaciones">
+                <field name="at"/>
+                <field name="employee_id"/>
+                <field name="device_id"/>
+                <field name="lat"/>
+                <field name="lon"/>
+                <field name="accuracy"/>
+                <field name="battery" optional="show"/>
+                <field name="source" optional="hide"/>
+                <button name="action_abrir_mapa" type="object"
+                        string="Mapa" icon="fa-map-marker"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_location_view_form" model="ir.ui.view">
+        <field name="name">foco.location.form</field>
+        <field name="model">foco.location</field>
+        <field name="arch" type="xml">
+            <form string="Ubicacion">
+                <header>
+                    <button name="action_abrir_mapa" type="object"
+                            string="Ver en el mapa" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="device_id"/>
+                            <field name="at"/>
+                        </group>
+                        <group>
+                            <field name="lat"/>
+                            <field name="lon"/>
+                            <field name="accuracy"/>
+                            <field name="speed"/>
+                            <field name="battery"/>
+                            <field name="source"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_location_view_search" model="ir.ui.view">
+        <field name="name">foco.location.search</field>
+        <field name="model">foco.location</field>
+        <field name="arch" type="xml">
+            <search string="Ubicaciones">
+                <field name="employee_id"/>
+                <field name="device_id"/>
+                <filter name="hoy" string="Hoy"
+                        domain="[('at','&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'at:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_location_action" model="ir.actions.act_window">
+        <field name="name">Ubicaciones</field>
+        <field name="res_model">foco.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_hoy': 1, 'search_default_g_emp': 1}</field>
+    </record>
+
+    <!-- ==================================================== USO DE APPS -->
+    <record id="foco_mobile_usage_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.usage.list</field>
+        <field name="model">foco.mobile.usage</field>
+        <field name="arch" type="xml">
+            <list string="Uso de apps (movil)">
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="device_id" optional="show"/>
+                <field name="app_label"/>
+                <field name="package" optional="hide"/>
+                <field name="foreground_hours" sum="Horas"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_usage_view_search" model="ir.ui.view">
+        <field name="name">foco.mobile.usage.search</field>
+        <field name="model">foco.mobile.usage</field>
+        <field name="arch" type="xml">
+            <search string="Uso de apps (movil)">
+                <field name="employee_id"/>
+                <field name="app_label"/>
+                <field name="package"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_app" string="Aplicacion" context="{'group_by': 'app_label'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'date'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_mobile_usage_action" model="ir.actions.act_window">
+        <field name="name">Uso de apps (movil)</field>
+        <field name="res_model">foco.mobile.usage</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_g_emp': 1}</field>
+    </record>
+
+    <!-- ====================================================== LLAMADAS -->
+    <record id="foco_call_view_list" model="ir.ui.view">
+        <field name="name">foco.call.list</field>
+        <field name="model">foco.call</field>
+        <field name="arch" type="xml">
+            <list string="Llamadas">
+                <field name="at"/>
+                <field name="employee_id"/>
+                <field name="device_id" optional="hide"/>
+                <field name="direction"/>
+                <field name="number"/>
+                <field name="contact" optional="show"/>
+                <field name="duration_text"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_call_view_search" model="ir.ui.view">
+        <field name="name">foco.call.search</field>
+        <field name="model">foco.call</field>
+        <field name="arch" type="xml">
+            <search string="Llamadas">
+                <field name="employee_id"/>
+                <field name="number"/>
+                <field name="contact"/>
+                <separator/>
+                <filter name="entrantes" string="Entrantes" domain="[('direction','=','in')]"/>
+                <filter name="salientes" string="Salientes" domain="[('direction','=','out')]"/>
+                <filter name="perdidas" string="Perdidas" domain="[('direction','=','missed')]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dir" string="Direccion" context="{'group_by': 'direction'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'at:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_call_action" model="ir.actions.act_window">
+        <field name="name">Llamadas</field>
+        <field name="res_model">foco.call</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_g_emp': 1}</field>
+    </record>
+
+    <!-- ============================================ CAPTURAS MOVIL -->
+    <record id="foco_mobile_capture_view_kanban" model="ir.ui.view">
+        <field name="name">foco.mobile.capture.kanban</field>
+        <field name="model">foco.mobile.capture</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_small_column" default_order="at desc">
+                <field name="image"/>
+                <field name="employee_id"/>
+                <field name="app_label"/>
+                <field name="trigger"/>
+                <field name="at"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_image_fill_left"
+                             t-attf-style="background-image:url('web/image/foco.mobile.capture/#{record.id.raw_value}/image')"
+                             style="height:150px;background-size:cover;background-position:top;"/>
+                        <div class="oe_kanban_details">
+                            <strong><field name="employee_id"/></strong>
+                            <div class="text-muted"><field name="app_label"/></div>
+                            <div><field name="trigger"/></div>
+                            <div class="text-muted"><field name="at"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="foco_mobile_capture_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.capture.list</field>
+        <field name="model">foco.mobile.capture</field>
+        <field name="arch" type="xml">
+            <list string="Capturas" default_order="at desc">
+                <field name="at"/>
+                <field name="employee_id"/>
+                <field name="device_id"/>
+                <field name="app_label"/>
+                <field name="package" optional="hide"/>
+                <field name="trigger"/>
+                <field name="reason" optional="hide"/>
+                <field name="requested_by" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_capture_view_form" model="ir.ui.view">
+        <field name="name">foco.mobile.capture.form</field>
+        <field name="model">foco.mobile.capture</field>
+        <field name="arch" type="xml">
+            <form string="Captura">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="device_id"/>
+                            <field name="at"/>
+                            <field name="trigger"/>
+                        </group>
+                        <group>
+                            <field name="app_label"/>
+                            <field name="package"/>
+                            <field name="reason"/>
+                            <field name="requested_by"/>
+                        </group>
+                    </group>
+                    <field name="image" widget="image"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_capture_action" model="ir.actions.act_window">
+        <field name="name">Capturas (movil)</field>
+        <field name="res_model">foco.mobile.capture</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <!-- ============================================ AJUSTES DEL MOVIL -->
+    <record id="foco_settings_view_form_movil" model="ir.ui.view">
+        <field name="name">foco.settings.movil</field>
+        <field name="model">foco.settings</field>
+        <field name="arch" type="xml">
+            <form string="Monitoreo movil">
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        Estos telefonos son PROPIEDAD DE LA EMPRESA. El aviso de
+                        privacidad firmado debe cubrir ubicacion y llamadas antes
+                        de encender el monitoreo.
+                    </div>
+                    <group>
+                        <field name="mobile_enabled"/>
+                        <field name="mobile_location_minutes"
+                               invisible="not mobile_enabled"/>
+                        <field name="mobile_collect_apps"
+                               invisible="not mobile_enabled"/>
+                        <field name="mobile_collect_calls"
+                               invisible="not mobile_enabled"/>
+                    </group>
+                    <group string="Proteccion contra desinstalacion (equipos que no son Device Owner)">
+                        <field name="mobile_uninstall_pin" password="True"
+                               placeholder="4 a 8 digitos"/>
+                        <div class="text-muted" colspan="2">
+                            El telefono pedira este PIN antes de dejar desinstalar
+                            Foco, forzar su detencion o desactivar su administrador.
+                            En equipos aprovisionados como Device Owner no hace
+                            falta: alli el bloqueo lo aplica el sistema.
+                        </div>
+                    </group>
+                    <group string="Capturas de pantalla (lo mas invasivo)">
+                        <field name="mobile_screenshot_enabled"
+                               invisible="not mobile_enabled"/>
+                        <field name="screenshot_unclassified_minutes"
+                               string="Minutos en una app nueva antes de capturar"
+                               invisible="not mobile_screenshot_enabled"/>
+                        <field name="screenshot_retention_days"
+                               string="Conservar capturas (dias)"
+                               invisible="not mobile_screenshot_enabled"/>
+                        <div class="text-muted" colspan="2"
+                             invisible="not mobile_enabled">
+                            Solo con el aviso de privacidad firmado que contemple
+                            capturas. Requiere el servicio de accesibilidad de Foco
+                            activo en el telefono (Android 11+). Se toma UNA captura
+                            por app nueva (para identificarla) y las que pida el
+                            administrador; no graba la pantalla en continuo.
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_settings_movil_action" model="ir.actions.server">
+        <field name="name">Monitoreo movil</field>
+        <field name="model_id" ref="model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_movil()</field>
+    </record>
+
+</odoo>

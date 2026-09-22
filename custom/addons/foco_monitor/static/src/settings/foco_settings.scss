@@ -86,6 +86,27 @@
         color: var(--accent-ink); font-size: 13px; font-weight: 500;
     }
 
+    .fs_cobertura { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
+        .fs_cob_head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+        .fs_cob_resumen { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .fs_cob_nota { font-size: 12.5px; color: var(--ink2); margin: 0 0 10px; line-height: 1.5; }
+        .fs_cob_aviso { font-size: 12.5px; color: var(--ink2); margin: 12px 0 8px; line-height: 1.5;
+            padding: 8px 10px; background: var(--track); border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            b { color: var(--ink); } }
+        .fs_cal { display: grid; grid-template-columns: 1fr auto auto; align-items: center;
+            gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line);
+            &:last-child { border-bottom: 0; }
+            .n { display: flex; flex-direction: column; gap: 2px; min-width: 0;
+                b { font-size: 13px; color: var(--ink); font-weight: 600; }
+                small { font-size: 11.5px; color: var(--ink3); overflow: hidden;
+                    text-overflow: ellipsis; white-space: nowrap; } }
+            .c { font-size: 12px; color: var(--ink2); background: var(--track);
+                border-radius: 20px; padding: 2px 9px; font-weight: 600; }
+        }
+    }
+    .fs_btn.sm { padding: 5px 11px; font-size: 12.5px; }
+
     .fs_foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
     .fs_btn {
         border: 1px solid var(--line); background: var(--card); color: var(--ink);

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Corre todos los dias, pero NO borra nada mientras la retencion este en
+        0, que es como sale de fabrica. El interruptor esta en la configuracion,
+        no aqui: apagar el proceso desde el cron dejaria la pantalla diciendo
+        que se conservan N meses mientras nadie borra nada.
+    -->
+    <record id="cron_foco_purga" model="ir.cron">
+        <field name="name">Foco: aplicar la retencion del detalle</field>
+        <field name="model_id" ref="foco_monitor.model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_purgar()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!--
+        Rehace la jornada de los ultimos dias. El ingest ya la rehace al vuelo
+        para que la cinta se vea al momento; este proceso es la red por si algo
+        llego tarde, cambio un calendario o se justifico un hueco despues.
+    -->
+    <record id="cron_foco_jornada" model="ir.cron">
+        <field name="name">Foco: rehacer la jornada de los ultimos dias</field>
+        <field name="model_id" ref="foco_monitor.model_foco_workday"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_rebuild()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

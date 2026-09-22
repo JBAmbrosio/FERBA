@@ -25,9 +25,111 @@ class FocoApp(models.Model):
         help='Marcado en cuanto una persona edita el nombre. Mientras este '
              'apagado, el agente lo mantiene al dia con el nombre que declara '
              'el propio ejecutable. Prendido, el agente NO lo vuelve a tocar.')
+    product = fields.Char(
+        string='Suite', readonly=True,
+        help='De que producto dice ser el ejecutable, segun su propio recurso '
+             'de version. No lo escribe nadie: lo declara el binario.')
+    report_document = fields.Boolean(
+        string='Reportar el archivo abierto',
+        help='Con esto encendido, el agente manda el NOMBRE del archivo que la '
+             'persona tiene abierto en esta aplicacion (nunca la ruta, nunca el '
+             'contenido). Sirve para contrastar contra el proyecto declarado: '
+             '"dijo 2704 y estaba en 2704-presupuesto.xlsx".\n\n'
+             'Es dato sensible: un nombre de archivo puede ser "Demanda '
+             'laboral.docx". Por eso se enciende app por app y tiene que estar '
+             'en el aviso de privacidad que firma el personal.')
+
     first_seen = fields.Datetime(default=fields.Datetime.now, readonly=True)
     last_seen = fields.Datetime(readonly=True)
     classified = fields.Boolean(compute='_compute_classified', store=True)
+
+    # Lo que el binario declara ser para que se le proponga reportar documento.
+    # NO es una lista de ejecutables: es el nombre de producto que la propia
+    # suite escribe en sus binarios, y por eso sigue funcionando cuando Office
+    # cambia de nombres de exe entre versiones.
+    _SUITES_DOCUMENTALES = ('microsoft office',)
+
+    @api.model
+    def _es_suite_documental(self, product):
+        p = (product or '').strip().lower()
+        return any(s in p for s in self._SUITES_DOCUMENTALES)
+
+    document_state = fields.Selection(
+        [('si', 'Reportando'),
+         ('off', 'Apagado en Ajustes'),
+         ('no', 'No')],
+        string='Estado del reporte', compute='_compute_document_state',
+        help='Lo que de verdad pasa, no lo que dice la casilla. Una app marcada '
+             'con el interruptor general apagado sale como "Apagado en '
+             'Ajustes": sin esta columna, alguien marca la casilla, no ocurre '
+             'nada y concluye que el sistema esta roto.')
+
+    @api.depends('report_document')
+    def _compute_document_state(self):
+        activo = self.env['foco.settings'].sudo().get_settings().document_enabled
+        for rec in self:
+            if not rec.report_document:
+                rec.document_state = 'no'
+            else:
+                rec.document_state = 'si' if activo else 'off'
+
+    mic_not_call = fields.Boolean(
+        string='Capturar microfono NO es llamada',
+        help='Marcala en las aplicaciones que se quedan con el microfono sin '
+             'que haya una junta: grabadores de reuniones, asistentes de voz, '
+             'software de transcripcion.\n\n'
+             'Existe por un caso real: un grabador tomo el microfono a las '
+             '13:32 y no lo solto, asi que TODA la tarde quedo marcada como '
+             '"en llamada" -incluido el tiempo en Excel- y ademas el tiempo '
+             'ocioso se conto como activo, porque estar en llamada lo acredita.'
+             '\n\nSi esta app y una de verdad tienen el microfono a la vez, '
+             'SI se cuenta como llamada: marcar el grabador no tapa la junta.')
+
+    no_screenshot = fields.Boolean(
+        string='Nunca capturar con esta app al frente',
+        help='Marcala en las aplicaciones cuya pantalla no debe fotografiarse '
+             'NUNCA: el gestor de contrasenas, el portal de nomina, la banca en '
+             'linea, el expediente medico.\n\n'
+             'Es una lista que decide el administrador, no una escrita en el '
+             'codigo: lo que en una empresa es delicado en otra no lo es, y una '
+             'lista cocida envejeceria sola.\n\n'
+             'Si esta aplicacion esta en primer plano, el equipo NO toma la '
+             'captura y lo anota como rechazada. Vale para los dos '
+             'disparadores, incluido el manual: un administrador no puede '
+             'saltarse esta marca pidiendo la captura a mano.')
+
+    @api.model
+    def no_call_apps(self):
+        """Ejecutables cuyo uso del microfono no implica una llamada."""
+        return self.sudo().search([('mic_not_call', '=', True)]).mapped('exe')
+
+    @api.model
+    def no_screenshot_apps(self):
+        """Ejecutables con los que NUNCA se captura la pantalla."""
+        return self.sudo().search([('no_screenshot', '=', True)]).mapped('exe')
+
+    @api.model
+    def clasificadas(self):
+        """Ejecutables que YA tienen categoria.
+
+        El agente los necesita para el disparador de «aplicacion sin
+        clasificar»: lo que esta en esta lista no dispara nada. Se manda la
+        lista de conocidas y no la de desconocidas porque las desconocidas son,
+        por definicion, las que todavia no existen en el catalogo.
+        """
+        return self.sudo().search([('category_id', '!=', False)]).mapped('exe')
+
+    @api.model
+    def doc_apps(self):
+        """Ejecutables autorizados a reportar el archivo abierto.
+
+        La compuerta general vive AQUI, del lado del servidor, y no en el
+        agente: asi apagarla no se puede rodear desde la maquina y llega a
+        todos los equipos en su siguiente envio, sin tocar ninguno.
+        """
+        if not self.env['foco.settings'].sudo().get_settings().document_enabled:
+            return []
+        return self.sudo().search([('report_document', '=', True)]).mapped('exe')
 
     @api.depends('category_id')
     def _compute_classified(self):
@@ -79,13 +181,14 @@ class FocoApp(models.Model):
         return True
 
     @api.model
-    def _get_or_create(self, exe, name=None):
+    def _get_or_create(self, exe, name=None, product=None):
         exe = (exe or '').strip().lower()
         if not exe:
             return self.browse()
         app = self.search([('exe', '=', exe)], limit=1)
         now = fields.Datetime.now()
         limpio = name if self._nombre_valido(name) else None
+        producto = (product or '').strip()[:120] or None
         yo = self.with_context(foco_agente=True)
         if app:
             vals = {'last_seen': now}
@@ -93,7 +196,26 @@ class FocoApp(models.Model):
             # admin no lo ha tomado. El admin siempre gana.
             if limpio and not app.name_manual and app.name != limpio:
                 vals['name'] = limpio
+            if producto and app.product != producto:
+                vals['product'] = producto
             app.with_context(foco_agente=True).write(vals)
         else:
-            app = yo.create({'exe': exe, 'name': limpio or exe, 'last_seen': now})
+            # Al DESCUBRIRLA se propone reportar el archivo si el binario dice
+            # ser paqueteria documental. Dos condiciones, las dos necesarias:
+            #
+            #  - Solo al CREARLA: si el admin lo apaga despues, se queda
+            #    apagado. Una app descubierta no vuelve a encenderse sola a
+            #    espaldas de quien la apago.
+            #  - Solo si el interruptor GENERAL ya esta encendido. Si no, una
+            #    app nueva se descubre apagada. Sin esta segunda condicion,
+            #    actualizar el modulo y que alguien abriera PowerPoint por
+            #    primera vez bastaba para empezar a recoger nombres de archivo
+            #    sin que nadie lo hubiera decidido.
+            general = self.env['foco.settings'].sudo().get_settings().document_enabled
+            app = yo.create({
+                'exe': exe, 'name': limpio or exe, 'last_seen': now,
+                'product': producto,
+                'report_document': (general
+                                    and self._es_suite_documental(producto)),
+            })
         return app

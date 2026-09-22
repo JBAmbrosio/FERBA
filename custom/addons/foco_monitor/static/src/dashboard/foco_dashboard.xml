@@ -9,10 +9,21 @@
                         <t t-if="!state.loading">
                             <span t-esc="state.team.monitored"/> empleados ·
                             <span class="fd_on"><span class="fd_dot on"/><t t-esc="state.team.online"/> en línea</span>
+                            <t t-if="state.ultimo">
+                                <span class="sep">·</span>
+                                <span class="fd_ultimo"
+                                      title="El tablero se refresca solo cada 10 minutos. Los agentes reportan cada 5.">
+                                    actualizado <t t-esc="horaUltimo"/>
+                                </span>
+                            </t>
                         </t>
                     </p>
                 </div>
                 <div class="fd_head_r">
+                    <div class="fd_switch" role="group" title="Cambiar entre el tablero de laptop y el de móvil">
+                        <button class="on"><i class="fa fa-laptop"/><span>PC</span></button>
+                        <button t-on-click="() => this.verMovil()"><i class="fa fa-mobile"/><span>Móvil</span></button>
+                    </div>
                     <t t-if="state.sinSenal">
                         <span class="fd_attn sin_senal"
                               title="Su agente dejó de reportar: los datos de esas personas están incompletos.">
@@ -22,6 +33,13 @@
                     <t t-if="state.attention">
                         <span class="fd_attn"><t t-esc="state.attention"/> requiere<t t-if="state.attention > 1">n</t> atención</span>
                     </t>
+                    <button class="fd_refrescar" t-on-click="() => this.refrescar()"
+                            t-att-disabled="state.refrescando"
+                            t-attf-class="fd_refrescar {{ state.refrescando ? 'girando' : '' }}"
+                            title="Actualizar ahora">
+                        <span class="ico">&#8635;</span>
+                        <span class="txt"><t t-esc="state.refrescando ? 'Actualizando' : 'Actualizar'"/></span>
+                    </button>
                     <div class="fd_seg" role="group">
                         <button t-att-class="state.days === 1 ? 'on' : ''" t-on-click="() => this.setDays(1)">Hoy</button>
                         <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
@@ -43,7 +61,7 @@
                             </span>
                         </div>
                         <div class="fd_kpi_v"><t t-esc="state.team.index"/><span class="u">%</span></div>
-                        <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="width:{{ state.team.index }}%"/></div>
+                        <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (state.team.index) }}% 0 0)"/></div>
                     </div>
 
                     <div class="fd_kpi">
@@ -64,16 +82,115 @@
                     </div>
 
                     <div class="fd_kpi">
-                        <div class="fd_kpi_top"><span class="fd_kpi_label">Cobertura</span></div>
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Cobertura del dato</span>
+                            <t t-if="state.team.cobParciales">
+                                <span class="fd_pill down"><t t-esc="state.team.cobParciales"/> incompleto<t t-if="state.team.cobParciales > 1">s</t></span>
+                            </t>
+                        </div>
+                        <t t-if="state.team.cobMedible">
+                            <div class="fd_kpi_v"><t t-esc="state.team.cobPct"/><span class="u">%</span></div>
+                            <div class="fd_kpi_foot"
+                                 title="Días laborables del calendario de cada persona contra días en los que su equipo reportó algo. Un índice alto sobre pocos días medidos no es comparable con uno sobre el periodo completo.">
+                                <t t-esc="state.team.cobDias"/> de <t t-esc="state.team.cobEsp"/> días con dato
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="fd_kpi_v">—</div>
+                            <div class="fd_kpi_foot">no hay jornada esperada en este rango</div>
+                        </t>
+                        <t t-if="state.team.cobSinDato">
+                            <div class="fd_kpi_foot warn"
+                                 t-attf-title="Sin un solo día reportado en el periodo: {{ state.team.cobSinDatoNombres }}">
+                                <t t-esc="state.team.cobSinDato"/> sin ningún dato
+                            </div>
+                        </t>
+                    </div>
+
+                    <div class="fd_kpi">
+                        <div class="fd_kpi_top"><span class="fd_kpi_label">En línea ahora</span></div>
                         <div class="fd_kpi_v"><t t-esc="state.team.online"/><span class="u">/<t t-esc="state.team.monitored"/></span></div>
-                        <div class="fd_kpi_foot">equipos en línea ahora</div>
+                        <div class="fd_kpi_foot">equipos reportando en este momento</div>
                     </div>
                 </section>
+
+                <!-- ================================================ TENDENCIA
+                     Va inmediatamente despues de los numeros y ocupa el ancho
+                     completo. Es la unica pregunta que un administrador se hace
+                     TODOS los dias -vamos mejor o peor- y por eso no comparte
+                     renglon con nada. -->
+                <section class="fd_card fd_grafica">
+                    <div class="fd_card_head">
+                        <h2 t-esc="state.days === 1 ? 'Hoy, cómo viene cada quien' : 'Cómo viene el equipo'"/>
+                        <span class="fd_card_hint"
+                              t-esc="state.days === 1 ? 'reparto del tiempo de cada persona, hoy' : 'índice de productividad, día por día'"/>
+                    </div>
+                    <div class="fd_lienzo alto">
+                        <canvas t-ref="cTendencia"/>
+                    </div>
+                    <p class="fd_pie"
+                       t-if="state.days === 1 ? !state.porPersona.length : !state.serie.length">
+                        <t t-if="state.days === 1">Todavía nadie ha registrado actividad hoy.</t>
+                        <t t-else="">Todavía no hay días con dato en este periodo.</t>
+                    </p>
+                </section>
+
+                <div class="fd_duo">
+                    <!-- La dona: de qué está hecho el tiempo del equipo, con el
+                         índice al centro. El desglose por persona vive en la
+                         tabla de Empleados, así que aquí basta el total. -->
+                    <section class="fd_card fd_grafica">
+                        <div class="fd_card_head">
+                            <h2>En qué se va el tiempo</h2>
+                            <span class="fd_card_hint">del tiempo activo del equipo</span>
+                        </div>
+                        <div class="fd_lienzo">
+                            <canvas t-ref="cDonut"/>
+                        </div>
+                    </section>
+
+                    <section class="fd_card fd_grafica">
+                        <div class="fd_card_head">
+                            <h2>¿Cayó dentro del horario?</h2>
+                            <span class="fd_card_hint">no cuánto se trabajó, sino cuándo</span>
+                        </div>
+                        <div class="fd_lienzo">
+                            <canvas t-ref="cJornada"/>
+                        </div>
+                        <p class="fd_pie">
+                            Trabajar fuera de horario puede ser una urgencia
+                            atendida o una carga mal repartida. El sistema no
+                            distingue: solo dice dónde cayó.
+                        </p>
+                    </section>
+                </div>
 
                 <section class="fd_card fd_table_card">
                     <div class="fd_card_head">
                         <h2>Empleados</h2>
                         <span class="fd_card_hint">ordenado por índice de productividad</span>
+                        <!-- La exportacion vive JUNTO a la tabla que exporta, no
+                             en la barra de arriba: asi se ve que baja esto y no
+                             «el tablero». -->
+                        <div class="fd_export">
+                            <select class="fd_exp_sel" t-model="state.expEmpleado"
+                                    aria-label="Empleado a exportar">
+                                <option value="">Todo el equipo</option>
+                                <t t-foreach="state.employees" t-as="e" t-key="e.id">
+                                    <option t-att-value="e.id" t-esc="e.name"/>
+                                </t>
+                            </select>
+                            <select class="fd_exp_sel" t-model="state.expGrano"
+                                    aria-label="Agrupar por">
+                                <option value="dia">por día</option>
+                                <option value="semana">por semana</option>
+                                <option value="mes">por mes</option>
+                            </select>
+                            <button class="fd_exp_btn" t-on-click="() => this.exportar()"
+                                    title="Descarga el detalle del periodo en CSV, listo para Excel">
+                                Exportar CSV
+                            </button>
+                        </div>
                     </div>
                     <div class="fd_table_wrap">
                         <table class="fd_table">
@@ -105,12 +222,18 @@
                                                         </span>
                                                     </t>
                                                     <t t-elif="e.attention"><span class="fd_tag">baja productividad</span></t>
+                                                    <t t-if="e.cobParcial">
+                                                        <span class="fd_tag cobertura"
+                                                              t-attf-title="Reportó {{ e.cobDias }} de {{ e.cobEsperados }} días {{ e.cobFuente === 'calendario' ? 'laborables de su calendario' : 'del periodo (no tiene calendario asignado)' }}. Sus números salen de menos días que los del resto.">
+                                                            <t t-esc="e.cobDias"/>/<t t-esc="e.cobEsperados"/> d
+                                                        </span>
+                                                    </t>
                                                 </span>
                                             </span>
                                         </td>
                                         <td class="c_idx">
                                             <div class="fd_idx">
-                                                <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="width:{{ e.index }}%"/></div>
+                                                <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
                                                 <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
                                             </div>
                                         </td>
@@ -119,9 +242,10 @@
                                         <td class="c_num warn" t-esc="fmt(e.distr)"/>
                                         <td class="c_app"><span class="fd_chip" t-esc="e.topApp"/></td>
                                         <td class="c_st">
-                                            <span t-attf-class="fd_status {{ e.online ? 'on' : 'off' }}">
-                                                <span t-attf-class="fd_dot {{ e.online ? 'on' : 'off' }}"/>
-                                                <t t-esc="e.since"/>
+                                            <span t-attf-class="fd_presencia {{ e.presencia }}"
+                                                  t-attf-title="{{ e.presenciaTxt }} - ultimo reporte {{ e.since }}">
+                                                <span t-attf-class="fd_pdot {{ e.presencia }}"/>
+                                                <t t-esc="e.presenciaTxt or e.since"/>
                                             </span>
                                         </td>
                                     </tr>
@@ -166,7 +290,7 @@
                         <t t-foreach="state.distractions" t-as="d" t-key="d.name">
                             <div class="fd_drow">
                                 <span class="n" t-esc="d.name"/>
-                                <span class="bar"><span class="fill" t-attf-style="width:{{ d.pct }}%"/></span>
+                                <span class="bar"><span class="fill" t-attf-style="clip-path: inset(0 {{ 100 - (d.pct) }}% 0 0)"/></span>
                                 <span class="v" t-esc="fmt(d.hours)"/>
                             </div>
                         </t>
@@ -184,7 +308,7 @@
                             <div class="fd_app site">
                                 <span t-attf-class="fd_dot {{ s.catKey }}" t-attf-title="{{ s.catLabel }}"/>
                                 <span class="n" t-esc="s.name"/>
-                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="width:{{ s.pct }}%"/></span>
+                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="clip-path: inset(0 {{ 100 - (s.pct) }}% 0 0)"/></span>
                                 <span class="v" t-esc="fmt(s.hours)"/>
                             </div>
                         </t>
@@ -227,7 +351,7 @@
                                 </span>
                             </div>
                         </div>
-                        <button class="fd_close" t-on-click="() => this.closeDetail()" aria-label="Cerrar">✕</button>
+                        <button class="fd_close" t-on-click="() => this.closeDetail()" aria-label="Cerrar">×</button>
                     </div>
 
                     <div class="fd_dw_stats">
@@ -315,7 +439,7 @@
                             <div class="fd_app">
                                 <span t-attf-class="fd_dot {{ a.catKey }}"/>
                                 <span class="n" t-esc="a.name"/>
-                                <span class="bar"><span t-attf-class="fill {{ a.catKey }}" t-attf-style="width:{{ a.pct }}%"/></span>
+                                <span class="bar"><span t-attf-class="fill {{ a.catKey }}" t-attf-style="clip-path: inset(0 {{ 100 - (a.pct) }}% 0 0)"/></span>
                                 <span class="v" t-esc="fmt(a.hours)"/>
                             </div>
                         </t>
@@ -328,7 +452,7 @@
                             <div class="fd_app site">
                                 <span t-attf-class="fd_dot {{ s.catKey }}" t-attf-title="{{ s.catLabel }}"/>
                                 <span class="n" t-esc="s.name"/>
-                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="width:{{ s.pct }}%"/></span>
+                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="clip-path: inset(0 {{ 100 - (s.pct) }}% 0 0)"/></span>
                                 <span class="v" t-esc="fmt(s.hours)"/>
                             </div>
                         </t>

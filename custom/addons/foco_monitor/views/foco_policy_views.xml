@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="foco_policy_view_list" model="ir.ui.view">
+        <field name="name">foco.policy.list</field>
+        <field name="model">foco.policy</field>
+        <field name="arch" type="xml">
+            <list string="Perfiles de navegacion">
+                <field name="name"/>
+                <field name="computer_count" string="Equipos"/>
+                <field name="rule_count" string="Reglas"/>
+                <!-- Lo que de verdad esta pasando, en la lista y no solo dentro:
+                     un perfil bien armado que no se aplica a nadie se ve igual
+                     que uno que si, y esa confusion es la que trae a preguntar. -->
+                <field name="estado_nota" string="Estado"/>
+                <field name="note" optional="hide"/>
+                <field name="version" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_policy_view_form" model="ir.ui.view">
+        <field name="name">foco.policy.form</field>
+        <field name="model">foco.policy</field>
+        <field name="arch" type="xml">
+            <form string="Perfil de navegacion">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ventas, Diseno, Planta..."/></h1>
+                    </div>
+
+                    <!-- ESTADO, arriba del todo. La pregunta que trae a esta
+                         pantalla no es "que reglas tiene" sino "por que no pasa
+                         nada", y esa se contesta aqui o no se contesta. -->
+                    <field name="activo_global" invisible="1"/>
+                    <div class="alert alert-warning d-flex align-items-center gap-2"
+                         role="alert" invisible="activo_global">
+                        <field name="estado_nota" nolabel="1" readonly="1" class="flex-grow-1"/>
+                        <button name="action_encender_bloqueo" type="object"
+                                string="Encender el bloqueo" class="btn-primary btn-sm"
+                                confirm="Se va a aplicar el bloqueo de sitios en TODOS los equipos que tengan perfil. Continuar?"/>
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="not activo_global">
+                        <field name="estado_nota" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <!-- 1. A QUIEN. Antes esto no se podia hacer desde aqui:
+                         habia que ir a Computadoras a cambiarlo equipo por
+                         equipo, y la pestana de este formulario salia vacia. -->
+                    <group string="1 · A qué equipos se aplica">
+                        <field name="computer_assign_ids" nolabel="1"
+                               widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Escribe el nombre del equipo y elígelo…"/>
+                        <div class="text-muted" colspan="2">
+                            Un equipo solo puede tener un perfil. Asignarlo aquí lo
+                            quita del que tuviera antes. Los equipos sin perfil propio
+                            toman el <b>perfil por omisión</b> de Ajustes.
+                        </div>
+                    </group>
+
+                    <!-- 2. QUE. Con la regla que hay que entender ANTES de
+                         escribir la primera, no después de que no funcione. -->
+                    <group string="2 · Qué se bloquea">
+                        <div colspan="2" class="alert alert-light border" role="alert">
+                            Un dominio incluye <b>todos sus subdominios</b>: bloquear
+                            <code>youtube.com</code> también tumba
+                            <code>music.youtube.com</code>. Para abrir una excepción,
+                            agrégalo con acción <b>Permitir</b> — permitir gana sobre
+                            bloquear.
+                        </div>
+                        <field name="rule_ids" nolabel="1" colspan="2">
+                            <list editable="bottom">
+                                <field name="sequence" widget="handle"/>
+                                <field name="pattern"
+                                       placeholder="youtube.com   ·   music.youtube.com   ·   ejemplo.com/foro"/>
+                                <field name="action"/>
+                                <!-- Contra que sitios REALES pega el patron.
+                                     Va junto al patron, no en un tooltip: el
+                                     dedazo se caza mirando, no buscando. -->
+                                <field name="alcance" readonly="1" optional="show"/>
+                                <field name="note" placeholder="Por qué"/>
+                                <field name="active" widget="boolean_toggle" optional="hide"/>
+                            </list>
+                        </field>
+                    </group>
+
+                    <group>
+                        <field name="note" string="Para qué es este perfil"
+                               placeholder="Quién lo usa y por qué. Se lee el día que alguien pregunte por qué no puede abrir un sitio."/>
+                        <field name="version" readonly="1" groups="base.group_no_one"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+
+                    <!-- 3. LO QUE SE ESCAPA. Solo aparece si hay algo que
+                         decir: una pestana vacia permanente ensena a ignorarla. -->
+                    <div invisible="not sitios_sin_cubrir_ids">
+                        <group string="3 · Se ha visto y no lo alcanza ninguna regla">
+                            <div colspan="2" class="alert alert-warning" role="alert">
+                                <field name="cobertura_nota" nolabel="1" readonly="1"/>
+                                <div class="mt8">
+                                    Un dominio distinto con el mismo contenido
+                                    (<code>youtu.be</code> contra <code>youtube.com</code>)
+                                    no lo alcanza ninguna regla del otro.
+                                </div>
+                                <button name="action_bloquear_sugeridos" type="object"
+                                        string="Agregarlos como bloqueados"
+                                        class="btn-primary btn-sm mt8"/>
+                            </div>
+                            <!-- El contexto lleva el perfil: el boton de cada
+                                 renglon agrega la regla A ESTE perfil, y sin
+                                 el no sabria a cual. -->
+                            <field name="sitios_sin_cubrir_ids" nolabel="1" colspan="2"
+                                   readonly="1" context="{'foco_policy_id': id}">
+                                <list>
+                                    <field name="host"/>
+                                    <field name="category_id"/>
+                                    <field name="last_seen"/>
+                                    <!-- Uno por uno, no solo todos de golpe:
+                                         el boton de arriba agrega la lista
+                                         completa, y casi nunca se quiere
+                                         bloquear TODO lo que aparecio. -->
+                                    <button name="action_bloquear_en_perfil"
+                                            type="object" icon="fa-ban"
+                                            string="Bloquear"
+                                            title="Agregar este sitio como regla de bloqueo de este perfil"/>
+                                </list>
+                            </field>
+                        </group>
+                    </div>
+                    <field name="cobertura_nota" invisible="1"/>
+
+                    <!-- El estado POR EQUIPO: si llego o no. Sin esto, "lo
+                         bloquee en Odoo" y "esta bloqueado en la maquina" se
+                         leen igual. -->
+                    <group string="Cómo va en cada equipo" invisible="not computer_ids">
+                        <field name="computer_ids" nolabel="1" colspan="2" readonly="1">
+                            <list>
+                                <field name="name"/>
+                                <field name="employee_id"/>
+                                <field name="policy_sync" string="Bloqueo"
+                                       decoration-warning="policy_sync in ('pendiente','nunca')"
+                                       decoration-muted="policy_sync in ('off','sin_perfil')"/>
+                                <field name="policy_applied_at" string="Aplicada"/>
+                                <field name="policy_detail" string="Detalle" optional="hide"/>
+                            </list>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_policy_view_search" model="ir.ui.view">
+        <field name="name">foco.policy.search</field>
+        <field name="model">foco.policy</field>
+        <field name="arch" type="xml">
+            <search string="Perfiles">
+                <field name="name"/>
+                <field name="rule_ids" string="Patron"
+                       filter_domain="[('rule_ids.pattern','ilike',self)]"/>
+                <field name="computer_assign_ids" string="Equipo"/>
+                <separator/>
+                <filter name="sin_equipos" string="Sin equipos asignados"
+                        domain="[('computer_ids','=',False)]"/>
+                <filter name="archivados" string="Archivados" domain="[('active','=',False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_policy_action" model="ir.actions.act_window">
+        <field name="name">Navegacion permitida</field>
+        <field name="res_model">foco.policy</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Crea el primer perfil</p>
+            <p>
+                Un perfil es una lista de sitios que un grupo de equipos puede o
+                no puede abrir. Se arma en tres pasos: eliges los equipos,
+                escribes las reglas y enciendes el bloqueo.
+            </p>
+            <p>
+                El equipo la recoge en su siguiente envio -cinco minutos- y el
+                navegador deja de cargar el sitio, sin que el usuario tenga que
+                hacer nada.
+            </p>
+        </field>
+    </record>
+
+</odoo>

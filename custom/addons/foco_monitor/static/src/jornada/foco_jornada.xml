@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Jornada">
+        <div class="foco_jor" t-att-class="{ 'fj-dark': state.dark }" t-ref="root">
+
+            <!-- ================================================= CABECERA -->
+            <header class="fj_head">
+                <div class="fj_quien">
+                    <select class="fj_sel" t-on-change="setEmpleado">
+                        <t t-foreach="state.empleados" t-as="e" t-key="e.id">
+                            <option t-att-value="e.id" t-att-selected="e.id === state.empleadoId"
+                                    t-esc="e.name"/>
+                        </t>
+                    </select>
+                    <h1 t-esc="empleadoNombre"/>
+                </div>
+
+                <div class="fj_nav">
+                    <div class="fj_seg" role="group">
+                        <button t-att-class="state.vista === 'semana' ? 'on' : ''"
+                                t-on-click="() => this.setVista('semana')">Semana</button>
+                        <button t-att-class="state.vista === 'mes' ? 'on' : ''"
+                                t-on-click="() => this.setVista('mes')">Mes</button>
+                    </div>
+                    <div class="fj_pager">
+                        <button class="fj_ico" t-on-click="() => this.mover(-1)"
+                                title="Anterior (flecha izquierda)">&#8249;</button>
+                        <span class="fj_periodo" t-esc="periodoLabel"/>
+                        <button class="fj_ico" t-on-click="() => this.mover(1)"
+                                title="Siguiente (flecha derecha)">&#8250;</button>
+                    </div>
+                    <button class="fj_hoy" t-on-click="() => this.hoy()">Hoy</button>
+                </div>
+            </header>
+
+            <t t-if="state.loading">
+                <div class="fj_loading">Cargando…</div>
+            </t>
+            <t t-elif="!state.empleados.length">
+                <div class="fj_empty">
+                    Ningún equipo está ligado a un empleado todavía.
+                    La jornada se arma con lo que reportan los agentes.
+                </div>
+            </t>
+            <t t-else="">
+
+                <!-- ============================================ EL RESUMEN -->
+                <!-- Dos números y una frase. No cinco tarjetas iguales: de las
+                     cinco, cuatro eran ruido y la que importaba se perdía. -->
+                <section class="fj_resumen">
+                    <div class="fj_par">
+                        <div class="fj_hito">
+                            <span class="l">Entra</span>
+                            <span class="v" t-esc="resumen.entrada"/>
+                        </div>
+                        <span class="fj_flecha">→</span>
+                        <div class="fj_hito">
+                            <span class="l">Sale</span>
+                            <span class="v" t-esc="resumen.salida"/>
+                        </div>
+                    </div>
+
+                    <p class="fj_frase">
+                        <span class="fj_dato" title="La MEDIANA, no el promedio: un día que empezó a las 11 movería el promedio media hora y dejaría una hora típica que no ocurrió nunca.">
+                            mediana de <b t-esc="resumen.medidos"/> día<t t-if="resumen.medidos != 1">s</t> con horario
+                        </span>
+                        <span class="sep">·</span>
+                        <span><b t-esc="resumen.activo_txt"/> activo</span>
+                        <t t-if="resumen.llamada > 0.008">
+                            <span class="sep">·</span>
+                            <span><b t-esc="resumen.llamada_txt"/> en llamada</span>
+                        </t>
+                        <t t-if="resumen.fuera > 0.008">
+                            <span class="sep">·</span>
+                            <span class="fj_fuera" title="Tiempo activo medido fuera del horario. No es una falta ni un mérito: es tiempo que antes no se registraba.">
+                                <b t-esc="resumen.fuera_txt"/> fuera de jornada
+                            </span>
+                        </t>
+                        <t t-if="resumen.sin_explicar">
+                            <span class="sep">·</span>
+                            <a class="fj_alerta" href="#" t-on-click.prevent="() => this.abrirAusencias()">
+                                <b><t t-esc="Math.round(resumen.sin_explicar / 6) / 10"/> h</b> sin explicar
+                            </a>
+                        </t>
+                    </p>
+                </section>
+
+                <!-- ============================================== LA SEMANA -->
+                <t t-if="state.vista === 'semana'">
+                    <section class="fj_card">
+                        <div class="fj_tabla">
+                            <!-- eje de horas -->
+                            <div class="fj_eje">
+                                <t t-foreach="horas" t-as="h" t-key="h.h">
+                                    <span class="fj_hora" t-attf-style="top:{{ h.top }}%">
+                                        <em t-esc="h.label"/>
+                                    </span>
+                                </t>
+                            </div>
+
+                            <div class="fj_rejilla">
+                                <!-- La capa de contexto: mide lo mismo que las
+                                     pistas, para que una línea de las 14:00 esté
+                                     de verdad a las 14:00 en las siete columnas. -->
+                                <div class="fj_capa">
+                                    <t t-foreach="horas" t-as="h" t-key="h.h">
+                                        <span class="fj_guia" t-attf-style="top:{{ h.top }}%"/>
+                                    </t>
+                                    <!-- Su propio ritmo, dibujado. No un estándar
+                                         de la empresa: su mediana. Lo que se sale
+                                         se ve sin que nadie lo etiquete. -->
+                                    <t t-if="resumen.entrada_y !== null">
+                                        <span class="fj_ref entra" t-attf-style="top:{{ resumen.entrada_y }}%">
+                                            <i>entra <t t-esc="resumen.entrada"/></i>
+                                        </span>
+                                    </t>
+                                    <t t-if="resumen.salida_y !== null">
+                                        <span class="fj_ref sale" t-attf-style="top:{{ resumen.salida_y }}%">
+                                            <i>sale <t t-esc="resumen.salida"/></i>
+                                        </span>
+                                    </t>
+                                </div>
+
+                                <t t-foreach="state.filas" t-as="f" t-key="f.date">
+                                    <div t-attf-class="fj_col {{ f.es_hoy ? 'hoy' : '' }} {{ f.laborable ? '' : 'nolab' }} {{ f.futuro ? 'futuro' : '' }}"
+                                         t-attf-style="animation-delay:{{ f_index * 34 }}ms"
+                                         t-on-click="() => this.abrir(f)">
+
+                                        <div class="fj_dia_head">
+                                            <span class="d" t-esc="f.dow_label"/>
+                                            <span class="n" t-esc="f.num"/>
+                                        </div>
+
+                                        <div class="fj_pista">
+                                            <t t-foreach="f.franjas" t-as="fr" t-key="fr_index">
+                                                <span class="fj_franja"
+                                                      t-attf-style="top:{{ fr.top }}%;height:{{ fr.alto }}%"/>
+                                            </t>
+                                            <t t-foreach="f.tramos" t-as="s" t-key="s_index">
+                                                <span t-attf-class="fj_bloque {{ s.k }} {{ s.estado === 'pendiente' ? 'pendiente' : '' }}"
+                                                      t-attf-style="top:{{ s.top }}%;height:{{ s.alto }}%"
+                                                      t-att-title="s.titulo"/>
+                                            </t>
+                                            <t t-foreach="f.marcas" t-as="p" t-key="p_index">
+                                                <span t-attf-class="fj_pin {{ p.k }} {{ p.fuerte ? 'fuerte' : '' }}"
+                                                      t-attf-style="top:{{ p.top }}%" t-att-title="p.titulo"/>
+                                            </t>
+
+                                            <t t-if="f.state === 'sin_detalle'">
+                                                <span class="fj_nota mid" title="Se midió cuánto trabajó, pero no a qué hora: es dato anterior a que el equipo reportara eventos. No es lo mismo que no haber trabajado.">sin horario</span>
+                                            </t>
+                                            <t t-elif="f.state === 'solo_equipo'">
+                                                <span class="fj_nota mid" title="Consta que la máquina se encendió o se apagó, pero no hay ninguna señal de que hubiera una persona. Un reinicio de Windows Update se ve así.">solo el equipo</span>
+                                            </t>
+                                            <t t-elif="f.state === 'sin_dato' and f.laborable and !f.futuro">
+                                                <span class="fj_nota" title="Ningún equipo de esta persona reportó nada este día.">sin dato</span>
+                                            </t>
+                                        </div>
+
+                                        <div class="fj_dia_pie">
+                                            <t t-if="f.state === 'completo'">
+                                                <span class="rango"><t t-esc="f.inicio_txt"/>–<t t-esc="f.fin_txt"/></span>
+                                                <span class="tot">
+                                                    <t t-esc="f.activo_txt"/>
+                                                    <t t-if="f.fuera_txt"><em class="fuera" t-esc="'+' + f.fuera_txt"/></t>
+                                                </span>
+                                            </t>
+                                            <t t-elif="f.activo_txt">
+                                                <span class="rango muted">—</span>
+                                                <span class="tot" t-esc="f.activo_txt"/>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+
+                        <div class="fj_leyenda">
+                            <span class="fj_leg"><i class="sw activo"/>Actividad</span>
+                            <span class="fj_leg"><i class="sw llamada"/>En llamada</span>
+                            <span class="fj_leg"><i class="sw sin_input"/>Sin teclado ni mouse</span>
+                            <span class="fj_leg"><i class="sw bloqueado"/>Bloqueado</span>
+                            <span class="fj_leg" title="Ámbar es lo único que pide una acción: relleno cuando nada explica el tiempo, contorno cuando el hueco sigue sin justificar.">
+                                <i class="sw sin_explicar"/>Por justificar
+                            </span>
+                            <span class="fj_leg"><i class="sw franja"/>Su jornada</span>
+                            <span class="fj_leg sep">Los huecos de menos de 10 minutos no se dibujan.</span>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- ================================================== EL MES -->
+                <t t-else="">
+                    <section class="fj_card">
+                        <div class="fj_mes_head">
+                            <t t-foreach="['lun','mar','mié','jue','vie','sáb','dom']" t-as="d" t-key="d">
+                                <span t-esc="d"/>
+                            </t>
+                        </div>
+                        <t t-foreach="semanas" t-as="sem" t-key="sem_index">
+                            <div class="fj_mes_fila">
+                                <t t-foreach="sem" t-as="f" t-key="f.date">
+                                    <div t-attf-class="fj_celda {{ f.es_hoy ? 'hoy' : '' }} {{ f.laborable ? '' : 'nolab' }} {{ f.futuro ? 'futuro' : '' }}"
+                                         t-on-click="() => this.abrir(f)">
+                                        <span class="num" t-esc="f.num"/>
+                                        <span class="mini">
+                                            <t t-foreach="f.franjas" t-as="fr" t-key="fr_index">
+                                                <i class="fj_franja" t-attf-style="top:{{ fr.top }}%;height:{{ fr.alto }}%"/>
+                                            </t>
+                                            <t t-foreach="f.tramos" t-as="s" t-key="s_index">
+                                                <i t-attf-class="fj_bloque {{ s.k }} {{ s.estado === 'pendiente' ? 'pendiente' : '' }}"
+                                                   t-attf-style="top:{{ s.top }}%;height:{{ s.alto }}%"/>
+                                            </t>
+                                        </span>
+                                        <span class="pie">
+                                            <t t-if="f.state === 'completo'">
+                                                <t t-esc="f.inicio_txt"/>
+                                            </t>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                    </section>
+                </t>
+            </t>
+
+            <!-- ============================================ FICHA DEL DÍA -->
+            <t t-if="state.detalle">
+                <div class="fj_scrim" t-on-click="() => this.cerrar()"/>
+                <aside class="fj_ficha">
+                    <div class="fj_ficha_head">
+                        <div>
+                            <h2><t t-esc="state.detalle.dow_label"/> <t t-esc="state.detalle.num"/> <t t-esc="state.detalle.mes_label"/></h2>
+                            <p t-esc="empleadoNombre"/>
+                        </div>
+                        <button class="fj_ico" t-on-click="() => this.cerrar()" title="Cerrar (Esc)">&#215;</button>
+                    </div>
+
+                    <div class="fj_ficha_par">
+                        <div><span class="l">Primera señal</span><span class="v" t-esc="state.detalle.inicio_txt or '—'"/></div>
+                        <span class="fj_flecha">→</span>
+                        <div><span class="l">Última señal</span><span class="v" t-esc="state.detalle.fin_txt or '—'"/></div>
+                    </div>
+                    <p class="fj_ficha_nota" title="El sistema no sabe a qué hora llegó a la oficina: sabe a qué hora apareció en su equipo.">
+                        primera señal en el equipo, no hora de entrada
+                    </p>
+
+                    <div class="fj_reparto">
+                        <span class="dentro">Dentro de jornada <b t-esc="dur(state.detalle.in_shift)"/></span>
+                        <span class="fuera">Fuera de jornada <b t-esc="dur(state.detalle.off_shift)"/></span>
+                    </div>
+
+                    <!-- EN QUE se fue el dia. La ficha contaba lo que le paso
+                         al EQUIPO -encendido, bloqueo, apagon- y no lo que hizo
+                         la persona, que es la pregunta con la que uno abre un
+                         dia. Sale del mismo metodo que alimenta «Detalle de
+                         uso», asi que los dos numeros no pueden discrepar. -->
+                    <h3>En qué trabajó</h3>
+                    <t t-if="state.uso === null">
+                        <p class="fj_vacio_ficha">Cargando…</p>
+                    </t>
+                    <t t-elif="state.uso.filas and state.uso.filas.length">
+                        <ul class="fj_apps">
+                            <t t-foreach="state.uso.filas.slice(0, 8)" t-as="a" t-key="a.id">
+                                <li>
+                                    <span t-attf-class="pt {{ a.sistema ? 'sistema' : (a.sin_clasificar ? 'sin' : 'ok') }}"/>
+                                    <span class="n" t-esc="a.nombre"/>
+                                    <span class="h" t-esc="dur(a.horas)"/>
+                                </li>
+                                <t t-if="a.detalle and a.detalle.length">
+                                    <t t-foreach="a.detalle.slice(0, 3)" t-as="d" t-key="d.nombre">
+                                        <li class="sub">
+                                            <span class="n" t-esc="d.nombre"/>
+                                            <span class="h" t-esc="dur(d.horas)"/>
+                                        </li>
+                                    </t>
+                                </t>
+                            </t>
+                        </ul>
+                        <p class="fj_ficha_nota">
+                            <t t-if="state.uso.filas.length > 8">
+                                Se muestran las 8 con más tiempo, de
+                                <t t-esc="state.uso.filas.length"/>.
+                            </t>
+                            <a href="#" t-on-click.prevent="() => this.abrirUso()">Ver la semana en Detalle de uso</a>
+                        </p>
+                    </t>
+                    <t t-else="">
+                        <p class="fj_vacio_ficha">
+                            Ese día no se registró uso de programas.
+                        </p>
+                    </t>
+
+                    <h3>Lo que pasó</h3>
+                    <t t-if="state.detalle.marcas.length">
+                        <ul class="fj_bitacora">
+                            <t t-foreach="state.detalle.marcas" t-as="p" t-key="p_index">
+                                <li>
+                                    <span class="h" t-esc="hhmm(p.h)"/>
+                                    <span class="q" t-esc="pinLabel(p.k)"/>
+                                    <span t-attf-class="src {{ p.fuente }}"
+                                          t-esc="p.fuente === 'os' ? 'Registro de Windows' : 'Agente'"/>
+                                </li>
+                            </t>
+                        </ul>
+                    </t>
+                    <t t-else="">
+                        <p class="fj_vacio_ficha">
+                            Sin eventos del equipo ese día. Puede ser que nunca se
+                            apagara ni se bloqueara, o que el agente todavía no
+                            los reportara.
+                        </p>
+                    </t>
+
+                    <t t-if="state.detalle.sin_explicar">
+                        <div class="fj_aviso">
+                            <b><t t-esc="state.detalle.sin_explicar"/> min</b> sin explicar:
+                            ni el calendario, ni un evento del equipo, ni una
+                            justificación cubren ese tiempo.
+                            <a href="#" t-on-click.prevent="() => this.abrirAusencias()">Ver y justificar</a>
+                        </div>
+                    </t>
+                </aside>
+            </t>
+        </div>
+    </t>
+</templates>
