@@ -426,6 +426,10 @@ class FocoController(http.Controller):
             'minutos': settings.screenshot_unclassified_minutes or 0,
             'nunca': ['com.simdatagroup.foco'],
             'capturadas': Cap.paquetes_capturados(dev) if enabled else [],
+            # Apps a fotografiar PERIODICAMENTE mientras esten al frente (WhatsApp
+            # y las que sume el admin). Su cadencia propia; 0 = usar `minutos`.
+            'monitoreo': settings.mobile_screenshot_monitor_list() if enabled else [],
+            'minutos_monitoreo': settings.mobile_screenshot_monitor_minutes or 0,
             'solicitar': [],
         }
         if enabled:

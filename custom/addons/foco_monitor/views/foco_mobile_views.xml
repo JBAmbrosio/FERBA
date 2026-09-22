@@ -422,6 +422,12 @@
                     <group string="Capturas de pantalla (lo mas invasivo)">
                         <field name="mobile_screenshot_enabled"
                                invisible="not mobile_enabled"/>
+                        <field name="mobile_screenshot_monitor_packages"
+                               string="Apps a fotografiar cada N min (una por linea)"
+                               invisible="not mobile_screenshot_enabled"/>
+                        <field name="mobile_screenshot_monitor_minutes"
+                               string="Cada cuantos minutos (apps monitoreadas)"
+                               invisible="not mobile_screenshot_enabled"/>
                         <field name="screenshot_unclassified_minutes"
                                string="Minutos en una app nueva antes de capturar"
                                invisible="not mobile_screenshot_enabled"/>
@@ -432,9 +438,10 @@
                              invisible="not mobile_enabled">
                             Solo con el aviso de privacidad firmado que contemple
                             capturas. Requiere el servicio de accesibilidad de Foco
-                            activo en el telefono (Android 11+). Se toma UNA captura
-                            por app nueva (para identificarla) y las que pida el
-                            administrador; no graba la pantalla en continuo.
+                            activo en el telefono (Android 11+). Las apps de la
+                            lista (WhatsApp y las que sumes) se fotografian cada N
+                            minutos mientras esten al frente; el resto, UNA vez al
+                            descubrirlas y las que pida el administrador.
                         </div>
                     </group>
                 </sheet>

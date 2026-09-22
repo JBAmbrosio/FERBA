@@ -134,6 +134,35 @@ class FocoSettings(models.Model):
         help='Apagado, ningun telefono toma pantallazos. Enciendelo solo con el '
              'aviso de privacidad firmado que contemple capturas. Requiere el '
              'servicio de accesibilidad de Foco activo (Android 11+).')
+    # Apps que se fotografian PERIODICAMENTE mientras esten en primer plano (no
+    # una sola vez), p.ej. WhatsApp. La lista vive en el servidor -no en el
+    # telefono- para poder cambiarla sin reinstalar la app. Sembrada con los dos
+    # paquetes de WhatsApp; el admin agrega o quita los que quiera, uno por linea.
+    mobile_screenshot_monitor_packages = fields.Text(
+        string='Apps a fotografiar cada N min (una por linea)',
+        default='com.whatsapp\ncom.whatsapp.w4b',
+        help='Paquetes Android que se capturan CADA CIERTO TIEMPO mientras esten '
+             'en primer plano, no una sola vez, p.ej. WhatsApp '
+             '(com.whatsapp) y WhatsApp Business (com.whatsapp.w4b). Uno por '
+             'linea. El resto de las apps solo se capturan a mano o al '
+             'descubrirlas por primera vez.')
+    mobile_screenshot_monitor_minutes = fields.Integer(
+        string='Cada cuantos minutos (apps monitoreadas)', default=15,
+        help='Cada cuantos minutos se toma una captura mientras una app de la '
+             'lista de arriba esta en primer plano. 0 = usar los mismos minutos '
+             'de las apps sin clasificar.')
+
+    def mobile_screenshot_monitor_list(self):
+        """Los paquetes a fotografiar en forma periodica, ya limpios. Acepta
+        separados por linea o por coma; ignora vacios y espacios."""
+        self.ensure_one()
+        txt = (self.mobile_screenshot_monitor_packages or '').replace(',', '\n')
+        vistos = []
+        for p in txt.splitlines():
+            p = p.strip()
+            if p and p not in vistos:
+                vistos.append(p)
+        return vistos
 
     @api.constrains('mobile_uninstall_pin')
     def _check_uninstall_pin(self):
