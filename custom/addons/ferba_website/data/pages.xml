@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate="1" a propósito.
+
+         El módulo CREA las páginas con una URL razonable, pero a partir de
+         ahí las URLs son configuración del sitio, no contenido del módulo:
+         quien decide cuál es la portada es Ferba desde el backend, no este
+         archivo. Sin este noupdate, cada actualización del módulo pisaría
+         ese cambio y la portada volvería a /inicio-ferba sin avisar.
+
+         Consecuencia a tener presente: cambiar aquí el nombre o la URL de
+         una página YA CREADA no surte efecto. Para eso, el backend
+         (Sitio web > Sitio > Páginas). Las páginas nuevas sí se crean
+         normalmente, porque llevan un id que todavía no existe. -->
+    <data noupdate="1">
+
+        <!-- La PORTADA. En Odoo 19 la portada es, literalmente, la página cuya
+             URL es '/' (website.page._get_page_info compara la ruta tal
+             cual; website.homepage_url queda vacío). La «Home» de fábrica de
+             Odoo también nace en '/': la elimina hooks.fijar_portada, que
+             corre al instalar (post_init_hook) y, en bases que ya tenían la
+             página en /inicio-ferba, en la migración 19.0.1.5.0 — que además
+             la mueve aquí y deja un 301 de /inicio-ferba a '/'. -->
+        <record id="page_ferba_inicio" model="website.page">
+            <field name="name">Ferba — Inicio</field>
+            <field name="url">/</field>
+            <field name="view_id" ref="ferba_website.pagina_inicio"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+
+        <!-- Las 8 páginas del menú + 2 legales. Las de contenido se indexan;
+             las dos legales no, mientras sean el andamio «en preparación»
+             (el título y la descripción para el buscador los pone
+             hooks.aplicar_indexacion, que también corre al instalar). -->
+        <record id="page_quienes_somos" model="website.page">
+            <field name="name">Ferba — Quiénes somos</field>
+            <field name="url">/quienes-somos</field>
+            <field name="view_id" ref="ferba_website.pagina_quienes_somos"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_soluciones" model="website.page">
+            <field name="name">Ferba — Soluciones</field>
+            <field name="url">/soluciones</field>
+            <field name="view_id" ref="ferba_website.pagina_soluciones"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_maquinaria" model="website.page">
+            <field name="name">Ferba — Maquinaria</field>
+            <field name="url">/maquinaria</field>
+            <field name="view_id" ref="ferba_website.pagina_maquinaria"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_flexquality" model="website.page">
+            <field name="name">Ferba — FlexQuality</field>
+            <field name="url">/flexquality</field>
+            <field name="view_id" ref="ferba_website.pagina_flexquality"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_frutos" model="website.page">
+            <field name="name">Ferba — Frutos</field>
+            <field name="url">/frutos</field>
+            <field name="view_id" ref="ferba_website.pagina_frutos"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_proyectos" model="website.page">
+            <field name="name">Ferba — Proyectos</field>
+            <field name="url">/proyectos</field>
+            <field name="view_id" ref="ferba_website.pagina_proyectos"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_postventa" model="website.page">
+            <field name="name">Ferba — Postventa</field>
+            <field name="url">/postventa</field>
+            <field name="view_id" ref="ferba_website.pagina_postventa"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_contacto" model="website.page">
+            <field name="name">Ferba — Contacto</field>
+            <field name="url">/contactenos</field>
+            <field name="view_id" ref="ferba_website.pagina_contacto"/>
+            <field name="website_indexed" eval="True"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_privacidad" model="website.page">
+            <field name="name">Ferba — Aviso de privacidad</field>
+            <field name="url">/aviso-de-privacidad</field>
+            <field name="view_id" ref="ferba_website.pagina_privacidad"/>
+            <field name="website_indexed" eval="False"/>
+            <field name="is_published" eval="True"/>
+        </record>
+        <record id="page_terminos" model="website.page">
+            <field name="name">Ferba — Términos y condiciones</field>
+            <field name="url">/terminos-y-condiciones</field>
+            <field name="view_id" ref="ferba_website.pagina_terminos"/>
+            <field name="website_indexed" eval="False"/>
+            <field name="is_published" eval="True"/>
+        </record>
+
+    </data>
+</odoo>

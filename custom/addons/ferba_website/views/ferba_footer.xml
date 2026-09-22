@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Pie de página de Ferba.
+         Se inyecta en el footer nativo de Odoo en lugar de reemplazarlo,
+         para no romper el resto del sitio ni el editor. -->
+    <template id="footer_ferba" inherit_id="website.layout" name="Ferba — pie de página" active="True">
+        <xpath expr="//footer" position="inside">
+            <div class="o_ferba o_ferba_footer">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_footer__grid">
+
+                        <div>
+                            <img src="/ferba_website/static/src/img/inicio-01-1806x362.webp"
+                                 alt="Ferba Postharvest Technology"
+                                 width="1806" height="362"
+                                 class="o_ferba_footer__logo"/>
+                            <p class="o_ferba_footer__tagline">
+                                Ingeniería, maquinaria y tecnología<br/>
+                                para líneas postcosecha de alto<br/>
+                                rendimiento.
+                            </p>
+                            <div class="o_ferba_footer__social">
+                                <!-- Facebook va en SVG (salió como vector del PDF). Los otros
+                                     tres son mapas de bits de 90 px; conviene pedirlos en SVG. -->
+                                <!-- Facebook, Instagram y YouTube: sin URL confirmada. Van como
+                                     <span> atenuado y no como enlace: un icono que salta al inicio
+                                     de la página es peor que uno que aún no hace nada. Cuando
+                                     Víctor pase las URLs, se cambian por <a href="..."> . -->
+                                <span class="o_ferba_footer__social--svg o_ferba_footer__social--pendiente"
+                                      title="Facebook — próximamente" aria-label="Facebook, próximamente">
+                                    <img src="/ferba_website/static/src/img/iconos/social-facebook.svg" alt=""/>
+                                </span>
+                                <span class="o_ferba_footer__social--pendiente"
+                                      title="Instagram — próximamente" aria-label="Instagram, próximamente">
+                                    <img src="/ferba_website/static/src/img/inicio-27-90x90.webp" alt=""/>
+                                </span>
+                                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" aria-label="WhatsApp">
+                                    <img src="/ferba_website/static/src/img/inicio-28-99x99.webp" alt="WhatsApp"/>
+                                </a>
+                                <span class="o_ferba_footer__social--pendiente"
+                                      title="YouTube — próximamente" aria-label="YouTube, próximamente">
+                                    <img src="/ferba_website/static/src/img/inicio-29-204x144.webp" alt=""/>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="o_ferba_footer__heading">Enlaces</p>
+                            <ul class="o_ferba_footer__links">
+                                <li><a href="/quienes-somos">Quienes somos</a></li>
+                                <li><a href="/soluciones">Soluciones</a></li>
+                                <li><a href="/maquinaria">Maquinaria</a></li>
+                                <li><a href="/flexquality">Flex<span class="o_ferba_q">Q</span>uality</a></li>
+                                <li><a href="/frutos">Frutos</a></li>
+                                <li><a href="/proyectos">Proyectos</a></li>
+                                <li><a href="/postventa">Postventa</a></li>
+                                <li><a href="/contactenos">Contacto</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p class="o_ferba_footer__heading">Contacto</p>
+                            <ul class="o_ferba_footer__contact">
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/contacto-telefono.svg" alt=""/>
+                                    <a href="tel:+526671217267">+52 667 121 7267</a>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/contacto-correo.svg" alt=""/>
+                                    <a href="mailto:ventas@ferba.net">ventas@ferba.net</a>
+                                </li>
+                                <li>
+                                    <img src="/ferba_website/static/src/img/iconos/contacto-ubicacion.svg" alt=""/>
+                                    <span>
+                                        Carretera a Navolato km 7.5,<br/>
+                                        Bachigualato, Culiacán, Sinaloa<br/>
+                                        CP. 80140
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p class="o_ferba_footer__heading">Atención a clientes</p>
+                            <!-- El QR salió del PDF como vector, así que es el mismo del diseño.
+                                 Falta confirmar con Víctor a dónde apunta antes de publicar. -->
+                            <img src="/ferba_website/static/src/img/iconos/footer-qr.svg"
+                                 alt="Código QR de atención a clientes"
+                                 class="o_ferba_footer__qr"/>
+                        </div>
+
+                    </div>
+
+                    <div class="o_ferba_footer__bar">
+                        <span>© 2026 INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V. Todos los derechos reservados.</span>
+                        <span>
+                            <a href="/aviso-de-privacidad">Aviso de privacidad</a>
+                            <span class="mx-2">|</span>
+                            <a href="/terminos-y-condiciones">Términos y condiciones</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

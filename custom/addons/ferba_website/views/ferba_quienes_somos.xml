@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         QUIÉNES SOMOS  —  réplica de "QUIENES SOMOS.pdf"
+         Copia literal del diseño salvo tres erratas evidentes del PDF que
+         no tiene sentido publicar: "INTERNACIÓNAL", "tecnologica" y
+         "contínuas". El resto del texto va tal cual lo entregó el cliente.
+         ================================================================ -->
+    <template id="pagina_quienes_somos" track="True" name="Ferba — Quiénes somos">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Ingeniería postcosecha<br/>con visión internacional</t>
+            <t t-set="fondo">quienes-somos-01-1171x659.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    <strong>FERBA</strong> es una marca especializada en el diseño, fabricación
+                    e integración de maquinaria agroindustrial para procesos postcosecha.
+                    Con raíces españolas y más de 20 años de enfoque en innovación tecnológica,
+                    desarrollamos soluciones para empacadoras que buscan mejor eficiencia,
+                    precisión y calidad.
+                </p>
+                <p class="o_ferba_hero__cred">
+                    <img src="/ferba_website/static/src/img/iconos/contacto-ubicacion.svg" alt=""/>
+                    <span>Presencia comercial en Estados Unidos, España, México y Perú</span>
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="/soluciones" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Conocer soluciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/maquinaria" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Ver maquinaria</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">Construyamos una línea<br/>más eficiente para tu operación</t>
+            <t t-set="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar.</t>
+            <t t-set="cierre_foto">quienes-somos-08-1171x659.webp</t>
+
+            <!-- ============ Tecnología para transformar la postcosecha ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split o_ferba_split--render">
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Tecnología para transformar la postcosecha</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                En <strong>FERBA</strong> desarrollamos maquinaria y sistemas para cada etapa del
+                                proceso postcosecha: recepción, lavado, secado, cepillado, transporte,
+                                selección, empaque y automatización.
+                            </p>
+                            <p>
+                                Combinamos experiencia industrial, conocimiento agrícola e innovación
+                                tecnológica para entregar soluciones que mejoran la eficiencia operativa,
+                                protegen la calidad del producto y generan valor a largo plazo.
+                            </p>
+                        </div>
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/quienes-somos-render-620x287.webp"
+                                 alt="Línea postcosecha FERBA en representación técnica"
+                                 width="620" height="287" class="o_ferba_split__img o_ferba_split__img--recorte" loading="lazy"/>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Nuestra historia ============ -->
+            <section class="o_ferba_section o_ferba_section--foto"
+                     style="--ferba-foto:url('/ferba_website/static/src/img/quienes-somos-03-1728x972.webp')">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Nuestra historia</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="hitos" t-value="[
+                        ('qs-origen.svg',     'Origen',     'Raíces españolas y experiencia enfocada en maquinaria agroindustrial para la postcosecha.'),
+                        ('qs-evolucion.svg',  'Evolución',  'Desarrollo de equipos, líneas de proceso y soluciones adaptadas a diferentes frutas y hortalizas.'),
+                        ('qs-actualidad.svg', 'Actualidad', 'Presencia comercial en Estados Unidos, España, México y Perú. Con integración de automatización, visión artificial e inteligencia artificial.'),
+                    ]"/>
+                    <div class="o_ferba_hitos" data-ferba-grupo="hitos">
+                        <t t-foreach="hitos" t-as="h">
+                            <div class="o_ferba_hito o_ferba_reveal">
+                                <div class="o_ferba_hito__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{h[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_hito__titulo" t-out="h[1]"/>
+                                <p class="o_ferba_hito__texto" t-out="h[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Lo que nos diferencia ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Lo que nos diferencia</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="diferencias" t-value="[
+                        ('qs-ingenieria.svg',     'Ingeniería a medida',      'Diseñamos soluciones considerando el producto, espacio disponible, capacidad de proceso y objetivos de cada empacadora.'),
+                        ('qs-experiencia.svg',    'Experiencia postcosecha',  'Conocemos las etapas críticas del manejo hortofrutícola y desarrollamos equipos para mejorar flujo, cuidado del producto y eficiencia.'),
+                        ('qs-innovacion.svg',     'Innovación tecnológica',   'Integramos automatización, sistemas de control y visión artificial para elevar la precisión de los procesos.'),
+                        ('qs-acompanamiento.svg', 'Acompañamiento integral',  'Participamos desde el diseño de la solución hasta la fabricación, instalación, puesta en marcha, capacitación y soporte técnico.'),
+                    ]"/>
+                    <div class="o_ferba_fichas" data-ferba-grupo="diferencias">
+                        <t t-foreach="diferencias" t-as="d">
+                            <div class="o_ferba_ficha o_ferba_reveal">
+                                <div class="o_ferba_ficha__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{d[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_ficha__titulo" t-out="d[1]"/>
+                                <p class="o_ferba_ficha__texto" t-out="d[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Valores ============ -->
+            <section class="o_ferba_section o_ferba_section--foto"
+                     style="--ferba-foto:url('/ferba_website/static/src/img/quienes-somos-04-960x721.webp')">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Valores que impulsan nuestra ingeniería</t>
+                        <t t-set="llano" t-value="True"/>
+                    </t>
+                    <t t-set="valores" t-value="[
+                        ('val-innovacion.svg',    'Innovación',           'Buscamos mejoras continuas para anticipar las necesidades del futuro.'),
+                        ('val-precision.svg',     'Precisión',            'Diseñamos y fabricamos con rigor para garantizar resultados confiables.'),
+                        ('val-compromiso.svg',    'Compromiso',           'Cumplimos lo que prometemos y cuidamos cada detalle.'),
+                        ('val-calidad.svg',       'Calidad',              'Equipos robustos, eficientes y construidos para durar.'),
+                        ('val-adaptabilidad.svg', 'Adaptabilidad',        'Soluciones fiables que se ajustan a cada producto, proceso y cliente.'),
+                        ('val-vision.svg',        'Visión internacional', 'Pensamos global para ofrecer tecnología con estándares mundiales.'),
+                    ]"/>
+                    <div class="o_ferba_valores" style="--ferba-cols:6" data-ferba-grupo="valores">
+                        <t t-foreach="valores" t-as="v">
+                            <div class="o_ferba_valor o_ferba_reveal">
+                                <div class="o_ferba_valor__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{v[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_valor__titulo" t-out="v[1]"/>
+                                <p class="o_ferba_valor__texto" t-out="v[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Presencia internacional ============ -->
+            <section class="o_ferba_section o_ferba_presencia">
+<!-- El mapa sangra por detrás de TODA la sección y las tarjetas van
+                     encima, como en el diseño. Es un SVG en dos capas: el fondo de 187
+                     países se carga como <image> (mapa-mundo.svg, estático y cacheable) y
+                     aquí inline van SOLO los cuatro países de Ferba con sus pines y
+                     rótulos, en el mismo viewBox, para que el CSS pueda encenderlos al
+                     pasar el ratón por su tarjeta (ver .o_ferba_presencia en
+                     ferba_paginas.scss). Trazados, pines y rótulos son los del PDF de
+                     QUIÉNES SOMOS. Es decoración: los países están escritos en las
+                     tarjetas, así que va oculto al lector de pantalla. -->
+                <svg class="o_ferba_mundo" viewBox="392.53 1768.68 763.74 377.74" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+                    <image href="/ferba_website/static/src/img/mapa-mundo.svg" x="392.53" y="1768.68" width="763.74" height="377.74"/>
+                    <path class="o_ferba_mundo__pais" data-pais="peru" d="M603.76 2051.03C604.48 2050.18 605.3 2049 605.8 2047.6C605.82 2047.53 605.84 2047.48 605.85 2047.45C606.42 2045.73 606.33 2044.88 606.24 2044.13C606.18 2043.55 606.11 2043 606.37 2042.24C607.44 2039.04 607.31 2036.32 606.7 2036.11C604.98 2035.54 603.21 2034.95 603.21 2033.53C603.21 2033.47 603.2 2033.44 603.2 2033.44C603.12 2033.36 602.67 2033.32 602.41 2033.29C601.93 2033.25 601.38 2033.2 600.88 2032.95C600 2032.51 596.41 2029.77 596.41 2027.79C596.41 2026.01 599.16 2022.18 600.36 2021.58C600.6 2021.46 600.93 2021.33 601.36 2021.17C602.73 2020.65 605.3 2019.69 605.3 2018.39L605.3 2016.96C603.25 2017.34 599.22 2017.34 599.03 2017.34C598.91 2017.34 598.8 2017.31 598.71 2017.24L594.65 2014.17C593.82 2015.44 590.88 2018.39 589.1 2018.39C588.55 2018.39 588.01 2019.74 587.61 2020.73C587.19 2021.8 586.82 2022.72 586.2 2023.03C586.11 2023.07 586.01 2023.1 585.88 2023.1C585.02 2023.1 583.35 2022.05 581.71 2020.84C581.49 2021.11 581.28 2021.39 581.11 2021.7C580.06 2023.53 582.94 2025.62 584.51 2026.4C586.07 2027.19 591.83 2037.12 591.83 2040.78C591.83 2044.44 596.79 2045.48 599.4 2046.53C601.09 2047.2 602.78 2048.75 603.76 2051.03Z"/>
+                    <path class="o_ferba_mundo__pais" data-pais="mexico" d="M560.89 1977.13C560.92 1977.13 560.95 1977.13 560.96 1977.13C560.97 1976.91 560.76 1976.36 560.64 1976.07C560.34 1975.31 560.07 1974.61 560.52 1974.15C560.91 1973.77 561.54 1973.82 562.41 1973.9C563.36 1973.98 564.53 1974.08 565.3 1973.57C565.74 1973.28 566.1 1972.88 566.44 1972.5C566.84 1972.07 567.25 1971.61 567.77 1971.34C568.99 1968.7 570.4 1966.05 569.6 1965.52C568.04 1964.48 564.11 1966.05 562.81 1967.09C561.5 1968.13 561.5 1970.75 560.19 1972.58C558.88 1974.41 558.62 1971.79 556.27 1972.32C553.92 1972.84 553.39 1971.79 550.78 1970.75C548.17 1969.7 548.17 1965.52 547.38 1964.22C546.69 1963.07 547.41 1958.71 547.95 1956.95C547.81 1956.96 547.67 1956.97 547.52 1956.97C546.21 1956.97 545.01 1956.58 544.02 1955.25C543.55 1954.63 542.99 1953.74 542.41 1952.8C541.32 1951.06 539.51 1948.15 538.69 1948.15C537.98 1948.15 537.37 1948.57 536.78 1948.96C536.2 1949.35 535.66 1949.72 535.03 1949.72C534.31 1949.72 533.41 1948.76 531.75 1946.92C530.64 1945.69 529.26 1944.17 528.6 1943.95C527.8 1943.68 526.58 1943.91 525.3 1944.14C524.36 1944.32 523.39 1944.5 522.49 1944.5C520.52 1944.5 513.43 1943.49 512.2 1942.25C511.69 1941.76 508.98 1941.31 506.39 1941.06C506.93 1942.07 507.92 1943.15 508.43 1946.19C508.95 1949.32 510.26 1947.75 512.35 1949.06C514.44 1950.37 512.09 1951.41 511.3 1951.94C510.52 1952.46 514.96 1954.55 514.96 1954.55C517.84 1956.9 516.27 1957.68 517.58 1959.25C518.89 1960.82 521.76 1962.65 522.02 1961.34C522.29 1960.04 521.5 1960.82 519.41 1958.21C517.32 1955.59 518.63 1956.64 518.1 1955.07C517.58 1953.5 515.23 1951.94 515.23 1950.63C515.23 1949.32 513.66 1947.49 512.61 1947.23C511.56 1946.97 511.04 1942.53 511.56 1942.79C512.09 1943.05 514.44 1942.53 514.44 1944.88C514.44 1947.23 518.1 1948.8 518.89 1949.58C519.67 1950.37 520.46 1953.24 520.98 1954.02C521.5 1954.81 522.55 1954.02 523.07 1954.81C523.59 1955.59 522.02 1955.85 523.07 1956.9C524.11 1957.95 523.85 1956.9 525.16 1957.42C526.47 1957.95 525.94 1959.51 528.82 1961.86C531.69 1964.22 530.88 1966.76 530.65 1968.4C530.39 1970.23 535.36 1973.1 536.4 1973.1C537.45 1973.1 540.06 1974.15 543.46 1975.97C546.86 1977.8 548.95 1978.33 551.3 1977.54C553.11 1976.94 555.99 1978.19 557.83 1979.98C558.64 1978.43 559.56 1977.13 560.89 1977.13Z"/>
+                    <path class="o_ferba_mundo__pais" data-pais="espana" d="M738.22 1930.25C739.53 1930.77 740.32 1932.86 741.1 1932.07C741.89 1931.29 746.33 1930.77 747.11 1931.03C747.9 1931.29 748.95 1929.99 749.21 1929.2C749.47 1928.42 749.99 1929.2 751.04 1928.94C752.08 1928.68 750.78 1927.37 751.3 1927.11C751.82 1926.85 752.87 1925.54 752.34 1924.76C751.82 1923.98 753.91 1921.36 754.43 1920.32C754.84 1919.49 757.35 1918.68 758.79 1918.11C757.86 1917.79 757.1 1917.4 756.49 1917.09C755.97 1916.82 755.47 1916.56 755.23 1916.56C754.17 1916.56 753.06 1916.56 751.41 1916.01C750.68 1915.77 749.75 1915.13 748.83 1914.37C748.78 1914.45 748.73 1914.52 748.68 1914.57C747.9 1915.35 745.28 1914.57 743.72 1914.04C742.15 1913.52 740.32 1913.78 739.53 1913.78C738.75 1913.78 737.44 1913.52 736.39 1913.52C735.35 1913.52 735.35 1914.04 733.78 1914.57C732.41 1915.02 733.63 1915.88 733.96 1917.3C734.85 1917.34 735.65 1917.34 736.3 1917.34C737.7 1917.34 738.47 1917.34 738.89 1917.76C739.38 1918.25 740.3 1919.17 739.41 1920.06C738.91 1920.56 738.52 1920.95 738.52 1921.78C738.52 1923.12 738.52 1924.5 737.83 1924.84C737.72 1925.51 737.75 1927.71 737.86 1930.15C737.99 1930.17 738.11 1930.2 738.22 1930.25Z"/>
+                    <path class="o_ferba_mundo__pais" data-pais="estados-unidos" d="M522.49 1943.45C523.3 1943.45 524.22 1943.28 525.11 1943.12C526.53 1942.85 527.87 1942.61 528.93 1942.96C529.79 1943.24 530.91 1944.44 532.52 1946.22C533.38 1947.16 534.66 1948.59 535.06 1948.68C535.34 1948.67 535.75 1948.4 536.19 1948.1C536.85 1947.66 537.67 1947.11 538.69 1947.11C539.99 1947.11 541.36 1949.14 543.29 1952.25C543.87 1953.17 544.41 1954.04 544.85 1954.63C545.78 1955.86 546.91 1956.04 548.34 1955.87C548.61 1954.86 548.43 1953.49 548.43 1951.94C548.43 1950.11 552.35 1949.58 553.13 1948.27C553.92 1946.97 557.58 1947.49 558.88 1948.01C560.19 1948.54 562.02 1949.32 564.11 1949.06C566.21 1948.8 564.38 1946.97 565.94 1945.4C567.51 1943.83 571.17 1945.4 572.74 1946.71C574.31 1948.01 575.61 1946.45 577.97 1947.23C580.32 1948.01 578.23 1949.06 578.49 1951.41C578.75 1953.76 580.06 1954.81 581.63 1956.9C583.2 1958.99 582.41 1956.9 583.72 1954.55C585.03 1952.2 581.89 1949.06 581.11 1947.23C580.32 1945.4 581.89 1941.22 585.55 1939.39C589.21 1937.56 591.3 1934.69 592.87 1933.9C594.44 1933.12 593.65 1932.34 593.13 1930.25C592.61 1928.15 594.96 1926.85 595.75 1925.02C596.53 1923.19 597.57 1921.62 598.88 1920.05C600.19 1918.49 602.8 1921.88 604.11 1917.44C605.42 1913 603.85 1915.35 608.56 1912.48C609.46 1911.92 610.28 1911.47 611 1911.11C610.56 1910.71 610.27 1909.83 609.89 1908.64C609.44 1907.22 608.75 1905.07 607.91 1905.07C606.89 1905.07 605.82 1906.87 605.04 1908.18C604.35 1909.33 603.94 1909.99 603.44 1910.24C602.37 1910.77 597.8 1910.42 596.53 1910.31C595.74 1910.75 591.82 1912.94 590.44 1913.86C590.41 1913.88 590.37 1913.9 590.34 1913.91C590.23 1913.96 587.62 1914.99 585.97 1914.99C584.87 1914.99 583.46 1913.51 581.27 1911.08C580.22 1909.9 579.13 1908.69 578.34 1908.1C577.14 1907.2 575.31 1907.05 573.97 1906.95C572.95 1906.86 572.34 1906.82 572.01 1906.49C569.93 1904.4 567.85 1903.42 566.47 1902.96C565.23 1902.54 564.26 1902.88 563.24 1903.23C561.93 1903.68 560.45 1904.19 558.51 1902.9C555.78 1901.08 553.85 1900.48 553.51 1900.37L488.84 1900.4C489.77 1901.12 490.55 1901.77 490.91 1902.29C492.22 1904.11 491.44 1913 490.39 1915.61C489.34 1918.22 490.91 1916.66 490.91 1919.79C490.91 1922.93 490.91 1919.79 490.39 1921.62C489.87 1923.45 494.05 1924.24 493.79 1926.85C493.53 1929.46 498.23 1933.38 498.49 1935.47C498.76 1937.56 501.11 1937.04 502.68 1937.3C503.85 1937.49 505.02 1938.85 505.75 1939.97C508.47 1940.18 512.06 1940.64 512.94 1941.52C513.75 1942.33 520.16 1943.45 522.49 1943.45Z"/>
+                    <g class="o_ferba_pin" data-pais="estados-unidos" transform="translate(539.8 1931.7)">
+                        <g class="o_ferba_pin__salto">
+                            <rect class="o_ferba_pin__chip" x="16" y="-17.7" width="77.8" height="15.3" rx="2"/>
+                            <text class="o_ferba_pin__rotulo" x="54.9" y="-10.05">Estados Unidos</text>
+                            <g class="o_ferba_pin__cuerpo">
+                                <path class="o_ferba_pin__forma" d="M7.11 0C3.19 0 0 3.1 0 6.91C0 10.61 6.57 18.83 6.85 19.18L7.11 19.51L7.38 19.18C7.66 18.83 14.23 10.61 14.23 6.91C14.23 3.1 11.04 0 7.11 0M7.11 3.95C8.79 3.95 10.16 5.28 10.16 6.91C10.16 8.54 8.79 9.87 7.11 9.87C5.43 9.87 4.06 8.54 4.06 6.91C4.06 5.28 5.43 3.95 7.11 3.95Z" transform="translate(-7.12 -19.51)"/>
+                            </g>
+                        </g>
+                    </g>
+                    <g class="o_ferba_pin" data-pais="espana" transform="translate(743.1 1918.5)">
+                        <g class="o_ferba_pin__salto">
+                            <rect class="o_ferba_pin__chip" x="9.9" y="-17.7" width="42.5" height="15.3" rx="2"/>
+                            <text class="o_ferba_pin__rotulo" x="31.15" y="-10.05">España</text>
+                            <g class="o_ferba_pin__cuerpo">
+                                <path class="o_ferba_pin__forma" d="M7.11 0C3.19 0 0 3.1 0 6.91C0 10.61 6.57 18.83 6.85 19.18L7.11 19.51L7.38 19.18C7.66 18.83 14.23 10.61 14.23 6.91C14.23 3.1 11.04 0 7.11 0M7.11 3.95C8.79 3.95 10.16 5.28 10.16 6.91C10.16 8.54 8.79 9.87 7.11 9.87C5.43 9.87 4.06 8.54 4.06 6.91C4.06 5.28 5.43 3.95 7.11 3.95Z" transform="translate(-7.12 -19.51)"/>
+                            </g>
+                        </g>
+                    </g>
+                    <g class="o_ferba_pin" data-pais="mexico" transform="translate(546.8 1972.9)">
+                        <g class="o_ferba_pin__salto">
+                            <rect class="o_ferba_pin__chip" x="9" y="-2" width="40.2" height="15.2" rx="2"/>
+                            <text class="o_ferba_pin__rotulo" x="29.1" y="5.6">México</text>
+                            <g class="o_ferba_pin__cuerpo">
+                                <path class="o_ferba_pin__forma" d="M7.11 0C3.19 0 0 3.1 0 6.91C0 10.61 6.57 18.83 6.85 19.18L7.11 19.51L7.38 19.18C7.66 18.83 14.23 10.61 14.23 6.91C14.23 3.1 11.04 0 7.11 0M7.11 3.95C8.79 3.95 10.16 5.28 10.16 6.91C10.16 8.54 8.79 9.87 7.11 9.87C5.43 9.87 4.06 8.54 4.06 6.91C4.06 5.28 5.43 3.95 7.11 3.95Z" transform="translate(-7.12 -19.51)"/>
+                            </g>
+                        </g>
+                    </g>
+                    <g class="o_ferba_pin" data-pais="peru" transform="translate(594.7 2025.5)">
+                        <g class="o_ferba_pin__salto">
+                            <rect class="o_ferba_pin__chip" x="4.7" y="-2.3" width="28.1" height="15.3" rx="2"/>
+                            <text class="o_ferba_pin__rotulo" x="18.75" y="5.35">Perú</text>
+                            <g class="o_ferba_pin__cuerpo">
+                                <path class="o_ferba_pin__forma" d="M7.11 0C3.19 0 0 3.1 0 6.91C0 10.61 6.57 18.83 6.85 19.18L7.11 19.51L7.38 19.18C7.66 18.83 14.23 10.61 14.23 6.91C14.23 3.1 11.04 0 7.11 0M7.11 3.95C8.79 3.95 10.16 5.28 10.16 6.91C10.16 8.54 8.79 9.87 7.11 9.87C5.43 9.87 4.06 8.54 4.06 6.91C4.06 5.28 5.43 3.95 7.11 3.95Z" transform="translate(-7.12 -19.51)"/>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+
+                <div class="o_ferba_container o_ferba_presencia__inner">
+                    <div class="o_ferba_presencia__texto o_ferba_reveal">
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in">Presencia internacional</span></h2>
+                        <span class="o_ferba_rule"/>
+                        <p class="mt-4">
+                            Nuestra presencia comercial refleja el crecimiento de una marca enfocada
+                            en responder a las necesidades de empacadoras, productores y agroindustrias
+                            que buscan tecnología confiable para sus procesos postcosecha.
+                        </p>
+                    </div>
+
+                    <t t-set="paises" t-value="[
+                        ('bandera-eua-216x150.webp',    'Estados Unidos', 'Soluciones adaptadas a las necesidades del mercado norteamericano.', 'estados-unidos'),
+                        ('bandera-espana-216x150.webp', 'España',         'Nuestra base de origen y centro de desarrollo de inteligencia artificial.', 'espana'),
+                        ('bandera-mexico-216x150.webp', 'México',         'Cobertura comercial, base de operaciones, fabricación y soporte técnico.', 'mexico'),
+                        ('bandera-peru-216x150.webp',   'Perú',           'Soluciones que impulsan el crecimiento del sector agroindustrial.', 'peru'),
+                    ]"/>
+                    <div class="o_ferba_paises" data-ferba-grupo="paises">
+                        <t t-foreach="paises" t-as="p">
+                            <div class="o_ferba_reveal">
+                                <div class="o_ferba_pais" t-att-data-pais="p[3]">
+                                <img t-attf-src="/ferba_website/static/src/img/#{p[0]}" alt=""
+                                     width="216" height="150" class="o_ferba_pais__bandera" loading="lazy"/>
+                                <h3 class="o_ferba_pais__nombre" t-out="p[1]"/>
+                                <p class="o_ferba_pais__texto" t-out="p[2]"/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

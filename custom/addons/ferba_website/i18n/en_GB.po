@@ -1,0 +1,1726 @@
+# Traducción al inglés de Ferba — Sitio web (ferba_website).
+# El idioma de origen del módulo es el español: los msgid están en español
+# y este archivo los lleva al inglés.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-21 13:13+0000\n"
+"PO-Revision-Date: 2026-09-21 13:13+0000\n"
+"Last-Translator: Simdata Group\n"
+"Language-Team: \n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Hablemos de tu<br/>proyecto postcosecha"
+msgstr "Let us talk about your<br/>postharvest project"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa de tu línea\n"
+"                    quieres mejorar. Nuestro equipo puede ayudarte a definir la solución más adecuada\n"
+"                    para tu operación."
+msgstr "Tell us what product you process, what capacity you need and which stage of your line you want to improve. Our team can help you define the right solution for your operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"En FERBA desarrollamos maquinaria, líneas completas, modernización, automatización,\n"
+"                    Flex<span class=\"o_ferba_q\">Q</span>uality, soporte técnico y refacciones para tu\n"
+"                    maquinaria postcosecha."
+msgstr "At FERBA we develop machinery, complete lines, upgrades, automation, Flex<span class=\"o_ferba_q\">Q</span>uality, technical support and spare parts for your postharvest machinery."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+#: model_terms:ir.ui.view,arch_db:ferba_website.cierre
+#: model_terms:ir.ui.view,arch_db:ferba_website.en_construccion
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span class=\"o_ferba_btn__label\">Cotizar proyecto</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request a quote</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span class=\"o_ferba_btn__label\">Solicitar asesoría</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request a consultation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Diseñamos la solución ideal<br/>para tu línea"
+msgstr "Let us design the right solution<br/>for your line"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"Ya sea que busques una máquina específica, una línea completa, modernización,\n"
+"                automatización, Flex<span class=\"o_ferba_q\">Q</span>uality, soporte técnico o\n"
+"                refacciones, nuestro equipo puede ayudarte a definir el siguiente paso."
+msgstr "Whether you are looking for a single machine, a complete line, an upgrade, automation, Flex<span class=\"o_ferba_q\">Q</span>uality, technical support or spare parts, our team can help you define the next step."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span class=\"o_ferba_btn__label\">Hablar con un asesor</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Talk to an advisor</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Elige el tipo de atención que necesitas"
+msgstr "Choose the kind of help you need"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Envíanos tu solicitud"
+msgstr "Send us your request"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"Completa el formulario y nuestro equipo se pondrá en contacto contigo para\n"
+"                                conocer más sobre tu operación y ayudarte a definir la mejor solución."
+msgstr "Fill in the form and our team will get in touch to learn more about your operation and help you define the best solution."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Nombre completo</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Full name</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. Juan Pérez"
+msgstr "E.g. John Smith"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Empresa</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Company</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. Empaque del Valle"
+msgstr "E.g. Valley Packing"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Teléfono</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Phone</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. +52 667 123 4567"
+msgstr "E.g. +52 667 123 4567"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Correo electrónico</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Email</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. correo@empresa.com"
+msgstr "E.g. name@company.com"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">País / Estado / Ciudad</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Country / State / City</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. México, Sinaloa, Culiacán"
+msgstr "E.g. Mexico, Sinaloa, Culiacán"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Tipo de solicitud</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Type of request</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<select id=\"ferba_tipo\" name=\"subject\" required=\"required\" class=\"form-control s_website_form_input\">\n"
+"                                                <option value=\"\">Selecciona una opción</option>\n"
+"                                                <option value=\"Cotizar proyecto\">Cotizar proyecto</option>\n"
+"                                                <option value=\"Modernización de línea\">Modernización de línea</option>\n"
+"                                                <option value=\"Automatización\">Automatización</option>\n"
+"                                                <option value=\"FlexQuality (visión artificial)\">FlexQuality (visión artificial)</option>\n"
+"                                                <option value=\"Soporte técnico\">Soporte técnico</option>\n"
+"                                                <option value=\"Refacciones\">Refacciones</option>\n"
+"                                            </select>"
+msgstr "<select id=\"ferba_tipo\" name=\"subject\" required=\"required\" class=\"form-control s_website_form_input\"><option value=\"\">Select an option</option><option value=\"Cotizar proyecto\">Request a project quote</option><option value=\"Modernización de línea\">Line upgrade</option><option value=\"Automatización\">Automation</option><option value=\"FlexQuality (visión artificial)\">FlexQuality (machine vision)</option><option value=\"Soporte técnico\">Technical support</option><option value=\"Refacciones\">Spare parts</option></select>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Fruto que procesa</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Crop you process</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<select id=\"ferba_fruto\" name=\"Fruto que procesa\" required=\"required\" class=\"form-control s_website_form_input\">\n"
+"                                                <option value=\"\">Selecciona una opción</option>\n"
+"                                                <option value=\"Tomate\">Tomate</option>\n"
+"                                                <option value=\"Pepino\">Pepino</option>\n"
+"                                                <option value=\"Pimiento\">Pimiento</option>\n"
+"                                                <option value=\"Calabaza\">Calabaza</option>\n"
+"                                                <option value=\"Mango\">Mango</option>\n"
+"                                                <option value=\"Melón\">Melón</option>\n"
+"                                                <option value=\"Aguacate\">Aguacate</option>\n"
+"                                                <option value=\"Cítricos\">Cítricos</option>\n"
+"                                                <option value=\"Espárrago\">Espárrago</option>\n"
+"                                                <option value=\"Sandía\">Sandía</option>\n"
+"                                                <option value=\"Otro\">Otro</option>\n"
+"                                            </select>"
+msgstr "<select id=\"ferba_fruto\" name=\"Fruto que procesa\" required=\"required\" class=\"form-control s_website_form_input\"><option value=\"\">Select an option</option><option value=\"Tomate\">Tomato</option><option value=\"Pepino\">Cucumber</option><option value=\"Pimiento\">Bell pepper</option><option value=\"Calabaza\">Squash</option><option value=\"Mango\">Mango</option><option value=\"Melón\">Melon</option><option value=\"Aguacate\">Avocado</option><option value=\"Cítricos\">Citrus</option><option value=\"Espárrago\">Asparagus</option><option value=\"Sandía\">Watermelon</option><option value=\"Otro\">Other</option></select>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Capacidad actual o requerida</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Current or required capacity</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ej. 10 toneladas por hora"
+msgstr "E.g. 10 tons per hour"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Etapa de la línea que deseas mejorar</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Stage of the line you want to improve</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<select id=\"ferba_etapa\" name=\"Etapa de la línea\" required=\"required\" class=\"form-control s_website_form_input\">\n"
+"                                                <option value=\"\">Selecciona una opción</option>\n"
+"                                                <option value=\"Recepción y alimentación\">Recepción y alimentación</option>\n"
+"                                                <option value=\"Lavado y tratamiento\">Lavado y tratamiento</option>\n"
+"                                                <option value=\"Secado y cepillado\">Secado y cepillado</option>\n"
+"                                                <option value=\"Transportadores / bandas\">Transportadores / bandas</option>\n"
+"                                                <option value=\"Selección y calibrado\">Selección y calibrado</option>\n"
+"                                                <option value=\"Empaque\">Empaque</option>\n"
+"                                                <option value=\"Automatización y control\">Automatización y control</option>\n"
+"                                                <option value=\"Línea completa\">Línea completa</option>\n"
+"                                            </select>"
+msgstr "<select id=\"ferba_etapa\" name=\"Etapa de la línea\" required=\"required\" class=\"form-control s_website_form_input\"><option value=\"\">Select an option</option><option value=\"Recepción y alimentación\">Receiving and feeding</option><option value=\"Lavado y tratamiento\">Washing and treatment</option><option value=\"Secado y cepillado\">Drying and brushing</option><option value=\"Transportadores / bandas\">Conveyors and belts</option><option value=\"Selección y calibrado\">Sorting and sizing</option><option value=\"Empaque\">Packing</option><option value=\"Automatización y control\">Automation and control</option><option value=\"Línea completa\">Complete line</option></select>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"s_website_form_label_content\">Cuéntanos más sobre tu proyecto o requerimiento</span>\n"
+"                                                <span class=\"s_website_form_mark\"> *</span>"
+msgstr "<span class=\"s_website_form_label_content\">Tell us more about your project or requirement</span><span class=\"s_website_form_mark\"> *</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Descripción del proyecto, objetivos, necesidades, etc."
+msgstr "Description of the project, goals, needs, and so on."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span class=\"s_website_form_label_content\">Adjuntar archivo, foto o video (opcional)</span>"
+msgstr "<span class=\"s_website_form_label_content\">Attach a file, photo or video (optional)</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<span class=\"o_ferba_soltar__texto\">\n"
+"                                                    <span class=\"o_ferba_soltar__accion\" data-ferba-soltar-rotulo=\"Arrastra tu archivo aquí o haz clic para seleccionar\">Arrastra tu archivo aquí o haz clic para seleccionar</span>\n"
+"                                                    <span class=\"o_ferba_soltar__formatos\">Formatos: PDF, JPG, PNG, MP4 (máx. 20 MB)</span>\n"
+"                                                </span>"
+msgstr "<span class=\"o_ferba_soltar__texto\"><span class=\"o_ferba_soltar__accion\" data-ferba-soltar-rotulo=\"Drag your file here or click to browse\">Drag your file here or click to browse</span><span class=\"o_ferba_soltar__formatos\">Formats: PDF, JPG, PNG, MP4 (max. 20 MB)</span></span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span class=\"o_ferba_btn__label\">Enviar solicitud</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Send request</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"<strong>Gracias por escribirnos.</strong> Tu solicitud llegó al equipo de\n"
+"                                    FERBA. Te responderemos por correo o teléfono lo antes posible. Si es urgente,\n"
+"                                    llámanos al"
+msgstr "<strong>Thank you for writing to us.</strong> Your request reached the FERBA team. We will reply by email or phone as soon as possible. If it is urgent, call us at"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Para ayudarte mejor, comparte la mayor información posible"
+msgstr "To help you better, share as much information as you can"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span class=\"o_ferba_title__in\">También puedes contactarnos directamente</span>"
+msgstr "<span class=\"o_ferba_title__in\">You can also contact us directly</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Teléfono"
+msgstr "Phone"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Correo"
+msgstr "Email"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Ubicación"
+msgstr "Location"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Carretera a Navolato km 7.5,<br/>Bachigualato, Culiacán,<br/>Sinaloa CP. 80140"
+msgstr "Carretera a Navolato km 7.5,<br/>Bachigualato, Culiacán,<br/>Sinaloa CP. 80140, Mexico"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Síguenos en redes sociales"
+msgstr "Follow us on social media"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span class=\"o_ferba_title__in\">Encuentra a FERBA</span>"
+msgstr "<span class=\"o_ferba_title__in\">Find FERBA</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid ""
+"Estamos ubicados en Culiacán, Sinaloa, México, desde donde atendemos proyectos\n"
+"                                para empacadoras, productores y agroindustrias que buscan soluciones postcosecha\n"
+"                                confiables, eficientes y adaptadas a su operación."
+msgstr "We are based in Culiacán, Sinaloa, Mexico, and from there we serve projects for packinghouses, growers and agribusinesses looking for reliable, efficient postharvest solutions that fit their operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "Mapa con la ubicación de FERBA en Culiacán, Sinaloa"
+msgstr "Map showing the location of FERBA in Culiacán, Sinaloa"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<span>Cómo llegar</span>"
+msgstr "<span>Get directions</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<strong>Horario de atención</strong>Lunes a viernes<br/>8:00 am – 5:30 pm"
+msgstr "<strong>Opening hours</strong>Monday to Friday<br/>8:00 am – 5:30 pm"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_contacto
+msgid "<strong>Atención en</strong>México y Latinoamérica"
+msgstr "<strong>We serve</strong>Mexico and Latin America"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Selección inteligente con<br/>visión artificial e inteligencia artificial"
+msgstr "Intelligent sorting with<br/>machine vision and artificial intelligence"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Flex<span class=\"o_ferba_q\">Q</span>uality analiza cada fruto en tiempo real para\n"
+"                    evaluar color, tamaño, forma, calidad y defectos externos, mejorando la precisión\n"
+"                    de selección y elevando el valor de tu producto."
+msgstr "Flex<span class=\"o_ferba_q\">Q</span>uality analyzes every piece of produce in real time to assess color, size, shape, quality and external defects, improving sorting accuracy and raising the value of your crop."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "<span class=\"o_ferba_btn__label\">Conocer versiones</span>"
+msgstr "<span class=\"o_ferba_btn__label\">See the versions</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Agenda una asesoría<br/>sobre Flex<span class=\"o_ferba_q\">Q</span>uality"
+msgstr "Book a consultation<br/>about Flex<span class=\"o_ferba_q\">Q</span>uality"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Cuéntanos qué producto procesas y qué nivel de análisis necesitas. Te ayudamos a definir\n"
+"                si tu línea requiere Flex<span class=\"o_ferba_q\">Q</span>uality Full o Flex<span class=\"o_ferba_q\">Q</span>uality Lite."
+msgstr "Tell us what product you process and what level of analysis you need. We will help you decide whether your line calls for Flex<span class=\"o_ferba_q\">Q</span>uality Full or Flex<span class=\"o_ferba_q\">Q</span>uality Lite."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "<span class=\"o_ferba_btn__label\">Agendar asesoría</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Book a consultation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "<span class=\"o_ferba_title__in\">¿Qué es Flex<span class=\"o_ferba_q\">Q</span>uality?</span>"
+msgstr "<span class=\"o_ferba_title__in\">What is Flex<span class=\"o_ferba_q\">Q</span>uality?</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Flex<span class=\"o_ferba_q\">Q</span>uality es un sistema de inspección visual\n"
+"                                diseñado para integrarse en líneas de selección y empaque para exportación.\n"
+"                                Mediante cámaras, iluminación controlada y algoritmos de análisis, el sistema\n"
+"                                evalúa cada fruto para clasificarlo según parámetros definidos por el cliente."
+msgstr "Flex<span class=\"o_ferba_q\">Q</span>uality is a visual inspection system designed to be built into grading and packing lines for export. Using cameras, controlled lighting and analysis algorithms, the system evaluates each piece of produce and grades it against the parameters the customer defines."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Su objetivo es ayudar a las empacadoras a obtener una clasificación más precisa,\n"
+"                                reducir variaciones en la selección y mejorar el aprovechamiento comercial\n"
+"                                del producto."
+msgstr "Its purpose is to help packinghouses grade more accurately, reduce variation in sorting and make better commercial use of the crop."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "<span class=\"o_ferba_btn__label\">Más información</span>"
+msgstr "<span class=\"o_ferba_btn__label\">More information</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Máximo nivel de análisis por módulo"
+msgstr "The highest level of analysis per module"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Módulo FlexQuality Full con tres cámaras"
+msgstr "FlexQuality Full module with three cameras"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"<span><strong>2</strong><em>Líneas</em></span>\n"
+"                                    <span><strong>3</strong><em>Cámaras</em></span>"
+msgstr "<span><strong>2</strong><em>Lanes</em></span><span><strong>3</strong><em>Cameras</em></span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Mayor cobertura visual para una inspección más completa y una\n"
+"                                    clasificación más detallada."
+msgstr "Wider visual coverage for a more complete inspection and more detailed grading."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Inspección inteligente en una versión más compacta"
+msgstr "Intelligent inspection in a more compact version"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Módulo FlexQuality Lite con una cámara"
+msgstr "FlexQuality Lite module with one camera"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"<span><strong>2</strong><em>Líneas</em></span>\n"
+"                                    <span><strong>1</strong><em>Cámara</em></span>"
+msgstr "<span><strong>2</strong><em>Lanes</em></span><span><strong>1</strong><em>Camera</em></span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Análisis esencial para modernizar tu línea de forma accesible y eficiente."
+msgstr "Essential analysis to modernize your line affordably and efficiently."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "¿Cómo funciona?"
+msgstr "How does it work?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Parámetros de análisis"
+msgstr "Analysis parameters"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Línea de selección con módulos FlexQuality integrados"
+msgstr "Grading line with FlexQuality modules installed"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "<span class=\"o_ferba_title__in\">Integración en líneas nuevas o calibradores existentes</span>"
+msgstr "<span class=\"o_ferba_title__in\">Integration into new lines or existing sizers</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Flex<span class=\"o_ferba_q\">Q</span>uality puede considerarse desde el diseño\n"
+"                                de una línea nueva o integrarse en equipos existentes, calibradores que\n"
+"                                requieren modernización tecnológica."
+msgstr "Flex<span class=\"o_ferba_q\">Q</span>uality can be considered from the design of a new line or fitted to existing equipment, such as sizers that need a technology upgrade."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid ""
+"Esto permite actualizar procesos de selección sin necesidad de reemplazar\n"
+"                                toda la línea, aprovechando la infraestructura actual y elevando el nivel\n"
+"                                de precisión del sistema."
+msgstr "This makes it possible to modernize sorting without replacing the whole line, building on the infrastructure already in place and raising the accuracy of the system."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Líneas nuevas"
+msgstr "New lines"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Integración desde el diseño del proyecto."
+msgstr "Built in from the design of the project."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Calibradores existentes"
+msgstr "Existing sizers"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Moderniza tu equipo actual sin reemplazarlo."
+msgstr "Modernize your current equipment without replacing it."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+msgid "Beneficios"
+msgstr "Benefits"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_flexquality
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "Frutos compatibles"
+msgstr "Compatible produce"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid ""
+"Ingeniería, maquinaria y tecnología<br/>\n"
+"                                para líneas postcosecha de alto<br/>\n"
+"                                rendimiento."
+msgstr "Engineering, machinery and technology<br/> for high-performance postharvest<br/> lines."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Facebook — próximamente"
+msgstr "Facebook — coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Facebook, próximamente"
+msgstr "Facebook, coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Instagram — próximamente"
+msgstr "Instagram — coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Instagram, próximamente"
+msgstr "Instagram, coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "YouTube — próximamente"
+msgstr "YouTube — coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "YouTube, próximamente"
+msgstr "YouTube, coming soon"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Enlaces"
+msgstr "Links"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Quienes somos"
+msgstr "About us"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Soluciones"
+msgstr "Solutions"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Maquinaria"
+msgstr "Machinery"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Frutos"
+msgstr "Produce"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Proyectos"
+msgstr "Projects"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Postventa"
+msgstr "After-sales"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Contacto"
+msgstr "Contact"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid ""
+"<span>\n"
+"                                        Carretera a Navolato km 7.5,<br/>\n"
+"                                        Bachigualato, Culiacán, Sinaloa<br/>\n"
+"                                        CP. 80140\n"
+"                                    </span>"
+msgstr "<span> Carretera a Navolato km 7.5,<br/> Bachigualato, Culiacán, Sinaloa<br/> CP. 80140, Mexico </span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Atención a clientes"
+msgstr "Customer service"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "Código QR de atención a clientes"
+msgstr "Customer service QR code"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+msgid "<span>© 2026 INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V. Todos los derechos reservados.</span>"
+msgstr "<span>© 2026 INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V. All rights reserved.</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_privacidad
+msgid "Aviso de privacidad"
+msgstr "Privacy notice"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.footer_ferba
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_terminos
+msgid "Términos y condiciones"
+msgstr "Terms and conditions"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "Soluciones postcosecha<br/>adaptadas a cada fruto"
+msgstr "Postharvest solutions<br/>adapted to each crop"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"Cada fruto requiere un manejo específico. En FERBA diseñamos maquinaria, líneas de\n"
+"                    proceso y automatización considerando la forma, tamaño, sensibilidad, volumen y\n"
+"                    criterios comerciales de cada producto."
+msgstr "Every crop needs specific handling. At FERBA we design machinery, process lines and automation around the shape, size, sensitivity, volume and commercial criteria of each product."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<span class=\"o_ferba_btn__label\">Conocer soluciones</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Explore solutions</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+#: model_terms:ir.ui.view,arch_db:ferba_website.cierre
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<span class=\"o_ferba_btn__label\">Ver maquinaria</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View machinery</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "Diseñamos una solución<br/>para el producto que procesas"
+msgstr "Let us design a solution<br/>for the product you process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"Cuéntanos qué fruto procesas y qué capacidad o etapa deseas mejorar.\n"
+"                Nuestro equipo te proporcionará la solución postcosecha ideal."
+msgstr "Tell us what crop you process and what capacity or stage you want to improve. Our team will put together the right postharvest solution."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span class=\"o_ferba_btn__label\">Cotizar solución</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request a solution quote</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "Lavadora FERBA con producto en proceso"
+msgstr "FERBA washer with product in process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "<span class=\"o_ferba_title__in\">Cada producto necesita una línea diferente</span>"
+msgstr "<span class=\"o_ferba_title__in\">Every product needs a different line</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"El tomate, pepino, mango, aguacate, cítricos y más requieren enfoques\n"
+"                                distintos en transporte, lavado, cepillado, selección y empaque."
+msgstr "Tomato, cucumber, mango, avocado, citrus and others call for different approaches to conveying, washing, brushing, sorting and packing."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"Nuestras soluciones se adaptan a las características de cada fruto para\n"
+"                                maximizar la calidad y eficiencia."
+msgstr "Our solutions adapt to the characteristics of each crop to maximize quality and efficiency."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Ver soluciones"
+msgstr "View solutions"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "Cómo adaptamos la solución"
+msgstr "How we adapt the solution"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "<span class=\"o_ferba_title__in\">Flex<span class=\"o_ferba_q\">Q</span>uality por fruto</span>"
+msgstr "<span class=\"o_ferba_title__in\">Flex<span class=\"o_ferba_q\">Q</span>uality by crop</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"Flex<span class=\"o_ferba_q\">Q</span>uality Full y Flex<span class=\"o_ferba_q\">Q</span>uality Lite\n"
+"                            utilizan visión artificial e inteligencia artificial para analizar parámetros\n"
+"                            como color, tamaño, forma, calidad visual y defectos externos."
+msgstr "Flex<span class=\"o_ferba_q\">Q</span>uality Full and Flex<span class=\"o_ferba_q\">Q</span>uality Lite use machine vision and artificial intelligence to analyze parameters such as color, size, shape, visual quality and external defects."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid ""
+"Se integran en nuevas líneas o en calibradores existentes para mejorar la\n"
+"                            precisión y la toma de decisiones."
+msgstr "They fit into new lines or existing sizers to improve accuracy and decision making."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_frutos
+msgid "<span class=\"o_ferba_btn__label\">Conocer Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Discover Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.header_ferba
+msgid "Ferba — inicio"
+msgstr "Ferba — home"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.header_ferba
+msgid "Abrir menú"
+msgstr "Open menu"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.header_ferba
+msgid "Principal"
+msgstr "Main"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"<span class=\"o_ferba_hero__line\"><span>Tecnología postcosecha</span></span>\n"
+"                                <span class=\"o_ferba_hero__line\"><span>para empacadoras</span></span>\n"
+"                                <span class=\"o_ferba_hero__line o_ferba_hero__accent\"><span>más eficientes</span></span>"
+msgstr "<span class=\"o_ferba_hero__line\"><span>Postharvest technology</span></span><span class=\"o_ferba_hero__line\"><span>for packinghouses</span></span><span class=\"o_ferba_hero__line o_ferba_hero__accent\"><span>that run better</span></span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Diseñamos, fabricamos e integramos maquinaria y sistemas de\n"
+"                                automatización para recepción, lavado, selección y empaque de\n"
+"                                frutas y hortalizas."
+msgstr "We design, manufacture and integrate machinery and automation systems for receiving, washing, sorting and packing fruits and vegetables."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Desde líneas completas hasta modernización de equipos existentes,\n"
+"                                ayudamos a mejorar el flujo, la precisión y la calidad de cada proceso."
+msgstr "From complete lines to upgrades of existing equipment, we help you improve the flow, the accuracy and the quality of every process."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"<span><strong>Más de <span data-ferba-contador=\"20\">20</span> años</strong> en postcosecha</span>\n"
+"                                <span>Presencia comercial en Estados Unidos, España, México y Perú</span>\n"
+"                                <span>Culiacán, Sinaloa</span>"
+msgstr "<span><strong>More than <span data-ferba-contador=\"20\">20</span> years</strong> in postharvest</span><span>Commercial presence in the United States, Spain, Mexico and Peru</span><span>Culiacán, Sinaloa</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_btn__label\">Ver Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+msgstr "<span class=\"o_ferba_btn__label\">See Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_title__in\">Soluciones postcosecha a la medida de tu operación</span>"
+msgstr "<span class=\"o_ferba_title__in\">Postharvest solutions tailored to your operation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"En FERBA desarrollamos soluciones para empaques que buscan mejorar\n"
+"                                su capacidad, reducir tiempos, cuidar mejor el producto y obtener\n"
+"                                una clasificación más precisa."
+msgstr "At FERBA we develop solutions for packinghouses looking to increase capacity, cut processing times, handle the product more carefully and achieve more accurate grading."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Líneas completas postcosecha"
+msgstr "Complete postharvest lines"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Diseñamos proyectos integrales desde la recepción hasta el empaque."
+msgstr "We design end-to-end projects, from receiving through to packing."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Maquinaria por etapa del proceso"
+msgstr "Machinery by process stage"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Fabricamos e integramos equipos para cada parte de tu línea, adaptados al producto y tu capacidad de operación."
+msgstr "We manufacture and integrate equipment for every part of your line, matched to your product and your operating capacity."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Ver maquinaria"
+msgstr "View machinery"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Automatización y modernización"
+msgstr "Automation and upgrades"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Actualizamos líneas existentes con sistemas de control, sensores y tecnología de visión artificial."
+msgstr "We upgrade existing lines with control systems, sensors and machine vision technology."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_eyebrow\">Flex<span class=\"text-white\">Quality</span></span>"
+msgstr "<span class=\"o_ferba_eyebrow\">Flex<span class=\"text-white\">Quality</span></span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_title__in\">Selección inteligente con visión artificial e inteligencia artificial</span>"
+msgstr "<span class=\"o_ferba_title__in\">Intelligent sorting with machine vision and artificial intelligence</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Flex<span class=\"o_ferba_q\">Q</span>uality analiza frutas y hortalizas en tiempo real\n"
+"                                    para detectar características externas como el color, tamaño, forma,\n"
+"                                    defectos y parámetros de calidad."
+msgstr "Flex<span class=\"o_ferba_q\">Q</span>uality analyzes fruits and vegetables in real time to detect external characteristics such as color, size, shape, defects and quality parameters."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Puede integrarse en líneas nuevas o en calibradores existentes,\n"
+"                                    ayudando a modernizar procesos sin necesidad de reemplazar toda la línea."
+msgstr "It can be built into new lines or fitted to existing sizers, modernizing the process without replacing the whole line."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Mayor precisión de selección"
+msgstr "Greater sorting accuracy"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Menos variación en la clasificación"
+msgstr "Less variation in grading"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Mayor aprovechamiento del producto"
+msgstr "More of the crop put to use"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Integración en equipos existentes"
+msgstr "Integration into existing equipment"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "Datos más claros para la operación"
+msgstr "Clearer data for the operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_btn__label\">Conocer FlexQuality</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Discover FlexQuality</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "FlexQuality analizando tomate en línea"
+msgstr "FlexQuality inspecting tomatoes on the line"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_eyebrow\">Maquinaria</span>"
+msgstr "<span class=\"o_ferba_eyebrow\">Machinery</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_title__in\">Equipos para cada etapa del proceso</span>"
+msgstr "<span class=\"o_ferba_title__in\">Equipment for every stage of the process</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Diseñamos equipos que se integran de forma eficiente en líneas\n"
+"                                hortofrutícolas, cuidando el producto y mejorando el flujo de trabajo\n"
+"                                desde la recepción hasta el empaque final."
+msgstr "We design equipment that fits efficiently into fruit and vegetable lines, protecting the product and improving the workflow from receiving through to final packing."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_btn__label\">Ver toda la maquinaria</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View all machinery</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_eyebrow\">Frutos</span>"
+msgstr "<span class=\"o_ferba_eyebrow\">Produce</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_title__in\">Soluciones adaptadas a cada tipo de producto</span>"
+msgstr "<span class=\"o_ferba_title__in\">Solutions adapted to each type of product</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Cada fruto requiere un manejo diferente. Conoce las soluciones de FERBA\n"
+"                                según el producto que proceses y descubre qué maquinaria, automatización\n"
+"                                o integración Flex<span class=\"o_ferba_q\">Q</span>uality puede adaptarse a tu línea."
+msgstr "Every crop needs different handling. Explore FERBA solutions by the product you process and find out which machinery, automation or Flex<span class=\"o_ferba_q\">Q</span>uality integration fits your line."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_btn__label\">Ver todos los frutos</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View all produce</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "¿Listo para mejorar tu línea postcosecha?"
+msgstr "Ready to improve your postharvest line?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"Nuestro equipo está listo para ayudarte a diseñar la solución ideal\n"
+"                                para tu operación."
+msgstr "Our team is ready to help you design the right solution for your operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid ""
+"<strong>Caso de éxito</strong> — modernización de línea de aguacate:\n"
+"                                operación más uniforme, mayor control de calidad y mejor\n"
+"                                aprovechamiento del producto."
+msgstr "<strong>Success story</strong> — avocado line upgrade: steadier operation, tighter quality control and more of the crop put to use."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+msgid "<span class=\"o_ferba_btn__label\">Contactar a Ferba</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Contact Ferba</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_inicio
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_base
+msgid "Escríbenos por WhatsApp"
+msgstr "Message us on WhatsApp"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "Maquinaria postcosecha para<br/>cada <span class=\"o_ferba_hero__accent o_ferba_hero__accent--inline\">etapa</span> del proceso"
+msgstr "Postharvest machinery for<br/>every <span class=\"o_ferba_hero__accent o_ferba_hero__accent--inline\">stage</span> of the process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"Diseñamos, fabricamos e integramos maquinaria y sistemas de automatización\n"
+"                    para recepción, lavado, selección y empaque de frutas y hortalizas."
+msgstr "We design, manufacture and integrate machinery and automation systems for receiving, washing, sorting and packing fruits and vegetables."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "<span class=\"o_ferba_btn__label\">Ver categorías</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View categories</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "<span class=\"o_ferba_btn__label\">Cotizar maquinaria</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request a machinery quote</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "¿Buscas una máquina específica<br/>o una línea completa?"
+msgstr "Looking for one machine<br/>or a complete line?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar.\n"
+"                Nuestro equipo puede ayudarte a definir la solución más adecuada para tu operación."
+msgstr "Tell us what product you process, what capacity you need and which stage you want to improve. Our team can help you define the right solution for your operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "<span class=\"o_ferba_title__in\">Equipos diseñados para integrarse a tu línea</span>"
+msgstr "<span class=\"o_ferba_title__in\">Equipment designed to fit into your line</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"La maquinaria <strong>FERBA</strong> está desarrollada para trabajar dentro de\n"
+"                                líneas hortofrutícolas de alto rendimiento, cuidando el producto en cada etapa\n"
+"                                y mejorando el flujo de operación desde la recepción hasta el empaque final."
+msgstr "<strong>FERBA</strong> machinery is built to work inside high-performance fruit and vegetable lines, protecting the product at every stage and improving the flow of the operation from receiving through to final packing."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"Ya sea como equipo individual, modernización de una línea existente o parte\n"
+"                                de un proyecto completo, cada máquina puede configurarse de acuerdo con el\n"
+"                                fruto, volumen de proceso y objetivo productivo del cliente."
+msgstr "Whether as a standalone machine, an upgrade to an existing line or part of a complete project, every machine can be configured according to the crop, the throughput and the customer's production goals."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "Equipo FERBA en representación técnica"
+msgstr "FERBA equipment, technical rendering"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "Maquinaria por etapa"
+msgstr "Machinery by stage"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "Ver equipos"
+msgstr "View equipment"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "De equipos individuales a líneas completas"
+msgstr "From single machines to complete lines"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"Cada equipo puede trabajar de forma independiente o integrarse dentro de una línea\n"
+"                        completa de postcosecha. En <strong>FERBA</strong> diseñamos el flujo considerando\n"
+"                        el producto, espacio disponible, capacidad requerida y nivel de automatización deseado."
+msgstr "Each machine can work on its own or as part of a complete postharvest line. At <strong>FERBA</strong> we design the flow around the product, the space available, the capacity required and the level of automation the customer wants."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "Maquinaria adaptada al producto que procesas"
+msgstr "Machinery adapted to the product you process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid ""
+"Cada fruto requiere un manejo diferente. La configuración de una línea para tomate\n"
+"                            no es igual a una línea para mango, pepino, aguacate o cítricos. Adaptamos maquinaria,\n"
+"                            velocidad, materiales y sistemas según las características de cada producto."
+msgstr "Every crop needs different handling. A line set up for tomato is not the same as a line for mango, cucumber, avocado or citrus. We adapt machinery, speed, materials and systems to the characteristics of each product."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_maquinaria
+msgid "<span class=\"o_ferba_btn__label\">Ver soluciones por fruto</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View solutions by produce</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.en_construccion
+msgid "<span class=\"o_ferba_eyebrow\">En preparación</span>"
+msgstr "<span class=\"o_ferba_eyebrow\">In preparation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.en_construccion
+msgid "Estamos terminando esta sección"
+msgstr "We are finishing this section"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.en_construccion
+msgid ""
+"Muy pronto encontrarás aquí el contenido completo. Mientras tanto, el equipo de\n"
+"                    Ferba te atiende directamente: cuéntanos qué producto procesas y qué capacidad\n"
+"                    necesitas, y te proponemos la solución."
+msgstr "The full content will be here shortly. In the meantime, the Ferba team is at your service: tell us what product you process and what capacity you need, and we will propose the right solution."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.en_construccion
+msgid "<span class=\"o_ferba_btn__label\">Volver al inicio</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Back to home</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_privacidad
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_terminos
+msgid "Legal"
+msgstr "Legal"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_privacidad
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_terminos
+msgid "Documento en preparación por INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V."
+msgstr "Document in preparation by INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_privacidad
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_terminos
+msgid "¿Hablamos de tu línea?"
+msgstr "Shall we talk about your line?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_privacidad
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_terminos
+msgid "Cuéntanos qué producto procesas y qué capacidad necesitas."
+msgstr "Tell us what product you process and what capacity you need."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "<span class=\"o_ferba_eyebrow\">Ferba</span>"
+msgstr "<span class=\"o_ferba_eyebrow\">Ferba</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "Esa página no está aquí, pero nosotros sí"
+msgstr "That page is not here, but we are"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "Llámanos al"
+msgstr "Call us at"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid ", escríbenos a"
+msgstr ", email us at"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "o vuelve al inicio."
+msgstr "or go back to the home page."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "<span class=\"o_ferba_btn__label\">Ir al inicio</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Go to home</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.page_404_ferba
+msgid "<span class=\"o_ferba_btn__label\">Contactar</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Contact us</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "Soporte postventa<br/>para mantener tu línea<br/>en operación"
+msgstr "After-sales support<br/>to keep your line<br/>running"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid ""
+"En FERBA sabemos que una línea postcosecha no solo necesita buena maquinaria;\n"
+"                    también requiere soporte técnico, mantenimiento, capacitación y refacciones\n"
+"                    disponibles para operar con continuidad."
+msgstr "At FERBA we know that a postharvest line needs more than good machinery; it also needs technical support, maintenance, training and spare parts on hand to keep running."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid ""
+"Nuestro equipo acompaña a cada cliente después de la instalación, brindando\n"
+"                    atención técnica para resolver necesidades operativas, prevenir fallas y mantener\n"
+"                    los equipos trabajando de forma eficiente."
+msgstr "Our team stays with each customer after installation, providing technical attention to resolve operating needs, prevent failures and keep the equipment working efficiently."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "<span class=\"o_ferba_btn__label\">Solicitar soporte técnico</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request technical support</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "<span class=\"o_ferba_btn__label\">Cotizar refacciones</span>"
+msgstr "<span class=\"o_ferba_btn__label\">Request a spare parts quote</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "¿Necesitas soporte<br/>para tu línea FERBA?"
+msgstr "Need support<br/>for your FERBA line?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid ""
+"Cuéntanos qué equipo requiere atención, qué situación presenta y qué tipo de apoyo\n"
+"                necesitas. Nuestro equipo puede ayudarte con soporte técnico, mantenimiento,\n"
+"                capacitación o cotización de refacciones."
+msgstr "Tell us which equipment needs attention, what is happening and what kind of help you need. Our team can assist with technical support, maintenance, training or a spare parts quote."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "<span class=\"o_ferba_title__in\">Acompañamiento técnico después de la instalación</span>"
+msgstr "<span class=\"o_ferba_title__in\">Technical support after installation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid ""
+"Nuestro compromiso no termina cuando el equipo queda instalado. La postventa\n"
+"                                es parte esencial de cada proyecto FERBA, porque entendemos que la\n"
+"                                productividad de una empacadora depende de mantener sus líneas funcionando\n"
+"                                correctamente."
+msgstr "Our commitment does not end when the equipment is installed. After-sales is an essential part of every FERBA project, because we understand that a packinghouse's productivity depends on keeping its lines running properly."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid ""
+"Por eso ofrecemos servicios enfocados en diagnóstico, mantenimiento,\n"
+"                                capacitación y suministro de refacciones, ayudando a nuestros clientes a\n"
+"                                reducir tiempos muertos, cuidar sus equipos y mejorar la operación diaria."
+msgstr "That is why we offer services focused on diagnosis, maintenance, training and spare parts supply, helping our customers reduce downtime, look after their equipment and improve day-to-day operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "Taller de fabricación y servicio de FERBA"
+msgstr "FERBA manufacturing and service workshop"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "Servicios postventa FERBA"
+msgstr "FERBA after-sales services"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "Proceso rápido para recibir atención"
+msgstr "A quick way to get attention"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "<span class=\"o_ferba_title__in\">Para atenderte mejor, comparte esta información</span>"
+msgstr "<span class=\"o_ferba_title__in\">To help you better, share this information</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_postventa
+msgid "<span class=\"o_ferba_title__in\">Beneficios de contar con postventa FERBA</span>"
+msgstr "<span class=\"o_ferba_title__in\">What FERBA after-sales gives you</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Proyectos<br/><span class=\"o_ferba_hero__accent\">FERBA en operación</span>"
+msgstr "Projects<br/><span class=\"o_ferba_hero__accent\">FERBA in operation</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid ""
+"Conoce algunas de las líneas, equipos e integraciones desarrolladas por FERBA\n"
+"                    para empacadoras que buscan mejorar eficiencia, calidad y control en sus procesos\n"
+"                    postcosecha."
+msgstr "Take a look at some of the lines, equipment and integrations FERBA has built for packinghouses looking to improve efficiency, quality and control in their postharvest processes."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid ""
+"Cada proyecto refleja nuestra capacidad para diseñar, fabricar e integrar soluciones\n"
+"                    adaptadas al producto, espacio, capacidad y necesidades reales de operación."
+msgstr "Every project reflects our ability to design, manufacture and integrate solutions matched to the product, the space, the capacity and the real operating needs of the customer."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "¿Quieres desarrollar<br/>un proyecto con FERBA?"
+msgstr "Want to develop<br/>a project with FERBA?"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid ""
+"Cuéntanos qué producto procesas, cuál es tu capacidad actual y qué etapa necesitas\n"
+"                mejorar. Nuestro equipo puede ayudarte a diseñar una solución adaptada a tu operación."
+msgstr "Tell us what product you process, what your current capacity is and which stage you need to improve. Our team can help you design a solution that fits your operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<span class=\"o_ferba_title__in\">Soluciones reales para operaciones reales</span>"
+msgstr "<span class=\"o_ferba_title__in\">Real solutions for real operations</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid ""
+"En <strong>FERBA</strong> participamos en proyectos que van desde equipos\n"
+"                                individuales hasta líneas completas postcosecha, modernización de procesos,\n"
+"                                automatización o integración de tecnología de visión artificial."
+msgstr "At <strong>FERBA</strong> we take part in projects ranging from single machines to complete postharvest lines, process upgrades, automation and machine vision integration."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid ""
+"Nuestro enfoque combina ingeniería, fabricación, instalación y acompañamiento\n"
+"                                técnico para entregar soluciones funcionales, escalables y preparadas para la\n"
+"                                operación diaria de cada cliente."
+msgstr "Our approach combines engineering, manufacturing, installation and technical support to deliver solutions that work, that scale and that are ready for daily operation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Línea FERBA instalada en empacadora"
+msgstr "FERBA line installed at a packinghouse"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Galería de proyectos instalados"
+msgstr "Gallery of installed projects"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Ver proyecto"
+msgstr "View project"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<span class=\"o_ferba_btn__label\">Ver más proyectos</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View more projects</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Proyectos destacados"
+msgstr "Featured projects"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<span class=\"o_ferba_caso__eyebrow\">Caso de éxito</span>"
+msgstr "<span class=\"o_ferba_caso__eyebrow\">Success story</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<strong>Necesidad:</strong>"
+msgstr "<strong>Need:</strong>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<strong>Solución:</strong>"
+msgstr "<strong>Solution:</strong>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<strong>Resultado:</strong>"
+msgstr "<strong>Result:</strong>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<span class=\"o_ferba_btn__label\">Ver más casos de éxito</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View more success stories</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Videos de maquinaria en operación"
+msgstr "Machinery videos in operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "Maquinaria FERBA en operación"
+msgstr "FERBA machinery in operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_proyectos
+msgid "<span class=\"o_ferba_btn__label\">Ver más videos</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View more videos</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Ingeniería postcosecha<br/>con visión internacional"
+msgstr "Postharvest engineering<br/>with an international outlook"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid ""
+"<strong>FERBA</strong> es una marca especializada en el diseño, fabricación\n"
+"                    e integración de maquinaria agroindustrial para procesos postcosecha.\n"
+"                    Con raíces españolas y más de 20 años de enfoque en innovación tecnológica,\n"
+"                    desarrollamos soluciones para empacadoras que buscan mejor eficiencia,\n"
+"                    precisión y calidad."
+msgstr "<strong>FERBA</strong> is a company specialized in the design, manufacture and integration of agro-industrial machinery for postharvest processes. With Spanish roots and more than 20 years focused on technological innovation, we develop solutions for packinghouses seeking better efficiency, accuracy and quality."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<span>Presencia comercial en Estados Unidos, España, México y Perú</span>"
+msgstr "<span>Commercial presence in the United States, Spain, Mexico and Peru</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Construyamos una línea<br/>más eficiente para tu operación"
+msgstr "Let us build a more efficient<br/>line for your operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar."
+msgstr "Tell us what product you process, what capacity you need and which stage you want to improve."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<span class=\"o_ferba_title__in\">Tecnología para transformar la postcosecha</span>"
+msgstr "<span class=\"o_ferba_title__in\">Technology that transforms postharvest</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid ""
+"En <strong>FERBA</strong> desarrollamos maquinaria y sistemas para cada etapa del\n"
+"                                proceso postcosecha: recepción, lavado, secado, cepillado, transporte,\n"
+"                                selección, empaque y automatización."
+msgstr "At <strong>FERBA</strong> we develop machinery and systems for every stage of the postharvest process: receiving, washing, drying, brushing, conveying, sorting, packing and automation."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid ""
+"Combinamos experiencia industrial, conocimiento agrícola e innovación\n"
+"                                tecnológica para entregar soluciones que mejoran la eficiencia operativa,\n"
+"                                protegen la calidad del producto y generan valor a largo plazo."
+msgstr "We combine industrial experience, agricultural know-how and technological innovation to deliver solutions that improve operating efficiency, protect product quality and create long-term value."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Línea postcosecha FERBA en representación técnica"
+msgstr "FERBA postharvest line, technical rendering"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Nuestra historia"
+msgstr "Our history"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Lo que nos diferencia"
+msgstr "What sets us apart"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "Valores que impulsan nuestra ingeniería"
+msgstr "The values behind our engineering"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<text class=\"o_ferba_pin__rotulo\" x=\"54.9\" y=\"-10.05\">Estados Unidos</text>"
+msgstr "<text class=\"o_ferba_pin__rotulo\" x=\"54.9\" y=\"-10.05\">United States</text>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<text class=\"o_ferba_pin__rotulo\" x=\"31.15\" y=\"-10.05\">España</text>"
+msgstr "<text class=\"o_ferba_pin__rotulo\" x=\"31.15\" y=\"-10.05\">Spain</text>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<text class=\"o_ferba_pin__rotulo\" x=\"29.1\" y=\"5.6\">México</text>"
+msgstr "<text class=\"o_ferba_pin__rotulo\" x=\"29.1\" y=\"5.6\">Mexico</text>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<text class=\"o_ferba_pin__rotulo\" x=\"18.75\" y=\"5.35\">Perú</text>"
+msgstr "<text class=\"o_ferba_pin__rotulo\" x=\"18.75\" y=\"5.35\">Peru</text>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid "<span class=\"o_ferba_title__in\">Presencia internacional</span>"
+msgstr "<span class=\"o_ferba_title__in\">International presence</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_quienes_somos
+msgid ""
+"Nuestra presencia comercial refleja el crecimiento de una marca enfocada\n"
+"                            en responder a las necesidades de empacadoras, productores y agroindustrias\n"
+"                            que buscan tecnología confiable para sus procesos postcosecha."
+msgstr "Our commercial presence reflects the growth of a company focused on answering the needs of packinghouses, growers and agribusinesses looking for reliable technology for their postharvest processes."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Soluciones postcosecha<br/>diseñadas para tu operación"
+msgstr "Postharvest solutions<br/>designed for your operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Integramos maquinaria, automatizaciones y tecnología para mejorar el flujo,\n"
+"                    la eficiencia y la calidad en líneas de frutas y hortalizas."
+msgstr "We integrate machinery, automation and technology to improve the flow, the efficiency and the quality of fruit and vegetable lines."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Desde líneas completas hasta modernización de equipos existentes, en FERBA\n"
+"                    desarrollamos soluciones adaptadas al producto, capacidad, espacio y objetivos\n"
+"                    de cada cliente."
+msgstr "From complete lines to upgrades of existing equipment, at FERBA we develop solutions matched to each customer's product, capacity, space and objectives."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span class=\"o_ferba_btn__label\">Ver soluciones</span>"
+msgstr "<span class=\"o_ferba_btn__label\">View solutions</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Diseñemos la solución ideal<br/>para tu línea"
+msgstr "Let us design the right solution<br/>for your line"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar.\n"
+"                Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa,\n"
+"                modernización, automatización o un proyecto llave en mano."
+msgstr "Tell us what product you process, what capacity you need and which stage you want to improve. Our team can help you decide whether your operation calls for a complete line, an upgrade, automation or a turnkey project."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Línea de selección FERBA en operación"
+msgstr "FERBA grading line in operation"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span class=\"o_ferba_title__in\">Cada línea requiere una solución diferente</span>"
+msgstr "<span class=\"o_ferba_title__in\">Every line calls for a different solution</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"No todos los empaques y productores tienen el mismo producto, volumen,\n"
+"                                espacio o nivel de automatización. Por eso en FERBA analizamos cada\n"
+"                                proyecto de forma integral para definir la maquinaria, distribución,\n"
+"                                flujo de proceso y tecnología más adecuada."
+msgstr "Not every packinghouse and grower has the same product, volume, space or level of automation. That is why at FERBA we look at each project as a whole to define the right machinery, layout, process flow and technology."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Nuestro enfoque combina experiencia postcosecha, fabricación de\n"
+"                                maquinaria, integración de equipos y acompañamiento técnico para\n"
+"                                construir soluciones eficientes, escalables y adaptadas a la operación\n"
+"                                real del cliente."
+msgstr "Our approach combines postharvest experience, machinery manufacturing, equipment integration and technical support to build efficient, scalable solutions that fit how the customer really operates."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Nuestras soluciones"
+msgstr "Our solutions"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Ideal para:"
+msgstr "Right for:"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Nuestro proceso de trabajo"
+msgstr "How we work"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Soluciones adaptadas al producto que procesas"
+msgstr "Solutions adapted to the product you process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Cada fruto requiere un manejo diferente. Adaptamos maquinaria, lavado,\n"
+"                                cepillado, selección, empaque y flejado según las características físicas\n"
+"                                y comerciales de cada producto."
+msgstr "Every crop needs different handling. We adapt machinery, washing, brushing, sorting, packing and strapping to the physical and commercial characteristics of each product."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Tomate, pepino, pimiento, aguacate, calabaza, mango, melón, entre otros."
+msgstr "Tomato, cucumber, bell pepper, avocado, squash, mango, melon and more."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Ver soluciones por fruto"
+msgstr "View solutions by produce"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Integra visión artificial a tu proceso postcosecha"
+msgstr "Add machine vision to your postharvest process"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Las soluciones FERBA pueden incorporar Flex<span class=\"o_ferba_q\">Q</span>uality\n"
+"                                para llevar la selección a un nuevo nivel de precisión."
+msgstr "FERBA solutions can incorporate Flex<span class=\"o_ferba_q\">Q</span>uality to take sorting to a new level of accuracy."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Con sus versiones Full y Lite, es posible integrar inspección visual en\n"
+"                                líneas nuevas o calibradores existentes, analizando la calidad del fruto."
+msgstr "With its Full and Lite versions, visual inspection can be built into new lines or fitted to existing sizers, analyzing the quality of the crop."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "<span>Conocer Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+msgstr "<span>Discover Flex<span class=\"o_ferba_q\">Q</span>uality</span>"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Presencia internacional"
+msgstr "International presence"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid ""
+"Nuestra presencia comercial en Estados Unidos, España, México y Perú\n"
+"                                refleja el crecimiento de una marca enfocada en entregar soluciones de\n"
+"                                alto rendimiento para la agroindustria global."
+msgstr "Our commercial presence in the United States, Spain, Mexico and Peru reflects the growth of a company focused on delivering high-performance solutions for agribusiness worldwide."
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Presencia comercial de FERBA"
+msgstr "FERBA commercial presence"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Estados Unidos"
+msgstr "United States"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "España"
+msgstr "Spain"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "México"
+msgstr "Mexico"
+
+#. module: ferba_website
+#: model_terms:ir.ui.view,arch_db:ferba_website.pagina_soluciones
+msgid "Perú"
+msgstr "Peru"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_inicio
+msgid "Maquinaria y líneas postcosecha para empacadoras | FERBA"
+msgstr "Postharvest machinery and lines for packinghouses | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_inicio
+msgid "Diseñamos, fabricamos e integramos maquinaria y automatización para recepción, lavado, selección y empaque de frutas y hortalizas."
+msgstr "We design, manufacture and integrate machinery and automation for receiving, washing, sorting and packing fruits and vegetables."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_quienes_somos
+msgid "Quiénes somos | FERBA Postharvest Technology"
+msgstr "About us | FERBA Postharvest Technology"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_quienes_somos
+msgid "Diseño, fabricación e integración de maquinaria agroindustrial postcosecha. Raíces españolas, más de 20 años y presencia en Estados Unidos, España, México y Perú."
+msgstr "Design, manufacture and integration of agro-industrial postharvest machinery. Spanish roots, more than 20 years and presence in the United States, Spain, Mexico and Peru."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_soluciones
+msgid "Soluciones postcosecha a la medida de tu operación | FERBA"
+msgstr "Postharvest solutions tailored to your operation | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_soluciones
+msgid "Líneas completas, modernización de equipos existentes, automatización y proyectos llave en mano, adaptados al producto, la capacidad y el espacio de cada cliente."
+msgstr "Complete lines, upgrades to existing equipment, automation and turnkey projects, matched to each customer's product, capacity and space."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_maquinaria
+msgid "Maquinaria postcosecha por etapa del proceso | FERBA"
+msgstr "Postharvest machinery by process stage | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_maquinaria
+msgid "Equipos para recepción, lavado, secado y cepillado, transporte, selección y calibrado, empaque, automatización y sembradoras."
+msgstr "Equipment for receiving, washing, drying and brushing, conveying, sorting and sizing, packing, automation and seeders."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_flexquality
+msgid "FlexQuality: selección con visión artificial e IA | FERBA"
+msgstr "FlexQuality: sorting with machine vision and AI | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_flexquality
+msgid "FlexQuality analiza cada fruto en tiempo real (color, tamaño, forma, calidad y defectos) y se integra en líneas nuevas o en calibradores existentes."
+msgstr "FlexQuality analyzes every piece of produce in real time (color, size, shape, quality and defects) and fits into new lines or existing sizers."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_frutos
+msgid "Soluciones postcosecha por tipo de fruto | FERBA"
+msgstr "Postharvest solutions by type of produce | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_frutos
+msgid "Tomate, pepino, pimiento, calabaza, mango, melón, aguacate, cítricos, espárrago y sandía: maquinaria y líneas adaptadas a cada producto."
+msgstr "Tomato, cucumber, bell pepper, squash, mango, melon, avocado, citrus, asparagus and watermelon: machinery and lines adapted to each product."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_proyectos
+msgid "Proyectos e instalaciones postcosecha | FERBA"
+msgstr "Postharvest projects and installations | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_proyectos
+msgid "Líneas, equipos e integraciones desarrolladas por FERBA para empacadoras que buscan mejorar la eficiencia, la calidad y el control de sus procesos postcosecha."
+msgstr "Lines, equipment and integrations built by FERBA for packinghouses looking to improve the efficiency, quality and control of their postharvest processes."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_postventa
+msgid "Soporte postventa, mantenimiento y refacciones | FERBA"
+msgstr "After-sales support, maintenance and spare parts | FERBA"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_postventa
+msgid "Soporte técnico, mantenimiento, capacitación y refacciones para que tu línea postcosecha opere con continuidad y al máximo rendimiento."
+msgstr "Technical support, maintenance, training and spare parts to keep your postharvest line running at its best."
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_title:ferba_website.pagina_contacto
+msgid "Contacto | FERBA Postharvest Technology"
+msgstr "Contact | FERBA Postharvest Technology"
+
+#. module: ferba_website
+#: model:ir.ui.view,website_meta_description:ferba_website.pagina_contacto
+msgid "Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Culiacán, Sinaloa. Teléfono +52 667 121 7267, ventas@ferba.net."
+msgstr "Tell us what product you process, what capacity you need and which stage you want to improve. Culiacan, Sinaloa. Phone +52 667 121 7267, ventas@ferba.net."

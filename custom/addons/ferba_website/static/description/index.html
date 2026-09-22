@@ -1,0 +1,102 @@
+<!-- Ficha del módulo en Aplicaciones. Odoo lee este archivo y lo limpia
+     antes de mostrarlo: descarta las hojas de estilo y los guiones, y por eso
+     todo el estilo va en atributos style. Las rutas de imagen relativas se
+     reescriben a /ferba_website/static/description/. -->
+<section style="padding: 32px 0; font-family: inherit;">
+    <div style="max-width: 900px; margin: 0 auto; padding: 0 16px;">
+
+        <p style="margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #e41b17; font-weight: 700;">
+            Industrias Tecnológicas EMP
+        </p>
+        <h2 style="margin: 0 0 12px; font-size: 32px; line-height: 1.15; color: #1d1d1b;">
+            Sitio web de FERBA
+        </h2>
+        <div style="width: 64px; height: 4px; background-color: #e41b17; margin-bottom: 20px;"></div>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #3c3c3a; margin: 0 0 12px;">
+            Sitio público de FERBA Postharvest Technology: nueve páginas, cabecera y pie propios,
+            y las páginas legales, construidas sobre el constructor de sitios web de Odoo 19 con
+            la identidad que entregó el cliente.
+        </p>
+        <p style="font-size: 16px; line-height: 1.6; color: #3c3c3a; margin: 0 0 28px;">
+            El módulo trae el diseño completo: no depende de un tema de pago ni de recursos
+            externos. Tipografía, imágenes y hojas de estilo viajan dentro del propio módulo.
+        </p>
+
+        <h3 style="margin: 0 0 12px; font-size: 20px; color: #1d1d1b;">Páginas</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: 15px;">
+            <tbody>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Portada: qué hace FERBA, FlexQuality, maquinaria por etapa y frutos</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/quienes-somos</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Historia, valores y presencia comercial en cuatro países</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/soluciones</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Líneas completas, modernización, automatización y proyectos llave en mano</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/maquinaria</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Equipos por etapa del proceso, de la recepción al empaque</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/flexquality</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Sistema de inspección visual: versiones Full y Lite, parámetros y beneficios</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/frutos</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Diez productos con su tratamiento y anclas desde la portada</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/proyectos</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Instalaciones y trabajos realizados</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/postventa</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Soporte, mantenimiento, capacitación y refacciones</td>
+                </tr>
+                <tr style="border-top: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 9px 12px 9px 0; color: #6b6b68; white-space: nowrap;">/contactenos</td>
+                    <td style="padding: 9px 0; color: #3c3c3a;">Formulario, mapa, horarios y vías de contacto directo</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="margin: 0 0 12px; font-size: 20px; color: #1d1d1b;">Cómo está hecho</h3>
+        <ul style="font-size: 15px; line-height: 1.7; color: #3c3c3a; margin: 0 0 28px; padding-left: 20px;">
+            <li>Plantillas QWeb heredadas de <code>website.layout</code>: la cabecera y el pie del
+                sitio se inyectan en los de Odoo y solo se muestran en las páginas del módulo.</li>
+            <li>Paleta, tipografía y medidas centralizadas en variables SCSS; el resto de las hojas
+                se apoya en ellas, así que un cambio de marca se hace en un solo archivo.</li>
+            <li>Poppins autoalojada en WOFF2 e imágenes en WebP con ancho y alto declarados, para
+                que la maquetación no salte mientras cargan.</li>
+            <li>Aparición progresiva de las secciones al desplazar, con un solo observador y
+                respetando la preferencia de movimiento reducido del sistema.</li>
+            <li>Formulario de contacto propio, con validación en el servidor, control de origen,
+                límite de peso en los adjuntos y aviso por correo al equipo comercial.</li>
+            <li>Registro de interés por página en un modelo propio, para saber qué secciones
+                consulta quien pide una cotización.</li>
+        </ul>
+
+        <h3 style="margin: 0 0 12px; font-size: 20px; color: #1d1d1b;">Al instalar o actualizar</h3>
+        <ul style="font-size: 15px; line-height: 1.7; color: #3c3c3a; margin: 0 0 28px; padding-left: 20px;">
+            <li>La portada de FERBA queda en <code>/</code> y se retira la que trae Odoo de fábrica.</li>
+            <li>Se retiran del sitio las páginas y rutas que Odoo publica por su cuenta y que no
+                forman parte de FERBA, y <code>/contactus</code> redirige al contacto del sitio.</li>
+            <li>Las nueve páginas de contenido quedan indexables, con título y descripción propios
+                para buscadores. Las dos páginas legales quedan fuera del índice mientras su texto
+                esté en preparación.</li>
+            <li>Las direcciones de las páginas son configuración del sitio: una vez creadas se
+                cambian desde Sitio web y las actualizaciones del módulo no las pisan.</li>
+        </ul>
+
+        <p style="font-size: 13px; color: #6b6b68; border-top: 1px solid #e0e0e0; padding-top: 16px; margin: 0;">
+            Desarrollado por Simdata Group para INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V.
+            Requiere Odoo 19 con Sitio web. Licencia LGPL-3.
+        </p>
+
+    </div>
+</section>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Andamio de las páginas interiores
+
+         Los 8 PDFs comparten la misma anatomía: hero con foto a la derecha
+         y dos botones, contenido propio, y una banda roja de cierre con la
+         foto cortada en diagonal. Eso es lo que vive aquí; cada página
+         pone su contenido en el cuerpo del t-call y ajusta el cierre con
+         cierre_titulo / cierre_texto / cierre_acciones / cierre_foto.
+         ================================================================ -->
+
+    <template id="pagina_base" name="Ferba — página interior (base)">
+        <t t-call="website.layout">
+            <script type="text/javascript">document.documentElement.classList.add('o_ferba_js');</script>
+            <div id="wrap" class="o_ferba o_ferba_page">
+
+                <section t-attf-class="o_ferba_hero o_ferba_hero--interior #{clase_hero or ''}">
+                    <div class="o_ferba_hero__media"
+                         t-attf-style="background-image:url('/ferba_website/static/src/img/#{fondo}')"/>
+                    <div class="o_ferba_container o_ferba_hero__inner">
+                        <div class="o_ferba_hero__text">
+                            <span t-if="antetitulo" class="o_ferba_eyebrow" t-out="antetitulo"/>
+                            <h1 t-attf-class="o_ferba_hero__title #{clase_titulo or ''}"><t t-out="titulo"/></h1>
+                            <p t-if="subtitulo" class="o_ferba_hero__subtitulo"><t t-out="subtitulo"/></p>
+                            <span class="o_ferba_rule"/>
+                            <t t-out="intro"/>
+                            <div t-if="acciones" class="o_ferba_hero__actions"><t t-out="acciones"/></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- cuerpo de la página que llama -->
+                <t t-out="0"/>
+
+                <t t-call="ferba_website.cierre"/>
+
+                <a href="https://wa.me/526671217267?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20maquinaria%20postcosecha"
+                   class="o_ferba_whatsapp" target="_blank" rel="noopener"
+                   aria-label="Escríbenos por WhatsApp">
+                    <t t-call="ferba_website.icono_whatsapp"/>
+                </a>
+            </div>
+        </t>
+    </template>
+
+    <!-- Banda roja de cierre. Los dos botones son el par que repite el
+         diseño en las 8 páginas: uno sólido blanco y uno de contorno. -->
+    <template id="cierre" name="Ferba — banda de cierre">
+        <section class="o_ferba_cierre o_ferba_reveal">
+            <div class="o_ferba_cierre__foto"
+                 t-attf-style="--ferba-foto:url('/ferba_website/static/src/img/#{cierre_foto or 'proyectos-07-1152x648.webp'}')"/>
+            <div class="o_ferba_container o_ferba_cierre__inner">
+                <div>
+                    <h2 class="o_ferba_cierre__titulo"><t t-out="cierre_titulo"/></h2>
+                    <p class="o_ferba_cierre__texto"><t t-out="cierre_texto"/></p>
+                </div>
+                <div class="o_ferba_cierre__acciones">
+                    <t t-if="cierre_acciones"><t t-out="cierre_acciones"/></t>
+                    <t t-else="">
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                            <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                        <a href="/maquinaria" class="o_ferba_btn o_ferba_btn--ghost">
+                            <span class="o_ferba_btn__label">Ver maquinaria</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </t>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- Encabezado de sección centrado: el patrón dominante de las
+         interiores (título en versalitas + regla roja + texto de apoyo). -->
+    <template id="titulo_seccion" name="Ferba — título de sección">
+        <div t-attf-class="o_ferba_seccion_titulo #{'o_ferba_seccion_titulo--llano' if llano else ''} o_ferba_reveal">
+            <h2 class="o_ferba_title"><span class="o_ferba_title__in"><t t-out="titulo"/></span></h2>
+            <span class="o_ferba_rule"/>
+            <p t-if="texto" class="o_ferba_seccion_titulo__texto"><t t-out="texto"/></p>
+        </div>
+    </template>
+
+    <!-- Aviso de "en construcción", honesto y con salida.
+         Lo siguen usando las dos páginas legales, cuyo texto lo tiene que
+         redactar Ferba: aquí no se inventa un aviso de privacidad. -->
+    <template id="en_construccion" name="Ferba — sección en preparación">
+        <section class="o_ferba_section o_ferba_section--light">
+            <div class="o_ferba_container o_ferba_stub">
+                <span class="o_ferba_eyebrow">En preparación</span>
+                <h2 class="o_ferba_title">Estamos terminando esta sección</h2>
+                <span class="o_ferba_rule"/>
+                <p class="o_ferba_stub__text">
+                    Muy pronto encontrarás aquí el contenido completo. Mientras tanto, el equipo de
+                    Ferba te atiende directamente: cuéntanos qué producto procesas y qué capacidad
+                    necesitas, y te proponemos la solución.
+                </p>
+                <div class="o_ferba_stub__actions">
+                    <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid">
+                        <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                        <t t-call="ferba_website.flecha"/>
+                    </a>
+                    <a href="/" class="o_ferba_btn o_ferba_btn--outline-red">
+                        <span class="o_ferba_btn__label">Volver al inicio</span>
+                        <t t-call="ferba_website.flecha"/>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- ================ Legales ================
+         El texto legal lo entrega Ferba; aquí no se inventa. -->
+
+    <template id="pagina_privacidad" track="True" name="Ferba — Aviso de privacidad">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="antetitulo">Legal</t>
+            <t t-set="titulo">Aviso de privacidad</t>
+            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
+            <t t-set="fondo">quienes-somos-01-1171x659.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Documento en preparación por INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V.
+                </p>
+            </t>
+            <t t-set="cierre_titulo">¿Hablamos de tu línea?</t>
+            <t t-set="cierre_texto">Cuéntanos qué producto procesas y qué capacidad necesitas.</t>
+            <t t-call="ferba_website.en_construccion"/>
+        </t>
+    </template>
+
+    <template id="pagina_terminos" track="True" name="Ferba — Términos y condiciones">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="antetitulo">Legal</t>
+            <t t-set="titulo">Términos y condiciones</t>
+            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
+            <t t-set="fondo">quienes-somos-01-1171x659.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Documento en preparación por INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V.
+                </p>
+            </t>
+            <t t-set="cierre_titulo">¿Hablamos de tu línea?</t>
+            <t t-set="cierre_texto">Cuéntanos qué producto procesas y qué capacidad necesitas.</t>
+            <t t-call="ferba_website.en_construccion"/>
+        </t>
+    </template>
+
+    <!-- ================ 404 ================
+         Se AÑADE dentro del #wrap del 404 nativo en vez de reemplazarlo:
+         así no depende de la estructura interna de Odoo para no romperse, y
+         el visitante que se pierde encuentra marca, teléfono y camino.
+         Verificado contra odoo/odoo 19.0: la vista es http_routing.404
+         (addons/http_routing/views/http_routing_template.xml), llama a
+         web.frontend_layout y trae <div id="wrap">. -->
+    <template id="page_404_ferba" inherit_id="http_routing.404" name="Ferba — 404">
+        <!-- El #wrap se marca como página de Ferba: así el CSS enseña la
+             cabecera y el pie de Ferba y esconde los de Odoo, igual que en
+             las demás páginas. Sin esto el 404 salía con la cabecera del
+             tema de fábrica (barra promocional, buscador, «Empleos»,
+             «Contáctenos») encima de nuestra sección. El bloque nativo del
+             fantasma se oculta por CSS (.o_ferba_404_wrap > .oe_structure)
+             y nuestro titular pasa a ser el h1 de la página. -->
+        <xpath expr="//div[@id='wrap']" position="attributes">
+            <attribute name="class">o_ferba o_ferba_page o_ferba_404_wrap</attribute>
+        </xpath>
+        <xpath expr="//div[@id='wrap']" position="inside">
+            <section class="o_ferba o_ferba_section o_ferba_section--dark o_ferba_404">
+                <div class="o_ferba_container o_ferba_stub">
+                    <span class="o_ferba_eyebrow">Ferba</span>
+                    <h1 class="o_ferba_title">Esa página no está aquí, pero nosotros sí</h1>
+                    <span class="o_ferba_rule"/>
+                    <p class="o_ferba_stub__text">
+                        Llámanos al <a href="tel:+526671217267">+52 667 121 7267</a>, escríbenos a
+                        <a href="mailto:ventas@ferba.net">ventas@ferba.net</a> o vuelve al inicio.
+                    </p>
+                    <div class="o_ferba_stub__actions">
+                        <a href="/" class="o_ferba_btn o_ferba_btn--solid">
+                            <span class="o_ferba_btn__label">Ir al inicio</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                            <span class="o_ferba_btn__label">Contactar</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </xpath>
+    </template>
+
+</odoo>

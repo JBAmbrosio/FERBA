@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         POSTVENTA  —  réplica de "POSTVENTA.pdf"
+         ================================================================ -->
+    <template id="pagina_postventa" track="True" name="Ferba — Postventa">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Soporte postventa<br/>para mantener tu línea<br/>en operación</t>
+            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
+            <t t-set="fondo">postventa-01-1556x1037.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    En FERBA sabemos que una línea postcosecha no solo necesita buena maquinaria;
+                    también requiere soporte técnico, mantenimiento, capacitación y refacciones
+                    disponibles para operar con continuidad.
+                </p>
+                <p class="o_ferba_hero__lead">
+                    Nuestro equipo acompaña a cada cliente después de la instalación, brindando
+                    atención técnica para resolver necesidades operativas, prevenir fallas y mantener
+                    los equipos trabajando de forma eficiente.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Solicitar soporte técnico</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Cotizar refacciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">¿Necesitas soporte<br/>para tu línea FERBA?</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué equipo requiere atención, qué situación presenta y qué tipo de apoyo
+                necesitas. Nuestro equipo puede ayudarte con soporte técnico, mantenimiento,
+                capacitación o cotización de refacciones.
+            </t>
+            <t t-set="cierre_foto">postventa-07-1920x1280.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Solicitar soporte técnico</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Cotizar refacciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Acompañamiento técnico ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split">
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Acompañamiento técnico después de la instalación</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                Nuestro compromiso no termina cuando el equipo queda instalado. La postventa
+                                es parte esencial de cada proyecto FERBA, porque entendemos que la
+                                productividad de una empacadora depende de mantener sus líneas funcionando
+                                correctamente.
+                            </p>
+                            <p>
+                                Por eso ofrecemos servicios enfocados en diagnóstico, mantenimiento,
+                                capacitación y suministro de refacciones, ayudando a nuestros clientes a
+                                reducir tiempos muertos, cuidar sus equipos y mejorar la operación diaria.
+                            </p>
+                        </div>
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/postventa-02-768x432.webp"
+                                 alt="Taller de fabricación y servicio de FERBA"
+                                 width="768" height="432" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Servicios postventa ============ -->
+            <section class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Servicios postventa FERBA</t>
+                    </t>
+                    <t t-set="servicios" t-value="[
+                        ('postventa-03-1037x692.webp', 'pv-servicio.svg', 'Servicio técnico',
+                         'Brindamos apoyo técnico para diagnóstico y solución de fallas en equipos y líneas de proceso.',
+                         'Nuestro equipo puede orientar al cliente a distancia o coordinar atención presencial cuando el caso lo requiera.',
+                         'Solicitar apoyo técnico'),
+                        ('postventa-04-807x454.webp', 'pv-mantenimiento.svg', 'Mantenimiento',
+                         'Ofrecemos servicios de mantenimiento preventivo y correctivo para prolongar la vida útil de los equipos y mantener la línea operando con seguridad y eficiencia.',
+                         'El mantenimiento puede programarse de acuerdo con las necesidades de operación de cada cliente.',
+                         'Agendar mantenimiento'),
+                        ('postventa-05-1037x692.webp', 'pv-capacitacion.svg', 'Capacitación',
+                         'Capacitamos al personal operativo y técnico para asegurar el uso correcto de los equipos, mejorar la operación diaria y reducir errores por manejo inadecuado.',
+                         'La capacitación puede enfocarse en operación, limpieza, seguridad, ajustes básicos y buenas prácticas de mantenimiento.',
+                         'Solicitar capacitación'),
+                        ('postventa-06-1546x1031.webp', 'pv-refacciones.svg', 'Refacciones',
+                         'Suministramos componentes y refacciones para equipos FERBA, ayudando a mantener la continuidad operativa de las líneas postcosecha.',
+                         'Nuestro equipo puede apoyar en la identificación de piezas, revisión de necesidades y cotización de refacciones específicas.',
+                         'Cotizar refacciones'),
+                    ]"/>
+                    <div class="o_ferba_fichas" data-ferba-grupo="servicios">
+                        <t t-foreach="servicios" t-as="s">
+                            <article class="o_ferba_solucion o_ferba_reveal">
+                                <div class="o_ferba_solucion__media">
+                                    <span class="o_ferba_solucion__foto">
+                                        <img t-attf-src="/ferba_website/static/src/img/#{s[0]}" t-att-alt="s[2]" loading="lazy"/>
+                                    </span>
+                                    <span class="o_ferba_solucion__icono">
+                                        <img t-attf-src="/ferba_website/static/src/img/iconos/#{s[1]}" alt=""/>
+                                    </span>
+                                </div>
+                                <div class="o_ferba_solucion__cuerpo">
+                                    <h3 class="o_ferba_solucion__titulo" t-out="s[2]"/>
+                                    <p class="o_ferba_solucion__texto" t-out="s[3]"/>
+                                    <p class="o_ferba_solucion__texto" t-out="s[4]"/>
+                                    <a href="/contactenos" class="o_ferba_solucion__enlace">
+                                        <t t-out="s[5]"/>
+                                        <t t-call="ferba_website.flecha"/>
+                                    </a>
+                                </div>
+                            </article>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Proceso rápido para recibir atención ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Proceso rápido para recibir atención</t>
+                    </t>
+                    <t t-set="pasos" t-value="[
+                        ('paso-identifica.svg',  'Identifica el equipo',   'Indica el tipo de máquina, modelo o etapa de la línea donde se presenta la necesidad.'),
+                        ('paso-describe.svg',    'Describe la situación',  'Comparte el problema, síntoma, falla o requerimiento técnico que necesitas atender.'),
+                        ('paso-evidencia.svg',   'Envía evidencia',        'Agrega fotos, videos o información de operación para facilitar el diagnóstico inicial.'),
+                        ('paso-orientacion.svg', 'Recibe orientación',     'Nuestro equipo revisa la información y brinda apoyo técnico, recomendación de mantenimiento o solicitud de refacciones.'),
+                        ('paso-coordina.svg',    'Coordina la solución',   'Según el caso, se agenda servicio, se cotizan piezas o se da seguimiento a distancia.'),
+                    ]"/>
+                    <div class="o_ferba_pasos" style="--ferba-cols:5" data-ferba-grupo="pasos">
+                        <t t-foreach="pasos" t-as="p">
+                            <div class="o_ferba_paso o_ferba_reveal">
+                                <span class="o_ferba_paso__num" t-out="p_index + 1"/>
+                                <div class="o_ferba_paso__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/iconos/#{p[0]}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_paso__titulo" t-out="p[1]"/>
+                                <p class="o_ferba_paso__texto" t-out="p[2]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Qué compartir + beneficios ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_dos_col">
+
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Para atenderte mejor, comparte esta información</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <t t-set="datos" t-value="[
+                                'Nombre de la empresa',
+                                'Descripción del problema o requerimiento',
+                                'Nombre y teléfono de contacto',
+                                'Fotos o video del equipo',
+                                'Ubicación de la línea',
+                                'Urgencia del servicio',
+                                'Equipo o máquina involucrada',
+                                'Refacción requerida (si aplica)',
+                                'Fruto que procesa',
+                            ]"/>
+                            <ul class="o_ferba_checks">
+                                <t t-foreach="datos" t-as="d">
+                                    <li>
+                                        <img src="/ferba_website/static/src/img/iconos/check-rojo.svg" alt=""/>
+                                        <span t-out="d"/>
+                                    </li>
+                                </t>
+                            </ul>
+                        </div>
+
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Beneficios de contar con postventa FERBA</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <t t-set="beneficios" t-value="[
+                                ('benpv-tiempos.svg',      'Menos tiempos muertos',      'Atención enfocada en reducir interrupciones y mantener la línea operando.'),
+                                ('benpv-vida.svg',         'Mayor vida útil del equipo', 'Mantenimiento adecuado para conservar el rendimiento de la maquinaria.'),
+                                ('benpv-segura.svg',       'Operación más segura',       'Capacitación y buenas prácticas para el uso correcto de los equipos.'),
+                                ('benpv-diagnostico.svg',  'Diagnóstico más rápido',     'Soporte técnico con información visual para identificar necesidades con mayor precisión.'),
+                                ('benpv-refacciones.svg',  'Refacciones adecuadas',      'Apoyo para ubicar y cotizar componentes compatibles con los equipos FERBA.'),
+                                ('benpv-rendimiento.svg',  'Mejor rendimiento operativo','Acompañamiento para que la maquinaria trabaje de forma eficiente y constante.'),
+                            ]"/>
+                            <div class="o_ferba_benef">
+                                <t t-foreach="beneficios" t-as="b">
+                                    <div class="o_ferba_benef__item">
+                                        <img t-attf-src="/ferba_website/static/src/img/iconos/#{b[0]}" alt=""
+                                             class="o_ferba_benef__icono" loading="lazy"/>
+                                        <div>
+                                            <h3 class="o_ferba_benef__titulo" t-out="b[1]"/>
+                                            <p class="o_ferba_benef__texto" t-out="b[2]"/>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

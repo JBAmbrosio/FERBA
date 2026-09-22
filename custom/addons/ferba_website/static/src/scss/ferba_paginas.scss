@@ -1,0 +1,1878 @@
+// =====================================================================
+//  Ferba — componentes de las 8 páginas interiores
+//
+//  Se carga DESPUÉS de ferba_website.scss y reutiliza sus tokens
+//  (ferba_variables.scss). Aquí solo van patrones que la portada no usa:
+//  hitos, valores, pasos, tarjetas de solución, flujo de línea, versiones
+//  de FlexQuality, casos de éxito, formulario…
+//
+//  Regla de la casa: nada de utilidades sueltas en el marcado; cada bloque
+//  del diseño tiene su clase con prefijo o_ferba_.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+//  Hero de página interior
+//  Misma anatomía que el de INICIO (texto a la izquierda, foto a la
+//  derecha) porque así lo dibujan los 8 PDFs. Cambia el alto y que el
+//  titular puede ir en caja baja (PROYECTOS, POSTVENTA, FLEXQUALITY).
+// ---------------------------------------------------------------------
+.o_ferba_hero--interior {
+    min-height: 440px;
+
+    .o_ferba_hero__text { padding-block: 3.2rem; max-width: 40rem; }
+    .o_ferba_hero__title { margin-bottom: 1.1rem; }
+
+    // El título del hero interior es más corto que el de portada: una
+    // pizca más chico deja sitio a los dos párrafos sin empujar el pliegue.
+    .o_ferba_hero__title { font-size: clamp(1.8rem, 3.4vw, 2.45rem); }
+
+    .o_ferba_rule { margin-bottom: 1.6rem; }
+
+    @media (max-width: 991px) {
+        .o_ferba_hero__text { padding-block: 2.2rem; }
+    }
+}
+
+// Titular en caja baja: "Proyectos FERBA en operación", "Soporte postventa…"
+.o_ferba_hero__title--llano { text-transform: none; }
+
+// "FlexQuality" a tamaño display, como en la portada de su PDF (60 pt).
+// Portada con la máquina ENTERA (SOLUCIONES). La foto es 4:3 y la portada
+// interior de siempre le daba una caja de 62 % x 440 px: la ensacadora
+// multicabezal salía decapitada y sin patas. Aquí la foto ocupa la mitad
+// derecha y la portada crece a 600 px, de modo que la caja tiene casi la
+// proporción de la foto y el recorte se va a los laterales, que son nave
+// vacía.
+.o_ferba_hero--entera {
+    min-height: 600px;
+
+    .o_ferba_hero__media { inset: 0 0 0 52%; background-position: center; }
+    // La foto empieza donde acaba el texto: fundido más corto que en portada.
+    .o_ferba_hero__media::after {
+        background: linear-gradient(90deg,
+            $ferba-black 0%,
+            rgba(0, 0, 0, .78) 12%,
+            rgba(0, 0, 0, .22) 32%,
+            rgba(0, 0, 0, 0)   50%);
+    }
+    .o_ferba_hero__text { max-width: 44rem; }
+
+    @media (max-width: 991px) {
+        min-height: 0;
+        // 4:3 del ancho de pantalla: la foto cabe completa, sin recorte.
+        .o_ferba_hero__media { inset: auto; height: 75vw; }
+        .o_ferba_hero__media::after {
+            background: linear-gradient(0deg, $ferba-black 0%, rgba(0, 0, 0, 0) 45%);
+        }
+    }
+}
+
+.o_ferba_hero__title--marca {
+    text-transform: none;
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.4rem;
+}
+
+.o_ferba_hero__subtitulo {
+    font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+    font-weight: $ferba-fw-medium;
+    line-height: 1.32;
+    margin: 0 0 1.4rem;
+    color: rgba(255, 255, 255, .92);
+}
+
+// ---------------------------------------------------------------------
+//  Bloque de texto a dos párrafos con título grande (sección "manifiesto")
+//  SOLUCIONES y FRUTOS lo ponen sobre negro, con la foto a sangre por la
+//  izquierda y el texto alineado a la derecha.
+// ---------------------------------------------------------------------
+.o_ferba_split--bleed-izq {
+    align-items: stretch;
+
+    .o_ferba_split__media {
+        position: relative;
+        margin-left: calc(-1 * (max(0px, (100vw - #{$ferba-container}) / 2) + #{$ferba-gutter}));
+        // A sangre también arriba y abajo (el margen negativo es el padding
+        // de la sección): la foto llena la banda de borde a borde, como en
+        // SOLUCIONES y FRUTOS del diseño, en vez de flotar enmarcada en negro.
+        margin-block: calc(-1 * #{$ferba-section-y});
+        min-height: 420px;
+        order: -1;
+    }
+    .o_ferba_split__img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: left center;
+    }
+    // Fundido hacia el texto: el borde derecho de la foto se disuelve en el
+    // negro de la banda. Es el «degradado» del PDF; antes la foto era un
+    // rectángulo redondeado, que es otro lenguaje.
+    .o_ferba_split__media::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(270deg,
+            $ferba-black 0%,
+            rgba(0, 0, 0, .78) 14%,
+            rgba(0, 0, 0, .32) 34%,
+            rgba(0, 0, 0, 0)   56%);
+    }
+
+    @media (max-width: 991px) {
+        .o_ferba_split__media { margin-left: 0; margin-block: 0; min-height: 0; }
+        .o_ferba_split__img { position: static; height: auto; aspect-ratio: 4 / 3; }
+        .o_ferba_split__media::after {
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, $ferba-black 100%);
+        }
+    }
+}
+
+// Texto alineado a la derecha del bloque anterior. En móvil vuelve a la
+// izquierda: un párrafo largo alineado a la derecha es incómodo de leer.
+.o_ferba_split__texto--der {
+    text-align: right;
+    .o_ferba_rule { margin-left: auto; }
+    @media (max-width: 991px) {
+        text-align: left;
+        .o_ferba_rule { margin-left: 0; }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Título de sección centrado (el patrón dominante de las interiores:
+//  título en versalitas + regla roja corta debajo, centrados)
+// ---------------------------------------------------------------------
+.o_ferba_seccion_titulo {
+    text-align: center;
+    margin-bottom: 3rem;
+
+    .o_ferba_title { text-transform: uppercase; }
+    .o_ferba_rule { margin-inline: auto; margin-top: 0.9rem; }
+
+    &__texto {
+        max-width: 78ch;
+        margin: 1.2rem auto 0;
+        font-size: $ferba-small;
+        color: inherit;
+    }
+
+    // En sección oscura el texto de apoyo baja a gris claro, no blanco puro
+    .o_ferba_section--dark &__texto { color: rgba(255, 255, 255, .82); }
+
+    &--llano .o_ferba_title { text-transform: none; }
+}
+
+// ---------------------------------------------------------------------
+//  "Nuestra historia": tres hitos con icono circular que sobresale
+// ---------------------------------------------------------------------
+.o_ferba_hitos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+    margin-top: 4.5rem;
+
+    @media (max-width: 767px) { grid-template-columns: 1fr; gap: 3.2rem; }
+}
+
+.o_ferba_hito {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, .55);
+    border-radius: 14px;
+    padding: 3.4rem 1.6rem 1.8rem;
+    text-align: center;
+
+    // El SVG del diseño ya trae el disco rojo con el glifo blanco dentro,
+    // así que aquí no se dibuja otro disco: solo se coloca a caballo sobre
+    // el borde de la tarjeta. El recorte redondo es porque el trazado que
+    // salió del PDF encierra el disco en un cuadro rojo.
+    &__icono {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        img { width: 100%; height: 100%; object-fit: contain; }
+    }
+
+    &__titulo {
+        font-size: 1.2rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.6rem;
+    }
+
+    &__texto { margin: 0; font-size: $ferba-small; color: rgba(255, 255, 255, .82); }
+}
+
+// Sección con foto de fondo atenuada (historia, valores, proceso)
+.o_ferba_section--foto {
+    position: relative;
+    background-color: $ferba-black;
+    color: $ferba-white;
+    isolation: isolate;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        background-size: cover;
+        background-position: center;
+        background-image: var(--ferba-foto);
+    }
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: rgba(0, 0, 0, .78);
+    }
+}
+
+// Foto VIVA: cuando la foto es la protagonista (la banda «FlexQuality por
+// fruto» del PDF, con los módulos en rojo y el panel ANÁLISIS ya dentro de
+// la imagen) no se vela al 78 %: se ancla a la derecha y se funde hacia el
+// negro por la izquierda, que es donde va el texto.
+.o_ferba_section--foto-viva {
+    &::before { background-position: right center; }
+    &::after {
+        background: linear-gradient(90deg,
+            $ferba-black 0%,
+            rgba(0, 0, 0, .94) 24%,
+            rgba(0, 0, 0, .45) 46%,
+            rgba(0, 0, 0, .06) 64%,
+            rgba(0, 0, 0, 0)   100%);
+    }
+    // En una columna el texto va encima de la foto: vuelve el velo y la foto
+    // se centra en la máquina (38 %), no en el panel ANÁLISIS del borde
+    // derecho, cuyo texto blanco se transparentaba detrás del párrafo.
+    @media (max-width: 991px) {
+        &::before { background-position: 38% center; }
+        &::after { background: rgba(0, 0, 0, .74); }
+    }
+}
+
+// Bloque de texto solo (titular + párrafos + botón) a medida de lectura.
+.o_ferba_medida { max-width: 38rem; }
+
+// ---------------------------------------------------------------------
+//  Fichas: icono + título + texto, en rejilla de 3, 4 o 5
+//  ("Lo que nos diferencia", "Elige el tipo de atención", parámetros…)
+// ---------------------------------------------------------------------
+.o_ferba_fichas {
+    display: grid;
+    gap: $ferba-gap;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    &--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    &--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+    @media (max-width: 991px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_ficha {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    padding: 2rem 1.4rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease,
+                transform $ferba-dur-hover $ferba-ease-out;
+
+    &__icono {
+        height: 72px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1.1rem;
+        img { max-height: 64px; max-width: 76px; object-fit: contain; }
+    }
+
+    &__titulo {
+        font-size: 1rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.7rem;
+    }
+
+    &__texto {
+        margin: 0;
+        font-size: $ferba-small;
+        color: lighten($ferba-ink, 22%);
+        flex: 1;
+    }
+
+    &__enlace {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 1.2rem;
+        color: $ferba-red-text-light;
+        font-size: 0.78rem;
+        font-weight: $ferba-fw-bold;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-decoration: none;
+        .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: transparent;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, .12);
+            transform: translateY(-3px);
+        }
+        &:hover &__enlace .o_ferba_arrow { transform: translateX(4px); }
+    }
+
+    // Variante alineada a la izquierda con el icono junto al título
+    // ("Elige el tipo de atención que necesitas", CONTACTO).
+    &--fila {
+        text-align: left;
+        .o_ferba_ficha__cabeza {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .o_ferba_ficha__icono { height: 48px; margin: 0; flex: none; img { max-height: 44px; max-width: 48px; } }
+        .o_ferba_ficha__titulo { margin: 0; font-size: 1.05rem; }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Valores / beneficios: columnas separadas por línea, icono arriba
+//  (QUIENES SOMOS 6, FLEXQUALITY 8, FRUTOS 5)
+// ---------------------------------------------------------------------
+.o_ferba_valores {
+    display: grid;
+    grid-template-columns: repeat(var(--ferba-cols, 6), minmax(0, 1fr));
+
+    @media (max-width: 991px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.o_ferba_valor {
+    padding: 0 1.1rem;
+    text-align: center;
+    border-left: 1px solid rgba(255, 255, 255, .2);
+
+    &:first-child { border-left: 0; }
+
+    // En cuanto la rejilla se parte, el borde izquierdo del primero de cada
+    // fila sobra; se apaga por columnas con nth-child en los dos cortes.
+    @media (max-width: 991px) { &:nth-child(3n + 1) { border-left: 0; } }
+    @media (max-width: 575px) {
+        &:nth-child(3n + 1) { border-left: 1px solid rgba(255, 255, 255, .2); }
+        &:nth-child(2n + 1) { border-left: 0; }
+        padding: 0 0.6rem;
+    }
+
+    &__icono {
+        height: 72px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1rem;
+        img { max-height: 62px; max-width: 72px; object-fit: contain; }
+    }
+
+    &__titulo {
+        font-size: 0.95rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.5rem;
+    }
+
+    &__texto {
+        margin: 0;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, .78);
+    }
+
+    // Sobre fondo claro (FRUTOS "cómo adaptamos" va en negro; SOLUCIONES no)
+    .o_ferba_section--light &,
+    .o_ferba_section--white & {
+        border-color: $ferba-gray-line;
+        @media (max-width: 991px) { &:nth-child(3n + 1) { border-left: 0; } }
+        .o_ferba_valor__texto { color: lighten($ferba-ink, 25%); }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Presencia internacional: mapa + cuatro países
+// ---------------------------------------------------------------------
+// El mapa como FONDO que sangra, no como figura en una caja. En el diseño del
+// cliente ocupa todo el ancho de la sección por detrás del texto y de las
+// tarjetas; encajonado a la derecha perdía toda su escala y la sección se
+// partía en dos mitades que no se hablaban.
+.o_ferba_presencia {
+    position: relative;
+    overflow: hidden;
+    background: $ferba-gray-light;
+
+    // El mapa es un SVG en dos capas: el fondo de 187 países se carga como
+    // <image> (archivo estático, se cachea) y encima, inline en la
+    // plantilla, SOLO los cuatro países de Ferba con sus pines y rótulos, en
+    // el mismo viewBox. Así el CSS puede encender un país y hacer saltar su
+    // pin cuando el ratón se posa en su tarjeta; con un webp era imposible.
+    // La caja del mapa empieza al 46 % del ancho, donde acaba la columna de
+    // texto, y llega al borde derecho; «meet» lo muestra ENTERO, centrado en
+    // vertical. Antes el webp iba en cover detrás de toda la sección y
+    // Estados Unidos y México caían justo debajo del párrafo: rótulos
+    // negros tapados por texto negro. Las tarjetas sí solapan el borde
+    // izquierdo del mapa, pero ahí solo hay Pacífico.
+    .o_ferba_mundo {
+        position: absolute;
+        inset: 0 0 0 46%;
+        // width explícito: un <svg> absoluto con left+right y width:auto no
+        // rellena el hueco, toma su ancho intrínseco (alto x 2.02) y se sale.
+        width: 54%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    &__inner {
+        position: relative;
+        z-index: 1;
+        // El contenedor es transparente y cubre casi toda la sección: si se
+        // quedara con el ratón, los pines nunca lo recibirían.
+        pointer-events: none;
+        > * { pointer-events: auto; }
+    }
+
+    // El texto acaba antes de que empiece la caja del mapa (46 %): a 1440
+    // son 662 px desde el borde, y 30rem = 480 px de texto + 124 de margen.
+    &__texto { max-width: 30rem; }
+
+    @media (max-width: 991px) {
+        // En móvil el mapa detrás del texto lo haría ilegible. Pasa a ser una
+        // banda propia encima del contenido, completa: con la proporción de
+        // su viewBox, «slice» no tiene nada que recortar.
+        .o_ferba_mundo {
+            position: static;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 763.74 / 377.74;
+            margin-bottom: 1.5rem;
+        }
+    }
+}
+
+// Países destacados, pines y rótulos (los del PDF: mismo trazado de pin,
+// 14x19.5, y mismas cajas de rótulo, así que en reposo el mapa es idéntico
+// al diseño).
+.o_ferba_mundo__pais {
+    fill: $ferba-red;
+    transition: fill $ferba-dur-hover ease;
+}
+
+.o_ferba_pin {
+    pointer-events: auto;
+    cursor: default;
+
+    &__forma { fill: $ferba-ink; }
+    &__chip  { fill: $ferba-ink; transition: fill $ferba-dur-hover ease; }
+    &__rotulo {
+        fill: $ferba-white;
+        font-family: inherit;
+        font-size: 8.4px;          // unidades del viewBox: ~13 px en pantalla
+        font-weight: $ferba-fw-medium;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+    // El salto mueve pin y rótulo juntos; el achatado, solo el cuerpo del
+    // pin, con el origen en su punta para que no se despegue del país.
+    &__cuerpo { transform-box: fill-box; transform-origin: 50% 100%; }
+}
+
+// Un salto y un rebote corto, y se queda quieto: es feedback del hover, no
+// un adorno en bucle.
+@keyframes ferba-pin-salta {
+    0%   { transform: translateY(0); }
+    32%  { transform: translateY(-13px); }
+    58%  { transform: translateY(0); }
+    76%  { transform: translateY(-4px); }
+    100% { transform: translateY(0); }
+}
+@keyframes ferba-pin-achata {
+    0%   { transform: scale(1, 1); }
+    18%  { transform: scale(0.94, 1.08); }
+    58%  { transform: scale(1, 1); }
+    64%  { transform: scale(1.08, 0.9); }
+    80%  { transform: scale(1, 1); }
+    100% { transform: scale(1, 1); }
+}
+
+// Tarjeta ↔ mapa. :has() sube desde la tarjeta a la sección y baja al país
+// y al pin del mismo data-pais. Al posar el ratón, los otros tres países se
+// apagan a un rojo gris y el elegido se queda encendido, con el rótulo en
+// rojo y el pin dando un salto. Y al revés: el ratón sobre un pin enciende
+// su tarjeta. Sin :has() (navegadores viejos) no pasa nada malo: la tarjeta
+// conserva su propio hover.
+.o_ferba_presencia:has(.o_ferba_pais:hover) .o_ferba_mundo__pais,
+.o_ferba_presencia:has(.o_ferba_pin:hover) .o_ferba_mundo__pais {
+    fill: mix($ferba-red, #cdcdcd, 28%);
+}
+@each $pais in estados-unidos, espana, mexico, peru {
+    .o_ferba_presencia:has(.o_ferba_pais[data-pais="#{$pais}"]:hover),
+    .o_ferba_presencia:has(.o_ferba_pin[data-pais="#{$pais}"]:hover) {
+        .o_ferba_mundo__pais[data-pais="#{$pais}"] { fill: $ferba-red; }
+        .o_ferba_pin[data-pais="#{$pais}"] {
+            .o_ferba_pin__salto  { animation: ferba-pin-salta 760ms $ferba-ease-out both; }
+            .o_ferba_pin__cuerpo { animation: ferba-pin-achata 760ms $ferba-ease-out both; }
+            .o_ferba_pin__chip   { fill: $ferba-red; }
+        }
+        .o_ferba_pais[data-pais="#{$pais}"] {
+            border-color: $ferba-red;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, .12);
+            translate: 0 -4px;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .o_ferba_pin__salto, .o_ferba_pin__cuerpo { animation: none !important; }
+    .o_ferba_pais { translate: none !important; }
+}
+
+// Cuatro tarjetas COMPACTAS sobre el mapa. Antes ocupaban el ancho completo
+// del contenedor y quedaban sueltas debajo, con mucho aire dentro y ninguna
+// relación con el mapa. En el diseño son una fila corta apoyada en la esquina
+// inferior izquierda, encima del océano.
+.o_ferba_paises {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    max-width: 660px;
+    margin-top: clamp(2rem, 5vw, 4.5rem);
+
+    @media (max-width: 767px) { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
+}
+
+// ---------------------------------------------------------------------
+//  Adjunto: zona de arrastrar y soltar
+//
+//  Antes era el <input type="file"> desnudo del navegador, que además de
+//  feo no dice qué acepta ni cuánto pesa. Aquí el control sigue existiendo
+//  (Odoo lo necesita) pero el que se ve es el recuadro.
+// ---------------------------------------------------------------------
+.o_ferba_soltar {
+    // relative para que el input oculto se ancle AQUÍ. Sin esto se anclaba al
+    // primer antecesor posicionado y en móvil se salía 21 px de la pantalla:
+    // invisible, pero provocaba desplazamiento horizontal.
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.1rem 1.25rem;
+    border: 1px dashed $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    background: $ferba-white;
+    cursor: pointer;
+    transition:
+        border-color $ferba-dur-hover ease,
+        background    $ferba-dur-hover ease;
+
+    // El input real: presente para el formulario y para el teclado, invisible.
+    // No se usa display:none porque eso lo saca del orden de tabulación.
+    &__input {
+        position: absolute;
+        left: 0; top: 0;
+        width: 1px; height: 1px;
+        padding: 0; margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    &__icono { width: 40px; height: 29px; flex: none; color: $ferba-gray; }
+    &__texto { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+    &__accion { font-size: $ferba-small; color: $ferba-ink; }
+    &__formatos { font-size: 0.78rem; color: lighten($ferba-ink, 35%); }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { border-color: $ferba-red; background: rgba(228, 27, 23, .03); }
+        &:hover .o_ferba_soltar__icono { color: $ferba-red; }
+    }
+
+    // Mientras se arrastra un fichero encima
+    &.is-dragging {
+        border-color: $ferba-red;
+        border-style: solid;
+        background: rgba(228, 27, 23, .06);
+        .o_ferba_soltar__icono { color: $ferba-red; }
+    }
+
+    // Con fichero elegido: deja de ser una invitación y pasa a ser un acuse
+    &.is-loaded {
+        border-style: solid;
+        border-color: $ferba-ink;
+        .o_ferba_soltar__icono { color: $ferba-ink; }
+        .o_ferba_soltar__accion { font-weight: $ferba-fw-bold; }
+    }
+
+    // El foco de teclado vive en el input oculto: se dibuja sobre el recuadro.
+    &:has(.o_ferba_soltar__input:focus-visible) {
+        outline: 2px solid $ferba-red;
+        outline-offset: 3px;
+    }
+}
+
+// El panel de análisis de FlexQuality en FRUTOS.
+//
+// Usaba la clase del mapa, que llena su columna al 100%: el panel salía a
+// ~570 px de ancho y más de 600 de alto, y se comía media pantalla. En el
+// diseño del cliente es una ficha pequeña apoyada a la derecha sobre la foto,
+// no el protagonista de la banda: mide alrededor de un 20% del ancho útil.
+// `img` delante por especificidad: la normalización global
+// `.o_ferba img { max-width: 100% }` es 0,1,1 y le ganaba a esta regla (0,1,0),
+// así que el max-width de 320px no se aplicaba y el panel seguía saliendo a
+// 586 px. Medido en el navegador, igual que pasó con el icono de los mosaicos.
+img
+// El mapa pequeño del panel de SOLUCIONES sigue siendo una figura normal.
+.o_ferba_mapa__img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: $ferba-radius;
+}
+
+.o_ferba_pais {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: 12px;
+    padding: 1.1rem 0.75rem;
+    text-align: center;
+    // La tarjeta va DENTRO de su .o_ferba_reveal (que ya usa transform y
+    // transition para aparecer): el hover se mueve con `translate`, que es
+    // otra propiedad, y así ninguno pisa al otro.
+    height: 100%;
+    transition: translate $ferba-dur-hover $ferba-ease-out,
+                border-color $ferba-dur-hover ease,
+                box-shadow $ferba-dur-hover ease;
+
+    &:hover {
+        border-color: $ferba-red;
+        box-shadow: 0 16px 34px rgba(0, 0, 0, .12);
+        translate: 0 -4px;
+    }
+
+    &__bandera {
+        width: 60px;
+        height: auto;
+        margin: 0 auto 0.75rem;
+        display: block;
+        border: 1px solid $ferba-gray-line;
+    }
+
+    &__nombre {
+        font-size: 0.9rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.5rem;
+    }
+
+    &__texto { margin: 0; font-size: 0.75rem; color: lighten($ferba-ink, 25%); line-height: 1.5; }
+}
+
+// ---------------------------------------------------------------------
+//  Tarjeta de solución / servicio: foto arriba con icono superpuesto,
+//  título, texto, lista "Ideal para:" y enlace rojo
+//  (SOLUCIONES 4, POSTVENTA 4)
+// ---------------------------------------------------------------------
+.o_ferba_solucion {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease,
+                transform $ferba-dur-hover $ferba-ease-out;
+
+    // El recorte del zoom vive en __foto y no aquí: con overflow:hidden en
+    // el contenedor, el disco rojo que sobresale por abajo salía cortado
+    // por la mitad.
+    &__media { position: relative; }
+
+    &__foto {
+        display: block;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 600ms $ferba-ease-out;
+        }
+    }
+
+    // Igual que en los hitos: el disco rojo viene dentro del propio SVG y
+    // el recorte redondo lo devuelve a su forma.
+    &__icono {
+        position: absolute;
+        left: 1rem;
+        bottom: -22px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        z-index: 2;
+        img { width: 100%; height: 100%; object-fit: contain; }
+    }
+
+    &__cuerpo {
+        padding: 2rem 1.3rem 1.4rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    &__titulo {
+        font-size: 1.05rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.7rem;
+        line-height: 1.25;
+    }
+
+    &__texto { margin: 0 0 1rem; font-size: $ferba-small; color: lighten($ferba-ink, 22%); }
+
+    &__ideal {
+        margin: 0 0 0.4rem;
+        font-size: $ferba-small;
+        font-weight: $ferba-fw-medium;
+    }
+
+    &__lista {
+        margin: 0 0 1.2rem;
+        padding-left: 1.1rem;
+        font-size: $ferba-small;
+        color: lighten($ferba-ink, 22%);
+        flex: 1;
+        li { margin-bottom: 0.2rem; }
+        &::marker { color: $ferba-red; }
+    }
+
+    &__enlace {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: $ferba-red-text-light;
+        font-size: 0.78rem;
+        font-weight: $ferba-fw-bold;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-decoration: none;
+        margin-top: auto;
+        .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: transparent;
+            box-shadow: 0 16px 38px rgba(0, 0, 0, .14);
+            transform: translateY(-3px);
+        }
+        &:hover &__foto img { transform: scale(1.05); }
+        &:hover &__enlace .o_ferba_arrow { transform: translateX(4px); }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Proceso por pasos: número, icono, título y texto, con separador
+//  (SOLUCIONES 5, FLEXQUALITY 5 con círculo, POSTVENTA 5 con número grande)
+// ---------------------------------------------------------------------
+.o_ferba_pasos {
+    display: grid;
+    grid-template-columns: repeat(var(--ferba-cols, 5), minmax(0, 1fr));
+    gap: 0;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 0; }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+// Variante FLUJO (FlexQuality, «¿Cómo funciona?»): es una tubería de cinco
+// etapas, así que entre pasos va un chevrón gris como en el diseño, no una
+// guía punteada, y los dibujos crecen hasta llenar su columna. A 86 px de
+// ancho se veían como iconos de lista; a 1440 la columna mide 248 px.
+.o_ferba_pasos--flujo {
+    .o_ferba_paso { padding: 0 1.4rem; }
+    .o_ferba_paso + .o_ferba_paso { border-left: 0; }
+    .o_ferba_paso + .o_ferba_paso::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        // Centro del dibujo: disco (40) + su margen (22) + media caja (65).
+        top: 120px;
+        width: 14px;
+        height: 14px;
+        border-top: 3px solid #b9b9b9;
+        border-right: 3px solid #b9b9b9;
+        transform: rotate(45deg);
+    }
+    .o_ferba_paso__disco { width: 40px; height: 40px; font-size: 1.05rem; }
+    .o_ferba_paso__icono {
+        height: 130px;
+        img { max-height: 120px; max-width: 100%; width: auto; }
+    }
+    .o_ferba_paso__texto { font-size: 0.88rem; }
+
+    @media (max-width: 991px) {
+        .o_ferba_paso + .o_ferba_paso::before { display: none; }
+    }
+}
+
+.o_ferba_paso {
+    position: relative;
+    padding: 0 1.2rem;
+    text-align: center;
+
+    // Guía punteada entre pasos, como en el diseño. Es decoración: se
+    // dibuja con borde y no con un elemento vacío en el marcado.
+    & + & { border-left: 1px dashed rgba(255, 255, 255, .28); }
+    @media (max-width: 991px) { & + & { border-left: 0; } }
+
+    &__num {
+        font-size: 1.6rem;
+        font-weight: $ferba-fw-bold;
+        color: $ferba-red-text-dark;
+        line-height: 1;
+        margin-bottom: 1.2rem;
+        display: block;
+        text-align: left;
+    }
+
+    // Variante con el número dentro de un disco rojo (FlexQuality)
+    &__disco {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: $ferba-red;
+        color: $ferba-white;
+        display: grid;
+        place-items: center;
+        font-size: 0.95rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 auto 1.4rem;
+    }
+
+    &__icono {
+        height: 78px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1.1rem;
+        img { max-height: 70px; max-width: 86px; object-fit: contain; }
+    }
+
+    &__titulo {
+        font-size: 0.95rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0 0 0.5rem;
+    }
+
+    &__texto {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, .8);
+    }
+
+    .o_ferba_section--light &,
+    .o_ferba_section--white & {
+        & + & { border-left-color: $ferba-gray-line; }
+        .o_ferba_paso__texto { color: lighten($ferba-ink, 25%); }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Flujo de línea: iconos encadenados con chevrones
+//  ("De equipos individuales a líneas completas", MAQUINARIA)
+// ---------------------------------------------------------------------
+.o_ferba_flujo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+
+    &__paso {
+        flex: 0 1 108px;
+        text-align: center;
+    }
+
+    &__icono {
+        height: 62px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 0.7rem;
+        img { max-height: 54px; max-width: 58px; object-fit: contain; }
+    }
+
+    &__rotulo {
+        font-size: 0.74rem;
+        line-height: 1.35;
+        display: block;
+    }
+
+    &__chevron {
+        flex: none;
+        width: 16px;
+        margin-top: 24px;
+        opacity: .75;
+        img { width: 100%; height: auto; }
+    }
+
+    // En teléfono el flujo se lee en vertical y los chevrones sobran.
+    @media (max-width: 767px) {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.6rem;
+        &__chevron { display: none; }
+        &__paso { flex: none; }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Tarjeta de etapa de maquinaria: número + icono + rótulo, foto y texto
+// ---------------------------------------------------------------------
+.o_ferba_etapas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: $ferba-gap;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_etapa {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    padding: 1.1rem 1.1rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease,
+                transform $ferba-dur-hover $ferba-ease-out;
+
+    &__cabeza {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        margin-bottom: 0.9rem;
+    }
+
+    &__num {
+        font-size: 0.9rem;
+        font-weight: $ferba-fw-bold;
+        color: $ferba-red-text-light;
+        flex: none;
+    }
+
+    &__icono {
+        width: 34px;
+        height: 34px;
+        flex: none;
+        object-fit: contain;
+    }
+
+    &__rotulo {
+        flex: 1;
+        min-width: 0;
+        text-align: right;
+        font-size: 0.82rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        line-height: 1.25;
+        letter-spacing: 0.02em;
+        overflow-wrap: anywhere;
+    }
+
+    &__media {
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: $ferba-radius;
+        margin-bottom: 0.9rem;
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 600ms $ferba-ease-out;
+        }
+    }
+
+    &__texto { margin: 0 0 1rem; font-size: $ferba-small; color: lighten($ferba-ink, 22%); flex: 1; }
+
+    &__enlace {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: $ferba-red-text-light;
+        font-size: 0.78rem;
+        font-weight: $ferba-fw-bold;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-decoration: none;
+        .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: transparent;
+            box-shadow: 0 16px 38px rgba(0, 0, 0, .14);
+            transform: translateY(-3px);
+        }
+        &:hover &__media img { transform: scale(1.05); }
+        &:hover &__enlace .o_ferba_arrow { transform: translateX(4px); }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  FlexQuality: versiones Full y Lite
+// ---------------------------------------------------------------------
+.o_ferba_versiones {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    // Las dos tarjetas comparten filas (subgrid): título, subtítulo, dibujo,
+    // barra y pie quedan a la misma altura aunque el subtítulo de Lite ocupe
+    // dos renglones y el de Full uno. Sin subgrid (navegador viejo) solo se
+    // pierde la alineación de las barras.
+    grid-template-rows: auto auto auto auto auto;
+    column-gap: $ferba-gap;
+    row-gap: 0;
+
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_version {
+    // El gris exacto de la tarjeta del PDF. Las ilustraciones Full/Lite
+    // están exportadas sobre ESTE gris (no llevan transparencia), así que
+    // si se cambia aquí hay que reexportarlas o aparecerá un rectángulo.
+    background: $ferba-gray-card;
+    border-radius: $ferba-radius-lg;
+    padding: 1.6rem 1.2rem;
+    text-align: center;
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 5;
+    align-items: start;
+
+    &__titulo { font-size: 1.15rem; font-weight: $ferba-fw-bold; margin: 0 0 0.3rem; }
+    &__sub { font-size: $ferba-small; color: lighten($ferba-ink, 22%); margin: 0 0 1rem; align-self: end; }
+    &__img { width: 100%; max-width: 330px; height: auto; margin: 0 auto 1rem; display: block; }
+
+    // Barra de especificaciones: "2 LÍNEAS | 3 CÁMARAS". El número manda
+    // (2.1rem frente a 0.86 del rótulo), como en el diseño: es el dato que
+    // diferencia una versión de la otra y se lee antes que el nombre.
+    &__specs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.6rem;
+        background: $ferba-red;
+        color: $ferba-white;
+        border-radius: $ferba-radius;
+        padding: 0.5rem 1rem;
+        margin-bottom: 1rem;
+
+        span { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+        strong { font-size: 2.1rem; font-weight: $ferba-fw-bold; line-height: 1; letter-spacing: -0.02em; }
+        em {
+            font-style: normal;
+            font-size: 0.86rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        // Separador vertical entre los dos datos, como en el diseño
+        span + span { border-left: 1px solid rgba(255, 255, 255, .5); padding-left: 1.6rem; }
+    }
+
+    &__pie { margin: 0; font-size: 0.78rem; color: lighten($ferba-ink, 25%); }
+
+    // La versión Lite lleva la barra en gris oscuro, no en rojo
+    &--lite &__specs { background: $ferba-ink; }
+}
+
+// Parámetros de análisis: icono en marco fino + rótulo + texto
+.o_ferba_param {
+    text-align: center;
+
+    &__marco {
+        border: 1px solid $ferba-gray-line;
+        border-radius: $ferba-radius;
+        padding: 0.6rem;
+        margin-bottom: 0.9rem;
+        background: $ferba-white;
+        img { width: 100%; height: auto; display: block; }
+    }
+
+    &__titulo {
+        font-size: 0.85rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin: 0 0 0.4rem;
+    }
+
+    &__texto { margin: 0; font-size: 0.78rem; color: lighten($ferba-ink, 25%); line-height: 1.5; }
+}
+
+// Mini-fichas de integración (línea nueva / calibrador existente)
+.o_ferba_mini {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+
+    // Los dos iconos están reexportados del PDF con su transparencia real
+    // (llevaban SMask; el recorte anterior los había aplanado sobre blanco y
+    // por eso se veía un recuadro). Caja fija: son de proporciones distintas
+    // (264x116 y 360x92) y así pesan lo mismo uno al lado del otro.
+    &__img {
+        width: 104px;
+        height: 50px;
+        flex: none;
+        object-fit: contain;
+        object-position: left center;
+    }
+    &__titulo {
+        font-size: 0.8rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin: 0 0 0.25rem;
+    }
+    &__texto { margin: 0; font-size: 0.78rem; color: lighten($ferba-ink, 25%); }
+}
+
+.o_ferba_minis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.8rem;
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+// ---------------------------------------------------------------------
+//  FRUTOS: tarjeta con foto recortada, nombre, texto y enlace
+// ---------------------------------------------------------------------
+.o_ferba_frutos_grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: $ferba-gap;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.o_ferba_frutocard {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    padding: 1.2rem 1rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease,
+                transform $ferba-dur-hover $ferba-ease-out;
+
+    &__media {
+        height: 110px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1rem;
+        img {
+            max-height: 110px;
+            max-width: 100%;
+            object-fit: contain;
+            transition: transform 500ms $ferba-ease-out;
+        }
+    }
+
+    &__nombre {
+        font-size: 0.95rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin: 0 0 0.5rem;
+    }
+
+    &__texto { margin: 0 0 1rem; font-size: $ferba-small; color: lighten($ferba-ink, 22%); flex: 1; }
+
+    &__enlace {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: $ferba-red-text-light;
+        font-size: 0.74rem;
+        font-weight: $ferba-fw-bold;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: transparent;
+            box-shadow: 0 16px 38px rgba(0, 0, 0, .14);
+            transform: translateY(-3px);
+        }
+        &:hover &__media img { transform: scale(1.06); }
+        &:hover &__enlace .o_ferba_arrow { transform: translateX(4px); }
+    }
+}
+
+// Tira de frutos compatibles: solo foto y nombre (FLEXQUALITY, MAQUINARIA)
+.o_ferba_tira {
+    display: grid;
+    grid-template-columns: repeat(var(--ferba-cols, 7), minmax(0, 1fr));
+    gap: 1rem;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    &__item { text-align: center; }
+    &__img { height: 92px; display: grid; place-items: center; margin-bottom: 0.6rem;
+             img { max-height: 92px; max-width: 100%; object-fit: contain; } }
+    &__rotulo {
+        font-size: 0.78rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+}
+
+// ---------------------------------------------------------------------
+//  PROYECTOS: galería, casos de éxito y videos
+// ---------------------------------------------------------------------
+.o_ferba_proyectos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $ferba-gap;
+
+    @media (max-width: 767px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_proyecto {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    overflow: hidden;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease,
+                transform $ferba-dur-hover $ferba-ease-out;
+
+    // display:block explícito: es un <span> dentro de un <a> de bloque, y
+    // sin esto la caja es inline, ignora el aspect-ratio y la foto se come
+    // el pie de la tarjeta.
+    &__media {
+        display: block;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        img { width: 100%; height: 100%; object-fit: cover; transition: transform 600ms $ferba-ease-out; }
+    }
+
+    &__pie {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.1rem 1.2rem;
+    }
+
+    &__titulo { font-size: 0.98rem; font-weight: $ferba-fw-bold; margin: 0; }
+
+    &__enlace {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: $ferba-red-text-light;
+        font-size: 0.72rem;
+        font-weight: $ferba-fw-bold;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: transparent;
+            box-shadow: 0 16px 38px rgba(0, 0, 0, .14);
+            transform: translateY(-3px);
+        }
+        &:hover &__media img { transform: scale(1.05); }
+        &:hover &__enlace .o_ferba_arrow { transform: translateX(4px); }
+    }
+}
+
+.o_ferba_casos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $ferba-gap;
+
+    @media (max-width: 767px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_caso {
+    position: relative;
+    border-radius: $ferba-radius-lg;
+    overflow: hidden;
+    min-height: 380px;
+    display: flex;
+    isolation: isolate;
+
+    // Panel rojo que cubre la mitad izquierda; el corte diagonal es el mismo
+    // gesto de las bandas del logotipo.
+    &__panel {
+        position: relative;
+        width: 68%;
+        background: rgba(228, 27, 23, .93);
+        padding: 1.5rem 1.3rem;
+        clip-path: polygon(0 0, 100% 0, calc(100% - 34px) 100%, 0 100%);
+        color: $ferba-white;
+    }
+
+    &__eyebrow {
+        display: block;
+        font-size: 0.66rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 0.7rem;
+        color: rgba(255, 255, 255, .85);
+    }
+
+    &__titulo { font-size: 1.05rem; font-weight: $ferba-fw-bold; margin: 0 0 1rem; line-height: 1.3; }
+
+    &__dato {
+        margin: 0 0 0.8rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        strong { font-weight: $ferba-fw-bold; }
+    }
+
+    @media (max-width: 767px) {
+        min-height: 0;
+        &__panel { width: 100%; clip-path: none; }
+    }
+}
+
+// Va cualificada por etiqueta y fuera del bloque: la base declara
+// `.o_ferba img { height: auto }` y, con una clase suelta, esa regla ganaba
+// por especificidad y dejaba la foto del caso a media altura de la tarjeta.
+img.o_ferba_caso__foto {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.o_ferba_videos {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.o_ferba_video {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    border-radius: $ferba-radius;
+    overflow: hidden;
+
+    img.o_ferba_video__foto {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 600ms $ferba-ease-out;
+    }
+
+    &__play {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 38px;
+        height: 38px;
+        opacity: .92;
+        transition: transform $ferba-dur-hover $ferba-ease-out;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover img.o_ferba_video__foto { transform: scale(1.06); }
+        &:hover &__play { transform: scale(1.12); }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  POSTVENTA: lista con palomita y rejilla de beneficios
+// ---------------------------------------------------------------------
+.o_ferba_dos_col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
+    @media (max-width: 991px) { grid-template-columns: 1fr; gap: 2.5rem; }
+}
+
+.o_ferba_checks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.2rem 1.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.6rem 0 0;
+
+    li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        // Renglones más juntos. En el diseño la lista es un bloque compacto;
+        // con 0.45rem arriba y abajo cada punto quedaba aislado y los nueve
+        // se leían como nueve secciones en vez de como una lista.
+        padding: 0.3rem 0;
+        font-size: $ferba-small;
+        line-height: 1.45;
+    }
+    // La palomita a 16px se perdía al lado del texto. En el PDF el círculo
+    // rojo pesa casi tanto como la mayúscula que tiene al lado: es lo que
+    // hace que la lista se lea de un vistazo.
+    img {
+        width: 22px;
+        height: 22px;
+        flex: none;
+        margin-top: 0.05rem;
+    }
+
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_benef {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.6rem 1.2rem;
+    margin-top: 1.6rem;
+
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+
+    &__item { display: flex; gap: 0.8rem; align-items: flex-start; }
+    &__icono { width: 30px; height: 30px; flex: none; object-fit: contain; }
+    &__titulo { font-size: 0.85rem; font-weight: $ferba-fw-bold; margin: 0 0 0.3rem; line-height: 1.25; }
+    &__texto { margin: 0; font-size: 0.78rem; color: lighten($ferba-ink, 25%); line-height: 1.5; }
+}
+
+// ---------------------------------------------------------------------
+//  Banda de cierre de página: título grande, texto y dos botones sobre
+//  rojo, con la foto al fondo cortada en diagonal (todas las interiores)
+// ---------------------------------------------------------------------
+.o_ferba_cierre {
+    position: relative;
+    background: $ferba-red;
+    color: $ferba-white;
+    overflow: hidden;
+    isolation: isolate;
+    padding-block: clamp(2.6rem, 5vw, 4rem);
+
+    // Foto a la derecha con corte diagonal. En el diseño el corte va del
+    // borde superior hacia dentro; aquí se dibuja con clip-path para no
+    // depender de una imagen con el corte quemado.
+    &__foto {
+        position: absolute;
+        inset: 0 0 0 46%;
+        z-index: -2;
+        background-size: cover;
+        background-position: center;
+        background-image: var(--ferba-foto);
+        clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%);
+    }
+    // Tinte rojo sobre la foto para que el blanco siga leyéndose encima
+    &__foto::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(228, 27, 23, .55);
+    }
+
+    &__inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 2.5rem;
+        align-items: center;
+    }
+
+    &__titulo {
+        font-size: clamp(1.5rem, 3vw, 2.1rem);
+        font-weight: $ferba-fw-bold;
+        line-height: 1.2;
+        margin: 0 0 1rem;
+    }
+
+    &__texto { margin: 0; font-size: $ferba-small; max-width: 58ch; }
+
+    &__acciones {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+        align-items: stretch;
+        .o_ferba_btn { justify-content: space-between; }
+    }
+
+    @media (max-width: 991px) {
+        &__inner { grid-template-columns: 1fr; gap: 1.6rem; }
+        &__foto { inset: 0; clip-path: none; opacity: .35; }
+        &__acciones { flex-direction: row; flex-wrap: wrap; .o_ferba_btn { justify-content: center; } }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  CONTACTO: formulario y bloque de contacto directo
+// ---------------------------------------------------------------------
+.o_ferba_form_grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: $ferba-gap;
+    // stretch, no start: los dos paneles son hermanos visuales y con `start`
+    // cada uno terminaba a su altura, dejando un escalón entre "Envíanos tu
+    // solicitud" y "Para ayudarte mejor". Dos cajas del mismo peso que no
+    // acaban a la misma altura se leen como un fallo de maqueta.
+    align-items: stretch;
+
+    @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_panel {
+    background: $ferba-white;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    padding: 1.8rem 1.6rem;
+
+    &__titulo { font-size: 1.15rem; font-weight: $ferba-fw-bold; margin: 0 0 0.6rem; line-height: 1.3; }
+    &__texto { margin: 0 0 1.4rem; font-size: $ferba-small; color: lighten($ferba-ink, 22%); }
+}
+
+// El formulario usa el mecanismo nativo de Odoo (s_website_form). Aquí
+// solo se viste: rejilla, etiquetas y controles con la paleta de Ferba.
+.o_ferba_form {
+    .s_website_form_rows {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .s_website_form_field { margin: 0; }
+    .s_website_form_field--ancho { grid-column: 1 / -1; }
+    .s_website_form_dnone { display: none; }
+
+    label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: $ferba-fw-medium;
+        margin-bottom: 0.35rem;
+    }
+    .s_website_form_mark { color: $ferba-red; }
+
+    input, select, textarea {
+        width: 100%;
+        font-family: inherit;
+        font-size: $ferba-small;
+        color: $ferba-ink;
+        background: $ferba-white;
+        border: 1px solid $ferba-gray-line;
+        border-radius: $ferba-radius;
+        padding: 0.7rem 0.85rem;
+        transition: border-color $ferba-dur-hover ease, box-shadow $ferba-dur-hover ease;
+
+        &::placeholder { color: $ferba-gray; }
+        &:focus {
+            outline: none;
+            border-color: $ferba-red;
+            box-shadow: 0 0 0 3px rgba(228, 27, 23, .14);
+        }
+    }
+    textarea { min-height: 120px; resize: vertical; }
+
+    .s_website_form_submit {
+        grid-column: 1 / -1;
+        margin-top: 0.4rem;
+        display: flex;
+        justify-content: stretch;
+        .o_ferba_btn { width: 100%; justify-content: center; }
+    }
+    #s_website_form_result { display: block; margin-top: 0.6rem; font-size: $ferba-small; }
+
+    @media (max-width: 575px) {
+        .s_website_form_rows { grid-template-columns: 1fr; }
+    }
+}
+
+// Mensaje de "gracias" que Odoo muestra al enviar sin recargar
+// Mensaje de "gracias" que Odoo muestra al enviar sin recargar.
+//
+// Llevaba un border-left rojo de 3px: el tic más reconocible de una interfaz
+// generada, y encima ajeno al idioma del sitio. Cambiarlo a border-top seguía
+// siendo un borde de acento. La respuesta correcta no era mover la línea sino
+// usar el único grafismo propio que tiene Ferba: las tres barras inclinadas
+// del logotipo, las mismas que marcan cada titular de sección. Así el momento
+// en el que alguien acaba de escribirle a la empresa lleva su marca, no un
+// adorno de plantilla.
+.s_website_form_end_message {
+    background: $ferba-gray-light;
+    padding: 1.4rem 1.2rem;
+    border-radius: $ferba-radius;
+
+    &::before {
+        content: '';
+        display: block;
+        width: 60px;
+        height: 8px;
+        margin-bottom: 1rem;
+        background-image:
+            linear-gradient($ferba-red, $ferba-red),
+            linear-gradient($ferba-red, $ferba-red),
+            linear-gradient($ferba-red, $ferba-red);
+        background-size: 14px 100%;
+        background-position: 0 0, 22px 0, 44px 0;
+        background-repeat: no-repeat;
+        transform: skewX(-32deg);
+        transform-origin: left bottom;
+    }
+
+    p { margin: 0; }
+}
+
+// Mapa incrustado real. Proporción ancha y esquina redondeada como el resto
+// de las figuras del sitio; altura fija para que no colapse antes de cargar
+// el iframe y no dé salto de maqueta.
+.o_ferba_mapa_vivo {
+    position: relative;
+    margin-top: 1.5rem;
+    border-radius: $ferba-radius-foto;
+    overflow: hidden;
+    box-shadow: $ferba-sombra-foto;
+    background: $ferba-gray-light;
+    aspect-ratio: 16 / 10;
+
+    &__marco {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+    }
+
+    @media (max-width: 575px) { aspect-ratio: 4 / 3; }
+}
+
+.o_ferba_directo {
+    display: grid;
+    // 5/7 y no 50/50: la columna del mapa necesita más ancho para que el mapa
+    // sea utilizable, y la de datos se lee mejor estrecha. Antes las dos
+    // mitades iguales dejaban el mapa pequeño y la lista de contacto con
+    // renglones larguísimos: el bloque entero se veía apretado.
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 3rem;
+    align-items: start;
+
+    @media (max-width: 991px) { grid-template-columns: 1fr; gap: 2.5rem; }
+
+    &__lista {
+        list-style: none;
+        padding: 0;
+        margin: 1.4rem 0 0;
+
+        li { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.3rem; }
+        img { width: 34px; height: 34px; flex: none; object-fit: contain; }
+    }
+
+    &__rotulo { font-size: 0.85rem; font-weight: $ferba-fw-bold; margin: 0 0 0.2rem; }
+    &__dato { margin: 0; font-size: $ferba-small; color: lighten($ferba-ink, 18%); }
+    &__dato a { color: inherit; text-decoration: none; &:hover { color: $ferba-red; } }
+
+    &__mapa { width: 100%; height: auto; border-radius: $ferba-radius; display: block; }
+
+    &__horario {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+        border: 1px solid $ferba-gray-line;
+        border-radius: $ferba-radius;
+        padding: 0.9rem 1rem;
+
+        div { display: flex; gap: 0.7rem; align-items: center; }
+        img { width: 26px; height: 26px; flex: none; }
+        p { margin: 0; font-size: 0.76rem; line-height: 1.4; }
+        strong { display: block; font-weight: $ferba-fw-bold; }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Utilidades mínimas del módulo (no de Bootstrap) para centrar un botón
+//  suelto bajo una rejilla, que es un patrón que se repite 6 veces.
+// ---------------------------------------------------------------------
+.o_ferba_centrado { display: flex; justify-content: center; margin-top: 2.5rem; }
+
+// ---------------------------------------------------------------------
+//  Piezas menores y remates
+// ---------------------------------------------------------------------
+
+// Odoo carga Bootstrap y estas utilidades ya existen en el sitio. Se
+// redeclaran dentro del ámbito de Ferba para que la vista previa estática
+// (que no lleva Bootstrap) muestre el mismo ritmo vertical.
+.o_ferba {
+    .mt-3 { margin-top: 1rem; }
+    .mt-4 { margin-top: 1.5rem; }
+    .d-none { display: none !important; }
+}
+
+// Acento rojo en medio de un titular ("cada ETAPA del proceso")
+.o_ferba_hero__accent--inline { display: inline; }
+
+// La Q de FlexQuality es roja sobre blanco o negro. Sobre las superficies
+// ROJAS (banda de cierre, banda CTA, botón sólido) desaparecería, así que
+// ahí toma el color del texto que la rodea.
+.o_ferba_cierre, .o_ferba_cta, .o_ferba_btn--solid {
+    .o_ferba_q { color: inherit; }
+}
+
+// Enlace rojo suelto, fuera de tarjeta
+.o_ferba_enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: $ferba-red-text-light;
+    font-size: 0.78rem;
+    font-weight: $ferba-fw-bold;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-decoration: none;
+    margin-top: auto;
+    .o_ferba_arrow { transition: transform $ferba-dur-hover $ferba-ease-out; }
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { color: $ferba-red-dark; }
+        &:hover .o_ferba_arrow { transform: translateX(4px); }
+    }
+}
+
+// Tres paneles de texto al pie de SOLUCIONES
+.o_ferba_trio {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $ferba-gap;
+    align-items: stretch;
+
+    .o_ferba_panel { display: flex; flex-direction: column; }
+    .o_ferba_mapa__img { margin: 0.4rem 0 0.9rem; }
+
+    @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+
+// Miniaturas redondas de fruto dentro de un panel
+.o_ferba_redondos {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.2rem 0 1rem;
+    img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+}
+
+// Banderitas al pie del panel de presencia internacional
+.o_ferba_banderitas {
+    display: flex;
+    flex-wrap: wrap;       // nunca se salen de la tarjeta: si no caben, bajan
+    gap: 0.6rem;
+    margin-top: auto;
+    max-width: 100%;
+    // Caja fija 52x36 (la proporción 3:2 de los webp): height y width
+    // acotan las dos dimensiones, así la fila no puede desbordar como
+    // pasaba con el alto automático.
+    img {
+        width: 52px;
+        height: 36px;
+        object-fit: cover;
+        border-radius: 3px;
+        border: 1px solid $ferba-gray-line;
+    }
+}
+
+// Las anclas de la portada aterrizan aquí; la cabecera de Odoo es fija,
+// así que el destino necesita aire por arriba o queda tapado.
+.o_ferba_etapa, .o_ferba_frutocard { scroll-margin-top: 110px; }
+
+// Tira de frutos en foto cuadrada recortada (MAQUINARIA)
+.o_ferba_tira__item { text-decoration: none; color: inherit; display: block; }
+
+.o_ferba_tira--cuadro {
+    .o_ferba_tira__img {
+        height: auto;
+        aspect-ratio: 1;
+        display: block;
+        overflow: hidden;
+        border-radius: $ferba-radius;
+        img {
+            width: 100%;
+            height: 100%;
+            max-height: none;
+            object-fit: cover;
+            transition: transform 500ms $ferba-ease-out;
+        }
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .o_ferba_tira__item:hover img { transform: scale(1.06); }
+    }
+}
+
+// Beneficios en una sola columna (panel lateral de CONTACTO)
+.o_ferba_benef--col { grid-template-columns: 1fr; }
+
+// Dato de red social sin URL confirmada: se muestra, no se enlaza.
+.o_ferba_directo__dato--pendiente { color: $ferba-gray; }
+
+// Nota bajo el campo de adjunto
+.o_ferba_form__ayuda { margin: 0.4rem 0 0; font-size: 0.72rem; color: $ferba-gray; }
+
+// El formulario se maqueta sobre seis columnas para poder hacer filas de
+// tres (nombre, empresa, teléfono) y de dos sin cambiar de rejilla.
+.o_ferba_form {
+    .s_website_form_rows { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .s_website_form_field { grid-column: span 3; }
+    .s_website_form_field--tercio { grid-column: span 2; }
+    .s_website_form_field--ancho { grid-column: 1 / -1; }
+    .s_website_form_submit { grid-column: 1 / -1; }
+
+    @media (max-width: 767px) {
+        .s_website_form_field,
+        .s_website_form_field--tercio { grid-column: 1 / -1; }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  404. El #wrap nativo (http_routing.404) lleva .o_ferba_404_wrap: se
+//  esconde su bloque de fábrica (fantasma, «páginas populares», enlace a
+//  /contactus) y queda solo la sección de Ferba, a la altura de una pantalla
+//  para que el pie no suba pegado al titular.
+// ---------------------------------------------------------------------
+.o_ferba_404_wrap > .oe_structure { display: none !important; }
+.o_ferba_404 {
+    min-height: calc(100vh - 220px);
+    display: grid;
+    align-items: center;
+    // Sobre negro, el titular en blanco como en los heros; .o_ferba_title
+    // hereda el color de la sección.
+    .o_ferba_title { color: $ferba-white; }
+}

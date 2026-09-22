@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         PROYECTOS  —  réplica de "PROYECTOS.pdf"
+         ================================================================ -->
+    <template id="pagina_proyectos" track="True" name="Ferba — Proyectos">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Proyectos<br/><span class="o_ferba_hero__accent">FERBA en operación</span></t>
+            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
+            <t t-set="fondo">proyectos-18-1728x972.webp</t>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Conoce algunas de las líneas, equipos e integraciones desarrolladas por FERBA
+                    para empacadoras que buscan mejorar eficiencia, calidad y control en sus procesos
+                    postcosecha.
+                </p>
+                <p class="o_ferba_hero__lead">
+                    Cada proyecto refleja nuestra capacidad para diseñar, fabricar e integrar soluciones
+                    adaptadas al producto, espacio, capacidad y necesidades reales de operación.
+                </p>
+            </t>
+            <t t-set="acciones">
+                <a href="/soluciones" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Conocer soluciones</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/maquinaria" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Ver maquinaria</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo">¿Quieres desarrollar<br/>un proyecto con FERBA?</t>
+            <t t-set="cierre_texto">
+                Cuéntanos qué producto procesas, cuál es tu capacidad actual y qué etapa necesitas
+                mejorar. Nuestro equipo puede ayudarte a diseñar una solución adaptada a tu operación.
+            </t>
+            <t t-set="cierre_foto">proyectos-01-1344x756.webp</t>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Cotizar proyecto</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- ============ Soluciones reales para operaciones reales ============ -->
+            <section class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split">
+                        <div class="o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Soluciones reales para operaciones reales</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="mt-4">
+                                En <strong>FERBA</strong> participamos en proyectos que van desde equipos
+                                individuales hasta líneas completas postcosecha, modernización de procesos,
+                                automatización o integración de tecnología de visión artificial.
+                            </p>
+                            <p>
+                                Nuestro enfoque combina ingeniería, fabricación, instalación y acompañamiento
+                                técnico para entregar soluciones funcionales, escalables y preparadas para la
+                                operación diaria de cada cliente.
+                            </p>
+                        </div>
+                        <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                            <img src="/ferba_website/static/src/img/proyectos-02-836x471.webp"
+                                 alt="Línea FERBA instalada en empacadora"
+                                 width="836" height="471" class="o_ferba_split__img" loading="lazy"/>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Galería de proyectos instalados ============ -->
+            <section class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Galería de proyectos instalados</t>
+                    </t>
+                    <t t-set="galeria" t-value="[
+                        ('proyectos-03-669x376.webp',  'FlexQuality Aguacate'),
+                        ('proyectos-05-669x377.webp',  'FlexQuality Pepino'),
+                        ('proyectos-07-1152x648.webp', 'FlexQuality Tomate'),
+                        ('proyectos-04-724x543.webp',  'Multipesadoras'),
+                        ('proyectos-06-724x543.webp',  'Sembradoras'),
+                        ('proyectos-08-768x432.webp',  'Línea de Melón'),
+                    ]"/>
+                    <div class="o_ferba_proyectos" data-ferba-grupo="galeria">
+                        <t t-foreach="galeria" t-as="g">
+                            <a href="/contactenos" class="o_ferba_proyecto o_ferba_reveal o_ferba_reveal--wipe">
+                                <span class="o_ferba_proyecto__media">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{g[0]}" t-att-alt="g[1]" loading="lazy"/>
+                                </span>
+                                <span class="o_ferba_proyecto__pie">
+                                    <span class="o_ferba_proyecto__titulo" t-out="g[1]"/>
+                                    <span class="o_ferba_proyecto__enlace">
+                                        Ver proyecto
+                                        <t t-call="ferba_website.flecha"/>
+                                    </span>
+                                </span>
+                            </a>
+                        </t>
+                    </div>
+                    <div class="o_ferba_centrado o_ferba_reveal">
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--outline-red">
+                            <span class="o_ferba_btn__label">Ver más proyectos</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Proyectos destacados ============ -->
+            <section class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Proyectos destacados</t>
+                    </t>
+                    <t t-set="casos" t-value="[
+                        ('proyectos-09-960x540.webp', 'Modernización de línea de aguacate',
+                         'Mejorar el flujo de selección y clasificación del producto.',
+                         'Integración de calibrador, singuladores, transportadores y sistema de visión FlexQuality.',
+                         'Operación más uniforme, mayor control de calidad y mejor aprovechamiento del producto.'),
+                        ('proyectos-11-724x543.webp', 'Línea postcosecha para cítricos',
+                         'Preparar el producto para selección, empaque y comercialización.',
+                         'Integración de calibrador, sistema de visión FlexQuality y módulos de empaque.',
+                         'Proceso más ordenado, eficiente y adaptable al volumen de operación.'),
+                        ('proyectos-10-960x540.webp', 'Integración FlexQuality',
+                         'Modernizar la inspección del producto sin reemplazar toda la línea.',
+                         'Instalación de módulo FlexQuality Full o Lite según requerimiento de análisis.',
+                         'Mayor precisión en selección visual y clasificación por parámetros comerciales.'),
+                    ]"/>
+                    <div class="o_ferba_casos" data-ferba-grupo="casos">
+                        <t t-foreach="casos" t-as="c">
+                            <article class="o_ferba_caso o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/#{c[0]}" alt=""
+                                     class="o_ferba_caso__foto" loading="lazy"/>
+                                <div class="o_ferba_caso__panel">
+                                    <span class="o_ferba_caso__eyebrow">Caso de éxito</span>
+                                    <h3 class="o_ferba_caso__titulo" t-out="c[1]"/>
+                                    <p class="o_ferba_caso__dato"><strong>Necesidad:</strong> <t t-out="c[2]"/></p>
+                                    <p class="o_ferba_caso__dato"><strong>Solución:</strong> <t t-out="c[3]"/></p>
+                                    <p class="o_ferba_caso__dato"><strong>Resultado:</strong> <t t-out="c[4]"/></p>
+                                </div>
+                            </article>
+                        </t>
+                    </div>
+                    <div class="o_ferba_centrado o_ferba_reveal">
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost">
+                            <span class="o_ferba_btn__label">Ver más casos de éxito</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============ Videos ============
+                 Las miniaturas van SIN enlace a propósito: todavía no hay URL
+                 del canal ni de cada video. Un botón de reproducir que no
+                 reproduce es peor que una foto. En cuanto Víctor pase los
+                 enlaces de YouTube, cada <span> se vuelve <a href="..."> y
+                 el bloque queda completo sin tocar el CSS. -->
+            <section class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Videos de maquinaria en operación</t>
+                    </t>
+                    <t t-set="videos" t-value="[
+                        'proyectos-12-384x216.webp', 'proyectos-13-335x189.webp', 'proyectos-14-335x189.webp',
+                        'proyectos-15-335x189.webp', 'proyectos-16-335x189.webp', 'proyectos-17-290x218.webp',
+                    ]"/>
+                    <div class="o_ferba_videos" data-ferba-grupo="videos">
+                        <t t-foreach="videos" t-as="v">
+                            <span class="o_ferba_video o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/#{v}" alt="Maquinaria FERBA en operación"
+                                     class="o_ferba_video__foto" loading="lazy"/>
+                                <img src="/ferba_website/static/src/img/iconos/play.svg" alt=""
+                                     class="o_ferba_video__play"/>
+                            </span>
+                        </t>
+                    </div>
+                    <div class="o_ferba_centrado o_ferba_reveal">
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--outline-red">
+                            <span class="o_ferba_btn__label">Ver más videos</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

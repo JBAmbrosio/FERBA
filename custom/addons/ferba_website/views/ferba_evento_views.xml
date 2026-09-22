@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Señales de interés — vistas de consulta
+
+         Cuelga de Sitio web > Informes, al lado de "Visitantes" y "Vistas
+         de página" de Odoo, porque es la tercera pata de lo mismo: quién
+         entró, qué vio y qué HIZO.
+
+         Las vistas son de solo lectura a propósito. Esto no es un CRM en
+         miniatura: es un registro que se consulta y del que salen
+         llamadas. Editar una señal a mano sería falsear el dato.
+         ================================================================ -->
+
+    <record id="ferba_evento_list" model="ir.ui.view">
+        <field name="name">ferba.evento.list</field>
+        <field name="model">ferba.evento</field>
+        <field name="arch" type="xml">
+            <!-- El registro no se falsifica ni se edita, y tampoco se borra a
+                 un clic desde el menú de acciones: cada renglón es un motivo
+                 para llamar, y un borrado accidental no deja rastro. -->
+            <list string="Señales del sitio" create="false" edit="false" delete="false">
+                <field name="create_date" string="Cuándo"/>
+                <field name="nombre"/>
+                <field name="detalle"/>
+                <field name="pais_id"/>
+                <field name="visitor_id"/>
+                <field name="visitas" string="Visitas del mismo"/>
+                <field name="partner_id" optional="show"/>
+                <field name="origen" optional="show"/>
+                <field name="campana" optional="show"/>
+                <field name="url" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="ferba_evento_search" model="ir.ui.view">
+        <field name="name">ferba.evento.search</field>
+        <field name="model">ferba.evento</field>
+        <field name="arch" type="xml">
+            <!-- La forma de esta vista está calcada de la de "Visitantes"
+                 de Odoo 19 (website/views/website_visitor_views.xml): fechas
+                 con sintaxis relativa ('-7d') y el bloque de agrupación en
+                 un <group> sin atributos. En 19 el <group expand="..."
+                 string="..."> de toda la vida ya no valida. -->
+            <search string="Señales del sitio">
+                <field name="detalle"/>
+                <field name="visitor_id"/>
+                <field name="campana"/>
+                <filter name="dia" string="Últimas 24 horas" domain="[('create_date', '&gt;', '-1d')]"/>
+                <filter name="semana" string="Últimos 7 días" domain="[('create_date', '&gt;', '-7d')]"/>
+                <filter name="mes" string="Últimos 30 días" domain="[('create_date', '&gt;', '-30d')]"/>
+                <separator/>
+                <filter name="quiere_hablar" string="Quiere hablar"
+                        domain="[('nombre', 'in', ['contacto_directo', 'solicitud_enviada'])]"/>
+                <filter name="retrofit" string="Interés en modernizar"
+                        domain="[('nombre', 'in', ['interes_retrofit', 'interes_flexquality'])]"/>
+                <separator/>
+                <filter name="identificado" string="Visitante identificado"
+                        domain="[('partner_id', '!=', False)]"/>
+                <separator/>
+                <group>
+                    <filter name="g_senal" string="Señal" context="{'group_by': 'nombre'}"/>
+                    <filter name="g_detalle" string="Detalle" context="{'group_by': 'detalle'}"/>
+                    <filter name="g_pais" string="País" context="{'group_by': 'pais_id'}"/>
+                    <filter name="g_campana" string="Campaña" context="{'group_by': 'campana'}"/>
+                    <filter name="g_visitante" string="Visitante" context="{'group_by': 'visitor_id'}"/>
+                    <filter name="g_dia" string="Día" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="ferba_evento_pivot" model="ir.ui.view">
+        <field name="name">ferba.evento.pivot</field>
+        <field name="model">ferba.evento</field>
+        <field name="arch" type="xml">
+            <!-- Sin interval: el propio pivote deja elegir día/semana/mes
+                 al desplegar la columna, así que fijarlo aquí no aporta. -->
+            <pivot>
+                <field name="nombre" type="row"/>
+                <field name="detalle" type="row"/>
+                <field name="create_date" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="ferba_evento_graph" model="ir.ui.view">
+        <field name="name">ferba.evento.graph</field>
+        <field name="model">ferba.evento</field>
+        <field name="arch" type="xml">
+            <graph type="bar">
+                <field name="nombre"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="ferba_evento_action" model="ir.actions.act_window">
+        <field name="name">Señales del sitio</field>
+        <field name="res_model">ferba.evento</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{'search_default_semana': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay señales</p>
+            <p>
+                Aquí aparece lo que hacen los visitantes del sitio: a quién le
+                interesó Flex<span style="color:#e41b17">Q</span>uality, quién
+                miró una etapa concreta de la línea, quién buscó el teléfono y
+                quién envió una solicitud.
+            </p>
+            <p>
+                No es una estadística: cada renglón es un motivo para llamar.
+            </p>
+        </field>
+    </record>
+
+    <!-- groups= además del ACL, a propósito. Odoo decide la visibilidad de un
+         menú por el ir.model.access del modelo de la acción, así que el ACL ya
+         basta hoy; esto es el cinturón que evita que la entrada reaparezca
+         para toda la plantilla si alguien ensancha el ACL más adelante. El
+         arreglo de fondo vive en security/, porque la vía RPC no pasa por el
+         menú. -->
+    <menuitem id="ferba_evento_menu"
+              name="Señales de interés"
+              parent="website.menu_reporting"
+              action="ferba_evento_action"
+              groups="ferba_website.group_ferba_analitica"
+              sequence="45"/>
+
+</odoo>

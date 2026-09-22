@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Cabecera de Ferba.
+         Odoo trae su propia cabecera (plantilla del tema, menú configurado en
+         Sitio web > Menú, buscador, login, botón). Maquillarla con CSS era
+         frágil: en la sandbox salió la plantilla "Sales Two" con barra
+         promocional y enlaces blancos sobre fondo claro. Aquí se INYECTA la
+         de Ferba dentro del <header> de Odoo — igual que el pie — y el SCSS
+         oculta el resto solo en páginas de Ferba (#wrapwrap:has(.o_ferba_page)).
+         En cualquier otra página, la cabecera de Odoo sigue intacta y esta se
+         oculta. Como vive dentro del <header> fijo de Odoo, hereda el
+         comportamiento fijo y el espaciado superior que Odoo ya calcula. -->
+    <template id="header_ferba" inherit_id="website.layout" name="Ferba — cabecera" active="True">
+        <xpath expr="//header" position="inside">
+            <!-- Ruta sin barra final (/es_MX/frutos acaba en /frutos, y con eso basta
+                 para las interiores). La portada es '/', pero en otro idioma llega
+                 como /en o /es_MX: se compara con el código de idioma que
+                 website.layout ya recibe en `lang` (es_MX → también su raíz es).
+                 Nada de getattr/hasattr: QWeb solo permite los builtins de
+                 safe_eval, y con `getattr` la cabecera reventaba en toda página. -->
+            <t t-set="ruta" t-value="(request.httprequest.path if request else '/').rstrip('/') or '/'"/>
+            <t t-set="codigo_idioma" t-value="lang or ''"/>
+            <t t-set="en_portada" t-value="ruta == '/' or ruta[1:] in (codigo_idioma, codigo_idioma.split('_')[0])"/>
+            <t t-set="menu_ferba" t-value="[
+                ('/',              'Inicio'),
+                ('/quienes-somos', 'Quiénes somos'),
+                ('/soluciones',    'Soluciones'),
+                ('/maquinaria',    'Maquinaria'),
+                ('/flexquality',   'FlexQuality'),
+                ('/frutos',        'Frutos'),
+                ('/proyectos',     'Proyectos'),
+                ('/postventa',     'Postventa'),
+                ('/contactenos',   'Contacto'),
+            ]"/>
+            <div class="o_ferba o_ferba_header">
+                <div class="o_ferba_container o_ferba_header__inner">
+                    <a href="/" class="o_ferba_header__logo" aria-label="Ferba — inicio">
+                        <img src="/ferba_website/static/src/img/inicio-01-1806x362.webp"
+                             alt="Ferba Postharvest Technology" width="1806" height="362"/>
+                    </a>
+
+                    <button type="button" class="o_ferba_header__toggle"
+                            aria-label="Abrir menú" aria-expanded="false" aria-controls="o_ferba_nav">
+                        <span/><span/><span/>
+                    </button>
+
+                    <nav aria-label="Principal">
+                        <ul id="o_ferba_nav" class="o_ferba_header__nav">
+                            <t t-foreach="menu_ferba" t-as="item">
+                                <t t-set="activo" t-value="en_portada if item[0] == '/' else ruta.endswith(item[0])"/>
+                                <li>
+                                    <a t-att-href="item[0]"
+                                       t-att-class="'is-active' if activo else None"
+                                       t-att-aria-current="'page' if activo else None">
+                                        <t t-out="item[1]"/>
+                                    </a>
+                                </li>
+                            </t>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

@@ -1,0 +1,414 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Página de inicio
+         Réplica del diseño INICIO.pdf entregado por el cliente.
+         Las imágenes salieron del propio PDF, optimizadas a WebP.
+         ================================================================ -->
+    <template id="pagina_inicio" track="True" name="Ferba — Inicio">
+        <t t-call="website.layout">
+            <t t-set="pageName" t-value="'ferba_inicio'"/>
+            <!-- Marca que hay JS ANTES de pintar, para que el estado oculto de
+                 las apariciones solo exista si algo las va a mostrar después.
+                 Va en línea a propósito: el bundle de Odoo puede cargar tarde
+                 y se vería el contenido parpadear. -->
+            <script type="text/javascript">document.documentElement.classList.add('o_ferba_js');</script>
+
+            <div id="wrap" class="o_ferba o_ferba_page">
+
+                <!-- Etapas de la línea: (foto, icono, ancla en /maquinaria, rótulo).
+                     Una sola lista para la rejilla de maquinaria; si vuelve a
+                     hacer falta en otra sección, ya está aquí arriba. -->
+                <t t-set="maquinas" t-value="[
+                    ('inicio-08-502x283.webp', 'iconos/maq-recepcion.svg', 'recepcion',       'Recepción y alimentación'),
+                    ('inicio-10-669x377.webp', 'iconos/maq-01.svg',        'lavado',          'Lavado y tratamiento'),
+                    ('inicio-12-615x410.webp', 'iconos/maq-02.svg',        'secado',          'Secado y cepillado'),
+                    ('inicio-14-580x435.webp', 'inicio-16-308x205.webp',   'transportadores', 'Transportadores / bandas'),
+                    ('inicio-09-576x324.webp', 'iconos/maq-03.svg',        'seleccion',       'Selección y calibrado'),
+                    ('inicio-11-580x435.webp', 'iconos/maq-04.svg',        'empaque',         'Empaque'),
+                    ('inicio-13-580x435.webp', 'iconos/maq-05.svg',        'automatizacion',  'Automatización y control'),
+                    ('inicio-15-580x435.webp', 'iconos/maq-06.svg',        'sembradoras',     'Sembradoras'),
+                ]"/>
+
+                <!-- ============ HERO ============ -->
+                <!-- Para poner el video de línea en operación: sube el archivo,
+                     añade a esta sección la clase modificadora "video" (el
+                     bloque o_ferba_hero con el sufijo de video) y descomenta
+                     el reproductor de abajo. La foto queda de poster, así que
+                     nada se ve roto mientras carga ni si el navegador bloquea
+                     la reproducción automática.
+                     Ojo: en un comentario XML no se puede escribir el guión
+                     doble de la clase, por eso va descrito con palabras. -->
+                <section class="o_ferba_hero">
+                    <div class="o_ferba_hero__media"
+                         t-attf-style="background-image:url('/ferba_website/static/src/img/inicio-02-1448x1086.webp')">
+                        <!--
+                        <video autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline"
+                               preload="metadata"
+                               poster="/ferba_website/static/src/img/inicio-02-1448x1086.webp">
+                            <source src="/ferba_website/static/src/video/linea.webm" type="video/webm"/>
+                            <source src="/ferba_website/static/src/video/linea.mp4" type="video/mp4"/>
+                        </video>
+                        -->
+                    </div>
+                    <div class="o_ferba_container o_ferba_hero__inner">
+                        <div class="o_ferba_hero__text">
+                            <!-- Cada renglón en su propia máscara: suben uno tras otro. -->
+                            <h1 class="o_ferba_hero__title o_ferba_hero__title--lines">
+                                <span class="o_ferba_hero__line"><span>Tecnología postcosecha</span></span>
+                                <span class="o_ferba_hero__line"><span>para empacadoras</span></span>
+                                <span class="o_ferba_hero__line o_ferba_hero__accent"><span>más eficientes</span></span>
+                            </h1>
+                            <p class="o_ferba_hero__lead">
+                                Diseñamos, fabricamos e integramos maquinaria y sistemas de
+                                automatización para recepción, lavado, selección y empaque de
+                                frutas y hortalizas.
+                            </p>
+                            <p class="o_ferba_hero__lead">
+                                Desde líneas completas hasta modernización de equipos existentes,
+                                ayudamos a mejorar el flujo, la precisión y la calidad de cada proceso.
+                            </p>
+                            <!-- Credenciales. Texto literal de QUIENES SOMOS y de la dirección;
+                                 no se afirma nada que el cliente no haya escrito ya. -->
+                            <p class="o_ferba_hero__cred">
+                                <img src="/ferba_website/static/src/img/iconos/contacto-ubicacion.svg" alt=""/>
+                                <span><strong>Más de <span data-ferba-contador="20">20</span> años</strong> en postcosecha</span>
+                                <span>Presencia comercial en Estados Unidos, España, México y Perú</span>
+                                <span>Culiacán, Sinaloa</span>
+                            </p>
+                            <div class="o_ferba_hero__actions">
+                                <a href="/soluciones" class="o_ferba_btn o_ferba_btn--solid">
+                                    <span class="o_ferba_btn__label">Conocer soluciones</span>
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                                <a href="/flexquality" class="o_ferba_btn o_ferba_btn--ghost">
+                                    <span class="o_ferba_btn__label">Ver Flex<span class="o_ferba_q">Q</span>uality</span>
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ ¿QUÉ HACEMOS? ============ -->
+                <section class="o_ferba_section o_ferba_section--light">
+                    <div class="o_ferba_container">
+                        <!-- Sin antetítulo. "¿Qué hacemos?" no añadía nada que el
+                             titular no dijera ya, y repetido en cada sección
+                             convertía la página en una plantilla. Se conserva solo
+                             donde nombra un producto propio (FlexQuality). -->
+                        <div class="o_ferba_head o_ferba_reveal">
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in">Soluciones postcosecha a la medida de tu operación</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_head__aside">
+                                En FERBA desarrollamos soluciones para empaques que buscan mejorar
+                                su capacidad, reducir tiempos, cuidar mejor el producto y obtener
+                                una clasificación más precisa.
+                            </p>
+                        </div>
+
+                        <div class="o_ferba_cards" data-ferba-grupo="1">
+                            <t t-call="ferba_website.tarjeta_servicio">
+                                <t t-set="icono" t-value="'inicio-04-308x308.webp'"/>
+                                <t t-set="titulo">Líneas completas postcosecha</t>
+                                <t t-set="texto">Diseñamos proyectos integrales desde la recepción hasta el empaque.</t>
+                                <t t-set="enlace" t-value="'/soluciones'"/>
+                                <t t-set="accion">Ver soluciones</t>
+                            </t>
+                            <t t-call="ferba_website.tarjeta_servicio">
+                                <t t-set="icono" t-value="'inicio-05-308x308.webp'"/>
+                                <t t-set="titulo">Maquinaria por etapa del proceso</t>
+                                <t t-set="texto">Fabricamos e integramos equipos para cada parte de tu línea, adaptados al producto y tu capacidad de operación.</t>
+                                <t t-set="enlace" t-value="'/maquinaria'"/>
+                                <t t-set="accion">Ver maquinaria</t>
+                            </t>
+                            <t t-call="ferba_website.tarjeta_servicio">
+                                <!-- Brazo robótico: vector con relleno gris en el PDF (por eso los
+                                     filtros de rojo y de raster no lo veían). Exportado en blanco. -->
+                                <t t-set="icono" t-value="'iconos/card-automatizacion.svg'"/>
+                                <t t-set="titulo">Automatización y modernización</t>
+                                <t t-set="texto">Actualizamos líneas existentes con sistemas de control, sensores y tecnología de visión artificial.</t>
+                                <t t-set="enlace" t-value="'/soluciones'"/>
+                                <t t-set="accion">Ver soluciones</t>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ FLEXQUALITY ============ -->
+                <section class="o_ferba_section o_ferba_section--dark o_ferba_section--bleed">
+                    <div class="o_ferba_container">
+                        <!-- El texto sube; la foto entra con barrido. Van como hermanos
+                             (no anidados) para que cada uno se revele una sola vez. -->
+                        <div class="o_ferba_split o_ferba_split--bleed">
+                            <div class="o_ferba_reveal">
+                                <span class="o_ferba_eyebrow">Flex<span class="text-white">Quality</span></span>
+                                <h2 class="o_ferba_title"><span class="o_ferba_title__in">Selección inteligente con visión artificial e inteligencia artificial</span></h2>
+                                <span class="o_ferba_rule"/>
+                                <p class="mt-4">
+                                    Flex<span class="o_ferba_q">Q</span>uality analiza frutas y hortalizas en tiempo real
+                                    para detectar características externas como el color, tamaño, forma,
+                                    defectos y parámetros de calidad.
+                                </p>
+                                <p>
+                                    Puede integrarse en líneas nuevas o en calibradores existentes,
+                                    ayudando a modernizar procesos sin necesidad de reemplazar toda la línea.
+                                </p>
+
+                                <!-- Iconos extraídos del PDF como SVG: son trazos vectoriales,
+                                     no imágenes, así que se ven nítidos a cualquier tamaño. -->
+                                <div class="o_ferba_features">
+                                    <t t-call="ferba_website.beneficio">
+                                        <t t-set="ico" t-value="'fq-precision.svg'"/>
+                                        <t t-set="txt">Mayor precisión de selección</t>
+                                    </t>
+                                    <t t-call="ferba_website.beneficio">
+                                        <t t-set="ico" t-value="'fq-variacion.svg'"/>
+                                        <t t-set="txt">Menos variación en la clasificación</t>
+                                    </t>
+                                    <t t-call="ferba_website.beneficio">
+                                        <t t-set="ico" t-value="'fq-aprovechamiento.svg'"/>
+                                        <t t-set="txt">Mayor aprovechamiento del producto</t>
+                                    </t>
+                                    <t t-call="ferba_website.beneficio">
+                                        <t t-set="ico" t-value="'fq-integracion.svg'"/>
+                                        <t t-set="txt">Integración en equipos existentes</t>
+                                    </t>
+                                    <t t-call="ferba_website.beneficio">
+                                        <t t-set="ico" t-value="'fq-datos.svg'"/>
+                                        <t t-set="txt">Datos más claros para la operación</t>
+                                    </t>
+                                </div>
+
+                                <a href="/flexquality" class="o_ferba_btn o_ferba_btn--solid">
+                                    <span class="o_ferba_btn__label">Conocer FlexQuality</span>
+                                    <t t-call="ferba_website.flecha"/>
+                                </a>
+                            </div>
+                            <!-- width/height explícitos para que el navegador reserve el
+                                 espacio y no salte la maquetación al cargar la foto. -->
+                            <div class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                                <img src="/ferba_website/static/src/img/inicio-06-1014x761.webp"
+                                     alt="FlexQuality analizando tomate en línea"
+                                     width="1014" height="761"
+                                     class="o_ferba_split__img"/>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ MAQUINARIA ============ -->
+                <section class="o_ferba_section o_ferba_section--light">
+                    <div class="o_ferba_container">
+                        <div class="o_ferba_head o_ferba_reveal">
+                            <div>
+                                <span class="o_ferba_eyebrow">Maquinaria</span>
+                                <h2 class="o_ferba_title"><span class="o_ferba_title__in">Equipos para cada etapa del proceso</span></h2>
+                                <span class="o_ferba_rule"/>
+                            </div>
+                            <p class="o_ferba_head__aside">
+                                Diseñamos equipos que se integran de forma eficiente en líneas
+                                hortofrutícolas, cuidando el producto y mejorando el flujo de trabajo
+                                desde la recepción hasta el empaque final.
+                            </p>
+                        </div>
+
+                        <!-- `maquinas` se define al inicio de la plantilla. Cada mosaico
+                             va a SU sección: antes los 8 llevaban al mismo sitio. -->
+                        <div class="o_ferba_grid" data-ferba-grupo="1">
+                            <t t-foreach="maquinas" t-as="m">
+                                <t t-call="ferba_website.mosaico">
+                                    <t t-set="img"    t-value="m[0]"/>
+                                    <t t-set="icono"  t-value="m[1]"/>
+                                    <t t-set="ancla"  t-value="m[2]"/>
+                                    <t t-set="rotulo" t-value="m[3]"/>
+                                </t>
+                            </t>
+                        </div>
+
+                        <div class="text-center mt-5">
+                            <a href="/maquinaria" class="o_ferba_btn o_ferba_btn--outline-red">
+                                <span class="o_ferba_btn__label">Ver toda la maquinaria</span>
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ FRUTOS ============ -->
+                <section class="o_ferba_section o_ferba_section--dark">
+                    <div class="o_ferba_container">
+                        <div class="o_ferba_head o_ferba_reveal">
+                            <div>
+                                <span class="o_ferba_eyebrow">Frutos</span>
+                                <h2 class="o_ferba_title"><span class="o_ferba_title__in">Soluciones adaptadas a cada tipo de producto</span></h2>
+                                <span class="o_ferba_rule"/>
+                            </div>
+                            <p class="o_ferba_head__aside">
+                                Cada fruto requiere un manejo diferente. Conoce las soluciones de FERBA
+                                según el producto que proceses y descubre qué maquinaria, automatización
+                                o integración Flex<span class="o_ferba_q">Q</span>uality puede adaptarse a tu línea.
+                            </p>
+                        </div>
+
+                        <!-- (foto, ancla en /frutos, nombre). Quien toca "Aguacate" espera
+                             aguacate, no un catálogo genérico. -->
+                        <t t-set="frutos" t-value="[
+                            ('inicio-22-1124x749.webp',  'tomate',    'Tomate'),
+                            ('inicio-17-1063x598.webp',  'pepino',    'Pepino'),
+                            ('inicio-18-694x463.webp',   'pimiento',  'Pimiento'),
+                            ('inicio-23-1132x755.webp',  'calabaza',  'Calabaza'),
+                            ('inicio-24-1633x1225.webp', 'mango',     'Mango'),
+                            ('inicio-19-956x538.webp',   'melon',     'Melón'),
+                            ('inicio-20-1037x692.webp',  'aguacate',  'Aguacate'),
+                            ('inicio-25-1200x800.webp',  'citricos',  'Cítricos'),
+                            ('inicio-21-990x660.webp',   'esparrago', 'Espárrago'),
+                            ('inicio-26-1034x690.webp',  'sandia',    'Sandía'),
+                        ]"/>
+                        <div class="o_ferba_fruits" data-ferba-grupo="1">
+                            <t t-foreach="frutos" t-as="f">
+                                <t t-call="ferba_website.fruto">
+                                    <t t-set="img"    t-value="f[0]"/>
+                                    <t t-set="ancla"  t-value="f[1]"/>
+                                    <t t-set="nombre" t-value="f[2]"/>
+                                </t>
+                            </t>
+                        </div>
+
+                        <div class="text-center mt-5">
+                            <a href="/frutos" class="o_ferba_btn o_ferba_btn--outline-red">
+                                <span class="o_ferba_btn__label">Ver todos los frutos</span>
+                                <t t-call="ferba_website.flecha"/>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ LLAMADA A LA ACCIÓN ============ -->
+                <section class="o_ferba_cta">
+                    <div class="o_ferba_container o_ferba_cta__inner">
+                        <img src="/ferba_website/static/src/img/iconos/cta-soporte.svg"
+                             alt="" class="o_ferba_cta__icon"/>
+                        <div class="o_ferba_cta__body">
+                            <!-- h2, no p: quien navega por encabezados debe llegar al momento
+                                 de conversión. -->
+                            <h2 class="o_ferba_cta__title">¿Listo para mejorar tu línea postcosecha?</h2>
+                            <p class="o_ferba_cta__text">
+                                Nuestro equipo está listo para ayudarte a diseñar la solución ideal
+                                para tu operación.
+                            </p>
+                            <!-- Prueba en el momento de decidir. Texto literal del caso de
+                                 aguacate de PROYECTOS ("Resultado: …"). -->
+                            <p class="o_ferba_cta__proof">
+                                <strong>Caso de éxito</strong> — modernización de línea de aguacate:
+                                operación más uniforme, mayor control de calidad y mejor
+                                aprovechamiento del producto.
+                            </p>
+                        </div>
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                            <span class="o_ferba_btn__label">Contactar a Ferba</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- WhatsApp flotante. El número es el del pie (+52 667 121 7267).
+                     PENDIENTE: confirmar con Víctor que esa línea tiene WhatsApp
+                     Business; si es otro número, se cambia aquí y en el pie. -->
+                <a href="https://wa.me/526671217267?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20maquinaria%20postcosecha"
+                   class="o_ferba_whatsapp"
+                   target="_blank" rel="noopener"
+                   aria-label="Escríbenos por WhatsApp">
+                    <t t-call="ferba_website.icono_whatsapp"/>
+                </a>
+
+            </div>
+        </t>
+    </template>
+
+
+    <!-- ================================================================
+         Piezas reutilizables
+         ================================================================ -->
+
+    <!-- Flecha de los botones. Va en SVG para que herede el color del texto
+         y no haga falta una imagen por cada variante de botón. -->
+    <template id="flecha" name="Ferba — flecha">
+        <svg class="o_ferba_arrow" viewBox="0 0 26 10" fill="none" aria-hidden="true">
+            <path d="M0 5h23M19 1l4.5 4L19 9" stroke="currentColor" stroke-width="1.4"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </template>
+
+    <!-- Icono de WhatsApp. El trazado sale de iconos/red-whatsapp.svg, que
+         viene con un cuadro negro de fondo porque en el PDF va sobre oscuro;
+         aquí se usa solo la figura y el color lo pone el CSS con
+         currentColor, para que el mismo icono sirva sobre cualquier fondo. -->
+    <template id="icono_whatsapp" name="Ferba — icono de WhatsApp">
+        <svg class="o_ferba_whatsapp__ico" viewBox="6.52 6.33 20.09 20.09"
+             fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M23.47 9.46C21.64 7.64 19.20 6.63 16.61 6.63C11.26 6.63 6.90 10.96 6.90 16.29C6.90 17.99 7.34 19.65 8.19 21.11L6.82 26.12L11.96 24.78C13.38 25.54 14.98 25.95 16.60 25.95L16.61 25.95C21.96 25.95 26.31 21.62 26.31 16.30C26.31 13.72 25.31 11.29 23.47 9.46L23.47 9.46M16.61 24.32L16.60 24.32C15.16 24.32 13.74 23.93 12.50 23.20L12.20 23.03L9.15 23.82L9.96 20.86L9.77 20.56C8.96 19.28 8.54 17.80 8.54 16.29C8.54 11.86 12.16 8.26 16.61 8.26C18.76 8.26 20.79 9.10 22.31 10.62C23.84 12.13 24.68 14.15 24.68 16.29C24.67 20.72 21.05 24.32 16.61 24.32L16.61 24.32M21.03 18.31C20.79 18.19 19.60 17.61 19.38 17.53C19.15 17.44 18.99 17.41 18.83 17.65C18.67 17.89 18.20 18.43 18.06 18.59C17.92 18.75 17.78 18.77 17.54 18.65C17.29 18.53 16.51 18.28 15.58 17.45C14.86 16.81 14.38 16.02 14.24 15.78C14.09 15.54 14.22 15.41 14.34 15.29C14.45 15.18 14.58 15.01 14.71 14.87C14.83 14.73 14.87 14.63 14.95 14.46C15.03 14.30 14.99 14.16 14.93 14.04C14.87 13.92 14.38 12.73 14.18 12.25C13.98 11.78 13.78 11.84 13.63 11.84C13.49 11.83 13.33 11.83 13.17 11.83C13.01 11.83 12.75 11.89 12.52 12.13C12.30 12.37 11.67 12.95 11.67 14.14C11.67 15.33 12.54 16.48 12.67 16.64C12.79 16.80 14.38 19.24 16.81 20.28C17.39 20.53 17.84 20.68 18.19 20.79C18.77 20.97 19.30 20.95 19.72 20.89C20.19 20.82 21.15 20.30 21.36 19.74C21.56 19.17 21.56 18.69 21.50 18.59C21.44 18.49 21.28 18.43 21.03 18.31L21.03 18.31"/>
+        </svg>
+    </template>
+
+    <template id="tarjeta_servicio" name="Ferba — tarjeta de servicio">
+        <!-- Toda la columna es el enlace. Antes solo lo era la flecha, un
+             objetivo de 26×23 px: por debajo del mínimo táctil y difícil de
+             acertar incluso con ratón.
+             El icono va con alt vacío y aria-hidden a propósito: el título ya
+             nombra el destino, y si el icono aportara texto el lector de
+             pantalla leería el enlace dos veces. -->
+        <a t-att-href="enlace" class="o_ferba_card o_ferba_reveal">
+            <span class="o_ferba_card__icon">
+                <img t-if="icono" t-attf-src="/ferba_website/static/src/img/#{icono}"
+                     alt="" aria-hidden="true"/>
+            </span>
+            <h3 class="o_ferba_card__title"><t t-esc="titulo"/></h3>
+            <p class="o_ferba_card__text"><t t-esc="texto"/></p>
+            <span class="o_ferba_card__more">
+                <t t-esc="accion"/>
+                <t t-call="ferba_website.flecha"/>
+            </span>
+        </a>
+    </template>
+
+    <template id="mosaico" name="Ferba — mosaico de maquinaria">
+        <a t-att-href="'/maquinaria#' + ancla" class="o_ferba_tile o_ferba_reveal o_ferba_reveal--wipe"
+           t-attf-data-ferba-senal="interes_maquina:#{ancla}">
+            <div class="o_ferba_tile__img">
+                <img t-attf-src="/ferba_website/static/src/img/#{img}" t-att-alt="rotulo" loading="lazy"/>
+            </div>
+            <div class="o_ferba_tile__foot">
+                <img t-if="icono" t-attf-src="/ferba_website/static/src/img/#{icono}" alt=""
+                     width="30" height="30" class="o_ferba_tile__icon"/>
+                <span class="o_ferba_tile__label"><t t-esc="rotulo"/></span>
+            </div>
+        </a>
+    </template>
+
+    <template id="beneficio" name="Ferba — beneficio con icono">
+        <!-- Sin o_ferba_reveal a propósito: el bloque .o_ferba_split que lo
+             contiene ya aparece como unidad, y anidar una aparición dentro de
+             otra hace que el mismo contenido se anime dos veces. -->
+        <div class="o_ferba_features__item">
+            <div class="o_ferba_features__icon">
+                <img t-attf-src="/ferba_website/static/src/img/iconos/#{ico}" alt=""/>
+            </div>
+            <t t-esc="txt"/>
+        </div>
+    </template>
+
+    <template id="fruto" name="Ferba — tarjeta de fruto">
+        <a t-att-href="'/frutos#' + ancla" class="o_ferba_fruit o_ferba_reveal o_ferba_reveal--wipe"
+           t-attf-data-ferba-senal="interes_fruto:#{ancla}">
+            <!-- contenedor propio para el asentado del revelado; la imagen
+                 conserva el zoom del hover sin pelearse con él -->
+            <span class="o_ferba_fruit__img">
+                <img t-attf-src="/ferba_website/static/src/img/#{img}" alt="" loading="lazy"/>
+            </span>
+            <span class="o_ferba_fruit__label"><t t-esc="nombre"/></span>
+        </a>
+    </template>
+
+</odoo>
