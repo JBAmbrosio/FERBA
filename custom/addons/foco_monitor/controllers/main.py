@@ -427,7 +427,7 @@ class FocoController(http.Controller):
             'minutos': settings.screenshot_unclassified_minutes or 0,
             # NUNCA se captura: la propia Foco + las apps marcadas como garantia
             # de privacidad en el catalogo (banca, gestor de contrasenas...).
-            'nunca': ['com.simdatagroup.foco'] + (App.no_captura_apps() if enabled else []),
+            'nunca': ['net.ferba.foco'] + (App.no_captura_apps() if enabled else []),
             'capturadas': Cap.paquetes_capturados(dev) if enabled else [],
             # Apps a fotografiar PERIODICAMENTE mientras esten al frente (WhatsApp
             # y las que sume el admin). Su cadencia propia; 0 = usar `minutos`.
