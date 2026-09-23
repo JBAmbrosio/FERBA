@@ -89,6 +89,10 @@
               parent="menu_foco_sec_movil" action="foco_mobile_usage_action" sequence="30"
               groups="foco_monitor.group_foco_manager"/>
 
+    <menuitem id="menu_foco_mobile_apps" name="Apps (catalogo)"
+              parent="menu_foco_sec_movil" action="foco_mobile_app_action" sequence="35"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_calls" name="Llamadas"
               parent="menu_foco_sec_movil" action="foco_call_action" sequence="40"
               groups="foco_monitor.group_foco_manager"/>

@@ -151,6 +151,13 @@ class FocoSettings(models.Model):
         help='Cada cuantos minutos se toma una captura mientras una app de la '
              'lista de arriba esta en primer plano. 0 = usar los mismos minutos '
              'de las apps sin clasificar.')
+    mobile_screenshot_capture_unregistered = fields.Boolean(
+        string='Fotografiar apps NO registradas cada N min', default=True,
+        help='Encendido, cualquier app que NO este marcada como registrada en '
+             'el catalogo movil (una app personal o desconocida) se fotografia '
+             'cada N min mientras este al frente, igual que las monitoreadas. '
+             'Las apps de trabajo registradas y las de la lista "nunca capturar" '
+             'quedan fuera. Apagado, solo se toma UNA captura de descubrimiento.')
 
     def mobile_screenshot_monitor_list(self):
         """Los paquetes a fotografiar en forma periodica, ya limpios. Acepta

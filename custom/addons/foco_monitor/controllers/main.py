@@ -420,16 +420,25 @@ class FocoController(http.Controller):
         Marca las pendientes como 'enviadas' aqui: viajan una vez."""
         Cmd = request.env['foco.mobile.command'].sudo()
         Cap = request.env['foco.mobile.capture'].sudo()
+        App = request.env['foco.mobile.app'].sudo()
         enabled = bool(settings.mobile_enabled and settings.mobile_screenshot_enabled)
         block = {
             'enabled': enabled,
             'minutos': settings.screenshot_unclassified_minutes or 0,
-            'nunca': ['com.simdatagroup.foco'],
+            # NUNCA se captura: la propia Foco + las apps marcadas como garantia
+            # de privacidad en el catalogo (banca, gestor de contrasenas...).
+            'nunca': ['com.simdatagroup.foco'] + (App.no_captura_apps() if enabled else []),
             'capturadas': Cap.paquetes_capturados(dev) if enabled else [],
             # Apps a fotografiar PERIODICAMENTE mientras esten al frente (WhatsApp
             # y las que sume el admin). Su cadencia propia; 0 = usar `minutos`.
             'monitoreo': settings.mobile_screenshot_monitor_list() if enabled else [],
             'minutos_monitoreo': settings.mobile_screenshot_monitor_minutes or 0,
+            # Apps de trabajo reconocidas: a estas NO se les toma captura
+            # periodica. A las que NO esten aqui, si (si el interruptor de abajo
+            # esta encendido), cada N min mientras esten al frente.
+            'registradas': App.registradas() if enabled else [],
+            'capturar_no_registradas': bool(
+                enabled and settings.mobile_screenshot_capture_unregistered),
             'solicitar': [],
         }
         if enabled:
@@ -533,6 +542,7 @@ class FocoController(http.Controller):
                           'last_fix_at': ult['at']})
 
         # --- uso de apps (upsert idempotente por dia + paquete) ---
+        pares_app = []
         for u in (data.get('usage') or []):
             pkg = (u.get('package') or '').strip()
             d = fields.Date.to_date(u.get('date'))
@@ -548,7 +558,11 @@ class FocoController(http.Controller):
             else:
                 vals.update({'device_id': dev.id, 'date': d, 'package': pkg})
                 Usage.create(vals)
+            pares_app.append((pkg, u.get('label')))
             n_usg += 1
+        # El catalogo de apps moviles se auto-descubre del mismo uso: cada
+        # paquete nuevo entra SIN registrar y decide si se le toma captura.
+        request.env['foco.mobile.app'].sudo().descubrir(pares_app)
 
         # --- llamadas (dedup por el _ID del propio Android) ---
         _DIR = {'in': 'in', 'incoming': 'in', 'out': 'out', 'outgoing': 'out',

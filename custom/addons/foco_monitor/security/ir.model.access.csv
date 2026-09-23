@@ -38,5 +38,7 @@ access_foco_location_user,foco.location user,model_foco_location,group_foco_user
 access_foco_location_manager,foco.location manager,model_foco_location,group_foco_manager,1,1,1,1
 access_foco_mobile_usage_user,foco.mobile.usage user,model_foco_mobile_usage,group_foco_user,1,0,0,0
 access_foco_mobile_usage_manager,foco.mobile.usage manager,model_foco_mobile_usage,group_foco_manager,1,1,1,1
+access_foco_mobile_app_user,foco.mobile.app user,model_foco_mobile_app,group_foco_user,1,0,0,0
+access_foco_mobile_app_manager,foco.mobile.app manager,model_foco_mobile_app,group_foco_manager,1,1,1,1
 access_foco_call_user,foco.call user,model_foco_call,group_foco_user,1,0,0,0
 access_foco_call_manager,foco.call manager,model_foco_call,group_foco_manager,1,1,1,1

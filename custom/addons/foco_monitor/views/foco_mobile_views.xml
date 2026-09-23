@@ -428,9 +428,12 @@
                         <field name="mobile_screenshot_monitor_minutes"
                                string="Cada cuantos minutos (apps monitoreadas)"
                                invisible="not mobile_screenshot_enabled"/>
+                        <field name="mobile_screenshot_capture_unregistered"
+                               string="Fotografiar apps NO registradas cada N min"
+                               invisible="not mobile_screenshot_enabled"/>
                         <field name="screenshot_unclassified_minutes"
                                string="Minutos en una app nueva antes de capturar"
-                               invisible="not mobile_screenshot_enabled"/>
+                               invisible="not mobile_screenshot_enabled or mobile_screenshot_capture_unregistered"/>
                         <field name="screenshot_retention_days"
                                string="Conservar capturas (dias)"
                                invisible="not mobile_screenshot_enabled"/>

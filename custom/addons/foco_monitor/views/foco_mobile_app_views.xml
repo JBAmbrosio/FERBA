@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================== CATALOGO DE APPS MOVILES -->
+    <record id="foco_mobile_app_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.app.list</field>
+        <field name="model">foco.mobile.app</field>
+        <field name="arch" type="xml">
+            <list string="Apps moviles" editable="bottom"
+                  decoration-muted="no_captura"
+                  decoration-success="registrada">
+                <field name="app_label"/>
+                <field name="package"/>
+                <field name="registrada" widget="boolean_toggle"/>
+                <field name="no_captura" widget="boolean_toggle"/>
+                <field name="last_seen"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_view_form" model="ir.ui.view">
+        <field name="name">foco.mobile.app.form</field>
+        <field name="model">foco.mobile.app</field>
+        <field name="arch" type="xml">
+            <form string="App movil">
+                <sheet>
+                    <group>
+                        <field name="app_label"/>
+                        <field name="package"/>
+                        <field name="registrada"/>
+                        <field name="no_captura"/>
+                        <field name="first_seen"/>
+                        <field name="last_seen"/>
+                    </group>
+                    <div class="text-muted">
+                        Una app REGISTRADA (herramienta de trabajo) no recibe
+                        captura periodica. Una NO registrada si, cada N min
+                        mientras este al frente. "Nunca capturar" es una garantia
+                        de privacidad aparte (banca, contrasenas), este o no
+                        registrada.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_view_search" model="ir.ui.view">
+        <field name="name">foco.mobile.app.search</field>
+        <field name="model">foco.mobile.app</field>
+        <field name="arch" type="xml">
+            <search string="Apps moviles">
+                <field name="app_label"/>
+                <field name="package"/>
+                <filter name="f_no_registradas" string="No registradas"
+                        domain="[('registrada', '=', False)]"/>
+                <filter name="f_registradas" string="Registradas"
+                        domain="[('registrada', '=', True)]"/>
+                <filter name="f_no_captura" string="Nunca capturar"
+                        domain="[('no_captura', '=', True)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_registrada" string="Registrada"
+                            context="{'group_by': 'registrada'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_action" model="ir.actions.act_window">
+        <field name="name">Apps moviles</field>
+        <field name="res_model">foco.mobile.app</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_f_no_registradas': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay apps en el catalogo</p>
+            <p>Se llenan solas conforme los telefonos reportan su uso. Marca las de
+               trabajo como "registradas" para que no se les tome captura periodica.</p>
+        </field>
+    </record>
+
+</odoo>

@@ -407,6 +407,85 @@ class FocoMobileUsage(models.Model):
             rec.foreground_hours = round((rec.foreground_seconds or 0) / 3600.0, 3)
 
 
+class FocoMobileApp(models.Model):
+    """Catalogo de apps que ha visto la flota, espejo movil de `foco.app`. Se
+    auto-descubre del uso que ya reporta el telefono: cada paquete nuevo entra
+    SIN registrar. Sirve para decidir a que apps se les toma captura periodica:
+    a una app REGISTRADA (herramienta de trabajo reconocida) no se le toma; a
+    una NO registrada (personal o desconocida) si, cada N min mientras este al
+    frente. `no_captura` es una garantia aparte: apps que NUNCA se fotografian
+    (banca, gestor de contrasenas), esten registradas o no."""
+    _name = 'foco.mobile.app'
+    _description = 'Aplicacion movil vista en la flota'
+    _order = 'registrada, app_label, package'
+
+    _uniq = models.Constraint('unique(package)',
+                              'Ese paquete ya esta en el catalogo.')
+
+    package = fields.Char(string='Paquete', required=True, index=True)
+    app_label = fields.Char(string='Aplicacion')
+    registrada = fields.Boolean(
+        string='Registrada (app de trabajo)', default=False, index=True,
+        help='Marcala si la empresa reconoce esta app como herramienta de '
+             'trabajo. A una app REGISTRADA no se le toma captura periodica; a '
+             'las NO registradas si, cada N min mientras esten al frente.')
+    no_captura = fields.Boolean(
+        string='Nunca capturar con esta app al frente', default=False,
+        help='Con esta app al frente NUNCA se toma captura, este registrada o '
+             'no: la banca, el gestor de contrasenas, salud. Es una garantia de '
+             'privacidad, no una clasificacion.')
+    first_seen = fields.Datetime(string='Vista por primera vez', readonly=True)
+    last_seen = fields.Datetime(string='Vista por ultima vez', readonly=True, index=True)
+
+    @api.model
+    def descubrir(self, pares):
+        """Upsert del catalogo desde el uso del telefono. `pares` = lista de
+        (package, label). Las nuevas entran SIN registrar; nunca se degrada una
+        etiqueta a vacio. Robusto a que dos telefonos vean el mismo paquete
+        nuevo a la vez (savepoint por alta)."""
+        etq = {}
+        for pkg, label in (pares or []):
+            pkg = (pkg or '').strip()
+            if not pkg:
+                continue
+            if label:
+                etq[pkg] = label
+            else:
+                etq.setdefault(pkg, '')
+        if not etq:
+            return
+        ahora = fields.Datetime.now()
+        existentes = {a.package: a for a in self.sudo().search(
+            [('package', 'in', list(etq.keys()))])}
+        for pkg, label in etq.items():
+            rec = existentes.get(pkg)
+            if rec:
+                vals = {'last_seen': ahora}
+                if label and label != rec.app_label:
+                    vals['app_label'] = label
+                rec.write(vals)
+            else:
+                try:
+                    with self.env.cr.savepoint():
+                        self.sudo().create({
+                            'package': pkg, 'app_label': label or '',
+                            'first_seen': ahora, 'last_seen': ahora,
+                        })
+                except Exception:
+                    # otro envio la creo en paralelo: no es error
+                    pass
+
+    @api.model
+    def registradas(self):
+        """Paquetes que la empresa reconoce como apps de trabajo."""
+        return self.sudo().search([('registrada', '=', True)]).mapped('package')
+
+    @api.model
+    def no_captura_apps(self):
+        """Paquetes con los que NUNCA se toma captura."""
+        return self.sudo().search([('no_captura', '=', True)]).mapped('package')
+
+
 class FocoCall(models.Model):
     _name = 'foco.call'
     _description = 'Llamada registrada en un dispositivo movil'
