@@ -60,6 +60,9 @@
                 .fd_ver { margin-top: 16px; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
                 .fd_scan { margin-top: 4px; color: var(--ink2); font-size: 13.5px; }
                 .fd_msg { margin-top: 20px; color: var(--ink2); font-size: 14px; }
+                .fd_foot { margin-top: 32px; color: var(--ink3); font-size: 12px; opacity: .7;
+                           font-variant-numeric: tabular-nums; }
+                .fd_foot b { color: var(--ink2); font-weight: 650; }
 
                 @media (prefers-reduced-motion: reduce) {
                     .fd_qr { transition: opacity 300ms ease; transform: none; filter: none; }
@@ -82,6 +85,11 @@
                     <p class="fd_scan">Escanea con el teléfono para instalar</p>
                 </div>
                 <p class="fd_msg" id="msg" style="display:none"></p>
+
+                <p class="fd_foot">
+                    <t t-if="hay_app">App móvil publicada: <b><t t-esc="version or 'Foco'"/></b></t>
+                    <t t-else="">Aún no hay app móvil publicada</t>
+                </p>
             </div>
 
             <script>
