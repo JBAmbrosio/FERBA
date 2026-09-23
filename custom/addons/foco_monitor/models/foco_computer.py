@@ -132,6 +132,33 @@ class FocoComputer(models.Model):
              'con la persona, nunca una acusacion automatica.')
     integrity_alert_at = fields.Datetime(string='Detectada', readonly=True)
 
+    # --- como se ve y como se busca un equipo -------------------------------
+    # Por omision un equipo se identifica por su hostname (FBT308DDF), que al
+    # elegirlo en una orden o en cualquier desplegable no le dice nada a nadie.
+    # Se muestra la PERSONA primero -que es como la gente lo reconoce- y se deja
+    # la clave entre parentesis para no perder de vista DE QUE maquina se trata
+    # cuando alguien tiene mas de una, o cuando el equipo aun no tiene empleado.
+    @api.depends('name', 'employee_id', 'employee_id.name')
+    def _compute_display_name(self):
+        for rec in self:
+            clave = rec.name or ''
+            persona = rec.employee_id.name if rec.employee_id else ''
+            if persona and clave:
+                rec.display_name = '%s (%s)' % (persona, clave)
+            else:
+                rec.display_name = persona or clave or 'Equipo sin nombre'
+
+    @api.model
+    def _search_display_name(self, operator, value):
+        # Que al teclear en el desplegable se encuentre por el nombre de la
+        # PERSONA ademas de por la clave. Solo para las busquedas "positivas"
+        # (contiene / igual); las negativas se dejan al ORM, donde un OR daria
+        # justo el resultado contrario al que se pide.
+        if value and operator in ('ilike', 'like', '=', '=ilike', '=like'):
+            return ['|', ('name', operator, value),
+                    ('employee_id.name', operator, value)]
+        return super()._search_display_name(operator, value)
+
     def action_clear_integrity_alert(self):
         self.write({'integrity_alert': False, 'integrity_alert_at': False})
 
