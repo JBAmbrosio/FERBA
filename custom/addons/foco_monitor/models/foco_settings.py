@@ -215,6 +215,32 @@ class FocoSettings(models.Model):
                               help="El FERBA-Foco-Setup.exe que descargan los empleados desde el correo.")
     installer_name = fields.Char(string="Nombre del instalador", default="FERBA-Foco-Setup.exe")
 
+    # ---- app movil (APK) para repartir por QR ---------------------------
+    # La Play Store no admite apps de monitoreo, asi que el APK se reparte por
+    # sideload: se sube aqui y se descarga desde /foco/instalar (QR + token
+    # efimero). El version_code sirve para el auto-update de la app.
+    mobile_apk = fields.Binary(
+        string='App movil (APK)',
+        help='El .apk de Foco que se instala en los telefonos de la empresa. '
+             'Se descarga escaneando el QR de /foco/instalar.')
+    mobile_apk_name = fields.Char(string='Nombre del APK', default='foco.apk')
+    mobile_apk_version_name = fields.Char(
+        string='Version de la app', help='Etiqueta visible, p.ej. 1.9.0.')
+    mobile_apk_version_code = fields.Integer(
+        string='Codigo de version', help='Numero entero que sube en cada '
+             'version (versionCode). Lo usa el auto-update para saber si hay '
+             'una mas nueva.')
+    mobile_apk_token_minutes = fields.Integer(
+        string='Minutos que vive el enlace del QR', default=10,
+        help='Cada QR de instalacion acuña un enlace de un solo uso que caduca '
+             'a estos minutos. Corto a proposito: es la seguridad real, no el '
+             'codigo de teclas.')
+
+    def mobile_apk_ready(self):
+        """True si hay un APK publicado para repartir."""
+        self.ensure_one()
+        return bool(self.mobile_apk)
+
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
     # responsable de Foco no necesite permisos generales de administracion de

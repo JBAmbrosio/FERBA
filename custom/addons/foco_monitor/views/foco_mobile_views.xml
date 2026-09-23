@@ -447,6 +447,22 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
+                    <group string="App movil (APK) para repartir por QR">
+                        <field name="mobile_apk" filename="mobile_apk_name"/>
+                        <field name="mobile_apk_name"/>
+                        <field name="mobile_apk_version_name"/>
+                        <field name="mobile_apk_version_code"/>
+                        <field name="mobile_apk_token_minutes"/>
+                        <div class="text-muted" colspan="2">
+                            La Play Store no admite apps de monitoreo. Sube aqui el
+                            .apk y repartelo abriendo la terminal de instalacion en
+                            la ruta /foco/instalar: ahi, con el codigo de teclas
+                            (arriba arriba abajo abajo izquierda derecha izquierda
+                            derecha), aparece un QR de un solo uso que el telefono
+                            escanea para descargar. En equipos Device Owner recuerda
+                            permitir instalar de origen desconocido.
+                        </div>
+                    </group>
                 </sheet>
             </form>
         </field>

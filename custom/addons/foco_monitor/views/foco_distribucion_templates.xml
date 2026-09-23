@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<template id="instalar_page" name="Foco - instalar app movil">
+    <html t-att-data-theme="''">
+        <head>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+            <link rel="icon" href="data:,"/>
+            <title>Foco</title>
+            <style>
+                :root {
+                    --bg: #0e1116; --card: #171c27; --line: #2b3442;
+                    --ink: #e9edf4; --ink2: #aab4c4; --ink3: #6b7688;
+                    --accent: #6b9bff;
+                    --ease: cubic-bezier(0.23, 1, 0.32, 1);
+                }
+                @media (prefers-color-scheme: light) {
+                    :root {
+                        --bg: #f4f6f9; --card: #fff; --line: #e4e8ef;
+                        --ink: #111826; --ink2: #5b6676; --ink3: #9aa3b2;
+                        --accent: #2f6fed;
+                    }
+                }
+                * { box-sizing: border-box; }
+                html, body { height: 100%; }
+                body {
+                    margin: 0; background: var(--bg); color: var(--ink);
+                    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    -webkit-font-smoothing: antialiased;
+                    display: grid; place-items: center; text-align: center;
+                    padding: 24px 16px;
+                }
+                .fd_brand {
+                    font-size: 13px; font-weight: 800; letter-spacing: .28em;
+                    text-transform: uppercase; color: var(--ink3);
+                    transition: color 400ms var(--ease);
+                }
+                .fd_hint { margin-top: 14px; color: var(--ink3); font-size: 12.5px; opacity: .55; }
+                .fd_dots { margin-top: 22px; display: flex; gap: 9px; justify-content: center; }
+                .fd_dot {
+                    width: 8px; height: 8px; border-radius: 50%;
+                    background: var(--line); transition: background 200ms var(--ease), transform 200ms var(--ease);
+                }
+                .fd_dot.on { background: var(--accent); transform: scale(1.25); }
+
+                .fd_qr {
+                    margin-top: 26px;
+                    opacity: 0; transform: translateY(10px) scale(0.96);
+                    filter: blur(6px);
+                    pointer-events: none;
+                    transition: opacity 620ms var(--ease), transform 620ms var(--ease), filter 620ms var(--ease);
+                }
+                .fd_qr.mostrar { opacity: 1; transform: none; filter: none; pointer-events: auto; }
+                .fd_qr_card {
+                    display: inline-block; background: #fff; border-radius: 20px;
+                    padding: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.35);
+                }
+                .fd_qr_card img { display: block; width: 240px; height: 240px; }
+                .fd_ver { margin-top: 16px; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+                .fd_scan { margin-top: 4px; color: var(--ink2); font-size: 13.5px; }
+                .fd_msg { margin-top: 20px; color: var(--ink2); font-size: 14px; }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .fd_qr { transition: opacity 300ms ease; transform: none; filter: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div>
+                <p class="fd_brand" id="marca">FOCO</p>
+                <p class="fd_hint">Terminal de instalación</p>
+
+                <div class="fd_dots" id="dots">
+                    <span class="fd_dot"/><span class="fd_dot"/><span class="fd_dot"/><span class="fd_dot"/>
+                    <span class="fd_dot"/><span class="fd_dot"/><span class="fd_dot"/><span class="fd_dot"/>
+                </div>
+
+                <div class="fd_qr" id="qr">
+                    <div class="fd_qr_card"><img alt="QR de instalación"/></div>
+                    <p class="fd_ver"></p>
+                    <p class="fd_scan">Escanea con el teléfono para instalar</p>
+                </div>
+                <p class="fd_msg" id="msg" style="display:none"></p>
+            </div>
+
+            <script>
+                (function () {
+                    var seq = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown',
+                               'ArrowLeft','ArrowRight','ArrowLeft','ArrowRight'];
+                    var i = 0, hecho = false;
+                    var dots = document.querySelectorAll('#dots .fd_dot');
+                    function pinta() {
+                        for (var k = 0; k &lt; dots.length; k++) {
+                            dots[k].classList.toggle('on', k &lt; i);
+                        }
+                    }
+                    document.addEventListener('keydown', function (e) {
+                        if (hecho) return;
+                        if (e.key === seq[i]) {
+                            i++;
+                            if (i === seq.length) { hecho = true; pinta(); revelar(); return; }
+                        } else {
+                            i = (e.key === seq[0]) ? 1 : 0;
+                        }
+                        pinta();
+                    });
+                    function revelar() {
+                        document.getElementById('marca').style.color = 'var(--accent)';
+                        fetch('/foco/app/token', { method: 'POST' })
+                            .then(function (r) { return r.json(); })
+                            .then(function (d) {
+                                if (!d || !d.ok) {
+                                    var m = document.getElementById('msg');
+                                    m.textContent = 'Aún no hay una app publicada para instalar.';
+                                    m.style.display = 'block';
+                                    return;
+                                }
+                                var qr = document.getElementById('qr');
+                                qr.querySelector('img').src = d.qr;
+                                qr.querySelector('.fd_ver').textContent = d.version ? ('Foco ' + d.version) : 'Foco';
+                                qr.classList.add('mostrar');
+                            })
+                            .catch(function () {
+                                var m = document.getElementById('msg');
+                                m.textContent = 'No se pudo generar el enlace. Intenta de nuevo.';
+                                m.style.display = 'block';
+                            });
+                    }
+                })();
+            </script>
+        </body>
+    </html>
+</template>
+
+<template id="instalar_caducado" name="Foco - enlace caducado">
+    <html t-att-data-theme="''">
+        <head>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <link rel="icon" href="data:,"/>
+            <title>Foco</title>
+            <style>
+                body { margin:0; min-height:100vh; display:grid; place-items:center;
+                       text-align:center; padding:24px;
+                       background:#0e1116; color:#e9edf4;
+                       font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+                @media (prefers-color-scheme: light) { body { background:#f4f6f9; color:#111826; } }
+                h2 { margin:0 0 8px; font-size:19px; font-weight:650; }
+                p { margin:0; color:#8b95a6; font-size:14px; }
+            </style>
+        </head>
+        <body>
+            <div>
+                <h2>Este enlace ya caducó</h2>
+                <p>Los enlaces de instalación viven pocos minutos por seguridad.<br/>
+                   Vuelve a la terminal de instalación y genera uno nuevo.</p>
+            </div>
+        </body>
+    </html>
+</template>
+
+</odoo>
