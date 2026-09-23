@@ -57,10 +57,9 @@
                         domain="[('registrada', '=', True)]"/>
                 <filter name="f_no_captura" string="Nunca capturar"
                         domain="[('no_captura', '=', True)]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter name="g_registrada" string="Registrada"
-                            context="{'group_by': 'registrada'}"/>
-                </group>
+                <separator/>
+                <filter name="g_registrada" string="Registrada"
+                        context="{'group_by': 'registrada'}"/>
             </search>
         </field>
     </record>
