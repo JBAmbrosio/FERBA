@@ -145,7 +145,7 @@ class FocoWatch(models.Model):
         if employee and exe:
             regla = self.sudo().search([
                 ('employee_id', '=', employee.id),
-                ('app_id.exe', '=', exe),
+                ('app_id.exe', 'in', self.env['foco.app']._variantes_exe(exe)),
             ], limit=1)
             if regla:
                 return regla.retention_days

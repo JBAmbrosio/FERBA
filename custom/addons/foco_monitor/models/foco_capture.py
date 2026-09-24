@@ -103,7 +103,7 @@ class FocoCapture(models.Model):
         if not imagen:
             return 0
         exe = (datos.get('exe') or '').strip().lower()
-        app = self.env['foco.app'].sudo().search([('exe', '=', exe)], limit=1) if exe else None
+        app = self.env['foco.app'].sudo()._por_exe(exe)
         disparador = datos.get('trigger')
         if disparador not in ('manual', 'sin_clasificar', 'monitoreo'):
             disparador = 'sin_clasificar'
