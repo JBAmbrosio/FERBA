@@ -192,7 +192,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="fd_table_wrap">
+                    <div class="fd_table_wrap" t-ref="tablaWrap">
                         <table class="fd_table">
                             <thead>
                                 <tr>

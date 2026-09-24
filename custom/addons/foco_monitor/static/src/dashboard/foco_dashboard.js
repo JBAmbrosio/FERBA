@@ -65,7 +65,24 @@ export class FocoDashboard extends Component {
         this.cTendencia = useRef("cTendencia");
         this.cDonut = useRef("cDonut");
         this.cJornada = useRef("cJornada");
+        this.tablaWrap = useRef("tablaWrap");
         this.graficas = {};
+        // El panel desplegado mide lo que mide el MARCO de la tabla, no la
+        // tabla: en angosto la tabla es mas ancha que su marco y se desplaza
+        // de lado, y un panel del ancho de la tabla quedaria cortado. Se
+        // escribe como variable CSS en el marco, sin volver a renderizar.
+        useEffect(
+            () => {
+                const el = this.tablaWrap.el;
+                if (!el || !window.ResizeObserver) return;
+                const medir = () => el.style.setProperty("--fd-wrap-w", `${el.clientWidth}px`);
+                medir();
+                const ro = new ResizeObserver(medir);
+                ro.observe(el);
+                return () => ro.disconnect();
+            },
+            () => [this.state.loading]
+        );
         onWillStart(() => this.load());
         onMounted(() => {
             this.detectTheme();

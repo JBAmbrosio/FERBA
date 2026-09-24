@@ -58,7 +58,9 @@
         .fd_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center; }
         .fd_on { display: inline-flex; align-items: center; gap: 5px; }
     }
-    .fd_head_r { display: flex; align-items: center; gap: 12px; }
+    // flex-wrap: en un telefono los controles bajan de renglon en vez de
+    // empujar la pagina a un scroll horizontal (medido: 463 px en 375).
+    .fd_head_r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .fd_attn { font-size: 12.5px; font-weight: 600; color: var(--low);
         background: color-mix(in srgb, var(--low-fill) 12%, transparent);
         border: 1px solid color-mix(in srgb, var(--low-fill) 30%, transparent);
@@ -132,7 +134,13 @@
         h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }  // ver nota en .fd_head h1
         .fd_card_hint { font-size: 12px; color: var(--ink3); }
     }
-    .fd_table_card { margin-bottom: 16px; }
+    .fd_table_card { margin-bottom: 16px;
+        // La cabecera de esta tarjeta lleva ademas los controles de exportar:
+        // en angosto bajan de renglon y la nota toma el ancho, en vez de
+        // quedar apretada en una columna de una palabra.
+        .fd_card_head { flex-wrap: wrap;
+            .fd_card_hint { flex: 1 1 240px; min-width: 0; } }
+    }
 
     .fd_table_wrap { overflow-x: auto; }
     .fd_table { width: 100%; border-collapse: collapse; font-size: 13.5px;
@@ -192,7 +200,13 @@
     // El panel. Sin borde propio ni tarjeta anidada: es la continuacion del
     // renglon, sobre un segundo neutro apenas mas hundido que la tabla.
     .fd_exp td { padding: 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--track) 55%, transparent); }
+    // La celda abarca TODA la tabla, que en angosto es mas ancha que su
+    // marco y se desplaza de lado. El panel se pega al borde visible y mide
+    // lo que mide el marco (`--fd-wrap-w`, que pone el componente al medir
+    // el marco): asi el arbol siempre cabe en lo que se ve, aunque la tabla
+    // de arriba siga pudiendo desplazarse.
     .fd_exp_in { display: grid; grid-template-rows: 1fr;
+        position: sticky; left: 0; width: var(--fd-wrap-w, auto); max-width: 100%;
         transition: grid-template-rows .22s var(--ease), opacity .18s var(--ease);
         > div { overflow: hidden; min-height: 0; }
     }
@@ -236,9 +250,14 @@
             &.abierta .fd_caret i { transform: rotate(90deg); }
             &.abierta .fd_caret { color: var(--accent); }
         }
-        .nm { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-        .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-        .c, .k { font-size: 11.5px; color: var(--ink3); white-space: nowrap; flex: none; }
+        // El nombre manda: cuando falta ancho, la categoria y el conteo se
+        // encogen primero (shrink 4 contra 1) y el nombre conserva al menos
+        // nueve caracteres. Sin esto, en la ficha se leia «S.» y «you…».
+        .nm { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; }
+        .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex: 0 1 auto; min-width: 9ch; }
+        .c, .k { font-size: 11.5px; color: var(--ink3); white-space: nowrap;
+            flex: 0 4 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
         .bar { background: var(--track); border-radius: 5px; height: 8px; overflow: hidden; }
         .bar .fill { display: block; width: 100%; height: 100%; border-radius: 5px; background: var(--accent);
             transition: clip-path .5s var(--ease);
@@ -274,8 +293,10 @@
         .fd_dot { width: 7px; height: 7px; flex-basis: 7px; }
         .der { margin-left: auto; }
     }
-    // En la ficha el arbol no tiene la sangria del renglon.
-    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 26% 58px 40px; }
+    // En la ficha (440 px) el nombre necesita el ancho: la barra se acorta y
+    // la etiqueta de categoria se va -el punto ya la dice-.
+    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 18% 54px 40px;
+            .c { display: none; } }
         .fd_tree_leg .der { display: none; } }
 
     .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
@@ -514,6 +535,9 @@
     @media (max-width: 900px) {
         .fd_kpis { grid-template-columns: repeat(2, 1fr); }
         .fd_cols { grid-template-columns: 1fr; }
+        // Las dos graficas pedian 420 px cada una tambien en un telefono y
+        // desbordaban la pagina; a una columna caben.
+        .fd_duo { grid-template-columns: 1fr; }
         // La columna de Distraccion es la 6a desde que existe el caret.
         .fd_table th.c_num:nth-child(6), .fd_table td.c_num:nth-child(6) { display: none; }
         .fd_exp_box { padding-left: 30px; }
