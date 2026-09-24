@@ -27,6 +27,25 @@ def _int(v):
         return 0
 
 
+def _sin_nul(v):
+    """Quita el caracter NUL (0x00) de todo texto del envio.
+
+    PostgreSQL no admite 0x00 en un texto y psycopg2 rechaza la consulta
+    completa: un solo binario con NUL en su descripcion de version (paso con
+    el primer envio del equipo de Isaura) tumbaba el envio entero con 500, y
+    como el agente reintenta el mismo lote, ese equipo no volvia a reportar.
+    Se limpia aqui, al leer, para cubrir apps, sitios, documentos, huecos y
+    eventos de una vez y sin reinstalar agentes.
+    """
+    if isinstance(v, str):
+        return v.replace('\x00', '')
+    if isinstance(v, dict):
+        return {_sin_nul(k): _sin_nul(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_sin_nul(x) for x in v]
+    return v
+
+
 class FocoController(http.Controller):
 
     def _auth(self):
@@ -35,7 +54,7 @@ class FocoController(http.Controller):
 
     def _body(self):
         try:
-            return json.loads(request.httprequest.get_data() or b'{}')
+            return _sin_nul(json.loads(request.httprequest.get_data() or b'{}'))
         except ValueError:
             return None
 
