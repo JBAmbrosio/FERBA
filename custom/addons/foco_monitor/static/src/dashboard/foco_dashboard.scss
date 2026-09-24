@@ -298,8 +298,12 @@
     // El conteo («5 sitios») tambien se va: el caret ya dice que se abre, y
     // con el conteo el nombre quedaba en «SOLIDWORKS 20…» y el boton de
     // clasificar, recortado.
-    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 16% 54px 38px;
-            .c, .k { display: none; } }
+    // Y la barra tambien: en 440 px la longitud no cabe junto al nombre y el
+    // boton de clasificar; las horas y el porcentaje ya llevan el numero.
+    // Medido: con barra y boton, «Explorador de Windows» quedaba en «Explorado…».
+    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 54px 38px;
+            .c, .k, .bar { display: none; }
+            .fd_mini { font-size: 10px; padding: 1px 6px; } }
         .fd_tree_leg .der { display: none; } }
 
     .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
