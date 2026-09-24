@@ -814,8 +814,8 @@ img
         content: '';
         position: absolute;
         left: -7px;
-        // Centro del dibujo: disco (40) + su margen (22) + media caja (65).
-        top: 120px;
+        // Centro del dibujo: disco (40) + su margen (22) + media caja (75).
+        top: 130px;
         width: 14px;
         height: 14px;
         border-top: 3px solid #b9b9b9;
@@ -823,9 +823,11 @@ img
         transform: rotate(45deg);
     }
     .o_ferba_paso__disco { width: 40px; height: 40px; font-size: 1.05rem; }
+    // Las cinco ilustraciones comparten lienzo, así que basta con fijar el
+    // alto: salen todas del mismo ancho sin tener que medirlas una a una.
     .o_ferba_paso__icono {
-        height: 130px;
-        img { max-height: 120px; max-width: 100%; width: auto; }
+        height: 150px;
+        img { max-height: 150px; max-width: 100%; width: auto; }
     }
     .o_ferba_paso__texto { font-size: 0.88rem; }
 
@@ -1875,4 +1877,306 @@ img.o_ferba_caso__foto {
     // Sobre negro, el titular en blanco como en los heros; .o_ferba_title
     // hereda el color de la sección.
     .o_ferba_title { color: $ferba-white; }
+}
+
+// =====================================================================
+//  Páginas legales: aviso de privacidad y términos y condiciones
+//
+//  Dos columnas: el índice «En esta página» pegado a la izquierda y las
+//  dieciséis cláusulas a la derecha, tal como los maquetó Ferba. El
+//  índice se queda fijo al hacer scroll porque un documento de 16
+//  apartados sin índice a la vista obliga a subir hasta arriba cada vez.
+//
+//  Medidas tomadas del PDF (maquetado sobre 1024 px): tarjeta del índice
+//  268 px, separación 67, cuerpo 575. En proporción sobre el contenedor
+//  de 1240 salen los 280 px y los 4 rem de abajo.
+// =====================================================================
+.o_ferba_legal {
+
+    &__grid {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 4rem;
+        align-items: start;
+    }
+
+    // ---- Índice ----------------------------------------------------
+    &__aside {
+        position: sticky;
+        // La cabecera de Odoo es fija: sin este margen el índice queda debajo.
+        top: 96px;
+        align-self: start;
+        // En pantallas bajas el índice es más alto que la ventana; se le deja
+        // su propio scroll en vez de que se corte por abajo.
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    &__indice {
+        background: $ferba-gray-card;
+        padding: 1.5rem 1.4rem 1.8rem;
+
+        &-titulo {
+            margin: 0 0 1.2rem;
+            font-size: 0.85rem;
+            font-weight: $ferba-fw-bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: $ferba-ink;
+        }
+
+        ol {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        li + li { margin-top: 0.75rem; }
+
+        a {
+            display: flex;
+            gap: 0.5rem;
+            align-items: baseline;
+            color: $ferba-ink;
+            text-decoration: none;
+            font-size: 0.85rem;
+            line-height: 1.35;
+
+            // El número es la única parte roja, como en el diseño.
+            b {
+                flex: none;
+                color: $ferba-red-text-light;
+                font-weight: $ferba-fw-bold;
+                font-variant-numeric: tabular-nums;
+            }
+            span { border-bottom: 1px solid transparent; }
+
+            &:hover span,
+            &:focus-visible span { border-bottom-color: $ferba-red; }
+            &:hover, &:focus-visible { color: $ferba-ink; }
+        }
+
+        // El apartado al que acabas de saltar, marcado: en un documento de
+        // dieciséis cláusulas es lo que evita perder el sitio.
+        li.is-actual a { color: $ferba-red-text-light; }
+    }
+
+    // ---- Cuerpo ----------------------------------------------------
+    &__art {
+        // Destino de las anclas del índice, por debajo de la cabecera fija.
+        scroll-margin-top: 100px;
+        & + & { margin-top: 2.2rem; }
+    }
+
+    // Número colgado a la izquierda, con el texto del cuerpo alineado al
+    // título y no al número: es la retícula del PDF.
+    $ferba-legal-sangria: 3.4rem;
+
+    &__h {
+        position: relative;
+        margin: 0 0 1rem;
+        padding-left: $ferba-legal-sangria;
+        font-size: clamp(1.15rem, 1.9vw, 1.45rem);
+        font-weight: $ferba-fw-bold;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+        color: $ferba-ink;
+        text-wrap: pretty;
+    }
+
+    &__n {
+        position: absolute;
+        left: 0;
+        color: $ferba-red-text-light;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__cuerpo p {
+        margin: 0 0 0.95rem;
+        padding-left: $ferba-legal-sangria;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: lighten($ferba-ink, 12%);
+        // Justificado y SIN partir palabras, como el documento entregado. Con
+        // hyphens: auto el español parte muchísimo («in-formación»,
+        // «admi-nistrativas») y la columna se llena de guiones que el PDF no
+        // tiene. A este ancho de columna la justificación aguanta sin ellos.
+        text-align: justify;
+        hyphens: none;
+    }
+
+    &__art p:last-child { margin-bottom: 0; }
+
+    // FERBA en rojo dentro del texto corrido, como en todo el documento.
+    &__marca {
+        color: $ferba-red-text-light;
+        font-weight: $ferba-fw-bold;
+    }
+
+    &__contacto,
+    &__url { text-align: left !important; }
+
+    &__destacado {
+        font-weight: $ferba-fw-bold;
+        text-align: left !important;
+    }
+
+    // Subrayado solo en los enlaces del texto corrido. El índice tiene su
+    // propio trato (borde inferior al pasar por encima): subrayar sus
+    // dieciséis renglones lo convertía en una maraña.
+    &__cuerpo a:not(.o_ferba_btn) {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        &:hover { color: $ferba-red-text-light; }
+    }
+
+    // Con el selector corto perdía por especificidad contra «&__cuerpo p» y
+    // la línea salía pegada al último párrafo, como si fuera parte de él.
+    &__cuerpo &__vigencia {
+        margin: 2.8rem 0 0;
+        padding-left: $ferba-legal-sangria;
+        font-size: 0.8rem;
+        text-align: left;
+        color: lighten($ferba-ink, 38%);
+    }
+
+    // ---- Iconos ----------------------------------------------------
+    &__ico {
+        width: 34px;
+        height: 34px;
+        display: block;
+        color: $ferba-ink;
+        &--grande { width: 62px; height: 62px; flex: none; }
+    }
+
+    // ---- Tarjeta de derechos ARCO ----------------------------------
+    &__arco {
+        list-style: none;
+        margin: 1.4rem 0 1.2rem $ferba-legal-sangria;
+        padding: 1.6rem 1rem;
+        background: $ferba-gray-card;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+
+        li {
+            padding: 0 1rem;
+            text-align: center;
+            // Separador vertical entre columnas, como en el diseño. Es
+            // decoración: va en el borde y no como elemento vacío.
+            & + li { border-left: 1px solid $ferba-ink; }
+        }
+
+        .o_ferba_legal__ico { margin: 0 auto 0.7rem; }
+
+        h3 {
+            margin: 0 0 0.35rem;
+            font-size: 0.9rem;
+            font-weight: $ferba-fw-bold;
+            color: $ferba-ink;
+        }
+
+        p {
+            margin: 0;
+            padding-left: 0;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            text-align: center;
+            hyphens: none;
+        }
+
+        @media (max-width: 767px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.4rem 0;
+            li:nth-child(odd) { border-left: 0; }
+        }
+        @media (max-width: 420px) {
+            grid-template-columns: 1fr;
+            li { border-left: 0 !important; }
+        }
+    }
+
+    // ---- Recuadro destacado (escudo / documento) -------------------
+    &__caja {
+        margin: 1.2rem 0 0 $ferba-legal-sangria;
+        padding: 1.6rem 1.8rem;
+        background: $ferba-gray-card;
+        display: flex;
+        align-items: center;
+        gap: 1.8rem;
+
+        p { padding-left: 0; text-align: left; hyphens: none; }
+
+        @media (max-width: 575px) {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+    }
+
+    &__caja-intro {
+        margin: 0 0 0.6rem !important;
+        font-size: 1rem !important;
+        color: $ferba-ink !important;
+    }
+
+    &__caja-dato {
+        margin: 0 0 0.5rem !important;
+        font-weight: $ferba-fw-bold;
+        font-size: 1rem !important;
+        color: $ferba-ink !important;
+    }
+
+    &__caja-pie {
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+    }
+
+    &__caja-cita {
+        margin: 0 !important;
+        font-size: 1.05rem !important;
+        font-weight: $ferba-fw-bold;
+        line-height: 1.45;
+        color: $ferba-ink !important;
+    }
+
+    // Subrayado rojo bajo la cita: el mismo gesto que la regla del hero,
+    // pero macizo, que es como lo dibuja este PDF.
+    &__subrayado {
+        display: block;
+        width: 58px;
+        height: 3px;
+        margin-top: 0.8rem;
+        background: $ferba-red;
+    }
+
+    // ---- Apilado -----------------------------------------------------
+    @media (max-width: 991px) {
+        &__grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 2.4rem;
+        }
+        // Pegado no: en móvil se comería media pantalla.
+        &__aside {
+            position: static;
+            max-height: none;
+            overflow: visible;
+        }
+        &__indice ol {
+            columns: 2;
+            column-gap: 1.6rem;
+        }
+        &__indice li { break-inside: avoid; }
+        &__indice li + li { margin-top: 0; }
+        &__indice a { padding-block: 0.35rem; }
+    }
+
+    @media (max-width: 575px) {
+        &__indice ol { columns: 1; }
+        // La sangría del número se come el ancho útil en un móvil.
+        &__h, &__cuerpo p, &__vigencia { padding-left: 2.5rem; }
+        &__arco, &__caja { margin-left: 0; }
+        &__cuerpo p { text-align: left; }
+    }
 }

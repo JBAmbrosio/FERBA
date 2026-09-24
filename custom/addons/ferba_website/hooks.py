@@ -222,10 +222,21 @@ SEO = {
         'Contacto | FERBA Postharvest Technology',
         'Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. '
         'Culiacán, Sinaloa. Teléfono +52 667 121 7267, ventas@ferba.net.'),
+    # Las dos legales entran en el buscador desde la 19.0.1.9.0: ya llevan el
+    # texto que entregó Ferba y no el andamio «en preparación». Un aviso de
+    # privacidad que no se encuentra no cumple su función.
+    'page_privacidad': (
+        'Aviso de privacidad | FERBA Postharvest Technology',
+        'Cómo INDUSTRIAS TECNOLÓGICAS EMP S. de R.L. de C.V. recaba, utiliza, protege y '
+        'comparte los datos personales, y cómo ejercer los derechos ARCO.'),
+    'page_terminos': (
+        'Términos y condiciones de uso | FERBA Postharvest Technology',
+        'Condiciones de uso del sitio ferba.net: carácter informativo de la información '
+        'publicada, cotizaciones, propiedad intelectual, responsabilidad y legislación aplicable.'),
 }
-# Fuera del buscador a propósito: son el andamio «Estamos terminando esta
-# sección». Se indexan cuando tengan el texto legal de verdad.
-SIN_INDEXAR = ('page_privacidad', 'page_terminos')
+# Ninguna página queda fuera del buscador. Se conserva el mecanismo: si en el
+# futuro se publica algo a medias, basta con nombrarlo aquí.
+SIN_INDEXAR = ()
 
 
 def aplicar_indexacion(env):

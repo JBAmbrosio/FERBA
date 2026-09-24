@@ -34,7 +34,11 @@
                 <!-- cuerpo de la página que llama -->
                 <t t-out="0"/>
 
-                <t t-call="ferba_website.cierre"/>
+                <!-- Las 8 páginas comerciales cierran con la banda roja. Las dos
+                     legales no: son documentos, y rematarlos con una llamada a
+                     cotizar desentona y no está en el diseño que entregó Ferba.
+                     Se apagan poniendo sin_cierre a True. -->
+                <t t-if="not sin_cierre" t-call="ferba_website.cierre"/>
 
                 <a href="https://wa.me/526671217267?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20maquinaria%20postcosecha"
                    class="o_ferba_whatsapp" target="_blank" rel="noopener"
@@ -83,70 +87,9 @@
         </div>
     </template>
 
-    <!-- Aviso de "en construcción", honesto y con salida.
-         Lo siguen usando las dos páginas legales, cuyo texto lo tiene que
-         redactar Ferba: aquí no se inventa un aviso de privacidad. -->
-    <template id="en_construccion" name="Ferba — sección en preparación">
-        <section class="o_ferba_section o_ferba_section--light">
-            <div class="o_ferba_container o_ferba_stub">
-                <span class="o_ferba_eyebrow">En preparación</span>
-                <h2 class="o_ferba_title">Estamos terminando esta sección</h2>
-                <span class="o_ferba_rule"/>
-                <p class="o_ferba_stub__text">
-                    Muy pronto encontrarás aquí el contenido completo. Mientras tanto, el equipo de
-                    Ferba te atiende directamente: cuéntanos qué producto procesas y qué capacidad
-                    necesitas, y te proponemos la solución.
-                </p>
-                <div class="o_ferba_stub__actions">
-                    <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid">
-                        <span class="o_ferba_btn__label">Cotizar proyecto</span>
-                        <t t-call="ferba_website.flecha"/>
-                    </a>
-                    <a href="/" class="o_ferba_btn o_ferba_btn--outline-red">
-                        <span class="o_ferba_btn__label">Volver al inicio</span>
-                        <t t-call="ferba_website.flecha"/>
-                    </a>
-                </div>
-            </div>
-        </section>
-    </template>
-
-    <!-- ================ Legales ================
-         El texto legal lo entrega Ferba; aquí no se inventa. -->
-
-    <template id="pagina_privacidad" track="True" name="Ferba — Aviso de privacidad">
-        <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo">Legal</t>
-            <t t-set="titulo">Aviso de privacidad</t>
-            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
-            <t t-set="fondo">quienes-somos-01-1171x659.webp</t>
-            <t t-set="intro">
-                <p class="o_ferba_hero__lead">
-                    Documento en preparación por INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V.
-                </p>
-            </t>
-            <t t-set="cierre_titulo">¿Hablamos de tu línea?</t>
-            <t t-set="cierre_texto">Cuéntanos qué producto procesas y qué capacidad necesitas.</t>
-            <t t-call="ferba_website.en_construccion"/>
-        </t>
-    </template>
-
-    <template id="pagina_terminos" track="True" name="Ferba — Términos y condiciones">
-        <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo">Legal</t>
-            <t t-set="titulo">Términos y condiciones</t>
-            <t t-set="clase_titulo">o_ferba_hero__title--llano</t>
-            <t t-set="fondo">quienes-somos-01-1171x659.webp</t>
-            <t t-set="intro">
-                <p class="o_ferba_hero__lead">
-                    Documento en preparación por INDUSTRIAS TECNOLÓGICAS EMP S. DE R.L. DE C.V.
-                </p>
-            </t>
-            <t t-set="cierre_titulo">¿Hablamos de tu línea?</t>
-            <t t-set="cierre_texto">Cuéntanos qué producto procesas y qué capacidad necesitas.</t>
-            <t t-call="ferba_website.en_construccion"/>
-        </t>
-    </template>
+    <!-- Las dos páginas legales vivían aquí con el andamio «en preparación».
+         Ferba entregó el texto y el diseño en septiembre de 2026 y se
+         reproducen en views/ferba_legales.xml, que es donde están ahora. -->
 
     <!-- ================ 404 ================
          Se AÑADE dentro del #wrap del 404 nativo en vez de reemplazarlo:

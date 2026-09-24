@@ -29,10 +29,11 @@
             <field name="is_published" eval="True"/>
         </record>
 
-        <!-- Las 8 páginas del menú + 2 legales. Las de contenido se indexan;
-             las dos legales no, mientras sean el andamio «en preparación»
-             (el título y la descripción para el buscador los pone
-             hooks.aplicar_indexacion, que también corre al instalar). -->
+        <!-- Las 8 páginas del menú + 2 legales. Todas se indexan: el título y
+             la descripción para el buscador los pone hooks.aplicar_indexacion,
+             que corre al instalar y en cada migración que los toca. Las dos
+             legales estuvieron fuera del buscador hasta la 19.0.1.9.0, que es
+             cuando dejaron de ser el andamio «en preparación». -->
         <record id="page_quienes_somos" model="website.page">
             <field name="name">Ferba — Quiénes somos</field>
             <field name="url">/quienes-somos</field>
@@ -93,14 +94,14 @@
             <field name="name">Ferba — Aviso de privacidad</field>
             <field name="url">/aviso-de-privacidad</field>
             <field name="view_id" ref="ferba_website.pagina_privacidad"/>
-            <field name="website_indexed" eval="False"/>
+            <field name="website_indexed" eval="True"/>
             <field name="is_published" eval="True"/>
         </record>
         <record id="page_terminos" model="website.page">
             <field name="name">Ferba — Términos y condiciones</field>
             <field name="url">/terminos-y-condiciones</field>
             <field name="view_id" ref="ferba_website.pagina_terminos"/>
-            <field name="website_indexed" eval="False"/>
+            <field name="website_indexed" eval="True"/>
             <field name="is_published" eval="True"/>
         </record>
 
