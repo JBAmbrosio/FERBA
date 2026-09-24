@@ -168,7 +168,7 @@
                 <section class="fd_card fd_table_card">
                     <div class="fd_card_head">
                         <h2>Empleados</h2>
-                        <span class="fd_card_hint">ordenado por índice de productividad</span>
+                        <span class="fd_card_hint">ordenado por índice · cada renglón se despliega para ver en qué se fue el tiempo</span>
                         <!-- La exportacion vive JUNTO a la tabla que exporta, no
                              en la barra de arriba: asi se ve que baja esto y no
                              «el tablero». -->
@@ -196,20 +196,33 @@
                         <table class="fd_table">
                             <thead>
                                 <tr>
+                                    <th class="c_tog"><span class="sr">Desplegar</span></th>
                                     <th class="c_emp">Empleado</th>
                                     <th class="c_idx">Índice</th>
                                     <th class="c_num">Activo</th>
                                     <th class="c_num">Productivo</th>
                                     <th class="c_num">Distracción</th>
-                                    <th class="c_app">App principal</th>
+                                    <th class="c_app">En qué</th>
                                     <th class="c_st">Estado</th>
+                                    <th class="c_ficha"><span class="sr">Ficha</span></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="state.employees" t-as="e" t-key="e.id">
-                                    <tr t-attf-class="fd_row {{ e.attention ? 'attn' : '' }}"
+                                    <!-- El renglon se DESPLIEGA; no abre un cajon. La
+                                         pregunta mas frecuente -en que se le fue el
+                                         tiempo- se contesta sin taparle la tabla al
+                                         que la hace. La ficha completa queda a un
+                                         clic, en el boton del final y en el panel. -->
+                                    <tr t-attf-class="fd_row {{ e.attention ? 'attn' : '' }} {{ state.abiertos[e.id] ? 'abierta' : '' }}"
                                         t-attf-style="animation-delay:{{ e_index * 28 }}ms"
-                                        t-on-click="() => this.openDetail(e)">
+                                        role="button" tabindex="0"
+                                        t-att-aria-expanded="state.abiertos[e.id] ? 'true' : 'false'"
+                                        t-on-click="() => this.toggleFila(e)"
+                                        t-on-keydown="(ev) => this.teclaFila(ev, e)">
+                                        <td class="c_tog">
+                                            <span class="fd_caret" aria-hidden="true"><i class="fa fa-chevron-right"/></span>
+                                        </td>
                                         <td class="c_emp">
                                             <span class="fd_emp">
                                                 <span class="fd_ava" t-attf-style="--h:{{ e.hue }}"><t t-esc="e.initials"/></span>
@@ -240,7 +253,24 @@
                                         <td class="c_num" t-esc="fmt(e.active)"/>
                                         <td class="c_num good" t-esc="fmt(e.prod)"/>
                                         <td class="c_num warn" t-esc="fmt(e.distr)"/>
-                                        <td class="c_app"><span class="fd_chip" t-esc="e.topApp"/></td>
+                                        <td class="c_app">
+                                            <!-- Dos chips, no una: la app donde mas
+                                                 tiempo paso y, si la hay, la distraccion
+                                                 con nombre. «youtube.com 32m» se lee sin
+                                                 desplegar nada. -->
+                                            <span class="fd_chips">
+                                                <span class="fd_chip" t-esc="e.topApp"
+                                                      t-attf-title="Donde más tiempo activo pasó: {{ e.topApp }}"/>
+                                                <t t-if="e.hasTopDistr">
+                                                    <span class="fd_chip dis"
+                                                          t-attf-title="La distracción con más tiempo activo: {{ e.topDistr.name }}">
+                                                        <span class="fd_dot distraccion"/>
+                                                        <t t-esc="e.topDistr.name"/>
+                                                        <b t-esc="fmt(e.topDistr.hours)"/>
+                                                    </span>
+                                                </t>
+                                            </span>
+                                        </td>
                                         <td class="c_st">
                                             <span t-attf-class="fd_presencia {{ e.presencia }}"
                                                   t-attf-title="{{ e.presenciaTxt }} - ultimo reporte {{ e.since }}">
@@ -248,10 +278,49 @@
                                                 <t t-esc="e.presenciaTxt or e.since"/>
                                             </span>
                                         </td>
+                                        <td class="c_ficha">
+                                            <button class="fd_ficha" t-on-click.stop="() => this.openDetail(e)"
+                                                    title="Ficha completa: jornada, ausencias y anomalías"
+                                                    aria-label="Ficha completa">
+                                                <i class="fa fa-id-card-o"/>
+                                            </button>
+                                        </td>
                                     </tr>
+                                    <t t-if="state.abiertos[e.id]">
+                                        <tr class="fd_exp">
+                                            <td colspan="9">
+                                                <div class="fd_exp_in"><div>
+                                                    <div class="fd_exp_box">
+                                                        <t t-set="ar" t-value="arbolDe(e)"/>
+                                                        <div class="fd_exp_head">
+                                                            <div class="t">
+                                                                <b>En qué se le fue el tiempo</b>
+                                                                <t t-if="ar and !ar.cargando and !ar.error">
+                                                                    <span class="m">
+                                                                        · <t t-esc="ar.dias"/> día<t t-if="ar.dias != 1">s</t> con dato
+                                                                        · <b t-esc="fmt(ar.activo)"/> activas
+                                                                        <t t-if="ar.sin_input > 0.008">
+                                                                            · <span title="La ventana estaba al frente pero no hubo teclado ni mouse. No cuenta como activo; leer o revisar cae aquí."><t t-esc="fmt(ar.sin_input)"/> sin teclear</span>
+                                                                        </t>
+                                                                    </span>
+                                                                </t>
+                                                            </div>
+                                                            <div class="acts">
+                                                                <button class="fd_link" t-on-click.stop="() => this.abrirUso(e)"
+                                                                        title="La misma persona y el mismo periodo en la pantalla de Detalle de uso">Detalle de uso</button>
+                                                                <button class="fd_link" t-on-click.stop="() => this.openDetail(e)"
+                                                                        title="Jornada explicada, ausencias y anomalías">Ficha completa</button>
+                                                            </div>
+                                                        </div>
+                                                        <t t-call="foco_monitor.DashArbol"/>
+                                                    </div>
+                                                </div></div>
+                                            </td>
+                                        </tr>
+                                    </t>
                                 </t>
                                 <t t-if="!state.employees.length">
-                                    <tr><td colspan="7" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
+                                    <tr><td colspan="9" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
                                 </t>
                             </tbody>
                         </table>
@@ -433,29 +502,13 @@
                         </div>
                     </div>
 
-                    <div class="fd_dw_sec">
-                        <h3>Aplicaciones <span class="cnt"><t t-esc="state.detail.appList.length"/></span></h3>
-                        <t t-foreach="state.detail.appList" t-as="a" t-key="a.full">
-                            <div class="fd_app">
-                                <span t-attf-class="fd_dot {{ a.catKey }}"/>
-                                <span class="n" t-esc="a.name"/>
-                                <span class="bar"><span t-attf-class="fill {{ a.catKey }}" t-attf-style="clip-path: inset(0 {{ 100 - (a.pct) }}% 0 0)"/></span>
-                                <span class="v" t-esc="fmt(a.hours)"/>
-                            </div>
-                        </t>
-                        <t t-if="!state.detail.appList.length"><div class="fd_empty small">Sin aplicaciones en el rango.</div></t>
-                    </div>
-
-                    <div class="fd_dw_sec" t-if="state.detail.siteList.length">
-                        <h3>Sitios <span class="cnt"><t t-esc="state.detail.siteList.length"/></span></h3>
-                        <t t-foreach="state.detail.siteList" t-as="s" t-key="s.full">
-                            <div class="fd_app site">
-                                <span t-attf-class="fd_dot {{ s.catKey }}" t-attf-title="{{ s.catLabel }}"/>
-                                <span class="n" t-esc="s.name"/>
-                                <span class="bar"><span t-attf-class="fill {{ s.catKey }}" t-attf-style="clip-path: inset(0 {{ 100 - (s.pct) }}% 0 0)"/></span>
-                                <span class="v" t-esc="fmt(s.hours)"/>
-                            </div>
-                        </t>
+                    <!-- El MISMO arbol que despliega el renglon de la tabla, con la
+                         misma fuente: aplicacion, sitio o archivo, y pagina. Dos
+                         listas planas aqui contaban otra version de lo mismo. -->
+                    <div class="fd_dw_sec fd_dw_arbol">
+                        <h3>En qué se le fue el tiempo</h3>
+                        <t t-set="e" t-value="state.detail"/>
+                        <t t-call="foco_monitor.DashArbol"/>
                     </div>
 
                     <t t-if="state.detail.pc">
@@ -463,6 +516,130 @@
                     </t>
                 </aside>
             </t>
+        </div>
+    </t>
+
+    <!-- ================================================== EL ARBOL
+         Que hizo una persona en el periodo, anidado como esta el dato:
+         aplicacion > sitio (o archivo) > pagina abierta. Espera `e` (la
+         persona) en el contexto; el arbol lo pide y lo guarda el componente.
+         Se usa en dos sitios -debajo del renglon y en la ficha- para que
+         los dos cuenten exactamente lo mismo. -->
+    <t t-name="foco_monitor.DashArbol">
+        <t t-set="arbol" t-value="arbolDe(e)"/>
+        <t t-if="!arbol or arbol.cargando">
+            <!-- Esqueleto con la forma de lo que viene, no un giro en medio. -->
+            <div class="fd_skel" aria-busy="true" aria-label="Cargando el detalle">
+                <span style="--w:72%"/><span style="--w:54%"/><span style="--w:38%"/>
+            </div>
+        </t>
+        <t t-elif="arbol.error">
+            <div class="fd_exp_msg">
+                No se pudo cargar el detalle de esta persona.
+                <button class="fd_link" t-on-click.stop="() => this.cargarArbol(e, true)">Reintentar</button>
+            </div>
+        </t>
+        <t t-elif="!arbol.apps.length and !arbol.sistema.length">
+            <div class="fd_exp_msg">Sin actividad medida para esta persona en este periodo.</div>
+        </t>
+        <t t-else="">
+            <div class="fd_tree">
+                <t t-foreach="arbol.apps" t-as="a" t-key="a.id">
+                    <t t-call="foco_monitor.DashNodo">
+                        <t t-set="n" t-value="a"/><t t-set="i" t-value="a_index"/>
+                    </t>
+                    <t t-if="a.abierto">
+                        <div class="fd_hijos">
+                            <t t-foreach="a.hijos" t-as="s" t-key="s.nombre">
+                                <t t-call="foco_monitor.DashNodo">
+                                    <t t-set="n" t-value="s"/><t t-set="i" t-value="s_index"/>
+                                </t>
+                                <t t-if="s.abierto">
+                                    <div class="fd_hijos">
+                                        <t t-foreach="s.hijos" t-as="p" t-key="p.nombre">
+                                            <t t-call="foco_monitor.DashNodo">
+                                                <t t-set="n" t-value="p"/><t t-set="i" t-value="p_index"/>
+                                            </t>
+                                        </t>
+                                        <t t-if="s.cola">
+                                            <div class="fd_cola">y <t t-esc="s.cola.n"/> más por debajo de un minuto <b t-esc="fmt(s.cola.horas)"/></div>
+                                        </t>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-if="a.cola">
+                                <div class="fd_cola">y <t t-esc="a.cola.n"/> más por debajo de un minuto <b t-esc="fmt(a.cola.horas)"/></div>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+                <t t-if="arbol.cola">
+                    <div class="fd_cola n1">y <t t-esc="arbol.cola.n"/> aplicaciones más por debajo de un minuto <b t-esc="fmt(arbol.cola.horas)"/></div>
+                </t>
+                <!-- El sistema (explorador, pantalla de bloqueo...) va aparte y
+                     cerrado: es tiempo medido, no trabajo, y NO entra en el total
+                     ni en los porcentajes. Se puede abrir para ver que fue. -->
+                <t t-if="arbol.sistema.length">
+                    <div t-attf-class="fd_nodo n1 sistema abrible {{ arbol.sistemaAbierto ? 'abierta' : '' }}"
+                         role="button" tabindex="0" t-att-aria-expanded="arbol.sistemaAbierto ? 'true' : 'false'"
+                         t-on-click.stop="() => this.toggleSistema(arbol)"
+                         t-on-keydown="(ev) => this.teclaSistema(ev, arbol)">
+                        <span class="fd_caret" aria-hidden="true"><i class="fa fa-chevron-right"/></span>
+                        <span class="fd_dot sistema"/>
+                        <span class="nm">
+                            <span class="n">Del sistema</span>
+                            <span class="k"><t t-esc="arbol.sistema.length"/> app<t t-if="arbol.sistema.length != 1">s</t> · fuera del total</span>
+                        </span>
+                        <span class="bar"/>
+                        <span class="h" t-esc="fmt(arbol.sistema_horas)"/>
+                        <span class="p"/>
+                    </div>
+                    <t t-if="arbol.sistemaAbierto">
+                        <div class="fd_hijos">
+                            <t t-foreach="arbol.sistema" t-as="a" t-key="a.id">
+                                <t t-call="foco_monitor.DashNodo">
+                                    <t t-set="n" t-value="a"/><t t-set="i" t-value="a_index"/>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </div>
+            <div class="fd_tree_leg">
+                <span><i class="fd_dot productiva"/>Productiva</span>
+                <span><i class="fd_dot navegador"/>Navegador</span>
+                <span><i class="fd_dot neutral"/>Neutral</span>
+                <span><i class="fd_dot distraccion"/>Distracción</span>
+                <span><i class="fd_dot sin"/>Sin clasificar</span>
+                <span class="der">la barra compara entre vecinos · el % es del tiempo activo</span>
+            </div>
+        </t>
+    </t>
+
+    <!-- Un renglon del arbol. Espera `n` (el nodo) e `i` (su posicion). -->
+    <t t-name="foco_monitor.DashNodo">
+        <div t-attf-class="fd_nodo n{{ n.prof }} {{ n.abrible ? 'abrible' : '' }} {{ n.abierto ? 'abierta' : '' }} {{ n.sistema ? 'sistema' : '' }}"
+             t-attf-style="--i:{{ Math.min(i, 10) }}"
+             t-att-role="n.abrible ? 'button' : undefined"
+             t-att-tabindex="n.abrible ? 0 : undefined"
+             t-att-aria-expanded="n.abrible ? (n.abierto ? 'true' : 'false') : undefined"
+             t-on-click.stop="() => this.toggleNodo(n)"
+             t-on-keydown="(ev) => this.teclaNodo(ev, n)">
+            <span class="fd_caret" aria-hidden="true"><i t-if="n.abrible" class="fa fa-chevron-right"/></span>
+            <span t-attf-class="fd_dot {{ n.catKey }}" t-att-title="n.catLabel"/>
+            <span class="nm">
+                <span class="n" t-esc="n.nombre" t-att-title="n.nombre"/>
+                <span class="c" t-if="n.prof === 1 and !n.sistema" t-esc="n.catLabel"/>
+                <span class="k" t-if="n.kids" t-esc="n.kids"/>
+                <t t-if="n.sin_clasificar and n.id and n.tipo !== 'pagina' and n.tipo !== 'archivo'">
+                    <button class="fd_mini"
+                            t-on-click.stop="() => n.tipo === 'app' ? this.clasificarApp(n.id) : this.clasificarSitio(n.id)"
+                            title="Sin clasificar: este tiempo no aporta al índice hasta que alguien diga qué es">clasificar</button>
+                </t>
+            </span>
+            <span class="bar"><span t-attf-class="fill {{ n.catKey }}" t-attf-style="clip-path: inset(0 {{ (100 - n.w).toFixed(2) }}% 0 0)"/></span>
+            <span class="h" t-esc="fmt(n.horas)"/>
+            <span class="p"><t t-if="!n.sistema"><t t-esc="n.pct"/>%</t></span>
         </div>
     </t>
 </templates>

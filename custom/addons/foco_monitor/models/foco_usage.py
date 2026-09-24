@@ -495,6 +495,142 @@ class FocoUsage(models.Model):
             'dias': len(set(filas.mapped('date'))),
         }
 
+    # ------------------------------------------------------------ arbol
+    #
+    # Que hizo UNA persona, anidado como esta el dato: la aplicacion, dentro el
+    # sitio (navegador) o el archivo (paqueteria), y dentro del sitio la pagina
+    # que tenia abierta. Es lo que el tablero despliega debajo de cada renglon
+    # de la tabla de empleados.
+    #
+    # Distinto de `desglose` a proposito: aquel junta sitio y archivo en un solo
+    # nivel (`document or host`), asi que en el navegador agrupa por titulo de
+    # pagina y pierde el sitio. Aqui el sitio es el segundo nivel y el titulo el
+    # tercero, que es como el administrador pregunta: "abrio YouTube; que vio".
+
+    # Medio minuto: lo que redondea a "0m" y por tanto no se puede ni mostrar.
+    _MINIMO_VISIBLE_H = 0.0083
+    # Tope de renglones por nivel. Un navegador en 30 dias junta cientos de
+    # sitios; los que no caben se dicen como "y N mas", nunca se pierden.
+    _TOPE_POR_NIVEL = 30
+
+    @api.model
+    def arbol_actividad(self, employee_id, desde, hasta):
+        desde = fields.Date.to_date(desde)
+        hasta = fields.Date.to_date(hasta)
+        vacio = {'activo': 0.0, 'sin_input': 0.0, 'dias': 0,
+                 'apps': [], 'sistema': [], 'sistema_horas': 0.0, 'cola': None}
+        if not employee_id or not desde or not hasta or hasta < desde:
+            return vacio
+        dominio = [('employee_id', '=', employee_id),
+                   ('date', '>=', desde), ('date', '<=', hasta)]
+
+        def h(x):
+            return round(x or 0.0, 4)
+
+        def cat(categoria):
+            """Lo que el cliente necesita para pintar, sin listas cocidas: el
+            nombre, el peso y si es de sistema. El color lo decide el tablero."""
+            return {'categoria': categoria.name if categoria else '',
+                    'peso': categoria.weight if categoria else 0.0,
+                    'sistema': bool(categoria and categoria.is_system)}
+
+        # UNA consulta agregada por (app, sitio, host, pagina). El host va aparte
+        # del sitio porque es lo que trae el renglon; el sitio es el catalogo.
+        grupos = self._read_group(
+            dominio, ['app_id', 'site_id', 'host', 'document'],
+            ['fg_active:sum', 'fg_idle:sum'])
+
+        apps = {}
+        for app, site, host, document, activo, sin_input in grupos:
+            if not app:
+                continue
+            activo = activo or 0.0
+            sin_input = sin_input or 0.0
+            a = apps.get(app.id)
+            if a is None:
+                a = apps[app.id] = dict(cat(app.category_id), **{
+                    'id': app.id, 'tipo': 'app', 'nombre': app.display_name,
+                    'exe': app.exe, 'sin_clasificar': not app.category_id,
+                    'horas': 0.0, 'sin_input': 0.0, '_hijos': {}})
+            a['horas'] += activo
+            a['sin_input'] += sin_input
+            host = (host or '').strip()
+            document = (document or '').strip()
+            if host:
+                s = a['_hijos'].get(('sitio', host))
+                if s is None:
+                    # El sitio hereda la categoria del navegador mientras nadie
+                    # lo clasifique: es la MISMA regla con la que se calcula el
+                    # indice (`_compute_category_id`), para que lo que se ve
+                    # aqui sea lo que se conto alla.
+                    s = a['_hijos'][('sitio', host)] = dict(
+                        cat(site.category_id if site and site.category_id
+                            else app.category_id), **{
+                        'id': site.id if site else 0, 'tipo': 'sitio',
+                        'nombre': host,
+                        'sin_clasificar': not (site and site.category_id),
+                        'horas': 0.0, 'sin_input': 0.0, '_hijos': {}})
+                s['horas'] += activo
+                s['sin_input'] += sin_input
+                if document:
+                    p = s['_hijos'].setdefault(document, {
+                        'id': 0, 'tipo': 'pagina', 'nombre': document,
+                        'horas': 0.0, 'sin_input': 0.0, '_hijos': {}})
+                    p['horas'] += activo
+                    p['sin_input'] += sin_input
+            elif document:
+                d = a['_hijos'].setdefault(('archivo', document), {
+                    'id': 0, 'tipo': 'archivo', 'nombre': document,
+                    'horas': 0.0, 'sin_input': 0.0, '_hijos': {}})
+                d['horas'] += activo
+                d['sin_input'] += sin_input
+
+        # El denominador es el tiempo activo SIN el sistema, igual que en la
+        # tabla de empleados: un porcentaje que incluyera al explorador de
+        # Windows diria que la persona "trabajo" en el.
+        base = sum(a['horas'] for a in apps.values() if not a['sistema'])
+        base = max(base, 0.0001)
+
+        def cerrar(nodo):
+            """Convierte el diccionario de hijos en lista ordenada y podada."""
+            hijos = sorted(nodo.pop('_hijos').values(), key=lambda x: -x['horas'])
+            visibles, cola = [], []
+            for i, x in enumerate(hijos):
+                if x['horas'] < self._MINIMO_VISIBLE_H or i >= self._TOPE_POR_NIVEL:
+                    cola.append(x)
+                else:
+                    visibles.append(cerrar(x))
+            nodo['hijos'] = visibles
+            nodo['cola'] = ({'n': len(cola), 'horas': h(sum(x['horas'] for x in cola))}
+                            if cola else None)
+            nodo['horas'] = h(nodo['horas'])
+            nodo['sin_input'] = h(nodo['sin_input'])
+            nodo['pct'] = round(100.0 * nodo['horas'] / base, 1)
+            return nodo
+
+        lista = sorted(apps.values(), key=lambda a: -a['horas'])
+        principales, sistema, cola = [], [], []
+        for a in lista:
+            if a['sistema']:
+                sistema.append(cerrar(a))
+            elif a['horas'] < self._MINIMO_VISIBLE_H \
+                    or len(principales) >= self._TOPE_POR_NIVEL:
+                cola.append(a)
+            else:
+                principales.append(cerrar(a))
+
+        dias = self._read_group(dominio, ['date:day'], ['__count'])
+        return {
+            'activo': h(base if apps else 0.0),
+            'sin_input': h(sum(a['sin_input'] for a in apps.values())),
+            'dias': len(dias),
+            'apps': principales,
+            'sistema': sistema,
+            'sistema_horas': h(sum(a['horas'] for a in sistema)),
+            'cola': ({'n': len(cola), 'horas': h(sum(a['horas'] for a in cola))}
+                     if cola else None),
+        }
+
     @api.model
     def sitios_por_clasificar(self, dias=30, limite=15):
         """Sitios sin clasificar ordenados por HORAS, no por novedad.

@@ -53,6 +53,10 @@ export class FocoDashboard extends Component {
             // analitica
             serie: [], porPersona: [], jornada: [],
             expEmpleado: "", expGrano: "dia",
+            // Que hizo cada quien, desplegado debajo de su renglon. El arbol
+            // se pide al abrir y se guarda por persona Y periodo: cambiar de
+            // «7 dias» a «30» es otra pregunta, no la misma con cache.
+            rango: null, abiertos: {}, arboles: {},
         });
         // Un lienzo por grafica. Se guardan las instancias para destruirlas:
         // Chart.js deja listeners vivos, y redibujar sin destruir acumula una
@@ -539,6 +543,7 @@ export class FocoDashboard extends Component {
         const curStart = new Date(today); curStart.setDate(today.getDate() - (days - 1));
         const prevEnd = new Date(curStart); prevEnd.setDate(curStart.getDate() - 1);
         const prevStart = new Date(prevEnd); prevStart.setDate(prevEnd.getDate() - (days - 1));
+        this.state.rango = [this.ymd(curStart), this.ymd(today)];
 
         const fields = ["employee_id", "app_id", "site_id", "category_id", "fg_active",
             "fg_idle", "background", "active_hours", "productive_hours", "call_hours",
@@ -629,12 +634,18 @@ export class FocoDashboard extends Component {
 
             const eid = r.employee_id ? r.employee_id[0] : 0;
             const en = r.employee_id ? r.employee_id[1] : "Sin empleado";
-            const e = emp[eid] = emp[eid] || { id: eid, name: en, active: 0, prod: 0, distr: 0, call: 0, injected: 0, idle: 0, apps: {}, sites: {}, comp: {} };
+            const e = emp[eid] = emp[eid] || { id: eid, name: en, active: 0, prod: 0, distr: 0, call: 0, injected: 0, idle: 0, apps: {}, sites: {}, comp: {}, distrMap: {} };
             e.active += r.active_hours; e.prod += r.productive_hours;
             e.call += r.call_hours || 0;
             e.injected += r.injected_hours || 0;
             e.idle += r.fg_idle || 0;
-            if (catName === "Distraccion") e.distr += r.active_hours;
+            if (catName === "Distraccion") {
+                e.distr += r.active_hours;
+                // La distraccion con NOMBRE, por sitio cuando lo hay: en el
+                // renglon cerrado «youtube.com 32m» dice mas que «Distraccion».
+                const dn = siteName || (r.app_id ? r.app_id[1] : "?");
+                (e.distrMap[dn] = e.distrMap[dn] || { name: dn, hours: 0 }).hours += r.fg_active;
+            }
             if (r.app_id) {
                 const an = r.app_id[1];
                 const a = e.apps[an] = e.apps[an] ||
@@ -684,7 +695,11 @@ export class FocoDashboard extends Component {
             const justified = res.justified || 0;
             // Lo unico que amerita conversacion: ni medido, ni justificado.
             const unexplained = Math.max(0, expected - e.active - justified);
+            const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
+            const topDistr = dList.length && dList[0].hours > 0.008
+                ? { name: this.appLabel(dList[0].name), hours: dList[0].hours } : null;
             return {
+                topDistr, hasTopDistr: !!topDistr,
                 // Que tan completo esta el dato de esta persona. No lleva
                 // umbral: "incompleto" es una igualdad exacta -faltan dias-,
                 // no un corte elegido.
@@ -791,6 +806,147 @@ export class FocoDashboard extends Component {
         this.state.sinSenal = employees.filter((e) => e.sinSenal).length;
         this.state.ultimo = new Date();
         this.state.loading = false;
+        // Los paneles que estan abiertos se refrescan con el resto del
+        // tablero, en sitio: el dato viejo se queda a la vista hasta que llega
+        // el nuevo, sin pasar otra vez por el esqueleto.
+        for (const e of employees) {
+            if (this.state.abiertos[e.id]) this.cargarArbol(e, true);
+        }
+    }
+
+    // ------------------------------------------------- que hizo cada quien
+    //
+    // El arbol vive DEBAJO del renglon, no en un cajon: la pregunta mas
+    // frecuente del administrador -"en que se le fue el dia"- no necesita
+    // interrumpir la tabla para contestarse. La ficha completa (jornada,
+    // anomalias) sigue a un clic, desde el propio panel.
+
+    claveArbol(e) { return `${e.id}|${this.state.days}`; }
+
+    arbolDe(e) { return e ? (this.state.arboles[this.claveArbol(e)] || null) : null; }
+
+    async cargarArbol(e, force = false) {
+        const k = this.claveArbol(e);
+        if (this.state.arboles[k] && !force) return;
+        if (!this.state.arboles[k]) this.state.arboles[k] = { cargando: true };
+        const [desde, hasta] = this.state.rango;
+        try {
+            const arbol = await this.orm.call("foco.usage", "arbol_actividad", [e.id, desde, hasta]);
+            this.state.arboles[k] = this.prepararArbol(arbol);
+        } catch {
+            // Un panel que no carga se dice; el resto del tablero sigue.
+            this.state.arboles[k] = { error: true };
+        }
+    }
+
+    /** Lo que el servidor no decide: color, ancho de barra y etiquetas.
+     *
+     *  El ancho es relativo al MAYOR de sus hermanos, no al total: con quince
+     *  aplicaciones, un porcentaje del total deja todas las barras en un hilo
+     *  y la comparacion -para lo que existe la barra- se pierde. El porcentaje
+     *  real del periodo va en el numero de al lado. */
+    prepararArbol(arbol) {
+        const nivel = (nodos, prof) => {
+            const top = Math.max(0, ...nodos.map((n) => n.horas));
+            for (const n of nodos) {
+                n.catKey = this.catKeyDe(n);
+                n.catLabel = CAT_LABEL[n.catKey] || n.categoria || "";
+                n.w = top > 0 ? Math.max(1.5, n.horas / top * 100) : 0;
+                n.abierto = false;
+                n.prof = prof;
+                n.kids = this.etiquetaHijos(n);
+                n.abrible = !!(n.hijos && n.hijos.length) || !!n.cola;
+                if (n.hijos && n.hijos.length) nivel(n.hijos, prof + 1);
+            }
+        };
+        nivel(arbol.apps || [], 1);
+        nivel(arbol.sistema || [], 1);
+        arbol.sistemaAbierto = false;
+        return arbol;
+    }
+
+    /** La MISMA regla con la que se conto el tiempo (`_compute_category_id`):
+     *  la categoria heredada decide el color; «sin clasificar» es el estado
+     *  del sitio o la app, y va en la accion, no en el color. */
+    catKeyDe(n) {
+        if (n.sistema) return "sistema";
+        if (!n.categoria) return "sin";
+        const k = CAT_KEY[n.categoria];
+        if (k) return k;
+        if (n.peso >= 0.8) return "productiva";
+        if (n.peso <= 0) return "distraccion";
+        return "neutral";
+    }
+
+    etiquetaHijos(n) {
+        const m = (n.hijos || []).length + (n.cola ? n.cola.n : 0);
+        if (!m) return "";
+        let que;
+        if (n.tipo === "app") {
+            que = (n.hijos.length && n.hijos[0].tipo === "archivo") || (!n.hijos.length)
+                ? "archivo" : "sitio";
+        } else {
+            que = "página";
+        }
+        return `${m} ${que}${m === 1 ? "" : "s"}`;
+    }
+
+    toggleFila(e) {
+        const abre = !this.state.abiertos[e.id];
+        this.state.abiertos[e.id] = abre;
+        if (abre) this.cargarArbol(e);
+    }
+
+    /** Enter o espacio sobre el renglon lo despliega; sobre un boton de
+     *  adentro, no: ese ya tiene su propia accion. */
+    teclaFila(ev, e) {
+        if (ev.target !== ev.currentTarget) return;
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleFila(e); }
+    }
+
+    toggleNodo(n) { if (n.abrible) n.abierto = !n.abierto; }
+
+    teclaNodo(ev, n) {
+        if (ev.target !== ev.currentTarget) return;
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleNodo(n); }
+    }
+
+    toggleSistema(arbol) { arbol.sistemaAbierto = !arbol.sistemaAbierto; }
+
+    teclaSistema(ev, arbol) {
+        if (ev.target !== ev.currentTarget) return;
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleSistema(arbol); }
+    }
+
+    /** La misma persona y la misma semana, en la pantalla que ya existe para
+     *  esto. Simplificar aqui no puede significar esconder: lo que se resume
+     *  tiene que poder abrirse entero, con el contexto puesto. */
+    abrirUso(e) {
+        this.action.doAction("foco_monitor.foco_uso_client", {
+            additionalContext: {
+                foco_employee_id: e.id,
+                foco_desde: this.state.rango ? this.state.rango[1] : undefined,
+            },
+        });
+    }
+
+    /** Del dato al acto, sin salir del panel: lo sin clasificar se clasifica
+     *  ahi mismo. Es lo unico que mueve el indice. */
+    clasificarSitio(site_id) {
+        if (!site_id) return;
+        this.action.doAction({
+            type: "ir.actions.act_window", name: "Clasificar sitio",
+            res_model: "foco.site", res_id: site_id,
+            views: [[false, "form"]], target: "new",
+        });
+    }
+    clasificarApp(app_id) {
+        if (!app_id) return;
+        this.action.doAction({
+            type: "ir.actions.act_window", name: "Clasificar aplicación",
+            res_model: "foco.app", res_id: app_id,
+            views: [[false, "form"]], target: "new",
+        });
     }
 
     /** Refresco de fondo. NO interrumpe si hay una ficha abierta ni si la
@@ -822,6 +978,8 @@ export class FocoDashboard extends Component {
     openDetail(e) {
         this.state.detail = e;
         this.state.open = false;
+        // La ficha muestra el mismo arbol que el renglon: una sola verdad.
+        this.cargarArbol(e);
 
         requestAnimationFrame(() => requestAnimationFrame(() => { this.state.open = true; }));
     }
