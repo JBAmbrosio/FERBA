@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- El grupo ya existia en produccion (id 169, creado el 23-sep con sus
+         permisos y reglas sobre product.category). Aqui solo se le da un
+         identificador estable; noupdate para no tocar a sus miembros. -->
+    <data noupdate="1">
+        <record id="group_gestor_categorias" model="res.groups">
+            <field name="name">Contabilidad: Gestor de categorías de producto</field>
+        </record>
+    </data>
+</odoo>

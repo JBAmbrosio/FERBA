@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Clave SAT por categoria de producto',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'La categoria del producto lleva su clave SAT y el producto la toma de ella.',
     'description': """
 Clave SAT por categoria
@@ -15,13 +15,18 @@ del SAT (catalogo UNSPSC) que viaja en el CFDI.
 - Al elegir o cambiar la categoria de un producto, su clave SAT se llena con
   la de la categoria. Al crear un producto sin clave, la toma de su categoria.
 - Si la categoria no tiene clave en la empresa activa, no se toca nada.
+- En Francisco la pestana de contabilidad del producto solo la ve el grupo
+  "Contabilidad: Gestor de categorias de producto": las cuentas y la clave
+  vienen de la categoria y no se capturan a mano.
 """,
     'author': 'FERBA',
     'category': 'Accounting/Localizations',
     'license': 'LGPL-3',
     'depends': ['product', 'product_unspsc'],
     'data': [
+        'data/res_groups.xml',
         'views/product_category_views.xml',
+        'views/product_template_views.xml',
     ],
     'installable': True,
     'application': False,
