@@ -59,6 +59,15 @@
                             <field name="policy_drift"/>
                             <field name="policy_detail"/>
                         </group>
+                        <!-- Por que el servicio no aplica, cuando no lo hace. Viene
+                             del equipo y es diagnostico, no prueba del bloqueo. -->
+                        <group string="Servicio del equipo (diagnostico)">
+                            <field name="service_state"/>
+                            <field name="service_detail"/>
+                            <field name="service_at"/>
+                            <field name="service_same_folder"/>
+                            <field name="service_reported_at"/>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Ordenes de control remoto">

@@ -152,6 +152,18 @@ class FocoController(http.Controller):
                 vals['utc_offset_min'] = int(info['utc_offset_min'])
             except (TypeError, ValueError):
                 pass
+        # Estado del SERVICIO del equipo, que el agente lee de su archivo. Solo
+        # diagnostico: no toca policy_version ni policy_verified_at (ver el
+        # comentario de `service_state` en foco.computer).
+        servicio = data.get('servicio')
+        if isinstance(servicio, dict):
+            vals.update({
+                'service_state': str(servicio.get('fase') or '')[:40] or False,
+                'service_detail': str(servicio.get('detalle') or '')[:240] or False,
+                'service_at': request.env['foco.event']._parse_utc(servicio.get('at')) or False,
+                'service_same_folder': bool(servicio.get('misma_carpeta')),
+                'service_reported_at': fields.Datetime.now(),
+            })
         computer.sudo().write(vals)
 
         # --- INTEGRIDAD 1: reloj del equipo ---------------------------------

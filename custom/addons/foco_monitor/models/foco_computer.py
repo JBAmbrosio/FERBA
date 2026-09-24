@@ -84,6 +84,31 @@ class FocoComputer(models.Model):
         help='El ultimo reporte del equipo dijo que lo PUESTO no coincidia con '
              'lo vigente (algo o alguien lo quito). Se reconcilia solo en el '
              'siguiente ciclo; si persiste, el equipo no lo esta aplicando.')
+    # Lo que el SERVICIO del equipo dice de su ultimo ciclo, traido por el
+    # agente. Existe porque el servicio habla con Odoo por su cuenta y, si esa
+    # conexion falla, "Nunca aplicada" no decia por que (24-sep: un equipo dos
+    # dias sin bloqueo y sin una sola linea en su log). Es DIAGNOSTICO: el
+    # archivo de donde sale lo puede editar la persona vigilada, asi que NO
+    # interviene en `policy_sync`; la prueba del bloqueo sigue siendo el latido
+    # `policy_verified_at`, que el servicio manda directo.
+    service_state = fields.Char(
+        string='Servicio: ultimo ciclo', readonly=True,
+        help='sin_conexion, sin_llave, http_401, verificado, aplicado... '
+             '"sin_archivo" = servicio viejo, no instalado o que nunca corrio.')
+    service_detail = fields.Char(string='Servicio: detalle', readonly=True)
+    service_at = fields.Datetime(
+        string='Servicio: hora del ciclo', readonly=True,
+        help='Cuando corrio ese ciclo segun el equipo. Si envejece mientras el '
+             'agente sigue enviando, el servicio dejo de correr.')
+    service_same_folder = fields.Boolean(
+        string='Servicio y agente comparten carpeta', readonly=True,
+        help='Si no, el servicio no encuentra la llave del agente y no puede '
+             'pedir la politica.')
+    service_reported_at = fields.Datetime(
+        string='Servicio: recibido', readonly=True,
+        help='Ultimo envio del agente que trajo el estado del servicio. Vacio = '
+             'el agente es anterior a este reporte.')
+
     policy_sync = fields.Selection(
         [('off', 'Bloqueo apagado'), ('sin_perfil', 'Sin perfil'),
          ('al_dia', 'Al dia'), ('pendiente', 'Pendiente'),
