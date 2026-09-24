@@ -257,7 +257,7 @@
         .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             flex: 0 1 auto; min-width: 9ch; }
         .c, .k { font-size: 11.5px; color: var(--ink3); white-space: nowrap;
-            flex: 0 4 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+            flex: 0 20 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
         .bar { background: var(--track); border-radius: 5px; height: 8px; overflow: hidden; }
         .bar .fill { display: block; width: 100%; height: 100%; border-radius: 5px; background: var(--accent);
             transition: clip-path .5s var(--ease);
@@ -295,8 +295,11 @@
     }
     // En la ficha (440 px) el nombre necesita el ancho: la barra se acorta y
     // la etiqueta de categoria se va -el punto ya la dice-.
-    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 18% 54px 40px;
-            .c { display: none; } }
+    // El conteo («5 sitios») tambien se va: el caret ya dice que se abre, y
+    // con el conteo el nombre quedaba en «SOLIDWORKS 20…» y el boton de
+    // clasificar, recortado.
+    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 16% 54px 38px;
+            .c, .k { display: none; } }
         .fd_tree_leg .der { display: none; } }
 
     .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
@@ -549,7 +552,7 @@
         .fd_switch button span { display: none; }   // en angosto, solo iconos
         .fd_exp_box { padding-left: 12px; padding-right: 12px; }
         .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 56px; .bar { display: none; } }
-        .fd_nodo .c { display: none; }
+        .fd_nodo .c, .fd_nodo .k { display: none; }   // en angosto, el nombre y la accion
         .fd_tree_leg { padding-left: 0; }
     }
 }
