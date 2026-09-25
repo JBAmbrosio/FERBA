@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ferba_cotizacion_rechazo_view_form" model="ir.ui.view">
+        <field name="name">ferba.cotizacion.rechazo.form</field>
+        <field name="model">ferba.cotizacion.rechazo</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="order_id"/>
+                    <field name="motivo" placeholder="Que hay que corregir antes de volver a mandarla a revision" nolabel="1" colspan="2"/>
+                </group>
+                <footer>
+                    <button name="action_confirmar" type="object" string="Rechazar" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancelar" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

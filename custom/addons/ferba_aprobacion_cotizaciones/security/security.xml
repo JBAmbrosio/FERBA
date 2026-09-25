@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sin `privilege_id` a proposito: dentro del privilegio "Sales" los grupos se
+         muestran como niveles excluyentes (Propios / Todos / Administrador) y
+         aprobar no es un nivel, es un permiso aparte que se suma al que ya se tenga.
+         Implica "Todos los documentos": para aprobar hay que poder ver lo de todos. -->
+    <record id="group_aprobador_cotizaciones" model="res.groups">
+        <field name="name">Ventas / Aprueba cotizaciones</field>
+        <field name="comment">Recibe las cotizaciones enviadas a revision y las aprueba o rechaza. Se administra desde Ventas > Configuracion > Ajustes > Aprobacion de cotizaciones.</field>
+        <field name="implied_ids" eval="[(4, ref('sales_team.group_sale_salesman_all_leads'))]"/>
+    </record>
+
+    <record id="base.user_admin" model="res.users">
+        <field name="group_ids" eval="[(4, ref('group_aprobador_cotizaciones'))]"/>
+    </record>
+</odoo>

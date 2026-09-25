@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_cotizaciones_por_aprobar" model="ir.actions.act_window">
+        <field name="name">Por aprobar</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('aprobacion_state', '=', 'revision')]</field>
+        <field name="context">{'search_default_ferba_por_aprobar': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay cotizaciones esperando aprobacion</p>
+            <p>Cuando un vendedor mande una a revision, aparece aqui, en tu bandeja y como actividad.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_cotizaciones_por_aprobar" name="Por aprobar"
+              parent="sale.sale_order_menu" action="action_cotizaciones_por_aprobar"
+              sequence="2" groups="ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones"/>
+</odoo>
