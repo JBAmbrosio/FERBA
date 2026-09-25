@@ -1,7 +1,11 @@
+import logging
+
 from markupsafe import Markup, escape
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
+
+_logger = logging.getLogger(__name__)
 
 GRUPO_APROBADOR = 'ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones'
 
@@ -83,14 +87,37 @@ class SaleOrder(models.Model):
         if acts:
             acts.action_feedback(feedback=feedback)
 
-    def _ferba_avisar(self, texto, partners):
-        """Mensaje en el chatter que ademas llega a la bandeja (y al correo, segun
-        la preferencia de cada quien) de los destinatarios."""
+    def _ferba_url(self):
+        self.ensure_one()
+        return '%s/odoo/action-sale.action_quotations_with_onboarding/%d' % (self.get_base_url(), self.id)
+
+    def _ferba_nota(self, texto):
+        """Rastro en el chatter de la cotizacion. Sin destinatarios a proposito:
+        avisar es trabajo del chat, no del correo."""
         self.message_post(
             body=Markup('<p>%s</p>') % escape(texto),
-            partner_ids=partners.ids,
-            subtype_xmlid='mail.mt_comment',
-            message_type='comment')
+            message_type='notification', subtype_xmlid='mail.mt_note')
+
+    def _ferba_chat(self, partners, texto):
+        """Mensaje DIRECTO en Conversaciones, del usuario actual a cada
+        destinatario, como si se lo escribiera a mano: le brinca la burbuja del
+        chat y el contador. Es la notificacion que FERBA usa de verdad (25-sep:
+        "el chat si lo usamos"; a Francesco le llega por ahi, no por correo).
+        Nunca tumba la operacion: si el chat falla, la aprobacion sigue y queda
+        el rastro en el chatter."""
+        Canal = self.env['discuss.channel']
+        yo = self.env.user.partner_id
+        for partner in partners:
+            if partner == yo:
+                continue
+            try:
+                canal = Canal._get_or_create_chat(partners_to=[partner.id])
+                canal.message_post(
+                    body=Markup('<p>%s <a href="%s">%s</a></p>') % (texto, self._ferba_url(), self.name),
+                    message_type='comment', subtype_xmlid='mail.mt_comment')
+            except Exception:
+                _logger.exception('ferba_aprobacion: no se pudo mandar el chat a %s por %s',
+                                  partner.name, self.name)
 
     # ------------------------------------------------------------ botones
     def action_enviar_revision(self):
@@ -111,11 +138,12 @@ class SaleOrder(models.Model):
                 'aprobacion_fecha': False,
                 'aprobacion_motivo': False,
             })
-            order._ferba_avisar(
-                '%s mando a revision la cotizacion %s (%s, %s %s). Esta pendiente de aprobacion.'
-                % (self.env.user.name, order.name, order.partner_id.display_name,
-                   order.currency_id.symbol, '{:,.2f}'.format(order.amount_total)),
-                aprobadores.partner_id)
+            order._ferba_nota('%s mando la cotizacion a revision.' % self.env.user.name)
+            order._ferba_chat(
+                aprobadores.partner_id,
+                'Te mande a revision la cotizacion de %s por %s %s. ¿La apruebas?'
+                % (order.partner_id.display_name, order.currency_id.symbol,
+                   '{:,.2f}'.format(order.amount_total)))
             for usuario in aprobadores:
                 order.activity_schedule(
                     'mail.mail_activity_data_todo', user_id=usuario.id,
@@ -135,10 +163,11 @@ class SaleOrder(models.Model):
                 'aprobacion_motivo': False,
             })
             order._ferba_cerrar_actividades('Aprobada')
-            order._ferba_avisar(
-                '%s aprobo la cotizacion %s. Ya se puede enviar al cliente.'
-                % (self.env.user.name, order.name),
-                order._ferba_destinatarios_vendedor())
+            order._ferba_nota('%s aprobo la cotizacion.' % self.env.user.name)
+            order._ferba_chat(
+                order._ferba_destinatarios_vendedor(),
+                'Aprobe la cotizacion de %s. Ya la puedes enviar al cliente:'
+                % order.partner_id.display_name)
         return True
 
     def action_rechazar(self):
@@ -169,10 +198,11 @@ class SaleOrder(models.Model):
                 'aprobacion_motivo': motivo,
             })
             order._ferba_cerrar_actividades('Rechazada: %s' % motivo)
-            order._ferba_avisar(
-                '%s rechazo la cotizacion %s. Motivo: %s. Corrigela y vuelve a mandarla a revision.'
-                % (self.env.user.name, order.name, motivo),
-                order._ferba_destinatarios_vendedor())
+            order._ferba_nota('%s rechazo la cotizacion. Motivo: %s' % (self.env.user.name, motivo))
+            order._ferba_chat(
+                order._ferba_destinatarios_vendedor(),
+                'Rechace la cotizacion de %s. Motivo: %s. Corrigela y vuelve a mandarla a revision:'
+                % (order.partner_id.display_name, motivo))
         return True
 
     # ------------------------------------------------------------ compuertas

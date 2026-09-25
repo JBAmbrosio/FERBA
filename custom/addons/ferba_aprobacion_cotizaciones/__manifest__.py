@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'FERBA - Aprobacion de cotizaciones',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'El vendedor manda la cotizacion a revision; un aprobador la aprueba o rechaza; '
                'hasta entonces no se puede enviar al cliente ni confirmar.',
     'description': """
