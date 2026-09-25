@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Personalización de reportes qweb',
-    'version': '1.0.1',
+    'version': '1.0.2',
     'author': 'SUINER',
     'category': 'Sales',
     'summary': 'Cambia la arquitectura de los diseños nativos de qweb',
