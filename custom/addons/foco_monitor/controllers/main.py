@@ -341,9 +341,13 @@ class FocoController(http.Controller):
                 'clasificadas': App.clasificadas(),
                 'ya_capturadas': request.env['foco.capture'].sudo()
                                  .apps_ya_capturadas(computer),
-                # Monitoreo periodico de ESTA persona: que apps y cada cuanto.
+                # Monitoreo periodico de ESTA persona: que apps y cada cuanto,
+                # y aparte que sitios (lista propia: un agente anterior al
+                # 24-sep solo lee `monitor` y no debe tropezar con hosts).
                 'monitor': request.env['foco.watch'].sudo()
                            .monitor_para(computer.employee_id),
+                'monitor_sitios': request.env['foco.watch'].sudo()
+                                  .monitor_sitios_para(computer.employee_id),
             },
             'absences': pendientes.payload(),
         })
@@ -793,6 +797,8 @@ class FocoController(http.Controller):
                 # arrancado no debe esperar al envio pesado para empezar.
                 'monitor': request.env['foco.watch'].sudo()
                            .monitor_para(computer.employee_id),
+                'monitor_sitios': request.env['foco.watch'].sudo()
+                                  .monitor_sitios_para(computer.employee_id),
             },
         })
 

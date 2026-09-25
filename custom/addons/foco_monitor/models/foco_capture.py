@@ -54,8 +54,21 @@ class FocoCapture(models.Model):
     trigger = fields.Selection([
         ('manual', 'La pidio un administrador'),
         ('sin_clasificar', 'Aplicacion sin clasificar'),
-        ('monitoreo', 'Monitoreo periodico de la app'),
+        ('monitoreo', 'Monitoreo periodico (app o sitio)'),
     ], string='Por que se tomo', required=True, index=True)
+
+    # Lo que de verdad estaba al frente cuando se tomo, y aparte la regla que
+    # la disparo. Son dos cosas distintas y conviene que se vean distintas: en
+    # los agentes anteriores al 24-sep la captura de monitoreo se firmaba con
+    # el nombre de la regla aunque esa app estuviera detras de otra ventana.
+    site_id = fields.Many2one(
+        'foco.site', string='Sitio al frente', ondelete='set null',
+        help='La pestaña activa del navegador cuando se tomó la captura, si el '
+             'agente la pudo leer.')
+    target = fields.Char(
+        string='Regla que la disparó', readonly=True,
+        help='La aplicación o el sitio de la regla de monitoreo. Los agentes '
+             'anteriores al 24-sep no lo mandan.')
 
     # La causa es OBLIGATORIA en las manuales. Una captura sin motivo escrito no
     # se puede pedir: es lo que convierte el registro en algo que sirve el dia
@@ -104,16 +117,28 @@ class FocoCapture(models.Model):
             return 0
         exe = (datos.get('exe') or '').strip().lower()
         app = self.env['foco.app'].sudo()._por_exe(exe)
+        # El sitio de la pestana activa, si venia. Solo se BUSCA: una captura
+        # no da de alta sitios en el catalogo; eso lo hace el uso medido.
+        host = (datos.get('host') or '').strip().lower()[:255]
+        site = self.env['foco.site'].sudo().search([('host', '=', host)], limit=1) \
+            if host else self.env['foco.site']
+        # La regla que disparo (agentes desde el 24-sep): que y de que tipo.
+        objetivo = (datos.get('objetivo') or '').strip()[:255]
+        objetivo_tipo = datos.get('objetivo_tipo')
         disparador = datos.get('trigger')
         if disparador not in ('manual', 'sin_clasificar', 'monitoreo'):
             disparador = 'sin_clasificar'
         at = self.env['foco.event']._parse_utc(datos.get('at')) or fields.Datetime.now()
         # Vida de la imagen. El monitoreo periodico la toma de SU regla
-        # (foco.watch, por empleado y app); los otros dos disparadores, del
-        # plazo global de capturas. 0 = no caduca -> sin fecha de caducidad.
+        # (foco.watch, por empleado y app o sitio); los otros dos disparadores,
+        # del plazo global de capturas. 0 = no caduca -> sin fecha de caducidad.
         if disparador == 'monitoreo':
-            dias = self.env['foco.watch'].sudo().retention_para(
-                computer.employee_id, exe)
+            Watch = self.env['foco.watch'].sudo()
+            if objetivo_tipo == 'sitio':
+                dias = Watch.retention_para(computer.employee_id, host=objetivo or host)
+            else:
+                # Sin objetivo (agente viejo) `exe` ES la regla: asi lo mandaba.
+                dias = Watch.retention_para(computer.employee_id, exe=objetivo or exe)
         else:
             dias = ajustes.screenshot_retention_days or 0
         vals = {
@@ -126,6 +151,8 @@ class FocoCapture(models.Model):
             'bytes': int(datos.get('bytes') or 0),
             'notified': bool(datos.get('notified')),
             'app_id': app.id if app else False,
+            'site_id': site.id if site else False,
+            'target': objetivo or False,
             'expires_at': (at + timedelta(days=dias)) if dias > 0 else False,
         }
         if datos.get('command_id'):

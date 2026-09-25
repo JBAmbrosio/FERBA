@@ -11,6 +11,8 @@
                 <field name="trigger"
                        decoration-warning="trigger == 'manual'"/>
                 <field name="app_id"/>
+                <field name="site_id" optional="show"/>
+                <field name="target" optional="show"/>
                 <field name="reason"/>
                 <field name="requested_by" optional="show"/>
                 <!-- Que la persona haya sido avisada es parte del expediente,
@@ -40,6 +42,8 @@
                         <group>
                             <field name="computer_id" readonly="1"/>
                             <field name="app_id" readonly="1"/>
+                            <field name="site_id" readonly="1"/>
+                            <field name="target" readonly="1" invisible="not target"/>
                             <field name="notified" readonly="1"/>
                             <field name="width" readonly="1"/>
                             <field name="height" readonly="1"/>
@@ -59,12 +63,16 @@
             <search string="Capturas">
                 <field name="employee_id"/>
                 <field name="app_id"/>
+                <field name="site_id"/>
+                <field name="target"/>
                 <field name="reason"/>
                 <separator/>
                 <filter name="manuales" string="Las pidió alguien"
                         domain="[('trigger','=','manual')]"/>
                 <filter name="sin_clasificar" string="Por app sin clasificar"
                         domain="[('trigger','=','sin_clasificar')]"/>
+                <filter name="monitoreo" string="Por monitoreo"
+                        domain="[('trigger','=','monitoreo')]"/>
                 <separator/>
                 <filter name="sin_aviso" string="Sin aviso a la persona"
                         domain="[('notified','=',False)]"/>
@@ -91,16 +99,18 @@
                 mientras el aviso de privacidad firmado diga que no se toman.
             </p>
             <p>
-                Cuando se enciendan, hay dos maneras de que aparezca una imagen
+                Cuando se enciendan, hay tres maneras de que aparezca una imagen
                 aquí: que un administrador la pida desde Control remoto
-                <b>escribiendo el motivo</b>, o que alguien lleve mucho tiempo
-                en una aplicación que el catálogo no reconoce — en ese caso se
-                toma <b>una sola</b>, para poder identificarla, y esa aplicación
-                no vuelve a disparar nunca.
+                <b>escribiendo el motivo</b>; que alguien lleve mucho tiempo
+                en una aplicación que el catálogo no reconoce — se toma
+                <b>una sola</b>, para identificarla, y esa aplicación no vuelve
+                a disparar —; o una regla de <b>Monitoreo de pantalla</b>, que
+                captura cada tantos minutos mientras cierta aplicación o cierto
+                sitio esté al frente en el equipo de cierta persona.
             </p>
             <p>
-                En los dos casos la persona ve un aviso en su pantalla en el
-                momento de la captura.
+                El consentimiento está en el aviso de privacidad que la persona
+                firma; no se muestra un aviso en el momento de la captura.
             </p>
         </field>
     </record>
