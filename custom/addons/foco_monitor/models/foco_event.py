@@ -25,6 +25,9 @@ KINDS = [
     ('desbloqueo', 'Sesion desbloqueada'),
     ('llamada_inicio', 'Entro a una llamada'),
     ('llamada_fin', 'Salio de la llamada'),
+    # Lo aporta el SERVICIO del equipo (SYSTEM), no el agente: cerro un
+    # navegador que no obedece el bloqueo de sitios (Opera). Ver foco.policy.
+    ('navegador_cerrado', 'Navegador no permitido cerrado'),
 ]
 
 class FocoEvent(models.Model):
@@ -59,7 +62,8 @@ class FocoEvent(models.Model):
              'jornada. No coincide siempre con el dia UTC del campo Cuando.')
     kind = fields.Selection(KINDS, string='Que paso', required=True, index=True)
     source = fields.Selection(
-        [('os', 'Registro de Windows'), ('agent', 'Agente')],
+        [('os', 'Registro de Windows'), ('agent', 'Agente'),
+         ('servicio', 'Servicio del equipo')],
         string='De donde se supo', required=True, default='agent',
         help='Que la procedencia este siempre a la vista es lo que separa un '
              'dato de una acusacion: el dia que alguien discuta la hora, la '
@@ -116,7 +120,7 @@ class FocoEvent(models.Model):
                 'at': at,
                 'date': self._dia_local(at, zona),
                 'kind': kind,
-                'source': 'os' if e.get('source') == 'os' else 'agent',
+                'source': e.get('source') if e.get('source') in ('os', 'servicio') else 'agent',
                 'process': (datos.get('process') or '')[:120] or False,
                 'os_word': (datos.get('os_word') or '')[:120] or False,
                 'user_name': (datos.get('user') or '')[:120] or False,

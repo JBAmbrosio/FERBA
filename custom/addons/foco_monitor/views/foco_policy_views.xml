@@ -86,6 +86,25 @@
                         </field>
                     </group>
 
+                    <!-- 3. LOS QUE NO OBEDECEN. Medido (17-sep-2026): Opera
+                         ignora la politica que Chrome, Edge, Brave y Firefox si
+                         cumplen, y trae VPN integrada. No se puede hacer que
+                         bloquee; se puede hacer que no corra. -->
+                    <group string="3 · Navegadores que se saltan el bloqueo">
+                        <field name="close_unmanaged" widget="boolean_toggle"/>
+                        <field name="kill_exes" invisible="not close_unmanaged"
+                               placeholder="opera.exe&#10;opera_gx.exe"/>
+                        <div class="text-muted" colspan="2">
+                            Opera <b>no obedece</b> la política de empresa que sí cumplen
+                            Chrome, Edge, Brave y Firefox, y además trae una VPN integrada que
+                            brinca cualquier bloqueo. El servicio del equipo cierra estos
+                            programas en cuanto abren, avisa en pantalla («no está permitido
+                            en este equipo, usa Chrome o Edge») y lo registra en
+                            <b>Actividad</b> como «Navegador no permitido cerrado».
+                            Solo aplica con el bloqueo de sitios encendido.
+                        </div>
+                    </group>
+
                     <group>
                         <field name="note" string="Para qué es este perfil"
                                placeholder="Quién lo usa y por qué. Se lee el día que alguien pregunte por qué no puede abrir un sitio."/>
@@ -96,7 +115,7 @@
                     <!-- 3. LO QUE SE ESCAPA. Solo aparece si hay algo que
                          decir: una pestana vacia permanente ensena a ignorarla. -->
                     <div invisible="not sitios_sin_cubrir_ids">
-                        <group string="3 · Se ha visto y no lo alcanza ninguna regla">
+                        <group string="4 · Se ha visto y no lo alcanza ninguna regla">
                             <div colspan="2" class="alert alert-warning" role="alert">
                                 <field name="cobertura_nota" nolabel="1" readonly="1"/>
                                 <div class="mt8">

@@ -48,6 +48,42 @@ class FocoPolicy(models.Model):
     rule_ids = fields.One2many('foco.policy.rule', 'policy_id', string='Reglas')
     computer_ids = fields.One2many('foco.computer', 'policy_id', string='Equipos')
 
+    # Navegadores que se saltan el bloqueo. Medido (17-sep-2026): Opera ignora
+    # la politica de empresa que Chrome, Edge, Brave y Firefox si obedecen, y
+    # ademas trae una VPN integrada que brinca cualquier bloqueo por DNS. No hay
+    # forma de que Opera bloquee; lo que hay es que Opera no corra. El servicio
+    # del equipo (SYSTEM) cierra estos ejecutables en cuanto aparecen, avisa en
+    # pantalla y lo reporta como evento. La lista es dato, no codigo: si aparece
+    # otro navegador que tampoco obedece, se agrega aqui. Daniel lo destapo el
+    # 25-sep: YouTube bloqueado en Chrome, 29 minutos de YouTube en Opera.
+    close_unmanaged = fields.Boolean(
+        string='Cerrar navegadores que se saltan el bloqueo', default=True,
+        help='El servicio del equipo cierra en cuanto abren los programas de la '
+             'lista y lo registra en Actividad. Sin esto, basta instalar Opera '
+             'para ver cualquier sitio bloqueado.')
+    kill_exes = fields.Text(
+        string='Programas que se cierran (uno por linea)',
+        default='opera.exe\nopera_gx.exe',
+        help='Nombres de programa tal como los ve Windows (opera.exe), uno por '
+             'linea. Aplica con el interruptor de arriba encendido y con el '
+             'bloqueo de sitios encendido en Ajustes.')
+
+    def _kill_list(self):
+        """Los ejecutables a cerrar, limpios: minusculas, con .exe, sin repetir."""
+        self.ensure_one()
+        if not self.close_unmanaged:
+            return []
+        vistos = []
+        for linea in (self.kill_exes or '').replace(',', '\n').splitlines():
+            exe = linea.strip().lower()
+            if not exe or any(c in exe for c in ' \\/"'):
+                continue
+            if not exe.endswith('.exe'):
+                exe += '.exe'
+            if exe not in vistos:
+                vistos.append(exe)
+        return vistos
+
     # El mismo conjunto de equipos, pero ESCRIBIBLE desde aqui.
     #
     # Existe por un defecto de uso real: la pestana de equipos mostraba el
@@ -203,14 +239,16 @@ class FocoPolicy(models.Model):
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.
-            return {'version': 'off', 'block': [], 'allow': []}
+            # `kill` vacio por lo mismo: sin bloqueo no se cierra ningun navegador.
+            return {'version': 'off', 'block': [], 'allow': [], 'kill': []}
         perfil = self._perfil_vigente(computer)
         if not perfil:
-            return {'version': 'vacio', 'block': [], 'allow': []}
+            return {'version': 'vacio', 'block': [], 'allow': [], 'kill': []}
         bloquear, permitir = perfil._listas()
         permitir = sorted(set(permitir) | set(self._salvavidas()))
         return {'version': perfil._hash((bloquear, permitir)),
                 'block': bloquear, 'allow': permitir,
+                'kill': perfil._kill_list(),
                 'policy': perfil.name}
 
     def action_ver_equipos(self):

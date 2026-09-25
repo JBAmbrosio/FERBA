@@ -1001,6 +1001,26 @@ class FocoController(http.Controller):
         if data.get('version_agente'):
             computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
 
+        # Navegadores no permitidos que el servicio cerro desde su ultimo
+        # reporte (desde 2026.09.26). Van a Actividad como eventos con la hora
+        # del cierre y el programa; el servicio reintenta si esto falla, y
+        # record_events no duplica.
+        cerrados = data.get('cerrados')
+        if isinstance(cerrados, list) and cerrados:
+            eventos = []
+            for c in cerrados[:200]:
+                if not isinstance(c, dict) or not c.get('exe'):
+                    continue
+                eventos.append({
+                    'kind': 'navegador_cerrado', 'at': c.get('at'), 'source': 'servicio',
+                    'detail': json.dumps({'process': str(c['exe'])[:120]}),
+                })
+            if eventos:
+                try:
+                    request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
+                except Exception:
+                    _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
+
         aplicada = (data.get('applied') or '').strip()[:64]
         if aplicada:
             detalle = (data.get('detail') or '').strip()[:250]
