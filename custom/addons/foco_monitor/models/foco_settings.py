@@ -670,11 +670,50 @@ class FocoSettings(models.Model):
         }
 
     @api.model
-    def expected_seconds(self, employee, start_utc, stop_utc):
+    def _presencia_por_dia(self, employee, ini, fin, tz):
+        """Lo que dice el CHECADOR (hr.attendance): por dia local, los tramos
+        en que la persona estuvo checada dentro de [ini, fin].
+
+        Devuelve {fecha: [(desde, hasta), ...]} en la zona `tz`. Una asistencia
+        sin salida (se le olvido checar) se toma como abierta hasta el fin del
+        rango: ahi no hay con que afirmar que ya se fue. Un dia SIN ninguna
+        asistencia no aparece en el dict: para ese dia manda el calendario,
+        porque "no checo" no es lo mismo que "no estaba".
+        """
+        if not employee or 'hr.attendance' not in self.env:
+            return {}
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '<=', fin.astimezone(pytz.UTC).replace(tzinfo=None)),
+                 '|', ('check_out', '=', False),
+                 ('check_out', '>=', ini.astimezone(pytz.UTC).replace(tzinfo=None))],
+                ['check_in', 'check_out'], order='check_in')
+        except Exception:
+            return {}
+        por_dia = {}
+        for r in regs:
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(tz)
+            co = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_out'])).astimezone(tz) \
+                if r['check_out'] else fin
+            por_dia.setdefault(ci.date(), []).append((ci, co))
+        return por_dia
+
+    @api.model
+    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False):
         """Segundos de JORNADA ESPERADA dentro de [start_utc, stop_utc].
 
         Es lo que permite no molestar al empleado por huecos que caen fuera de
         su jornada (o en su comida): ahi el esperado es 0.
+
+        `con_asistencia=True` (lo usa la ingesta de huecos, no el tablero):
+        ademas del calendario, cuenta el checador. Un dia en que la persona
+        checo, solo es esperado lo que cae ENTRE su entrada y su salida; asi,
+        lo que pasa despues de checar salida (la computadora que se quedo
+        prendida toda la noche) o antes de checar entrada no se pide justificar.
+        Acordado con Francesco el 25-sep-2026: "cuando chequen salida, ya no
+        hay que justificar". Un dia sin asistencia se sigue rigiendo por el
+        calendario: no checar no prueba que no estuviera.
         """
         if stop_utc <= start_utc:
             return 0.0
@@ -687,16 +726,26 @@ class FocoSettings(models.Model):
         tz = self._tzinfo_for(employee)
         ini = pytz.UTC.localize(start_utc).astimezone(tz)
         fin = pytz.UTC.localize(stop_utc).astimezone(tz)
+        presencia = self._presencia_por_dia(employee, ini, fin, tz) if con_asistencia else {}
         total = 0.0
         day = ini.date()
         while day <= fin.date():
             base = tz.localize(datetime.combine(day, time(0, 0)))
+            tramos = presencia.get(day)
             for h_from, h_to in intervals.get(day.isoweekday(), []):
                 span_a = base + timedelta(hours=h_from)
                 span_b = base + timedelta(hours=h_to)
                 lo = max(ini, span_a)
                 hi = min(fin, span_b)
-                if hi > lo:
+                if hi <= lo:
+                    continue
+                if not tramos:
                     total += (hi - lo).total_seconds()
+                    continue
+                for ci, co in tramos:
+                    a = max(lo, ci)
+                    b = min(hi, co)
+                    if b > a:
+                        total += (b - a).total_seconds()
             day += timedelta(days=1)
         return total

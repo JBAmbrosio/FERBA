@@ -144,7 +144,9 @@ class FocoAbsence(models.Model):
                                          ('start', '=', start)]):
                 stored += 1                 # reenviado: ya estaba, no se duplica
                 continue
-            expected = settings.expected_seconds(employee, start, stop)
+            # Con el checador: lo que pasa despues de checar salida (o antes de
+            # checar entrada) no cuenta como jornada esperada y no se pregunta.
+            expected = settings.expected_seconds(employee, start, stop, con_asistencia=True)
             explicado = (expected < MIN_EXPECTED_SECS
                          or self._covered_by_leave(employee, start, stop))
             self.sudo().create({
