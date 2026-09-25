@@ -152,6 +152,14 @@ class FocoController(http.Controller):
                 vals['utc_offset_min'] = int(info['utc_offset_min'])
             except (TypeError, ValueError):
                 pass
+        # Version instalada, si el agente la reporta (desde 2026.09.25).
+        if info.get('version'):
+            vals['agent_version'] = str(info['version'])[:32]
+        if info.get('version_code') is not None:
+            try:
+                vals['agent_version_code'] = int(info['version_code'])
+            except (TypeError, ValueError):
+                pass
         # Estado del SERVICIO del equipo, que el agente lee de su archivo. Solo
         # diagnostico: no toca policy_version ni policy_verified_at (ver el
         # comentario de `service_state` en foco.computer).
@@ -638,6 +646,37 @@ class FocoController(http.Controller):
             ('Content-Type', 'application/octet-stream'),
             ('Content-Disposition', 'attachment; filename="%s"' % fn)])
 
+    # ------------------------------------------- actualizacion del agente
+    #
+    # Mismo patron que /foco/app/latest para el movil. Lo consulta el servicio
+    # de cada equipo (con su api_key), compara el codigo con el suyo y, si el
+    # publicado es mayor, baja el binario y lo verifica con la huella antes
+    # de instalarlo.
+    @http.route('/foco/agent/latest', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_latest(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        s = request.env['foco.settings'].sudo().get_settings()
+        return request.make_json_response(s.agent_latest())
+
+    @http.route('/foco/agent/binario', type='http', auth='public', methods=['GET'])
+    def agent_binario(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        s = request.env['foco.settings'].sudo().get_settings()
+        if not (s.installer and s.agent_autoupdate and s.installer_sha256):
+            return request.not_found()
+        content = base64.b64decode(s.installer)
+        fn = s.installer_name or 'FERBA-Foco-Setup.exe'
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/octet-stream'),
+            ('Content-Length', str(len(content))),
+            ('X-Foco-Sha256', s.installer_sha256),
+            ('Content-Disposition', 'attachment; filename="%s"' % fn)])
+
     @http.route('/foco/absence_answer', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def absence_answer(self, **kw):
@@ -957,6 +996,10 @@ class FocoController(http.Controller):
         data = self._body()
         if data is None:
             return request.make_json_response({'error': 'bad_json'}, status=400)
+
+        # Version del servicio, si la reporta (desde 2026.09.25).
+        if data.get('version_agente'):
+            computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
 
         aplicada = (data.get('applied') or '').strip()[:64]
         if aplicada:

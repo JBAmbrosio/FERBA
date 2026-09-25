@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import logging
 from datetime import datetime, time, timedelta
 
@@ -212,8 +214,73 @@ class FocoSettings(models.Model):
              'no alcanzo a borrar. Se van en las siguientes corridas diarias.')
 
     installer = fields.Binary(string="Instalador (.exe)",
-                              help="El FERBA-Foco-Setup.exe que descargan los empleados desde el correo.")
+                              help="El FERBA-Foco-Setup.exe que descargan los empleados desde el correo "
+                                   "y el que bajan los equipos para actualizarse solos.")
     installer_name = fields.Char(string="Nombre del instalador", default="FERBA-Foco-Setup.exe")
+
+    # ---- version del agente de escritorio y actualizacion sola -----------
+    # Mismo patron que el APK del movil: se sube el instalador y se declara su
+    # version. El servicio de cada equipo pregunta a /foco/agent/latest,
+    # compara el codigo con el suyo y, si el de Odoo es mayor, baja el .exe,
+    # comprueba tamano y huella SHA-256 y lo corre en silencio. La huella se
+    # calcula AQUI al subir el archivo, no la escribe nadie: sin huella no se
+    # instala nada, porque una descarga a medias dejaria el equipo sin agente.
+    agent_version_name = fields.Char(
+        string='Version del agente', help='Etiqueta visible, p.ej. 2026.09.25.')
+    agent_version_code = fields.Integer(
+        string='Codigo de version del agente',
+        help='Entero que sube en cada version (foco_version.VERSION_CODE, lo '
+             'imprime el empaquetado). Un equipo se actualiza cuando el suyo '
+             'es menor que este.')
+    agent_autoupdate = fields.Boolean(
+        string='Los equipos se actualizan solos', default=True,
+        help='Apagado, el instalador solo sirve para la descarga manual: se '
+             'puede subir una version sin que los equipos la reciban todavia.')
+    installer_sha256 = fields.Char(string='Huella SHA-256 del instalador', readonly=True)
+    installer_size = fields.Integer(string='Tamano del instalador (bytes)', readonly=True)
+    installer_uploaded_at = fields.Datetime(string='Instalador subido', readonly=True)
+
+    @api.model
+    def _huella_instalador(self, b64):
+        """(sha256 en hex, bytes) del binario tal como se subio."""
+        if not b64:
+            return '', 0
+        raw = base64.b64decode(b64)
+        return hashlib.sha256(raw).hexdigest(), len(raw)
+
+    def _vals_con_huella(self, vals):
+        if 'installer' in vals:
+            sha, tam = self._huella_instalador(vals.get('installer'))
+            vals = dict(vals, installer_sha256=sha or False, installer_size=tam,
+                        installer_uploaded_at=fields.Datetime.now() if sha else False)
+        return vals
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        return super().create([self._vals_con_huella(v) for v in vals_list])
+
+    def write(self, vals):
+        return super().write(self._vals_con_huella(vals))
+
+    def agent_latest(self):
+        """Lo que contesta /foco/agent/latest al servicio de un equipo.
+
+        `version_code` 0 = no hay nada que instalar: sin instalador subido,
+        sin codigo de version, o con la actualizacion sola apagada. Solo se
+        publica una version que tenga huella calculada.
+        """
+        self.ensure_one()
+        if not (self.agent_autoupdate and self.installer
+                and self.installer_sha256 and self.agent_version_code):
+            return {'ok': True, 'version_code': 0}
+        return {
+            'ok': True,
+            'version_code': self.agent_version_code,
+            'version_name': self.agent_version_name or '',
+            'sha256': self.installer_sha256,
+            'size': self.installer_size,
+            'name': self.installer_name or 'FERBA-Foco-Setup.exe',
+        }
 
     # ---- app movil (APK) para repartir por QR ---------------------------
     # La Play Store no admite apps de monitoreo, asi que el APK se reparte por

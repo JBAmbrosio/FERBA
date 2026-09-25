@@ -447,6 +447,25 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
+                    <group string="Agente de escritorio (instalador .exe) y actualizacion sola">
+                        <field name="installer" filename="installer_name"/>
+                        <field name="installer_name"/>
+                        <field name="agent_version_name"/>
+                        <field name="agent_version_code"/>
+                        <field name="agent_autoupdate"/>
+                        <field name="installer_sha256" readonly="1"/>
+                        <field name="installer_size" readonly="1"/>
+                        <field name="installer_uploaded_at" readonly="1"/>
+                        <div class="text-muted" colspan="2">
+                            Sube aqui el FERBA-Foco-Setup.exe y escribe el codigo de
+                            version que trae (lo imprime el empaquetado). Cada equipo
+                            pregunta cada 5 minutos; si su codigo es menor, baja el
+                            instalador, comprueba la huella y se actualiza solo.
+                            La huella se calcula al subir el archivo. Con
+                            «se actualizan solos» apagado, el instalador solo sirve
+                            para la descarga manual.
+                        </div>
+                    </group>
                     <group string="App movil (APK) para repartir por QR">
                         <field name="mobile_apk" filename="mobile_apk_name"/>
                         <field name="mobile_apk_name"/>

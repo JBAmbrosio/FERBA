@@ -12,6 +12,9 @@
                 <field name="last_seen"/>
                 <field name="health" decoration-warning="health in ('stale','never')"
                        decoration-muted="health == 'resting'"/>
+                <field name="agent_outdated" column_invisible="1"/>
+                <field name="agent_version" string="Version"
+                       decoration-warning="agent_outdated" optional="show"/>
                 <field name="minutes_since_seen" string="Min. sin reportar" optional="hide"/>
                 <field name="policy_id" string="Navegacion" optional="show"/>
                 <field name="policy_sync" string="Bloqueo"
@@ -61,6 +64,11 @@
                         </group>
                         <!-- Por que el servicio no aplica, cuando no lo hace. Viene
                              del equipo y es diagnostico, no prueba del bloqueo. -->
+                        <group string="Version instalada">
+                            <field name="agent_version"/>
+                            <field name="service_version"/>
+                            <field name="agent_outdated"/>
+                        </group>
                         <group string="Servicio del equipo (diagnostico)">
                             <field name="service_state"/>
                             <field name="service_detail"/>

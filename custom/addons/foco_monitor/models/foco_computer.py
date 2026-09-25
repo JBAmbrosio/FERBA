@@ -109,6 +109,23 @@ class FocoComputer(models.Model):
         help='Ultimo envio del agente que trajo el estado del servicio. Vacio = '
              'el agente es anterior a este reporte.')
 
+    # Version instalada, reportada por cada pieza: el agente en su envio y el
+    # servicio al pedir la politica. Durante una actualizacion pueden diferir
+    # un rato; por eso son dos. Vacio = version anterior a este reporte.
+    agent_version = fields.Char(string='Version del agente', readonly=True)
+    agent_version_code = fields.Integer(string='Codigo de version del agente', readonly=True)
+    service_version = fields.Char(string='Version del servicio', readonly=True)
+    agent_outdated = fields.Boolean(
+        string='Desactualizado', compute='_compute_agent_outdated',
+        help='El codigo de version que reporta es menor que el publicado en '
+             'Configuracion. Se actualiza solo en su siguiente ciclo.')
+
+    @api.depends('agent_version_code')
+    def _compute_agent_outdated(self):
+        objetivo = self.env['foco.settings'].sudo().get_settings().agent_version_code or 0
+        for c in self:
+            c.agent_outdated = bool(objetivo and (c.agent_version_code or 0) < objetivo)
+
     policy_sync = fields.Selection(
         [('off', 'Bloqueo apagado'), ('sin_perfil', 'Sin perfil'),
          ('al_dia', 'Al dia'), ('pendiente', 'Pendiente'),
