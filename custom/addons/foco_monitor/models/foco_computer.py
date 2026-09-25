@@ -84,6 +84,48 @@ class FocoComputer(models.Model):
         help='El ultimo reporte del equipo dijo que lo PUESTO no coincidia con '
              'lo vigente (algo o alguien lo quito). Se reconcilia solo en el '
              'siguiente ciclo; si persiste, el equipo no lo esta aplicando.')
+    # Lo que el SERVICIO del equipo dice de su ultimo ciclo, traido por el
+    # agente. Existe porque el servicio habla con Odoo por su cuenta y, si esa
+    # conexion falla, "Nunca aplicada" no decia por que (24-sep: un equipo dos
+    # dias sin bloqueo y sin una sola linea en su log). Es DIAGNOSTICO: el
+    # archivo de donde sale lo puede editar la persona vigilada, asi que NO
+    # interviene en `policy_sync`; la prueba del bloqueo sigue siendo el latido
+    # `policy_verified_at`, que el servicio manda directo.
+    service_state = fields.Char(
+        string='Servicio: ultimo ciclo', readonly=True,
+        help='sin_conexion, sin_llave, http_401, verificado, aplicado... '
+             '"sin_archivo" = servicio viejo, no instalado o que nunca corrio.')
+    service_detail = fields.Char(string='Servicio: detalle', readonly=True)
+    service_at = fields.Datetime(
+        string='Servicio: hora del ciclo', readonly=True,
+        help='Cuando corrio ese ciclo segun el equipo. Si envejece mientras el '
+             'agente sigue enviando, el servicio dejo de correr.')
+    service_same_folder = fields.Boolean(
+        string='Servicio y agente comparten carpeta', readonly=True,
+        help='Si no, el servicio no encuentra la llave del agente y no puede '
+             'pedir la politica.')
+    service_reported_at = fields.Datetime(
+        string='Servicio: recibido', readonly=True,
+        help='Ultimo envio del agente que trajo el estado del servicio. Vacio = '
+             'el agente es anterior a este reporte.')
+
+    # Version instalada, reportada por cada pieza: el agente en su envio y el
+    # servicio al pedir la politica. Durante una actualizacion pueden diferir
+    # un rato; por eso son dos. Vacio = version anterior a este reporte.
+    agent_version = fields.Char(string='Version del agente', readonly=True)
+    agent_version_code = fields.Integer(string='Codigo de version del agente', readonly=True)
+    service_version = fields.Char(string='Version del servicio', readonly=True)
+    agent_outdated = fields.Boolean(
+        string='Desactualizado', compute='_compute_agent_outdated',
+        help='El codigo de version que reporta es menor que el publicado en '
+             'Configuracion. Se actualiza solo en su siguiente ciclo.')
+
+    @api.depends('agent_version_code')
+    def _compute_agent_outdated(self):
+        objetivo = self.env['foco.settings'].sudo().get_settings().agent_version_code or 0
+        for c in self:
+            c.agent_outdated = bool(objetivo and (c.agent_version_code or 0) < objetivo)
+
     policy_sync = fields.Selection(
         [('off', 'Bloqueo apagado'), ('sin_perfil', 'Sin perfil'),
          ('al_dia', 'Al dia'), ('pendiente', 'Pendiente'),
@@ -131,6 +173,33 @@ class FocoComputer(models.Model):
              '(totales imposibles o reloj desfasado). Es un INDICIO para revisar '
              'con la persona, nunca una acusacion automatica.')
     integrity_alert_at = fields.Datetime(string='Detectada', readonly=True)
+
+    # --- como se ve y como se busca un equipo -------------------------------
+    # Por omision un equipo se identifica por su hostname (FBT308DDF), que al
+    # elegirlo en una orden o en cualquier desplegable no le dice nada a nadie.
+    # Se muestra la PERSONA primero -que es como la gente lo reconoce- y se deja
+    # la clave entre parentesis para no perder de vista DE QUE maquina se trata
+    # cuando alguien tiene mas de una, o cuando el equipo aun no tiene empleado.
+    @api.depends('name', 'employee_id', 'employee_id.name')
+    def _compute_display_name(self):
+        for rec in self:
+            clave = rec.name or ''
+            persona = rec.employee_id.name if rec.employee_id else ''
+            if persona and clave:
+                rec.display_name = '%s (%s)' % (persona, clave)
+            else:
+                rec.display_name = persona or clave or 'Equipo sin nombre'
+
+    @api.model
+    def _search_display_name(self, operator, value):
+        # Que al teclear en el desplegable se encuentre por el nombre de la
+        # PERSONA ademas de por la clave. Solo para las busquedas "positivas"
+        # (contiene / igual); las negativas se dejan al ORM, donde un OR daria
+        # justo el resultado contrario al que se pide.
+        if value and operator in ('ilike', 'like', '=', '=ilike', '=like'):
+            return ['|', ('name', operator, value),
+                    ('employee_id.name', operator, value)]
+        return super()._search_display_name(operator, value)
 
     def action_clear_integrity_alert(self):
         self.write({'integrity_alert': False, 'integrity_alert_at': False})

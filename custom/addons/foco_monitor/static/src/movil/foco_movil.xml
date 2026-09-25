@@ -17,6 +17,10 @@
                             <span class="sep">·</span>
                             <span class="fm_aviso"><t t-esc="state.kpis.sin_senal"/> sin señal</span>
                         </t>
+                        <t t-if="state.kpis.con_problemas">
+                            <span class="sep">·</span>
+                            <span class="fm_alerta"><i class="fa fa-heartbeat"/> <t t-esc="state.kpis.con_problemas"/> con problema<t t-if="state.kpis.con_problemas > 1">s</t></span>
+                        </t>
                         <t t-if="state.ultimo"><span class="sep">·</span> actualizado <t t-esc="horaUltimo()"/></t>
                     </p>
                 </div>
@@ -107,6 +111,12 @@
                                     </div>
                                     <div class="fm_dev_estado" t-elif="!d.online">
                                         <i class="fa fa-circle-o"/> Sin señal
+                                    </div>
+                                    <div class="fm_dev_estado"
+                                         t-if="(d.health === 'bad' or d.health === 'warn') and d.health_issues"
+                                         t-attf-style="color: {{ d.health === 'bad' ? '#dc3545' : '#e08e0b' }};"
+                                         t-attf-title="Salud del equipo: {{ d.health_issues }}">
+                                        <i class="fa fa-exclamation-triangle"/> <t t-esc="d.health_issues"/>
                                     </div>
                                 </div>
                                 <div class="fm_dev_right">

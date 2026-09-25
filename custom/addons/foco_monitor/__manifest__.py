@@ -1,6 +1,6 @@
 {
     'name': 'Foco - Monitor de Productividad',
-    'version': '19.0.11.4.0',
+    'version': '19.0.11.21.0',
     'summary': 'Mide el uso real de aplicaciones (primer plano vs segundo plano) '
                'por empleado, con control remoto de equipos.',
     'description': """
@@ -18,7 +18,7 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
 - Control remoto: bloquear equipo, mostrar mensaje, cerrar una app, cerrar sesion.
 - Cada equipo se liga a un empleado (hr.employee).
 """,
-    'author': 'Simetrical / Simdatagroup',
+    'author': 'FERBA',
     'category': 'Human Resources/Productivity',
     'license': 'LGPL-3',
     'depends': ['base', 'hr', 'mail'],
@@ -44,6 +44,7 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'views/foco_capture_views.xml',
         'views/foco_watch_views.xml',
         'views/foco_mobile_views.xml',
+        'views/foco_mobile_app_views.xml',
         'views/foco_movil_action.xml',
         'views/foco_settings_views.xml',
         'views/res_config_settings_views.xml',
@@ -51,6 +52,7 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'views/foco_invitation_views.xml',
         'views/foco_absence_views.xml',
         'views/foco_justify_templates.xml',
+        'views/foco_distribucion_templates.xml',
         'views/foco_dashboard_action.xml',
         'views/foco_menus.xml',
     ],

@@ -110,12 +110,17 @@
                         <t t-set="titulo">¿Cómo funciona?</t>
                         <t t-set="llano" t-value="True"/>
                     </t>
+                    <!-- Las cinco ilustraciones salen del mismo lienzo cuadrado y
+                         se recortaron por la unión de sus cajas de tinta, así que
+                         miden lo mismo: la proporción entre ellas (la banda ancha
+                         y baja, el monitor alto) es la del diseño, no un ajuste
+                         del navegador. -->
                     <t t-set="pasos" t-value="[
-                        ('fq-paso-1-368x232.webp', 'El producto entra al módulo'),
-                        ('fq-paso-2-416x240.webp', 'Las cámaras capturan imágenes'),
-                        ('fq-paso-3-336x232.webp', 'El sistema analiza parámetros'),
-                        ('fq-paso-4-336x232.webp', 'Se interpreta la información'),
-                        ('fq-paso-5-548x232.webp', 'La línea clasifica según criterios configurados'),
+                        ('fq-paso-1-578x450.webp', 'El producto entra al módulo'),
+                        ('fq-paso-2-578x450.webp', 'Las cámaras capturan imágenes'),
+                        ('fq-paso-3-578x450.webp', 'El sistema analiza parámetros'),
+                        ('fq-paso-4-578x450.webp', 'Se interpreta la información'),
+                        ('fq-paso-5-578x450.webp', 'La línea clasifica según criterios configurados'),
                     ]"/>
                     <div class="o_ferba_pasos o_ferba_pasos--flujo" style="--ferba-cols:5" data-ferba-grupo="comofunciona">
                         <t t-foreach="pasos" t-as="p">

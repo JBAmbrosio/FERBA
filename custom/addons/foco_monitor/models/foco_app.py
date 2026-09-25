@@ -181,6 +181,36 @@ class FocoApp(models.Model):
         return True
 
     @api.model
+    def _variantes_exe(self, exe):
+        """Las formas en que el mismo ejecutable llega de los agentes.
+
+        El agente de escritorio lo manda con '.exe' al reportar uso
+        ('winword.exe') y sin el al subir una captura ('winword'), y el catalogo
+        se llavea con la forma del uso. Buscar por una sola forma dejaba a las
+        capturas sin aplicacion: el disparador de app sin clasificar nunca veia
+        su propia captura y volvia a fotografiar cada media hora (46 capturas de
+        una sola PC en una noche, 24-sep).
+        """
+        exe = (exe or '').strip().lower()
+        if not exe:
+            return []
+        base = exe[:-4] if exe.endswith('.exe') else exe
+        return [exe] + [v for v in (base, base + '.exe') if v != exe]
+
+    @api.model
+    def _por_exe(self, exe):
+        """La app del catalogo para ese ejecutable, llegue con o sin '.exe'."""
+        variantes = self._variantes_exe(exe)
+        if not variantes:
+            return self.browse()
+        apps = self.search([('exe', 'in', variantes)])
+        for forma in variantes:        # la forma tal como llego, primero
+            app = apps.filtered(lambda a: a.exe == forma)[:1]
+            if app:
+                return app
+        return self.browse()
+
+    @api.model
     def _get_or_create(self, exe, name=None, product=None):
         exe = (exe or '').strip().lower()
         if not exe:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Ferba — Sitio web',
-    'version': '19.0.1.8.1',
+    'version': '19.0.1.9.0',
     'author': 'Simdata Group',
     'category': 'Website/Website',
     'summary': 'Tema y páginas del sitio público de Ferba Postharvest Technology',
@@ -31,7 +31,7 @@ de seguridad.
         'views/ferba_inicio.xml',
         'views/ferba_header.xml',
         'views/ferba_footer.xml',
-        'views/ferba_paginas.xml',      # andamio (hero, cierre, 404, legales)
+        'views/ferba_paginas.xml',      # andamio (hero, cierre, 404)
         'views/ferba_quienes_somos.xml',
         'views/ferba_soluciones.xml',
         'views/ferba_maquinaria.xml',
@@ -40,6 +40,7 @@ de seguridad.
         'views/ferba_proyectos.xml',
         'views/ferba_postventa.xml',
         'views/ferba_contacto.xml',
+        'views/ferba_legales.xml',      # aviso de privacidad y términos
         'data/pages.xml',               # los registros, después de las plantillas que referencian
     ],
     'assets': {

@@ -6,12 +6,19 @@
         <field name="name">foco.mobile.device.list</field>
         <field name="model">foco.mobile.device</field>
         <field name="arch" type="xml">
-            <list string="Dispositivos moviles" decoration-danger="removed">
+            <list string="Dispositivos moviles" decoration-danger="removed"
+                  decoration-warning="health_status == 'bad' and not removed">
                 <field name="name"/>
                 <field name="employee_id"/>
                 <field name="department_id" optional="show"/>
                 <field name="phone_number" optional="show"/>
                 <field name="battery"/>
+                <field name="health_status" widget="badge" string="Salud"
+                       decoration-success="health_status == 'ok'"
+                       decoration-warning="health_status == 'warn'"
+                       decoration-danger="health_status == 'bad'"
+                       decoration-muted="health_status == 'unknown'"/>
+                <field name="health_issues" string="Problemas" optional="show"/>
                 <field name="os_version" optional="hide"/>
                 <field name="app_version" optional="hide"/>
                 <field name="last_fix_at"/>
@@ -68,6 +75,35 @@
                             <field name="last_lon"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="health_status != 'bad' or not health_at">
+                        Este equipo tiene un problema que le impide reportar bien.
+                        Revisa "Salud del equipo" aquí abajo.
+                    </div>
+                    <group string="Salud del equipo" invisible="not health_at">
+                        <group>
+                            <field name="health_status" widget="badge"
+                                   decoration-success="health_status == 'ok'"
+                                   decoration-warning="health_status == 'warn'"
+                                   decoration-danger="health_status == 'bad'"/>
+                            <field name="health_issues" invisible="not health_issues"/>
+                            <field name="health_at"/>
+                            <field name="health_device_owner"/>
+                            <field name="health_service_running"/>
+                            <field name="health_uptime_s"/>
+                            <field name="health_buffered"/>
+                        </group>
+                        <group>
+                            <field name="health_location_on"/>
+                            <field name="health_perm_location"/>
+                            <field name="health_perm_bg_location"/>
+                            <field name="health_usage_access"/>
+                            <field name="health_battery_unrestricted"/>
+                            <field name="health_accessibility"/>
+                            <field name="health_perm_calls"/>
+                            <field name="health_perm_contacts"/>
+                        </group>
+                    </group>
                     <div class="alert alert-danger" role="alert" invisible="not removed">
                         Este equipo avisó que lo están retirando. Dejó de reportar
                         por la vía normal (desactivación del administrador). Volverá
@@ -95,8 +131,14 @@
                 <field name="phone_number"/>
                 <separator/>
                 <filter name="activos" string="Activos" domain="[('active','=',True)]"/>
+                <filter name="problemas" string="Con problemas"
+                        domain="[('health_status','in',['bad','warn'])]"/>
+                <filter name="ubic_off" string="Ubicación apagada"
+                        domain="[('health_location_on','=',False),('health_at','!=',False)]"/>
+                <filter name="retirados" string="Retirados" domain="[('removed','=',True)]"/>
                 <separator/>
                 <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_salud" string="Salud" context="{'group_by': 'health_status'}"/>
             </search>
         </field>
     </record>
@@ -380,9 +422,18 @@
                     <group string="Capturas de pantalla (lo mas invasivo)">
                         <field name="mobile_screenshot_enabled"
                                invisible="not mobile_enabled"/>
+                        <field name="mobile_screenshot_monitor_packages"
+                               string="Apps a fotografiar cada N min (una por linea)"
+                               invisible="not mobile_screenshot_enabled"/>
+                        <field name="mobile_screenshot_monitor_minutes"
+                               string="Cada cuantos minutos (apps monitoreadas)"
+                               invisible="not mobile_screenshot_enabled"/>
+                        <field name="mobile_screenshot_capture_unregistered"
+                               string="Fotografiar apps NO registradas cada N min"
+                               invisible="not mobile_screenshot_enabled"/>
                         <field name="screenshot_unclassified_minutes"
                                string="Minutos en una app nueva antes de capturar"
-                               invisible="not mobile_screenshot_enabled"/>
+                               invisible="not mobile_screenshot_enabled or mobile_screenshot_capture_unregistered"/>
                         <field name="screenshot_retention_days"
                                string="Conservar capturas (dias)"
                                invisible="not mobile_screenshot_enabled"/>
@@ -390,9 +441,45 @@
                              invisible="not mobile_enabled">
                             Solo con el aviso de privacidad firmado que contemple
                             capturas. Requiere el servicio de accesibilidad de Foco
-                            activo en el telefono (Android 11+). Se toma UNA captura
-                            por app nueva (para identificarla) y las que pida el
-                            administrador; no graba la pantalla en continuo.
+                            activo en el telefono (Android 11+). Las apps de la
+                            lista (WhatsApp y las que sumes) se fotografian cada N
+                            minutos mientras esten al frente; el resto, UNA vez al
+                            descubrirlas y las que pida el administrador.
+                        </div>
+                    </group>
+                    <group string="Agente de escritorio (instalador .exe) y actualizacion sola">
+                        <field name="installer" filename="installer_name"/>
+                        <field name="installer_name"/>
+                        <field name="agent_version_name"/>
+                        <field name="agent_version_code"/>
+                        <field name="agent_autoupdate"/>
+                        <field name="installer_sha256" readonly="1"/>
+                        <field name="installer_size" readonly="1"/>
+                        <field name="installer_uploaded_at" readonly="1"/>
+                        <div class="text-muted" colspan="2">
+                            Sube aqui el FERBA-Foco-Setup.exe y escribe el codigo de
+                            version que trae (lo imprime el empaquetado). Cada equipo
+                            pregunta cada 5 minutos; si su codigo es menor, baja el
+                            instalador, comprueba la huella y se actualiza solo.
+                            La huella se calcula al subir el archivo. Con
+                            «se actualizan solos» apagado, el instalador solo sirve
+                            para la descarga manual.
+                        </div>
+                    </group>
+                    <group string="App movil (APK) para repartir por QR">
+                        <field name="mobile_apk" filename="mobile_apk_name"/>
+                        <field name="mobile_apk_name"/>
+                        <field name="mobile_apk_version_name"/>
+                        <field name="mobile_apk_version_code"/>
+                        <field name="mobile_apk_token_minutes"/>
+                        <div class="text-muted" colspan="2">
+                            La Play Store no admite apps de monitoreo. Sube aqui el
+                            .apk y repartelo abriendo la terminal de instalacion en
+                            la ruta /foco/instalar: ahi, con el codigo de teclas
+                            (arriba arriba abajo abajo izquierda derecha izquierda
+                            derecha), aparece un QR de un solo uso que el telefono
+                            escanea para descargar. En equipos Device Owner recuerda
+                            permitir instalar de origen desconocido.
                         </div>
                     </group>
                 </sheet>

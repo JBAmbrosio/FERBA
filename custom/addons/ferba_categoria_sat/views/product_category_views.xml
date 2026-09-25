@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_category_form_view_clave_sat" model="ir.ui.view">
+        <field name="name">product.category.form.clave.sat</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <!-- Por ahora solo Francisco (empresa 17) contabiliza por categoria. -->
+                <field name="ferba_unspsc_code_id"
+                       invisible="current_company_id != 17"
+                       options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

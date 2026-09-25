@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
@@ -57,6 +59,49 @@ class FocoSite(models.Model):
         else:
             site = self.create({'host': host, 'name': host, 'last_seen': now})
         return site
+
+    @api.model
+    def _normalizar_host(self, valor):
+        """Lo que la persona escribe -> el host como lo reporta el agente.
+
+        Acepta 'https://web.whatsapp.com/algo', 'www.youtube.com' o
+        'YouTube.com' y devuelve 'web.whatsapp.com' / 'youtube.com': la misma
+        normalizacion que `browser_url.parse_host` en el agente, para que una
+        regla escrita a mano case con lo que llega del equipo. Vacio si no
+        parece un dominio.
+        """
+        v = (valor or '').strip().lower()
+        if not v or ' ' in v:
+            return ''
+        try:
+            u = urlparse(v if '://' in v else 'http://' + v)
+        except ValueError:
+            return ''
+        host = (u.hostname or '').strip('.')
+        if host.startswith('www.'):
+            host = host[4:]
+        if not host or ('.' not in host and host != 'localhost'):
+            return ''
+        return host[:255]
+
+    @api.model
+    def name_create(self, name):
+        """Escribir el dominio en un selector basta para tener el sitio.
+
+        Existe para las reglas de monitoreo: «vigilar WhatsApp Web» se decide
+        antes de que la persona lo abra, asi que el sitio puede no estar en el
+        catalogo todavia. Si ya esta, se devuelve el que hay: el catalogo es
+        unico por host.
+        """
+        host = self._normalizar_host(name)
+        if not host:
+            raise UserError(
+                'Escribe el dominio del sitio tal como aparece en el navegador, '
+                'por ejemplo web.whatsapp.com.')
+        site = self.search([('host', '=', host)], limit=1)
+        if not site:
+            site = self.create({'host': host, 'name': host})
+        return site.id, site.display_name
 
     def action_ver_uso(self):
         """Abre el detalle de uso de este sitio."""

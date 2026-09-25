@@ -27,6 +27,25 @@ def _int(v):
         return 0
 
 
+def _sin_nul(v):
+    """Quita el caracter NUL (0x00) de todo texto del envio.
+
+    PostgreSQL no admite 0x00 en un texto y psycopg2 rechaza la consulta
+    completa: un solo binario con NUL en su descripcion de version (paso con
+    el primer envio del equipo de Isaura) tumbaba el envio entero con 500, y
+    como el agente reintenta el mismo lote, ese equipo no volvia a reportar.
+    Se limpia aqui, al leer, para cubrir apps, sitios, documentos, huecos y
+    eventos de una vez y sin reinstalar agentes.
+    """
+    if isinstance(v, str):
+        return v.replace('\x00', '')
+    if isinstance(v, dict):
+        return {_sin_nul(k): _sin_nul(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_sin_nul(x) for x in v]
+    return v
+
+
 class FocoController(http.Controller):
 
     def _auth(self):
@@ -35,7 +54,7 @@ class FocoController(http.Controller):
 
     def _body(self):
         try:
-            return json.loads(request.httprequest.get_data() or b'{}')
+            return _sin_nul(json.loads(request.httprequest.get_data() or b'{}'))
         except ValueError:
             return None
 
@@ -133,6 +152,26 @@ class FocoController(http.Controller):
                 vals['utc_offset_min'] = int(info['utc_offset_min'])
             except (TypeError, ValueError):
                 pass
+        # Version instalada, si el agente la reporta (desde 2026.09.25).
+        if info.get('version'):
+            vals['agent_version'] = str(info['version'])[:32]
+        if info.get('version_code') is not None:
+            try:
+                vals['agent_version_code'] = int(info['version_code'])
+            except (TypeError, ValueError):
+                pass
+        # Estado del SERVICIO del equipo, que el agente lee de su archivo. Solo
+        # diagnostico: no toca policy_version ni policy_verified_at (ver el
+        # comentario de `service_state` en foco.computer).
+        servicio = data.get('servicio')
+        if isinstance(servicio, dict):
+            vals.update({
+                'service_state': str(servicio.get('fase') or '')[:40] or False,
+                'service_detail': str(servicio.get('detalle') or '')[:240] or False,
+                'service_at': request.env['foco.event']._parse_utc(servicio.get('at')) or False,
+                'service_same_folder': bool(servicio.get('misma_carpeta')),
+                'service_reported_at': fields.Datetime.now(),
+            })
         computer.sudo().write(vals)
 
         # --- INTEGRIDAD 1: reloj del equipo ---------------------------------
@@ -310,9 +349,13 @@ class FocoController(http.Controller):
                 'clasificadas': App.clasificadas(),
                 'ya_capturadas': request.env['foco.capture'].sudo()
                                  .apps_ya_capturadas(computer),
-                # Monitoreo periodico de ESTA persona: que apps y cada cuanto.
+                # Monitoreo periodico de ESTA persona: que apps y cada cuanto,
+                # y aparte que sitios (lista propia: un agente anterior al
+                # 24-sep solo lee `monitor` y no debe tropezar con hosts).
                 'monitor': request.env['foco.watch'].sudo()
                            .monitor_para(computer.employee_id),
+                'monitor_sitios': request.env['foco.watch'].sudo()
+                                  .monitor_sitios_para(computer.employee_id),
             },
             'absences': pendientes.payload(),
         })
@@ -420,12 +463,25 @@ class FocoController(http.Controller):
         Marca las pendientes como 'enviadas' aqui: viajan una vez."""
         Cmd = request.env['foco.mobile.command'].sudo()
         Cap = request.env['foco.mobile.capture'].sudo()
+        App = request.env['foco.mobile.app'].sudo()
         enabled = bool(settings.mobile_enabled and settings.mobile_screenshot_enabled)
         block = {
             'enabled': enabled,
             'minutos': settings.screenshot_unclassified_minutes or 0,
-            'nunca': ['com.simdatagroup.foco'],
+            # NUNCA se captura: la propia Foco + las apps marcadas como garantia
+            # de privacidad en el catalogo (banca, gestor de contrasenas...).
+            'nunca': ['net.ferba.foco'] + (App.no_captura_apps() if enabled else []),
             'capturadas': Cap.paquetes_capturados(dev) if enabled else [],
+            # Apps a fotografiar PERIODICAMENTE mientras esten al frente (WhatsApp
+            # y las que sume el admin). Su cadencia propia; 0 = usar `minutos`.
+            'monitoreo': settings.mobile_screenshot_monitor_list() if enabled else [],
+            'minutos_monitoreo': settings.mobile_screenshot_monitor_minutes or 0,
+            # Apps de trabajo reconocidas: a estas NO se les toma captura
+            # periodica. A las que NO esten aqui, si (si el interruptor de abajo
+            # esta encendido), cada N min mientras esten al frente.
+            'registradas': App.registradas() if enabled else [],
+            'capturar_no_registradas': bool(
+                enabled and settings.mobile_screenshot_capture_unregistered),
             'solicitar': [],
         }
         if enabled:
@@ -474,6 +530,11 @@ class FocoController(http.Controller):
                               ('phone', 'phone_number')):
             if meta.get(k_in):
                 dvals[k_field] = meta[k_in]
+
+        # Salud del agente (P0-3): va SIEMPRE, aunque el monitoreo este apagado
+        # -es telemetria del equipo, no del empleado-. Se mezcla en dvals para
+        # escribirse en una sola operacion en cualquiera de las dos ramas.
+        dvals.update(dev._health_vals(data.get('health')))
 
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
@@ -524,6 +585,7 @@ class FocoController(http.Controller):
                           'last_fix_at': ult['at']})
 
         # --- uso de apps (upsert idempotente por dia + paquete) ---
+        pares_app = []
         for u in (data.get('usage') or []):
             pkg = (u.get('package') or '').strip()
             d = fields.Date.to_date(u.get('date'))
@@ -539,7 +601,11 @@ class FocoController(http.Controller):
             else:
                 vals.update({'device_id': dev.id, 'date': d, 'package': pkg})
                 Usage.create(vals)
+            pares_app.append((pkg, u.get('label')))
             n_usg += 1
+        # El catalogo de apps moviles se auto-descubre del mismo uso: cada
+        # paquete nuevo entra SIN registrar y decide si se le toma captura.
+        request.env['foco.mobile.app'].sudo().descubrir(pares_app)
 
         # --- llamadas (dedup por el _ID del propio Android) ---
         _DIR = {'in': 'in', 'incoming': 'in', 'out': 'out', 'outgoing': 'out',
@@ -580,6 +646,37 @@ class FocoController(http.Controller):
             ('Content-Type', 'application/octet-stream'),
             ('Content-Disposition', 'attachment; filename="%s"' % fn)])
 
+    # ------------------------------------------- actualizacion del agente
+    #
+    # Mismo patron que /foco/app/latest para el movil. Lo consulta el servicio
+    # de cada equipo (con su api_key), compara el codigo con el suyo y, si el
+    # publicado es mayor, baja el binario y lo verifica con la huella antes
+    # de instalarlo.
+    @http.route('/foco/agent/latest', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_latest(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        s = request.env['foco.settings'].sudo().get_settings()
+        return request.make_json_response(s.agent_latest())
+
+    @http.route('/foco/agent/binario', type='http', auth='public', methods=['GET'])
+    def agent_binario(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        s = request.env['foco.settings'].sudo().get_settings()
+        if not (s.installer and s.agent_autoupdate and s.installer_sha256):
+            return request.not_found()
+        content = base64.b64decode(s.installer)
+        fn = s.installer_name or 'FERBA-Foco-Setup.exe'
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/octet-stream'),
+            ('Content-Length', str(len(content))),
+            ('X-Foco-Sha256', s.installer_sha256),
+            ('Content-Disposition', 'attachment; filename="%s"' % fn)])
+
     @http.route('/foco/absence_answer', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def absence_answer(self, **kw):
@@ -613,6 +710,7 @@ class FocoController(http.Controller):
         Absence = request.env['foco.absence'].sudo()
         if request.httprequest.method == 'POST':
             guardadas = 0
+            sin_nota = 0
             for key, reason in post.items():
                 if not key.startswith('reason_') or not reason:
                     continue
@@ -624,23 +722,33 @@ class FocoController(http.Controller):
                                       ('employee_id', '=', employee.id)], limit=1)
                 if not rec:
                     continue
-                if rec.answer(reason, post.get('note_%s' % rid), via='web').get('ok'):
+                res = rec.answer(reason, post.get('note_%s' % rid), via='web')
+                if res.get('ok'):
                     guardadas += 1
+                elif res.get('error') == 'nota_requerida':
+                    # «Otro» sin texto: el periodo sigue pendiente y hay que
+                    # decirlo, no dejar que la pagina parezca que guardo.
+                    sin_nota += 1
             # POST-Redirect-GET. Sin esto, recargar REENVIA el formulario y el
             # navegador pregunta "reenviar?". Paso de verdad durante las pruebas.
-            return request.redirect('/foco/justificar/%s?guardados=%d'
-                                    % (token, guardadas))
+            return request.redirect('/foco/justificar/%s?guardados=%d&sin_nota=%d'
+                                    % (token, guardadas, sin_nota))
 
         try:
             saved = int(post.get('guardados') or 0)
         except (TypeError, ValueError):
             saved = 0
+        try:
+            sin_nota = int(post.get('sin_nota') or 0)
+        except (TypeError, ValueError):
+            sin_nota = 0
         pendientes = Absence.pending_for_employee(employee)
         return request.render('foco_monitor.justify_page', {
             'employee': employee,
             'items': pendientes.payload(),
             'reasons': request.env['foco.absence']._fields['reason'].selection,
             'saved': saved,
+            'sin_nota': sin_nota,
         })
 
     @http.route('/foco/command_result', type='http', auth='public',
@@ -739,6 +847,8 @@ class FocoController(http.Controller):
                 # arrancado no debe esperar al envio pesado para empezar.
                 'monitor': request.env['foco.watch'].sudo()
                            .monitor_para(computer.employee_id),
+                'monitor_sitios': request.env['foco.watch'].sudo()
+                                  .monitor_sitios_para(computer.employee_id),
             },
         })
 
@@ -886,6 +996,10 @@ class FocoController(http.Controller):
         data = self._body()
         if data is None:
             return request.make_json_response({'error': 'bad_json'}, status=400)
+
+        # Version del servicio, si la reporta (desde 2026.09.25).
+        if data.get('version_agente'):
+            computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
 
         aplicada = (data.get('applied') or '').strip()[:64]
         if aplicada:

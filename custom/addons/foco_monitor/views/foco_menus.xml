@@ -89,6 +89,10 @@
               parent="menu_foco_sec_movil" action="foco_mobile_usage_action" sequence="30"
               groups="foco_monitor.group_foco_manager"/>
 
+    <menuitem id="menu_foco_mobile_apps" name="Apps (catalogo)"
+              parent="menu_foco_sec_movil" action="foco_mobile_app_action" sequence="35"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_calls" name="Llamadas"
               parent="menu_foco_sec_movil" action="foco_call_action" sequence="40"
               groups="foco_monitor.group_foco_manager"/>
@@ -125,7 +129,7 @@
     <!-- Monitoreo periodico de pantalla POR EMPLEADO: que apps, cada cuanto, y
          cuanto viven las capturas. Vive en Configuracion porque es una politica
          que se define, no una accion sobre un equipo. -->
-    <menuitem id="menu_foco_watch" name="Monitoreo por app"
+    <menuitem id="menu_foco_watch" name="Monitoreo de pantalla"
               parent="menu_foco_config" action="foco_watch_action" sequence="7"
               groups="foco_monitor.group_foco_manager"/>
 

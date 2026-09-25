@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Páginas legales: Aviso de privacidad y Términos y condiciones.
+
+         El texto y la maqueta los entregó Ferba en dos PDFs (sep-2026) y
+         aquí se reproducen tal cual: hero oscuro con foto, columna
+         izquierda con el índice «En esta página» y columna derecha con
+         las dieciséis cláusulas numeradas. Ni una coma se cambia: es
+         texto legal y quien responde de él es Ferba, no el sitio.
+
+         Dos cosas que no vienen del PDF y están anotadas donde salen:
+         el destino de cada enlace del índice (el PDF no lleva anclas) y
+         la línea de última actualización, que la propia cláusula 15 de
+         términos promete y el documento no trae.
+
+         El texto va escrito a mano en el marcado, no en listas de t-value,
+         para que salga en el extractor de traducciones.
+         ================================================================ -->
+
+    <!-- Iconos de las tarjetas.
+         Van inline y con currentColor para que se vean nítidos a cualquier
+         tamaño y hereden el color del texto. Los cuatro de derechos ARCO son
+         macizos y los dos de los recuadros destacados de trazo, como en el
+         diseño. -->
+    <template id="ico_candado" name="Ferba — icono candado">
+        <svg class="o_ferba_legal__ico" viewBox="0 0 24 24" fill="currentColor"
+             fill-rule="evenodd" aria-hidden="true" focusable="false">
+            <path d="M12 1.2A5.3 5.3 0 0 0 6.7 6.5v3.1h2.2V6.5a3.1 3.1 0 0 1 6.2 0v3.1h2.2V6.5A5.3 5.3 0 0 0 12 1.2Z"/>
+            <path d="M5.4 9.6h13.2a1.6 1.6 0 0 1 1.6 1.6v9.6a1.6 1.6 0 0 1-1.6 1.6H5.4a1.6 1.6 0 0 1-1.6-1.6v-9.6a1.6 1.6 0 0 1 1.6-1.6Zm6.6 3.6a1.9 1.9 0 0 0-1.05 3.48v2.05a1.05 1.05 0 0 0 2.1 0v-2.05A1.9 1.9 0 0 0 12 13.2Z"/>
+        </svg>
+    </template>
+
+    <template id="ico_lapiz" name="Ferba — icono lápiz">
+        <svg class="o_ferba_legal__ico" viewBox="0 0 24 24" fill="currentColor"
+             aria-hidden="true" focusable="false">
+            <path d="M20.9 3.1a3.1 3.1 0 0 0-4.4 0l-1.4 1.4 4.4 4.4 1.4-1.4a3.1 3.1 0 0 0 0-4.4Z"/>
+            <path d="M13.6 5.9 3.7 15.8a1 1 0 0 0-.26.45l-1.62 5.35a.55.55 0 0 0 .68.68l5.35-1.62a1 1 0 0 0 .45-.26L18.05 10.3 13.6 5.9Z"/>
+        </svg>
+    </template>
+
+    <template id="ico_papelera" name="Ferba — icono papelera">
+        <svg class="o_ferba_legal__ico" viewBox="0 0 24 24" fill="currentColor"
+             fill-rule="evenodd" aria-hidden="true" focusable="false">
+            <path d="M9.6 1.9h4.8a1.7 1.7 0 0 1 1.7 1.7v1.3h-2.2v-.8H10.1v.8H7.9V3.6a1.7 1.7 0 0 1 1.7-1.7Z"/>
+            <path d="M3.3 5.4h17.4a1.05 1.05 0 0 1 0 2.1H3.3a1.05 1.05 0 0 1 0-2.1Z"/>
+            <path d="M5.5 9h13l-.93 11.3a2 2 0 0 1-2 1.84H8.43a2 2 0 0 1-2-1.84L5.5 9Zm3.4 2.5v8h1.6v-8H8.9Zm2.3 0v8h1.6v-8h-1.6Zm2.3 0v8h1.6v-8h-1.6Z"/>
+        </svg>
+    </template>
+
+    <template id="ico_prohibido" name="Ferba — icono prohibido">
+        <svg class="o_ferba_legal__ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9.2"/>
+            <path d="M5.9 5.9 18.1 18.1"/>
+        </svg>
+    </template>
+
+    <template id="ico_escudo" name="Ferba — icono escudo">
+        <svg class="o_ferba_legal__ico o_ferba_legal__ico--grande" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+            <path d="M12 2.2 4.2 5v6.2c0 4.7 3.2 8.8 7.8 10.6 4.6-1.8 7.8-5.9 7.8-10.6V5L12 2.2Z"/>
+            <path d="m8.3 12.1 2.7 2.8 4.7-5.1"/>
+        </svg>
+    </template>
+
+    <template id="ico_documento" name="Ferba — icono documento">
+        <svg class="o_ferba_legal__ico o_ferba_legal__ico--grande" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+            <path d="M14.1 2.4H6.3a.9.9 0 0 0-.9.9v17.4a.9.9 0 0 0 .9.9h11.4a.9.9 0 0 0 .9-.9V6.7l-4.5-4.3Z"/>
+            <path d="M14.1 2.4v4.3h4.5"/>
+            <path d="M8.4 10.6h5.1M8.4 13.8h7.2M8.4 17h7.2"/>
+        </svg>
+    </template>
+
+
+    <!-- ================================================================
+         AVISO DE PRIVACIDAD
+         ================================================================ -->
+    <template id="pagina_privacidad" track="True" name="Ferba — Aviso de privacidad">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Aviso de privacidad integral</t>
+            <t t-set="fondo">flexquality-01-1171x658.webp</t>
+            <t t-set="sin_cierre" t-value="True"/>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    El presente Aviso de Privacidad tiene como finalidad informar de manera clara
+                    cómo se recaban, utilizan, protegen y, en su caso, comparten los datos personales
+                    proporcionados a través de nuestro sitio web y demás canales oficiales.
+                </p>
+            </t>
+
+            <section class="o_ferba_section o_ferba_section--white o_ferba_legal">
+                <div class="o_ferba_container o_ferba_legal__grid">
+
+                    <!-- Índice. Los destinos no vienen del PDF: se han puesto
+                         legibles a propósito para que el enlace que alguien
+                         copie diga de qué habla. -->
+                    <aside class="o_ferba_legal__aside">
+                        <nav class="o_ferba_legal__indice" aria-labelledby="ferba_indice_privacidad">
+                            <p class="o_ferba_legal__indice-titulo" id="ferba_indice_privacidad">En esta página</p>
+                            <ol>
+                                <li><a href="#responsable"><b>01.</b> <span>Responsable</span></a></li>
+                                <li><a href="#datos"><b>02.</b> <span>Datos personales que podemos recabar</span></a></li>
+                                <li><a href="#finalidades-primarias"><b>03.</b> <span>Finalidades primarias del tratamiento</span></a></li>
+                                <li><a href="#finalidades-secundarias"><b>04.</b> <span>Finalidades secundarias</span></a></li>
+                                <li><a href="#cookies"><b>05.</b> <span>Cookies y tecnologías similares</span></a></li>
+                                <li><a href="#analisis-de-proyectos"><b>06.</b> <span>Uso de información enviada para análisis de proyectos</span></a></li>
+                                <li><a href="#transferencias"><b>07.</b> <span>Transferencias y proveedores de servicios</span></a></li>
+                                <li><a href="#seguridad"><b>08.</b> <span>Seguridad de los datos</span></a></li>
+                                <li><a href="#derechos-arco"><b>09.</b> <span>Derechos ARCO</span></a></li>
+                                <li><a href="#procedimiento-arco"><b>10.</b> <span>Procedimiento para ejercer derechos ARCO</span></a></li>
+                                <li><a href="#limitacion"><b>11.</b> <span>Limitación del uso o divulgación</span></a></li>
+                                <li><a href="#revocacion"><b>12.</b> <span>Revocación del consentimiento</span></a></li>
+                                <li><a href="#conservacion"><b>13.</b> <span>Conservación de los datos</span></a></li>
+                                <li><a href="#terceros"><b>14.</b> <span>Enlaces y plataformas de terceros</span></a></li>
+                                <li><a href="#cambios"><b>15.</b> <span>Cambios al Aviso de Privacidad</span></a></li>
+                                <li><a href="#consentimiento"><b>16.</b> <span>Consentimiento</span></a></li>
+                            </ol>
+                        </nav>
+                    </aside>
+
+                    <div class="o_ferba_legal__cuerpo">
+
+                        <article class="o_ferba_legal__art" id="responsable">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">01.</span> Responsable del tratamiento</h2>
+                            <p><b>INDUSTRIAS TECNOLOGICAS EMP, S. de R.L. de C.V</b>, comercialmente identificada
+                               como <b>FERBA Postharvest Technology</b>, con domicilio en:</p>
+                            <p>Carretera a Navolato km 7.5. Bachigualato, Culiacán, Sinaloa. C.P. 80140, México.</p>
+                            <p>es responsable del tratamiento y protección de los datos personales recabados a
+                               través de ferba.net y de los canales oficiales de contacto de la empresa.</p>
+                            <p>Para asuntos relacionados con privacidad y protección de datos puede comunicarse
+                               mediante:</p>
+                            <p class="o_ferba_legal__contacto">
+                                Correo: <a href="mailto:contacto@ferba.net">contacto@ferba.net</a><br/>
+                                Teléfono: <a href="tel:+526671217267">+52 667 121 7267</a>
+                            </p>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> deberá designar internamente una
+                               persona o departamento encargado de atender las solicitudes relacionadas con
+                               derechos de protección de datos. La legislación vigente contempla expresamente
+                               esta responsabilidad.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="datos">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">02.</span> Datos personales que podemos recabar</h2>
+                            <p>Dependiendo de la interacción del usuario con
+                               <span class="o_ferba_legal__marca">FERBA</span>, podremos recabar datos como:</p>
+                            <p>nombre y apellidos; empresa y puesto; número telefónico; correo electrónico;
+                               ciudad, estado y país; información relativa a proyectos, maquinaria o servicios
+                               solicitados; producto procesado; capacidad actual o requerida; necesidades de
+                               operación; información proporcionada mediante formularios; y contenido incluido
+                               voluntariamente en fotografías, videos, planos, layouts, archivos o documentos
+                               enviados para análisis técnico.</p>
+                            <p>El sitio también podrá obtener determinados datos técnicos relacionados con la
+                               navegación, como dirección IP, dispositivo, navegador, páginas visitadas y datos
+                               derivados del uso de cookies o tecnologías similares.</p>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> no solicita intencionalmente datos
+                               personales sensibles mediante sus formularios comerciales generales.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="finalidades-primarias">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">03.</span> Finalidades primarias del tratamiento</h2>
+                            <p>Los datos recabados podrán ser utilizados para atender solicitudes de información;
+                               establecer comunicación con clientes o prospectos; preparar cotizaciones; elaborar
+                               propuestas técnicas; analizar proyectos; brindar asesoría comercial o técnica;
+                               solicitar información adicional para definir una solución; programar demostraciones
+                               de Flex<span class="o_ferba_q">Q</span>uality; dar seguimiento a proyectos de
+                               maquinaria, automatización o ingeniería; prestar servicios de soporte técnico,
+                               mantenimiento y capacitación; gestionar solicitudes de refacciones; administrar
+                               relaciones comerciales o contractuales; y cumplir obligaciones legales,
+                               administrativas o comerciales relacionadas con la prestación de nuestros servicios.</p>
+                            <p>Estas finalidades son necesarias para atender la relación solicitada por el titular.</p>
+                            <p>La legislación establece que las finalidades del tratamiento deben comunicarse en el
+                               aviso y distinguir aquellas que requieran consentimiento.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="finalidades-secundarias">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">04.</span> Finalidades secundarias</h2>
+                            <p>Cuando corresponda y exista la autorización necesaria,
+                               <span class="o_ferba_legal__marca">FERBA</span> podrá utilizar determinados datos de
+                               contacto para enviar información sobre:</p>
+                            <p>nuevos productos, maquinaria, tecnologías, contenidos técnicos, demostraciones,
+                               proyectos, eventos, promociones o comunicaciones comerciales relacionadas con
+                               nuestras soluciones.</p>
+                            <p>El titular podrá solicitar en cualquier momento dejar de recibir estas
+                               comunicaciones.</p>
+                            <p>La negativa al tratamiento para finalidades secundarias no afectará la atención de
+                               solicitudes, cotizaciones, soporte o servicios contratados.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="cookies">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">05.</span> Cookies y tecnologías similares</h2>
+                            <p>El sitio web podrá utilizar cookies y tecnologías similares para facilitar su
+                               funcionamiento, recordar determinadas preferencias, obtener información estadística,
+                               analizar tráfico y mejorar la experiencia del usuario.</p>
+                            <p>Algunas herramientas de terceros utilizadas en el sitio, como servicios de analítica,
+                               mapas, redes sociales, reproductores de video o plataformas publicitarias, podrán
+                               utilizar sus propias cookies conforme a sus respectivas políticas.</p>
+                            <p>Cuando legalmente corresponda, se proporcionarán mecanismos para aceptar, rechazar o
+                               administrar cookies no esenciales.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="analisis-de-proyectos">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">06.</span> Uso de información enviada para análisis de proyectos</h2>
+                            <p>Cuando un usuario proporcione planos, layouts, imágenes, videos, archivos técnicos o
+                               información relacionada con su operación,
+                               <span class="o_ferba_legal__marca">FERBA</span> podrá utilizar dichos materiales
+                               exclusivamente para analizar la solicitud, preparar propuestas, brindar asesoría,
+                               proporcionar soporte o desarrollar la relación comercial correspondiente.</p>
+                            <p>El usuario deberá procurar no incluir datos personales innecesarios en dichos
+                               archivos.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="transferencias">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">07.</span> Transferencias y proveedores de servicios</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> podrá utilizar proveedores que actúen
+                               por cuenta de la empresa para apoyar actividades como alojamiento web, correo
+                               electrónico, almacenamiento, soporte tecnológico, CRM, formularios, mensajería,
+                               análisis de tráfico o gestión comercial.</p>
+                            <p>Dichos proveedores podrán tratar información únicamente dentro del alcance necesario
+                               para prestar sus servicios y conforme a las obligaciones aplicables.</p>
+                            <p>Cuando los datos deban transferirse a un tercero distinto de un proveedor que actúe
+                               por cuenta de <span class="o_ferba_legal__marca">FERBA</span> y la legislación
+                               requiera consentimiento, este será solicitado previamente.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="seguridad">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">08.</span> Seguridad de los datos</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> adopta medidas administrativas,
+                               técnicas y físicas razonables para proteger los datos personales contra pérdida,
+                               alteración, destrucción, acceso, utilización o tratamiento no autorizado.</p>
+                            <p>Estas medidas podrán actualizarse conforme evolucionen los sistemas, riesgos y
+                               tecnologías utilizadas.</p>
+                            <p>No obstante, ningún sistema electrónico o transmisión mediante Internet puede
+                               garantizar seguridad absoluta.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="derechos-arco">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">09.</span> Derechos ARCO</h2>
+                            <p>Tienes derecho a:</p>
+
+                            <ul class="o_ferba_legal__arco">
+                                <li>
+                                    <t t-call="ferba_website.ico_candado"/>
+                                    <h3>Acceso</h3>
+                                    <p>Conocer qué datos tenemos de ti</p>
+                                </li>
+                                <li>
+                                    <t t-call="ferba_website.ico_lapiz"/>
+                                    <h3>Rectificación</h3>
+                                    <p>Solicitar la correción de tus datos</p>
+                                </li>
+                                <li>
+                                    <t t-call="ferba_website.ico_papelera"/>
+                                    <h3>Cancelación</h3>
+                                    <p>Solicitar la eliminación de tus datos</p>
+                                </li>
+                                <li>
+                                    <t t-call="ferba_website.ico_prohibido"/>
+                                    <h3>Oposición</h3>
+                                    <p>Oponerte al uso de tus datos</p>
+                                </li>
+                            </ul>
+
+                            <div class="o_ferba_legal__caja">
+                                <t t-call="ferba_website.ico_escudo"/>
+                                <div>
+                                    <p class="o_ferba_legal__caja-intro">Para ejercer tus derechos ARCO, envia tu solicitud a:</p>
+                                    <p class="o_ferba_legal__caja-dato">
+                                        <a href="mailto:contacto@ferba.net">contacto@ferba.net</a>
+                                    </p>
+                                    <p class="o_ferba_legal__caja-pie">Incluye tu nombre, la descripcion de tu solicitud y un medio de contacto.</p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="procedimiento-arco">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">10.</span> Procedimiento para ejercer derechos ARCO</h2>
+                            <p>Para ejercer cualquiera de estos derechos, el titular deberá enviar una solicitud a:</p>
+                            <p class="o_ferba_legal__destacado">
+                                <a href="mailto:contacto@ferba.net">contacto@ferba.net</a>
+                            </p>
+                            <p>La solicitud deberá contener información suficiente para identificar al titular, un
+                               medio para recibir notificaciones, documentos que acrediten su identidad cuando
+                               resulte necesario, los datos personales involucrados, el derecho que desea ejercer y
+                               cualquier información que facilite la localización de sus datos.</p>
+                            <p>Estos requisitos corresponden a los previstos actualmente por la legislación
+                               federal.<br/><span class="o_ferba_legal__marca">FERBA</span> comunicará la
+                               determinación correspondiente dentro de los plazos establecidos legalmente.</p>
+                            <p>Actualmente, la ley establece un máximo de 20 días hábiles para comunicar la
+                               determinación y, cuando resulte procedente, hasta 15 días hábiles adicionales para
+                               hacer efectivo el derecho, con la posibilidad de una ampliación en los casos
+                               legalmente justificados.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="limitacion">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">11.</span> Limitación del uso o divulgación</h2>
+                            <p>El titular podrá solicitar que <span class="o_ferba_legal__marca">FERBA</span> limite
+                               el uso o divulgación de sus datos personales, particularmente cuando se utilicen para
+                               comunicaciones comerciales.</p>
+                            <p>La solicitud podrá realizarse mediante
+                               <b><a href="mailto:contacto@ferba.net">contacto@ferba.net</a></b></p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="revocacion">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">12.</span> Revocación del consentimiento</h2>
+                            <p>Cuando determinado tratamiento dependa del consentimiento del titular, este podrá
+                               solicitar su revocación utilizando los mismos canales establecidos para ejercer los
+                               derechos ARCO.</p>
+                            <p>La revocación no tendrá efectos retroactivos y se encontrará sujeta a las excepciones
+                               y obligaciones legales aplicables.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="conservacion">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">13.</span> Conservación de los datos</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> conservará los datos personales
+                               únicamente durante el periodo necesario para cumplir las finalidades para las que
+                               fueron recabados, mantener una relación comercial, atender obligaciones
+                               contractuales, cumplir disposiciones legales o determinar posibles
+                               responsabilidades.</p>
+                            <p>Una vez concluido dicho periodo, los datos serán eliminados, bloqueados o tratados
+                               conforme a las obligaciones legales correspondientes.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="terceros">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">14.</span> Enlaces y plataformas de terceros</h2>
+                            <p>El sitio puede incluir enlaces o funcionalidades de plataformas de terceros como
+                               Google Maps, WhatsApp, YouTube, Facebook, Instagram, LinkedIn u otros servicios.</p>
+                            <p>Cuando el usuario acceda directamente a dichas plataformas, el tratamiento de sus
+                               datos estará sujeto también a los avisos, términos y políticas de privacidad de esos
+                               terceros.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="cambios">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">15.</span> Cambios al Aviso de Privacidad</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> podrá modificar este Aviso de
+                               Privacidad cuando existan cambios legales, regulatorios, tecnológicos, operativos o
+                               relacionados con los servicios prestados.</p>
+                            <p>Cualquier modificación será publicada en:</p>
+                            <p class="o_ferba_legal__url">ferba.net/aviso-de-privacidad/</p>
+                            <p>La ley exige indicar el procedimiento y medio mediante el cual se comunicarán
+                               modificaciones al aviso.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="consentimiento">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">16.</span> Consentimiento</h2>
+                            <p>Cuando legalmente sea necesario obtener consentimiento, FERBA utilizará mecanismos
+                               apropiados para solicitarlo.</p>
+                            <p>El envío voluntario de información a través de los formularios del sitio implica que
+                               el usuario ha tenido la oportunidad de consultar este Aviso de Privacidad antes de
+                               proporcionar sus datos.</p>
+                        </article>
+
+                        <!-- No viene del PDF: la fecha de vigencia. Un aviso sin
+                             fecha no deja saber qué versión aceptó el visitante. -->
+                        <p class="o_ferba_legal__vigencia">Última actualización: septiembre de 2026.</p>
+
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+
+    <!-- ================================================================
+         TÉRMINOS Y CONDICIONES
+         ================================================================ -->
+    <template id="pagina_terminos" track="True" name="Ferba — Términos y condiciones">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="titulo">Términos y condiciones de uso</t>
+            <t t-set="fondo">legal-terminos-1171x659.webp</t>
+            <t t-set="sin_cierre" t-value="True"/>
+            <t t-set="intro">
+                <p class="o_ferba_hero__lead">
+                    Gracias por visitar nuestro sitio web. Al acceder y utilizar este sitio, aceptas
+                    los presentes terminos y condiciones.
+                </p>
+            </t>
+
+            <section class="o_ferba_section o_ferba_section--white o_ferba_legal">
+                <div class="o_ferba_container o_ferba_legal__grid">
+
+                    <aside class="o_ferba_legal__aside">
+                        <nav class="o_ferba_legal__indice" aria-labelledby="ferba_indice_terminos">
+                            <p class="o_ferba_legal__indice-titulo" id="ferba_indice_terminos">En esta página</p>
+                            <ol>
+                                <li><a href="#identidad"><b>01.</b> <span>Identidad del sitio</span></a></li>
+                                <li><a href="#objeto"><b>02.</b> <span>Objeto</span></a></li>
+                                <li><a href="#caracter-informativo"><b>03.</b> <span>Carácter informativo</span></a></li>
+                                <li><a href="#cotizaciones"><b>04.</b> <span>Cotizaciones</span></a></li>
+                                <li><a href="#informacion-tecnica"><b>05.</b> <span>Información técnica y asesoría</span></a></li>
+                                <li><a href="#uso-permitido"><b>06.</b> <span>Uso permitido</span></a></li>
+                                <li><a href="#propiedad-intelectual"><b>07.</b> <span>Propiedad intelectual</span></a></li>
+                                <li><a href="#marca"><b>08.</b> <span>Marca FERBA y elementos gráficos</span></a></li>
+                                <li><a href="#formularios"><b>09.</b> <span>Formularios</span></a></li>
+                                <li><a href="#enlaces-externos"><b>10.</b> <span>Enlaces extrenos</span></a></li>
+                                <li><a href="#disponibilidad"><b>11.</b> <span>Disponibilidad</span></a></li>
+                                <li><a href="#exactitud"><b>12.</b> <span>Exactitud de la información</span></a></li>
+                                <li><a href="#responsabilidad"><b>13.</b> <span>Responsabilidad</span></a></li>
+                                <li><a href="#datos-personales"><b>14.</b> <span>Datos personales</span></a></li>
+                                <li><a href="#modificaciones"><b>15.</b> <span>Modificaciones</span></a></li>
+                                <li><a href="#legislacion"><b>16.</b> <span>Legislación aplicable</span></a></li>
+                            </ol>
+                        </nav>
+                    </aside>
+
+                    <div class="o_ferba_legal__cuerpo">
+
+                        <article class="o_ferba_legal__art" id="identidad">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">01.</span> Identidad del sitio</h2>
+                            <p>El presente sitio web es operado por
+                               <b>INDUSTRIAS TECNOLOGICAS EMP, S. de R.L. de C.V</b> comercialmente identificada
+                               como <span class="o_ferba_legal__marca">FERBA Postharvest Technology</span>, con
+                               domicilio en carretera a Navolato km 7.5. Bachigualato, Culiacán, Sinaloa.
+                               C.P. 80140, México. Para cualquier consulta relacionada con el sitio, el usuario
+                               podrá comunicarse a través de los medios disponibles en la sección Contacto.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="objeto">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">02.</span> Objeto</h2>
+                            <p>El sitio tiene como finalidad proporcionar información acerca de
+                               <span class="o_ferba_legal__marca">FERBA</span>, su experiencia, soluciones de
+                               ingeniería postcosecha, maquinaria, automatización, tecnología
+                               Flex<span class="o_ferba_q">Q</span>uality, proyectos, servicios postventa,
+                               mantenimiento, capacitación, refacciones y demás productos o servicios
+                               relacionados.</p>
+                            <p>Asimismo, permite a clientes, prospectos y otros usuarios solicitar información,
+                               asesoría, demostraciones, soporte técnico y cotizaciones.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="caracter-informativo">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">03.</span> Carácter informativo</h2>
+                            <p>Los textos, fotografías, videos, renders, diagramas, capacidades, especificaciones,
+                               configuraciones, ejemplos de líneas de proceso y demás información publicada en este
+                               sitio tienen fines informativos y comerciales.</p>
+                            <p>Las características, capacidades, dimensiones, configuraciones y desempeño de los
+                               equipos pueden variar según el producto procesado, condiciones de operación,
+                               capacidad requerida, espacio disponible, configuración técnica, automatización
+                               solicitada y necesidades particulares de cada proyecto.</p>
+                            <p>La información disponible en el sitio no constituye por sí misma una oferta
+                               contractual definitiva ni una garantía de desempeño aplicable a todos los
+                               proyectos.</p>
+                            <p>Las condiciones vinculantes serán exclusivamente las establecidas en la cotización,
+                               propuesta técnica, contrato, orden de compra, planos aprobados o documentación formal
+                               correspondiente emitida por <span class="o_ferba_legal__marca">FERBA</span>.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="cotizaciones">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">04.</span> Cotizaciones</h2>
+                            <p>El envío de un formulario, correo electrónico, mensaje o solicitud de información a
+                               través del sitio no implica la aceptación automática de un proyecto ni genera
+                               obligación de suministro por parte de
+                               <span class="o_ferba_legal__marca">FERBA</span>.</p>
+                            <p>Cada solicitud deberá ser evaluada considerando factores técnicos, productivos,
+                               comerciales y de disponibilidad.</p>
+                            <p>Las cotizaciones podrán estar sujetas a vigencia, tiempos de fabricación,
+                               disponibilidad de componentes, condiciones de instalación, transporte, impuestos,
+                               ingeniería, puesta en marcha y demás condiciones expresamente señaladas en cada
+                               propuesta.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="informacion-tecnica">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">05.</span> Información técnica y asesoría</h2>
+                            <p>La información técnica publicada en el sitio pretende servir como referencia
+                               general.</p>
+                            <p>Las recomendaciones relacionadas con diseño de líneas, maquinaria, capacidad,
+                               automatización, selección, calibrado o integración tecnológica deberán ser
+                               confirmadas mediante un análisis específico de las condiciones del proyecto.</p>
+                            <p>Las imágenes, renders y representaciones visuales pueden mostrar configuraciones de
+                               referencia y no necesariamente corresponden exactamente al equipo o solución
+                               finalmente suministrada.</p>
+                        </article>
+
+                        <!-- OJO: el PDF entregado repite aquí, palabra por palabra, el
+                             texto de la cláusula 05. Se reproduce tal cual porque el
+                             texto legal lo fija Ferba; está avisado para que manden el
+                             que corresponde a «Uso permitido». -->
+                        <article class="o_ferba_legal__art" id="uso-permitido">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">06.</span> Uso permitido</h2>
+                            <p>La información técnica publicada en el sitio pretende servir como referencia
+                               general.</p>
+                            <p>Las recomendaciones relacionadas con diseño de líneas, maquinaria, capacidad,
+                               automatización, selección, calibrado o integración tecnológica deberán ser
+                               confirmadas mediante un análisis específico de las condiciones del proyecto.</p>
+                            <p>Las imágenes, renders y representaciones visuales pueden mostrar configuraciones de
+                               referencia y no necesariamente corresponden exactamente al equipo o solución
+                               finalmente suministrada.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="propiedad-intelectual">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">07.</span> Propiedad intelectual</h2>
+                            <p>Los textos, fotografías, videos, renders, modelos, gráficos, interfaces, diseños,
+                               documentación técnica, marcas, nombres comerciales, logotipos y demás elementos
+                               contenidos en el sitio son propiedad de
+                               <span class="o_ferba_legal__marca">FERBA</span> o se utilizan con autorización de sus
+                               respectivos titulares.</p>
+                            <p>El acceso al sitio no concede al usuario ningún derecho de propiedad intelectual o
+                               industrial sobre dichos contenidos.</p>
+                            <p>Queda prohibida su reproducción, modificación, distribución, publicación, explotación
+                               comercial o utilización no autorizada, total o parcial, salvo autorización previa y
+                               por escrito del titular correspondiente.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="marca">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">08.</span> Marca FERBA y elementos gráficos</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span>, sus logotipos, denominaciones
+                               comerciales, elementos distintivos, diseños de maquinaria e identidad visual se
+                               encuentran protegidos por la legislación aplicable.</p>
+                            <p>Su aparición en este sitio no implica autorización para utilizarlos en materiales
+                               comerciales, promocionales, técnicos o de cualquier otra naturaleza.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="formularios">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">09.</span> Formularios</h2>
+                            <p>Cuando un usuario proporcione información mediante formularios, declara que los datos
+                               enviados son verdaderos y que cuenta con autorización para proporcionarlos.</p>
+                            <p>Cuando se adjunten fotografías, videos, layouts, planos, archivos técnicos,
+                               documentos u otros materiales, el usuario declara contar con los derechos o
+                               autorizaciones necesarios para compartirlos con
+                               <span class="o_ferba_legal__marca">FERBA</span> con la finalidad de analizar, cotizar
+                               o dar seguimiento a su solicitud.</p>
+                            <p>El tratamiento de datos personales se realizará conforme al
+                               <a href="/aviso-de-privacidad">Aviso de Privacidad</a> disponible en este mismo
+                               sitio.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="enlaces-externos">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">10.</span> Enlaces extrenos</h2>
+                            <p>El sitio puede contener enlaces o integraciones con plataformas y servicios operados
+                               por terceros, incluyendo redes sociales, plataformas de video, mapas, servicios de
+                               mensajería o herramientas tecnológicas.</p>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> no controla dichos servicios y no será
+                               responsable de sus contenidos, disponibilidad, condiciones, políticas o prácticas.</p>
+                            <p>El usuario deberá consultar directamente los términos y políticas aplicables de cada
+                               tercero.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="disponibilidad">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">11.</span> Disponibilidad</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> procura mantener el sitio disponible,
+                               actualizado y funcionando correctamente.</p>
+                            <p>Sin embargo, no garantiza un funcionamiento permanente, ininterrumpido o
+                               completamente libre de errores.</p>
+                            <p>El sitio podrá ser suspendido temporalmente por mantenimiento, actualizaciones,
+                               problemas técnicos, acciones de terceros, fallas de infraestructura o circunstancias
+                               fuera del control razonable de
+                               <span class="o_ferba_legal__marca">FERBA</span>.</p>
+
+                            <div class="o_ferba_legal__caja o_ferba_legal__caja--cita">
+                                <t t-call="ferba_website.ico_documento"/>
+                                <div>
+                                    <p class="o_ferba_legal__caja-cita">La información del sitio no constituye por sí
+                                        misma una oferta contractual definitiva.</p>
+                                    <span class="o_ferba_legal__subrayado"/>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="exactitud">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">12.</span> Exactitud de la información</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> realizará esfuerzos razonables para
+                               mantener actualizada la información publicada.</p>
+                            <p>No obstante, los productos, tecnologías, configuraciones, diseños y especificaciones
+                               pueden evolucionar como resultado de procesos de innovación, ingeniería o mejora
+                               continua.</p>
+                            <p>En caso de discrepancia entre la información del sitio y la documentación formal
+                               correspondiente a un proyecto contratado, prevalecerá esta última.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="responsabilidad">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">13.</span> Responsabilidad</h2>
+                            <p>En la medida permitida por la legislación aplicable,
+                               <span class="o_ferba_legal__marca">FERBA</span> no será responsable por daños
+                               derivados del uso inadecuado del sitio, interpretaciones incorrectas de información
+                               general, interrupciones ajenas a su control, acciones de terceros o decisiones
+                               tomadas exclusivamente con base en información publicada en estas páginas.</p>
+                            <p>Nada de lo previsto en estos Términos pretende excluir o limitar responsabilidades
+                               que legalmente no puedan ser excluidas.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="datos-personales">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">14.</span> Datos personales</h2>
+                            <p>Los datos personales proporcionados a
+                               <span class="o_ferba_legal__marca">FERBA</span> mediante este sitio serán tratados
+                               conforme al Aviso de Privacidad Integral disponible en:</p>
+                            <p class="o_ferba_legal__url">
+                                <a href="/aviso-de-privacidad">ferba.net/aviso-de-privacidad/</a>
+                            </p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="modificaciones">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">15.</span> Modificaciones</h2>
+                            <p><span class="o_ferba_legal__marca">FERBA</span> podrá modificar, actualizar o
+                               complementar estos Términos y Condiciones cuando resulte necesario debido a cambios
+                               tecnológicos, operativos, comerciales o legales.</p>
+                            <p>La versión vigente estará siempre disponible en esta misma página y señalará la fecha
+                               de su última actualización.</p>
+                        </article>
+
+                        <article class="o_ferba_legal__art" id="legislacion">
+                            <h2 class="o_ferba_legal__h"><span class="o_ferba_legal__n">16.</span> Legislación aplicable</h2>
+                            <p>Los presentes Términos y Condiciones se regirán e interpretarán conforme a las leyes
+                               aplicables de los Estados Unidos Mexicanos.</p>
+                            <p>Cualquier controversia relacionada con su interpretación o aplicación será atendida
+                               conforme a la legislación y jurisdicción que resulte legalmente competente.</p>
+                        </article>
+
+                        <!-- La cláusula 15 promete esta fecha y el PDF no la trae. -->
+                        <p class="o_ferba_legal__vigencia">Última actualización: septiembre de 2026.</p>
+
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

@@ -58,7 +58,9 @@
         .fd_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center; }
         .fd_on { display: inline-flex; align-items: center; gap: 5px; }
     }
-    .fd_head_r { display: flex; align-items: center; gap: 12px; }
+    // flex-wrap: en un telefono los controles bajan de renglon en vez de
+    // empujar la pagina a un scroll horizontal (medido: 463 px en 375).
+    .fd_head_r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .fd_attn { font-size: 12.5px; font-weight: 600; color: var(--low);
         background: color-mix(in srgb, var(--low-fill) 12%, transparent);
         border: 1px solid color-mix(in srgb, var(--low-fill) 30%, transparent);
@@ -132,7 +134,13 @@
         h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }  // ver nota en .fd_head h1
         .fd_card_hint { font-size: 12px; color: var(--ink3); }
     }
-    .fd_table_card { margin-bottom: 16px; }
+    .fd_table_card { margin-bottom: 16px;
+        // La cabecera de esta tarjeta lleva ademas los controles de exportar:
+        // en angosto bajan de renglon y la nota toma el ancho, en vez de
+        // quedar apretada en una columna de una palabra.
+        .fd_card_head { flex-wrap: wrap;
+            .fd_card_hint { flex: 1 1 240px; min-width: 0; } }
+    }
 
     .fd_table_wrap { overflow-x: auto; }
     .fd_table { width: 100%; border-collapse: collapse; font-size: 13.5px;
@@ -146,8 +154,157 @@
     }
     .fd_row { cursor: pointer; transition: background .15s var(--ease);
         &:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         &.attn { box-shadow: inset 3px 0 0 var(--low-fill); }
+        // Abierto: el renglon y su panel son UNA pieza. Se quita la linea de
+        // abajo para que el ojo baje sin tropezar, y el tinte se queda.
+        &.abierta { background: color-mix(in srgb, var(--accent) 5%, transparent);
+            td { border-bottom-color: transparent; } }
     }
+
+    // ------------------------------------------------ desplegar el renglon
+    //
+    // El caret es el UNICO icono de la fila y dice una cosa: que hay mas
+    // abajo. Gira a 90 grados al abrir -misma pieza, otro estado-, no cambia
+    // de icono. Mismo caret en los nodos del arbol, para que "esto se abre"
+    // se lea igual en los tres niveles.
+    th.c_tog, td.c_tog { width: 30px; padding-right: 0; }
+    th.c_ficha, td.c_ficha { width: 42px; text-align: right; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .fd_caret { display: inline-grid; place-items: center; width: 20px; height: 20px;
+        border-radius: 6px; color: var(--ink3); flex: none;
+        i { font-size: 10px; line-height: 1; transition: transform .18s var(--ease); }
+    }
+    .fd_row:hover .fd_caret { color: var(--ink2); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+    .fd_row.abierta .fd_caret { color: var(--accent);
+        i { transform: rotate(90deg); } }
+
+    // La ficha completa, a un clic pero sin competir con el renglon: un boton
+    // fantasma que solo toma cuerpo al pasar por encima.
+    .fd_ficha { border: 1px solid transparent; background: transparent; color: var(--ink3);
+        width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 14px;
+        display: inline-grid; place-items: center;
+        transition: background .15s var(--ease), color .15s var(--ease),
+                    border-color .15s var(--ease), transform .12s var(--ease);
+        &:hover { color: var(--ink); background: var(--card); border-color: var(--line); }
+        &:active { transform: scale(0.94); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    }
+    .fd_chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .fd_chip.dis { display: inline-flex; align-items: center; gap: 6px;
+        color: var(--low); background: color-mix(in srgb, var(--low-fill) 10%, transparent);
+        .fd_dot { width: 6px; height: 6px; flex-basis: 6px; }
+        b { font-weight: 650; }
+    }
+
+    // El panel. Sin borde propio ni tarjeta anidada: es la continuacion del
+    // renglon, sobre un segundo neutro apenas mas hundido que la tabla.
+    .fd_exp td { padding: 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--track) 55%, transparent); }
+    // La celda abarca TODA la tabla, que en angosto es mas ancha que su
+    // marco y se desplaza de lado. El panel se pega al borde visible y mide
+    // lo que mide el marco (`--fd-wrap-w`, que pone el componente al medir
+    // el marco): asi el arbol siempre cabe en lo que se ve, aunque la tabla
+    // de arriba siga pudiendo desplazarse.
+    .fd_exp_in { display: grid; grid-template-rows: 1fr;
+        position: sticky; left: 0; width: var(--fd-wrap-w, auto); max-width: 100%;
+        transition: grid-template-rows .22s var(--ease), opacity .18s var(--ease);
+        > div { overflow: hidden; min-height: 0; }
+    }
+    .fd_exp_box { padding: 10px 18px 14px 54px; }
+    .fd_exp_head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px 18px;
+        flex-wrap: wrap; padding: 4px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px;
+        .t { font-size: 13px; color: var(--ink2); min-width: 0;
+            > b { color: var(--ink); font-weight: 650; }
+            .m { color: var(--ink3); b { color: var(--ink2); font-weight: 650; } } }
+        .acts { display: flex; gap: 4px; margin-left: auto; }
+    }
+    .fd_exp_msg { font-size: 13px; color: var(--ink3); padding: 12px 0 8px;
+        .fd_link { margin-left: 4px; } }
+
+    // Esqueleto con la forma de los renglones que vienen: tres barras que
+    // respiran. Nada gira en medio de la tabla.
+    .fd_skel { display: grid; gap: 10px; padding: 12px 0 10px;
+        span { display: block; height: 10px; width: var(--w, 60%); border-radius: 5px;
+            background: color-mix(in srgb, var(--ink) 8%, transparent);
+            animation: fd_respira 1.3s ease-in-out infinite;
+            &:nth-child(2) { animation-delay: .12s; } &:nth-child(3) { animation-delay: .24s; } }
+    }
+    @keyframes fd_respira { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+    // ------------------------------------------------------------ el arbol
+    //
+    // Tres niveles con la MISMA rejilla: caret, punto de categoria, nombre,
+    // barra, horas, porcentaje. Lo que cambia por nivel es la sangria y el
+    // peso de la letra, nunca la posicion de las cifras: asi se pueden leer
+    // en columna aunque el arbol este abierto por varios lados.
+    .fd_tree { padding-top: 4px; }
+    .fd_nodo { display: grid; align-items: center; gap: 8px; padding: 5px 6px 5px 0; border-radius: 8px;
+        grid-template-columns: 20px 8px minmax(0, 1fr) clamp(80px, 22%, 200px) 58px 44px;
+        min-height: 32px;
+        transition: background .15s var(--ease);
+        animation: fd_in .22s var(--ease) both; animation-delay: calc(var(--i, 0) * 22ms);
+        &.abrible { cursor: pointer;
+            &:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+            &:active { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+            &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+            &.abierta .fd_caret i { transform: rotate(90deg); }
+            &.abierta .fd_caret { color: var(--accent); }
+        }
+        // El nombre manda: cuando falta ancho, la categoria y el conteo se
+        // encogen primero (shrink 4 contra 1) y el nombre conserva al menos
+        // nueve caracteres. Sin esto, en la ficha se leia «S.» y «you…».
+        .nm { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; }
+        .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex: 0 1 auto; min-width: 9ch; }
+        .c, .k { font-size: 11.5px; color: var(--ink3); white-space: nowrap;
+            flex: 0 20 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .bar { background: var(--track); border-radius: 5px; height: 8px; overflow: hidden; }
+        .bar .fill { display: block; width: 100%; height: 100%; border-radius: 5px; background: var(--accent);
+            transition: clip-path .5s var(--ease);
+            &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
+            &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); } }
+        .h { text-align: right; font-size: 12.5px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+        .p { text-align: right; font-size: 11.5px; color: var(--ink3); white-space: nowrap; }
+        // Segundo y tercer nivel: la letra baja un paso y la barra se afina.
+        &.n2 .n { font-size: 12.5px; color: var(--ink2); }
+        &.n2 .h { font-weight: 550; color: var(--ink2); }
+        &.n3 { min-height: 26px; padding-top: 3px; padding-bottom: 3px;
+            .n { font-size: 12px; color: var(--ink2); } .bar { height: 5px; } .h { font-weight: 500; color: var(--ink2); font-size: 12px; } }
+        &.sistema .n { color: var(--ink2); }
+    }
+    // Los hijos se sangran con una guia de un pixel: dice de quien cuelgan
+    // sin dibujar un arbol de conectores.
+    .fd_hijos { margin: 0 0 4px 9px; padding-left: 18px; border-left: 1px solid var(--line); }
+    .fd_cola { font-size: 11.5px; color: var(--ink3); padding: 4px 6px 6px 28px;
+        b { color: var(--ink3); font-weight: 600; margin-left: 4px; }
+        &.n1 { padding-left: 34px; } }
+    .fd_mini { border: 1px solid color-mix(in srgb, var(--mid-fill) 45%, transparent);
+        background: color-mix(in srgb, var(--mid-fill) 10%, transparent); color: var(--mid);
+        font: inherit; font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .03em;
+        border-radius: 999px; padding: 1px 8px; cursor: pointer; flex: none; line-height: 1.5;
+        transition: background .15s var(--ease), transform .12s var(--ease);
+        &:hover { background: color-mix(in srgb, var(--mid-fill) 20%, transparent); }
+        &:active { transform: scale(0.96); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
+    .fd_tree_leg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+        padding: 10px 0 0 28px; margin-top: 6px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+        font-size: 11px; color: var(--ink3);
+        span { display: inline-flex; align-items: center; gap: 5px; }
+        .fd_dot { width: 7px; height: 7px; flex-basis: 7px; }
+        .der { margin-left: auto; }
+    }
+    // En la ficha (440 px) el nombre necesita el ancho: la barra se acorta y
+    // la etiqueta de categoria se va -el punto ya la dice-.
+    // El conteo («5 sitios») tambien se va: el caret ya dice que se abre, y
+    // con el conteo el nombre quedaba en «SOLIDWORKS 20…» y el boton de
+    // clasificar, recortado.
+    // Y la barra tambien: en 440 px la longitud no cabe junto al nombre y el
+    // boton de clasificar; las horas y el porcentaje ya llevan el numero.
+    // Medido: con barra y boton, «Explorador de Windows» quedaba en «Explorado…».
+    .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 54px 38px;
+            .c, .k, .bar { display: none; }
+            .fd_mini { font-size: 10px; padding: 1px 6px; } }
+        .fd_tree_leg .der { display: none; } }
 
     .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
     .fd_ava { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: grid; place-items: center;
@@ -385,21 +542,44 @@
     @media (max-width: 900px) {
         .fd_kpis { grid-template-columns: repeat(2, 1fr); }
         .fd_cols { grid-template-columns: 1fr; }
-        .fd_table th.c_num:nth-child(5), .fd_table td.c_num:nth-child(5) { display: none; }
+        // Las dos graficas pedian 420 px cada una tambien en un telefono y
+        // desbordaban la pagina; a una columna caben.
+        .fd_duo { grid-template-columns: 1fr; }
+        // La columna de Distraccion es la 6a desde que existe el caret.
+        .fd_table th.c_num:nth-child(6), .fd_table td.c_num:nth-child(6) { display: none; }
+        .fd_exp_box { padding-left: 30px; }
+        .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 96px 56px; .p { display: none; } }
     }
     @media (max-width: 560px) {
         .fd_table th.c_app, .fd_table td.c_app { display: none; }
         .fd_dw_stats { grid-template-columns: repeat(2, 1fr); }
         .fd_switch button span { display: none; }   // en angosto, solo iconos
+        .fd_exp_box { padding-left: 12px; padding-right: 12px; }
+        .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 56px; .bar { display: none; } }
+        .fd_nodo .c, .fd_nodo .k { display: none; }   // en angosto, el nombre y la accion
+        .fd_tree_leg { padding-left: 0; }
     }
+}
+
+// El panel entra creciendo desde cero alto. `@starting-style` define de donde
+// parte la transicion en el primer fotograma; donde el navegador no lo conoce,
+// el panel aparece sin animar, que es el comportamiento correcto para caer.
+// Va al nivel raiz porque el compilador de SCSS no anida esta regla.
+@starting-style {
+    .foco_dash .fd_exp_in { grid-template-rows: 0fr; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .foco_dash .fd_row { animation: none; }
+    .foco_dash .fd_nodo { animation: none; }
     .foco_dash .fd_refrescar.girando .ico { animation: none; }
+    .foco_dash .fd_skel span { animation: none; opacity: .7; }
+    .foco_dash .fd_exp_in { transition: none; }
+    .foco_dash .fd_caret i { transition: none; }
     .foco_dash .fd_meter .fill,
     .foco_dash .fd_seg_bar,
     .foco_dash .fd_app .bar .fill,
+    .foco_dash .fd_nodo .bar .fill,
     .foco_dash .fd_drow .bar .fill { transition: none; }
     .foco_dash .fd_drawer { transition: opacity .2s ease; transform: none; opacity: 0;
         &.open { opacity: 1; transform: none; } }

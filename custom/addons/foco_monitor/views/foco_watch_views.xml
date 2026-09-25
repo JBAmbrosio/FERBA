@@ -3,16 +3,24 @@
 
     <!-- Lista: agrupada por empleado, porque la pregunta natural es "a esta
          persona, que le estoy monitoreando". Editable en linea para dar de alta
-         varias apps de un tiron sin abrir el formulario cada vez. -->
+         varias reglas de un tiron sin abrir el formulario cada vez. La regla
+         vigila UNA cosa: una app o la pestana de un sitio; la columna que no
+         aplica se apaga sola al elegir el tipo. -->
     <record id="foco_watch_view_list" model="ir.ui.view">
         <field name="name">foco.watch.list</field>
         <field name="model">foco.watch</field>
         <field name="arch" type="xml">
-            <list string="Monitoreo por app" editable="bottom">
+            <list string="Monitoreo de pantalla" editable="bottom">
                 <field name="employee_id"/>
+                <field name="target"/>
                 <field name="app_ids_permitidas" column_invisible="1"/>
                 <field name="app_id"
+                       invisible="target != 'app'" required="target == 'app'"
                        options="{'no_create': True, 'no_open': True}"/>
+                <field name="site_id"
+                       invisible="target != 'site'" required="target == 'site'"
+                       placeholder="web.whatsapp.com"
+                       options="{'no_open': True, 'no_create_edit': True}"/>
                 <field name="interval_minutes"/>
                 <field name="retention_days"/>
                 <field name="active" widget="boolean_toggle"/>
@@ -24,14 +32,20 @@
         <field name="name">foco.watch.form</field>
         <field name="model">foco.watch</field>
         <field name="arch" type="xml">
-            <form string="Monitoreo por app">
+            <form string="Monitoreo de pantalla">
                 <sheet>
                     <group>
                         <group>
                             <field name="employee_id"/>
+                            <field name="target" widget="radio" options="{'horizontal': true}"/>
                             <field name="app_ids_permitidas" invisible="1"/>
                             <field name="app_id"
+                                   invisible="target != 'app'" required="target == 'app'"
                                    options="{'no_create': True, 'no_open': True}"/>
+                            <field name="site_id"
+                                   invisible="target != 'site'" required="target == 'site'"
+                                   placeholder="web.whatsapp.com"
+                                   options="{'no_open': True, 'no_create_edit': True}"/>
                         </group>
                         <group>
                             <field name="interval_minutes"/>
@@ -40,12 +54,15 @@
                         </group>
                     </group>
                     <p class="text-muted">
-                        Mientras esta aplicacion tenga una ventana abierta en el
-                        equipo de la persona (este o no al frente), se toma una
-                        captura de pantalla completa cada tantos minutos. Solo se
-                        listan las aplicaciones que el empleado ya ha usado, y todo
-                        depende del interruptor general de capturas en
-                        Configuracion &gt; Horario.
+                        Se toma una captura de pantalla completa cada tantos
+                        minutos <b>mientras lo vigilado esté al frente</b>: la
+                        aplicación con su ventana activa, o la pestaña del sitio
+                        activa en el navegador que se está usando. Si está abierto
+                        pero detrás de otra ventana, no se captura: la imagen no lo
+                        mostraría. Para una aplicación solo se listan las que el
+                        empleado ya ha usado; para un sitio basta escribir su
+                        dominio y vale en cualquier navegador. Todo depende del
+                        interruptor general de capturas en Configuración &gt; Horario.
                     </p>
                 </sheet>
             </form>
@@ -56,12 +73,16 @@
         <field name="name">foco.watch.search</field>
         <field name="model">foco.watch</field>
         <field name="arch" type="xml">
-            <search string="Monitoreo por app">
+            <search string="Monitoreo de pantalla">
                 <field name="employee_id"/>
                 <field name="app_id"/>
+                <field name="site_id"/>
                 <separator/>
                 <filter name="activas" string="Activas" domain="[('active','=',True)]"/>
                 <filter name="archivadas" string="Archivadas" domain="[('active','=',False)]"/>
+                <separator/>
+                <filter name="apps" string="Aplicaciones" domain="[('target','=','app')]"/>
+                <filter name="sitios" string="Sitios web" domain="[('target','=','site')]"/>
                 <separator/>
                 <!-- Filtro de agrupacion suelto tras el separador, sin envolverlo
                      en <group expand="0">: es el patron que ya usan las demas
@@ -74,15 +95,17 @@
     </record>
 
     <record id="foco_watch_action" model="ir.actions.act_window">
-        <field name="name">Monitoreo por app</field>
+        <field name="name">Monitoreo de pantalla</field>
         <field name="res_model">foco.watch</field>
         <field name="view_mode">list,form</field>
         <field name="context">{'search_default_activas': 1, 'search_default_por_empleado': 1}</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Todavia no hay monitoreo por app</p>
-            <p>Elige un empleado y una de las aplicaciones que ya ha usado, y di
-               cada cuantos minutos capturar mientras la tenga al frente. Recuerda
-               encender las capturas en Configuracion &gt; Horario.</p>
+            <p class="o_view_nocontent_smiling_face">Todavía no hay monitoreo de pantalla</p>
+            <p>Elige un empleado y qué vigilar: una aplicación que ya haya usado,
+               o un sitio web escribiendo su dominio (por ejemplo
+               <b>web.whatsapp.com</b>). Di cada cuántos minutos capturar mientras
+               eso esté al frente. Recuerda encender las capturas en
+               Configuración &gt; Horario.</p>
         </field>
     </record>
 

@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import logging
 from datetime import datetime, time, timedelta
 
@@ -134,6 +136,42 @@ class FocoSettings(models.Model):
         help='Apagado, ningun telefono toma pantallazos. Enciendelo solo con el '
              'aviso de privacidad firmado que contemple capturas. Requiere el '
              'servicio de accesibilidad de Foco activo (Android 11+).')
+    # Apps que se fotografian PERIODICAMENTE mientras esten en primer plano (no
+    # una sola vez), p.ej. WhatsApp. La lista vive en el servidor -no en el
+    # telefono- para poder cambiarla sin reinstalar la app. Sembrada con los dos
+    # paquetes de WhatsApp; el admin agrega o quita los que quiera, uno por linea.
+    mobile_screenshot_monitor_packages = fields.Text(
+        string='Apps a fotografiar cada N min (una por linea)',
+        default='com.whatsapp\ncom.whatsapp.w4b',
+        help='Paquetes Android que se capturan CADA CIERTO TIEMPO mientras esten '
+             'en primer plano, no una sola vez, p.ej. WhatsApp '
+             '(com.whatsapp) y WhatsApp Business (com.whatsapp.w4b). Uno por '
+             'linea. El resto de las apps solo se capturan a mano o al '
+             'descubrirlas por primera vez.')
+    mobile_screenshot_monitor_minutes = fields.Integer(
+        string='Cada cuantos minutos (apps monitoreadas)', default=15,
+        help='Cada cuantos minutos se toma una captura mientras una app de la '
+             'lista de arriba esta en primer plano. 0 = usar los mismos minutos '
+             'de las apps sin clasificar.')
+    mobile_screenshot_capture_unregistered = fields.Boolean(
+        string='Fotografiar apps NO registradas cada N min', default=True,
+        help='Encendido, cualquier app que NO este marcada como registrada en '
+             'el catalogo movil (una app personal o desconocida) se fotografia '
+             'cada N min mientras este al frente, igual que las monitoreadas. '
+             'Las apps de trabajo registradas y las de la lista "nunca capturar" '
+             'quedan fuera. Apagado, solo se toma UNA captura de descubrimiento.')
+
+    def mobile_screenshot_monitor_list(self):
+        """Los paquetes a fotografiar en forma periodica, ya limpios. Acepta
+        separados por linea o por coma; ignora vacios y espacios."""
+        self.ensure_one()
+        txt = (self.mobile_screenshot_monitor_packages or '').replace(',', '\n')
+        vistos = []
+        for p in txt.splitlines():
+            p = p.strip()
+            if p and p not in vistos:
+                vistos.append(p)
+        return vistos
 
     @api.constrains('mobile_uninstall_pin')
     def _check_uninstall_pin(self):
@@ -176,8 +214,99 @@ class FocoSettings(models.Model):
              'no alcanzo a borrar. Se van en las siguientes corridas diarias.')
 
     installer = fields.Binary(string="Instalador (.exe)",
-                              help="El FERBA-Foco-Setup.exe que descargan los empleados desde el correo.")
+                              help="El FERBA-Foco-Setup.exe que descargan los empleados desde el correo "
+                                   "y el que bajan los equipos para actualizarse solos.")
     installer_name = fields.Char(string="Nombre del instalador", default="FERBA-Foco-Setup.exe")
+
+    # ---- version del agente de escritorio y actualizacion sola -----------
+    # Mismo patron que el APK del movil: se sube el instalador y se declara su
+    # version. El servicio de cada equipo pregunta a /foco/agent/latest,
+    # compara el codigo con el suyo y, si el de Odoo es mayor, baja el .exe,
+    # comprueba tamano y huella SHA-256 y lo corre en silencio. La huella se
+    # calcula AQUI al subir el archivo, no la escribe nadie: sin huella no se
+    # instala nada, porque una descarga a medias dejaria el equipo sin agente.
+    agent_version_name = fields.Char(
+        string='Version del agente', help='Etiqueta visible, p.ej. 2026.09.25.')
+    agent_version_code = fields.Integer(
+        string='Codigo de version del agente',
+        help='Entero que sube en cada version (foco_version.VERSION_CODE, lo '
+             'imprime el empaquetado). Un equipo se actualiza cuando el suyo '
+             'es menor que este.')
+    agent_autoupdate = fields.Boolean(
+        string='Los equipos se actualizan solos', default=True,
+        help='Apagado, el instalador solo sirve para la descarga manual: se '
+             'puede subir una version sin que los equipos la reciban todavia.')
+    installer_sha256 = fields.Char(string='Huella SHA-256 del instalador', readonly=True)
+    installer_size = fields.Integer(string='Tamano del instalador (bytes)', readonly=True)
+    installer_uploaded_at = fields.Datetime(string='Instalador subido', readonly=True)
+
+    @api.model
+    def _huella_instalador(self, b64):
+        """(sha256 en hex, bytes) del binario tal como se subio."""
+        if not b64:
+            return '', 0
+        raw = base64.b64decode(b64)
+        return hashlib.sha256(raw).hexdigest(), len(raw)
+
+    def _vals_con_huella(self, vals):
+        if 'installer' in vals:
+            sha, tam = self._huella_instalador(vals.get('installer'))
+            vals = dict(vals, installer_sha256=sha or False, installer_size=tam,
+                        installer_uploaded_at=fields.Datetime.now() if sha else False)
+        return vals
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        return super().create([self._vals_con_huella(v) for v in vals_list])
+
+    def write(self, vals):
+        return super().write(self._vals_con_huella(vals))
+
+    def agent_latest(self):
+        """Lo que contesta /foco/agent/latest al servicio de un equipo.
+
+        `version_code` 0 = no hay nada que instalar: sin instalador subido,
+        sin codigo de version, o con la actualizacion sola apagada. Solo se
+        publica una version que tenga huella calculada.
+        """
+        self.ensure_one()
+        if not (self.agent_autoupdate and self.installer
+                and self.installer_sha256 and self.agent_version_code):
+            return {'ok': True, 'version_code': 0}
+        return {
+            'ok': True,
+            'version_code': self.agent_version_code,
+            'version_name': self.agent_version_name or '',
+            'sha256': self.installer_sha256,
+            'size': self.installer_size,
+            'name': self.installer_name or 'FERBA-Foco-Setup.exe',
+        }
+
+    # ---- app movil (APK) para repartir por QR ---------------------------
+    # La Play Store no admite apps de monitoreo, asi que el APK se reparte por
+    # sideload: se sube aqui y se descarga desde /foco/instalar (QR + token
+    # efimero). El version_code sirve para el auto-update de la app.
+    mobile_apk = fields.Binary(
+        string='App movil (APK)',
+        help='El .apk de Foco que se instala en los telefonos de la empresa. '
+             'Se descarga escaneando el QR de /foco/instalar.')
+    mobile_apk_name = fields.Char(string='Nombre del APK', default='foco.apk')
+    mobile_apk_version_name = fields.Char(
+        string='Version de la app', help='Etiqueta visible, p.ej. 1.9.0.')
+    mobile_apk_version_code = fields.Integer(
+        string='Codigo de version', help='Numero entero que sube en cada '
+             'version (versionCode). Lo usa el auto-update para saber si hay '
+             'una mas nueva.')
+    mobile_apk_token_minutes = fields.Integer(
+        string='Minutos que vive el enlace del QR', default=10,
+        help='Cada QR de instalacion acuña un enlace de un solo uso que caduca '
+             'a estos minutos. Corto a proposito: es la seguridad real, no el '
+             'codigo de teclas.')
+
+    def mobile_apk_ready(self):
+        """True si hay un APK publicado para repartir."""
+        self.ensure_one()
+        return bool(self.mobile_apk)
 
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
