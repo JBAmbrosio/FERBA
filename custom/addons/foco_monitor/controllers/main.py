@@ -671,6 +671,7 @@ class FocoController(http.Controller):
         Absence = request.env['foco.absence'].sudo()
         if request.httprequest.method == 'POST':
             guardadas = 0
+            sin_nota = 0
             for key, reason in post.items():
                 if not key.startswith('reason_') or not reason:
                     continue
@@ -682,23 +683,33 @@ class FocoController(http.Controller):
                                       ('employee_id', '=', employee.id)], limit=1)
                 if not rec:
                     continue
-                if rec.answer(reason, post.get('note_%s' % rid), via='web').get('ok'):
+                res = rec.answer(reason, post.get('note_%s' % rid), via='web')
+                if res.get('ok'):
                     guardadas += 1
+                elif res.get('error') == 'nota_requerida':
+                    # «Otro» sin texto: el periodo sigue pendiente y hay que
+                    # decirlo, no dejar que la pagina parezca que guardo.
+                    sin_nota += 1
             # POST-Redirect-GET. Sin esto, recargar REENVIA el formulario y el
             # navegador pregunta "reenviar?". Paso de verdad durante las pruebas.
-            return request.redirect('/foco/justificar/%s?guardados=%d'
-                                    % (token, guardadas))
+            return request.redirect('/foco/justificar/%s?guardados=%d&sin_nota=%d'
+                                    % (token, guardadas, sin_nota))
 
         try:
             saved = int(post.get('guardados') or 0)
         except (TypeError, ValueError):
             saved = 0
+        try:
+            sin_nota = int(post.get('sin_nota') or 0)
+        except (TypeError, ValueError):
+            sin_nota = 0
         pendientes = Absence.pending_for_employee(employee)
         return request.render('foco_monitor.justify_page', {
             'employee': employee,
             'items': pendientes.payload(),
             'reasons': request.env['foco.absence']._fields['reason'].selection,
             'saved': saved,
+            'sin_nota': sin_nota,
         })
 
     @http.route('/foco/command_result', type='http', auth='public',

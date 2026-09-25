@@ -299,13 +299,20 @@ class FocoAbsence(models.Model):
         self.ensure_one()
         if reason not in dict(REASONS):
             return {'ok': False, 'error': 'motivo_invalido'}
+        note = (note or '').strip()[:200]
+        # «Otro» sin texto no explica nada: es un periodo que sigue sin
+        # justificar con otro nombre. La regla vive AQUI y no solo en la
+        # ventana y en la pagina: los dos canales la muestran, pero es el
+        # servidor el que no la deja pasar (decision del cliente, 25-sep).
+        if reason == 'otro' and not note:
+            return {'ok': False, 'error': 'nota_requerida'}
         if self.state == 'justificada':
             return {'ok': False, 'error': 'ya_justificada',
                     'reason': self.reason,
                     'reason_label': dict(REASONS).get(self.reason, '')}
         self.sudo().write({
             'reason': reason,
-            'note': (note or '')[:200] or False,
+            'note': note or False,
             'state': 'justificada',
             'answered_at': fields.Datetime.now(),
             'answered_via': via,

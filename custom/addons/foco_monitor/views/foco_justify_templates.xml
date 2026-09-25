@@ -135,6 +135,13 @@
             <link rel="icon" href="data:,"/>
             <title>Foco - Periodos sin actividad</title>
             <t t-call="foco_monitor.justify_styles"/>
+            <style>
+                /* «Otro» pide texto: la nota deja de ser opcional y se ve. */
+                .fj_flash.warn { color: var(--mid, #b45309);
+                    background: color-mix(in srgb, #f59e0b 14%, transparent); }
+                .fj_card.fj_otro .fj_note { border-color: #f59e0b; }
+                .fj_card.fj_otro .fj_note:invalid { box-shadow: none; }
+            </style>
         </head>
         <body>
             <div class="fj_wrap">
@@ -148,6 +155,12 @@
                         </svg>
                         <span t-if="saved == 1">Listo, quedo registrado.</span>
                         <span t-else="">Listo, quedaron registrados <t t-out="saved"/> periodos.</span>
+                    </div>
+                </t>
+                <t t-if="sin_nota">
+                    <div class="fj_flash warn">
+                        <span t-if="sin_nota == 1">Con «Otro» hay que escribir qué pasó; ese periodo sigue pendiente.</span>
+                        <span t-else="">Con «Otro» hay que escribir qué pasó; <t t-out="sin_nota"/> periodos siguen pendientes.</span>
                     </div>
                 </t>
 
@@ -196,6 +209,23 @@
                             <button class="fj_save" type="submit">Guardar</button>
                         </div>
                     </form>
+                    <!-- «Otro» exige texto. El navegador lo frena antes de
+                         enviar; el servidor lo vuelve a comprobar (answer). -->
+                    <script>
+                        document.querySelectorAll('.fj_card').forEach(function (card) {
+                            var nota = card.querySelector('.fj_note');
+                            function sincroniza() {
+                                var otro = card.querySelector('input[type=radio][value=otro]:checked');
+                                nota.required = Boolean(otro);
+                                nota.placeholder = otro ? 'Cuéntanos qué pasó (obligatorio con Otro)' : 'Nota (opcional)';
+                                card.classList.toggle('fj_otro', Boolean(otro));
+                            }
+                            card.querySelectorAll('input[type=radio]').forEach(function (r) {
+                                r.addEventListener('change', sincroniza);
+                            });
+                            sincroniza();
+                        });
+                    </script>
                 </t>
 
                 <t t-else="">
