@@ -13,10 +13,18 @@ GRUPO_APROBADOR = 'ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones'
 # el aprobador vio otra cotizacion. `date_order` NO va (Odoo lo mueve al
 # confirmar) ni `state` (lo mueve al enviar).
 CAMPOS_QUE_INVALIDAN = {
-    'order_line', 'partner_id', 'pricelist_id', 'payment_term_id',
-    'currency_id', 'fiscal_position_id', 'validity_date',
+    'order_line': 'las lineas',
+    'partner_id': 'el cliente',
+    'pricelist_id': 'la lista de precios',
+    'payment_term_id': 'el plazo de pago',
+    'currency_id': 'la moneda',
+    'fiscal_position_id': 'la posicion fiscal',
+    'validity_date': 'la vigencia',
 }
 RESUMEN_ACTIVIDAD = 'Revisar cotizacion'
+# Un aprobador puede aprobar desde cualquiera de estos; no hace falta que alguien
+# la mande a revision primero (19.0.1.2.0).
+ESTADOS_QUE_SE_APRUEBAN = ('sin', 'revision', 'rechazada')
 
 
 class SaleOrder(models.Model):
@@ -38,6 +46,10 @@ class SaleOrder(models.Model):
         'res.users', string='Aprobo / rechazo', copy=False, readonly=True)
     aprobacion_fecha = fields.Datetime(string='Fecha de decision', copy=False, readonly=True)
     aprobacion_motivo = fields.Text(string='Motivo del rechazo', copy=False, readonly=True)
+    aprobacion_retirada = fields.Char(
+        string='Aprobacion retirada', copy=False, readonly=True,
+        help='Por que dejo de valer la ultima aprobacion: que cambio, quien y cuando. '
+             'Se ve arriba de la cotizacion y se limpia al mandarla a revision o al aprobarla.')
 
     # ------------------------------------------------------------ computes
     @api.depends('state', 'company_id.ferba_aprobacion_cotizaciones')
@@ -57,19 +69,58 @@ class SaleOrder(models.Model):
             order.puede_aprobar = puede
 
     # ------------------------------------------------------------ helpers
-    def _ferba_aprobadores(self):
+    def _ferba_aprobadores(self, company=None):
+        """Aprobadores vivos. Con `company`, solo los que pueden entrar a esa
+        empresa: asignarle una actividad o mandarle un chat de una cotizacion
+        que no puede abrir es un error seguro (la actividad ni se deja crear)."""
         grupo = self.env.ref(GRUPO_APROBADOR)
-        return grupo.user_ids.filtered(lambda u: u.active and not u.share)
+        usuarios = grupo.user_ids.filtered(lambda u: u.active and not u.share)
+        if company is not None:
+            usuarios = usuarios.filtered(lambda u: company in u.company_ids)
+        return usuarios
 
-    def _ferba_exigir_aprobacion(self):
-        """Enviar y confirmar pasan por aqui, vengan del boton o de codigo."""
+    def _ferba_exigir_aprobacion(self, accion):
+        """Enviar y confirmar pasan por aqui, vengan del boton o de codigo.
+
+        - Aprobada: pasa.
+        - Cliente en el portal (usuario compartido): se le dice, sin jerga
+          interna, que todavia no esta liberada. Llega aqui si la cotizacion
+          cambio despues de enviarse o si le compartieron la liga de «Vista
+          previa» de un borrador: en los dos casos la direccion no ha visto lo
+          que estaria aceptando.
+        - Aprobador: se aprueba y sigue. Que el aprobador tenga que mandarse la
+          cotizacion a revision a si mismo para poder enviarla es un tramite sin
+          sentido (Francesco con S02316, 26-sep).
+        - Vendedor: se detiene con el estado de cada cotizacion, quien puede
+          aprobar y que hacer si no ve el boton (un formulario cargado antes de
+          un despliegue no lo tiene, pero el servidor ya aplica la regla).
+        """
         bloqueadas = self.filtered(
             lambda o: o.requiere_aprobacion and o.aprobacion_state != 'aprobada')
-        if bloqueadas:
+        if not bloqueadas:
+            return
+        if self.env.user.share:
             raise UserError(
-                'Estas cotizaciones necesitan aprobacion antes de enviarse o confirmarse: %s.\n'
-                'Usa «Enviar a revision» y espera a que un aprobador la apruebe.'
-                % ', '.join(bloqueadas.mapped('name')))
+                'Esta cotizacion todavia no esta liberada por %s. Le avisaremos en cuanto '
+                'pueda aceptarla.' % ', '.join(set(bloqueadas.mapped('company_id.name'))))
+        if self.env.user.has_group(GRUPO_APROBADOR):
+            bloqueadas._ferba_aprobar(
+                nota='%%s aprobo la cotizacion al %s.' % accion,
+                chat='Aprobe la cotizacion de %%s al %s.' % accion)
+            return
+        etiquetas = dict(self._fields['aprobacion_state'].selection)
+        detalle = ', '.join(
+            '%s (%s)' % (o.name, etiquetas[o.aprobacion_state].lower()) for o in bloqueadas)
+        aprobadores = (self._ferba_aprobadores(bloqueadas[0].company_id)
+                       or self._ferba_aprobadores())
+        quien = ' o '.join(aprobadores.mapped('name')) or 'un aprobador (hoy no hay ninguno configurado)'
+        raise UserError(
+            'Antes de enviarse o confirmarse, estas cotizaciones necesitan la aprobacion '
+            'de %s: %s.\n\n'
+            'Pulsa «Enviar a revision» y espera la respuesta: te llega por chat.\n\n'
+            'Si no ves el boton «Enviar a revision», tienes en pantalla una version anterior '
+            'del formulario: recarga la pagina (F5) o cierra y vuelve a abrir Odoo.'
+            % (quien, detalle))
 
     def _ferba_solo_aprobadores(self):
         if not self.env.user.has_group(GRUPO_APROBADOR):
@@ -119,17 +170,35 @@ class SaleOrder(models.Model):
                 _logger.exception('ferba_aprobacion: no se pudo mandar el chat a %s por %s',
                                   partner.name, self.name)
 
+    def _ferba_aprobar(self, nota, chat):
+        """Marca aprobada, cierra las actividades, deja rastro y avisa al vendedor.
+        `nota` y `chat` llevan un %s: el nombre del aprobador y el del cliente."""
+        for order in self:
+            order.with_context(ferba_sin_reset=True).write({
+                'aprobacion_state': 'aprobada',
+                'aprobacion_user_id': self.env.user.id,
+                'aprobacion_fecha': fields.Datetime.now(),
+                'aprobacion_motivo': False,
+                'aprobacion_retirada': False,
+            })
+            order._ferba_cerrar_actividades('Aprobada')
+            order._ferba_nota(nota % self.env.user.name)
+            order._ferba_chat(order._ferba_destinatarios_vendedor(),
+                              chat % order.partner_id.display_name)
+
     # ------------------------------------------------------------ botones
     def action_enviar_revision(self):
-        aprobadores = self._ferba_aprobadores()
-        if not aprobadores:
-            raise UserError('No hay aprobadores configurados. Ve a Ventas > Configuracion > '
-                            'Ajustes > Aprobacion de cotizaciones y agrega al menos uno.')
         for order in self:
             if order.state not in ('draft', 'sent'):
                 raise UserError('Solo una cotizacion (no confirmada) se manda a revision: %s.' % order.name)
             if order.aprobacion_state == 'revision':
                 continue
+            aprobadores = self._ferba_aprobadores(order.company_id)
+            if not aprobadores:
+                raise UserError(
+                    'No hay aprobadores que puedan entrar a la empresa %s. Ve a Ventas > '
+                    'Configuracion > Ajustes > Aprobacion de cotizaciones y agrega uno (y revisa '
+                    'que tenga esa empresa entre sus empresas permitidas).' % order.company_id.name)
             order.with_context(ferba_sin_reset=True).write({
                 'aprobacion_state': 'revision',
                 'aprobacion_solicitante_id': self.env.user.id,
@@ -137,6 +206,7 @@ class SaleOrder(models.Model):
                 'aprobacion_user_id': False,
                 'aprobacion_fecha': False,
                 'aprobacion_motivo': False,
+                'aprobacion_retirada': False,
             })
             order._ferba_nota('%s mando la cotizacion a revision.' % self.env.user.name)
             order._ferba_chat(
@@ -154,27 +224,24 @@ class SaleOrder(models.Model):
     def action_aprobar(self):
         self._ferba_solo_aprobadores()
         for order in self:
-            if order.aprobacion_state != 'revision':
-                raise UserError('La cotizacion %s no esta en revision.' % order.name)
-            order.with_context(ferba_sin_reset=True).write({
-                'aprobacion_state': 'aprobada',
-                'aprobacion_user_id': self.env.user.id,
-                'aprobacion_fecha': fields.Datetime.now(),
-                'aprobacion_motivo': False,
-            })
-            order._ferba_cerrar_actividades('Aprobada')
-            order._ferba_nota('%s aprobo la cotizacion.' % self.env.user.name)
-            order._ferba_chat(
-                order._ferba_destinatarios_vendedor(),
-                'Aprobe la cotizacion de %s. Ya la puedes enviar al cliente:'
-                % order.partner_id.display_name)
+            if order.state not in ('draft', 'sent'):
+                raise UserError('Solo una cotizacion (no confirmada) se aprueba: %s.' % order.name)
+            if order.aprobacion_state not in ESTADOS_QUE_SE_APRUEBAN:
+                raise UserError('La cotizacion %s ya esta aprobada.' % order.name)
+            if order.aprobacion_state == 'revision':
+                nota = '%s aprobo la cotizacion.'
+            else:
+                nota = '%s aprobo la cotizacion directamente (no estaba en revision).'
+            order._ferba_aprobar(
+                nota=nota,
+                chat='Aprobe la cotizacion de %s. Ya la puedes enviar al cliente:')
         return True
 
     def action_rechazar(self):
         self._ferba_solo_aprobadores()
         self.ensure_one()
-        if self.aprobacion_state != 'revision':
-            raise UserError('La cotizacion %s no esta en revision.' % self.name)
+        if self.state not in ('draft', 'sent') or self.aprobacion_state not in ('sin', 'revision'):
+            raise UserError('La cotizacion %s no esta pendiente de aprobacion.' % self.name)
         return {
             'type': 'ir.actions.act_window',
             'name': 'Rechazar cotizacion %s' % self.name,
@@ -196,6 +263,7 @@ class SaleOrder(models.Model):
                 'aprobacion_user_id': self.env.user.id,
                 'aprobacion_fecha': fields.Datetime.now(),
                 'aprobacion_motivo': motivo,
+                'aprobacion_retirada': False,
             })
             order._ferba_cerrar_actividades('Rechazada: %s' % motivo)
             order._ferba_nota('%s rechazo la cotizacion. Motivo: %s' % (self.env.user.name, motivo))
@@ -207,11 +275,11 @@ class SaleOrder(models.Model):
 
     # ------------------------------------------------------------ compuertas
     def action_quotation_send(self):
-        self._ferba_exigir_aprobacion()
+        self._ferba_exigir_aprobacion('enviarla')
         return super().action_quotation_send()
 
     def action_confirm(self):
-        self._ferba_exigir_aprobacion()
+        self._ferba_exigir_aprobacion('confirmarla')
         return super().action_confirm()
 
     def write(self, vals):
@@ -220,7 +288,7 @@ class SaleOrder(models.Model):
         # cliente, la lista de precios, el plazo, la moneda, la posicion fiscal
         # o la vigencia, la aprobacion se retira y hay que volver a pedirla.
         # Excepcion: el propio aprobador ajustando algo mientras revisa.
-        tocados = CAMPOS_QUE_INVALIDAN & set(vals)
+        tocados = set(CAMPOS_QUE_INVALIDAN) & set(vals)
         if tocados and not self.env.context.get('ferba_sin_reset'):
             es_aprobador = self.env.user.has_group(GRUPO_APROBADOR)
             for order in self:
@@ -229,16 +297,24 @@ class SaleOrder(models.Model):
                 if order.aprobacion_state == 'aprobada' or (
                         order.aprobacion_state == 'revision' and not es_aprobador):
                     anterior = dict(order._fields['aprobacion_state'].selection)[order.aprobacion_state]
+                    cuando = fields.Datetime.context_timestamp(
+                        order, fields.Datetime.now()).strftime('%d/%m/%Y %H:%M')
+                    que = ', '.join(CAMPOS_QUE_INVALIDAN[f] for f in sorted(tocados))
+                    # Se guarda en la cotizacion (aviso arriba del formulario) y en
+                    # el chatter. Solo en el chatter nadie lo veia: el vendedor
+                    # pulsaba Enviar y no entendia por que se detenia.
                     order.with_context(ferba_sin_reset=True).write({
                         'aprobacion_state': 'sin',
                         'aprobacion_user_id': False,
                         'aprobacion_fecha': False,
                         'aprobacion_motivo': False,
+                        'aprobacion_retirada': 'cambio %s (%s, %s) estando «%s»'
+                                               % (que, self.env.user.name, cuando, anterior),
                     })
                     order._ferba_cerrar_actividades('La cotizacion cambio; se pedira de nuevo')
                     order.message_post(
                         body=Markup('<p>%s</p>') % escape(
                             'La cotizacion cambio (%s) estando «%s»: hay que mandarla a revision otra vez.'
-                            % (', '.join(sorted(tocados)), anterior)),
+                            % (que, anterior)),
                         message_type='notification')
         return res

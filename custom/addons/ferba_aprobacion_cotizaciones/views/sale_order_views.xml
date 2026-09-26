@@ -13,14 +13,16 @@
                 <button name="action_enviar_revision" type="object" string="Enviar a revision"
                         class="btn-primary" data-hotkey="r"
                         invisible="not requiere_aprobacion or aprobacion_state not in ('sin', 'rechazada')"/>
+                <!-- El aprobador aprueba desde cualquier estado: no tiene que mandarse
+                     la cotizacion a revision a si mismo (19.0.1.2.0). -->
                 <button name="action_aprobar" type="object" string="Aprobar"
                         class="btn-primary" data-hotkey="a"
                         groups="ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones"
-                        invisible="not requiere_aprobacion or aprobacion_state != 'revision'"/>
+                        invisible="not requiere_aprobacion or aprobacion_state == 'aprobada'"/>
                 <button name="action_rechazar" type="object" string="Rechazar"
                         class="btn-secondary"
                         groups="ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones"
-                        invisible="not requiere_aprobacion or aprobacion_state != 'revision'"/>
+                        invisible="not requiere_aprobacion or aprobacion_state not in ('sin', 'revision')"/>
                 <field name="aprobacion_state" widget="statusbar" statusbar_visible="sin,revision,aprobada"
                        invisible="not requiere_aprobacion and aprobacion_state == 'sin'"/>
             </xpath>
@@ -61,6 +63,14 @@
                     <field name="aprobacion_motivo" readonly="1" class="fw-bold"/>
                     Corrigela y vuelve a mandarla a revision.
                 </div>
+                <!-- La aprobacion se retiro por un cambio: antes solo quedaba en el
+                     chatter y el vendedor no entendia por que Enviar se detenia. -->
+                <div class="alert alert-warning mb-0" role="alert"
+                     invisible="not requiere_aprobacion or aprobacion_state != 'sin' or not aprobacion_retirada">
+                    <strong>La aprobacion se retiro:</strong>
+                    <field name="aprobacion_retirada" readonly="1" class="fw-bold"/>.
+                    Hay que mandarla a revision otra vez (o que un aprobador la apruebe).
+                </div>
             </xpath>
 
             <!-- Trazabilidad en "Otra informacion" -->
@@ -71,6 +81,7 @@
                     <field name="aprobacion_user_id"/>
                     <field name="aprobacion_fecha"/>
                     <field name="aprobacion_motivo" invisible="not aprobacion_motivo"/>
+                    <field name="aprobacion_retirada" invisible="not aprobacion_retirada"/>
                 </group>
             </xpath>
         </field>
