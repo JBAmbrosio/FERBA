@@ -7,6 +7,8 @@
             <list>
                 <field name="name"/>
                 <field name="windows_user"/>
+                <field name="user_is_admin" string="Admin local" optional="show"
+                       decoration-danger="user_is_admin"/>
                 <field name="employee_id"/>
                 <field name="department_id"/>
                 <field name="last_seen"/>
@@ -45,6 +47,7 @@
                         <group>
                             <field name="employee_id"/>
                             <field name="windows_user"/>
+                            <field name="user_is_admin"/>
                             <field name="last_seen"/>
                             <field name="active"/>
                         </group>

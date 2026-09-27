@@ -209,6 +209,11 @@ class FocoController(http.Controller):
                 vals['agent_version_code'] = int(info['version_code'])
             except (TypeError, ValueError):
                 pass
+        # Si el usuario de la sesion es administrador local (desde 2026.09.28).
+        # Es la condicion de la que depende todo lo demas: puede parar el
+        # servicio y quitar la politica. Se muestra por equipo, no se actua.
+        if info.get('is_admin') is not None:
+            vals['user_is_admin'] = bool(info['is_admin'])
         # Estado del SERVICIO del equipo, que el agente lee de su archivo. Solo
         # diagnostico: no toca policy_version ni policy_verified_at (ver el
         # comentario de `service_state` en foco.computer).
@@ -245,9 +250,18 @@ class FocoController(http.Controller):
         # no una por renglon, para que veinte apps no generen veinte alertas.
         bajadas = []
         ACUMULADOS = ('fg_active', 'fg_idle', 'background', 'call_hours',
-                      'injected_hours', 'call_noinput_hours')
+                      'injected_hours', 'call_noinput_hours', 'injected_tool_hours',
+                      'nokey_hours', 'keys_count', 'mouse_events', 'positions_count')
+
+        def _entero(v):
+            try:
+                return max(0, int(v or 0))
+            except (TypeError, ValueError):
+                return 0
+
         for s in (data.get('samples') or []):
-            app = App._get_or_create(s.get('exe'), s.get('name'), s.get('product'))
+            app = App._get_or_create(s.get('exe'), s.get('name'), s.get('product'),
+                                     s.get('company'))
             if not app:
                 continue
             date = s.get('date') or fields.Date.context_today(Usage)
@@ -279,6 +293,10 @@ class FocoController(http.Controller):
             call_h = min(_sec_to_h(s.get('call_secs')), fga)
             iny_h = min(_sec_to_h(s.get('injected_secs')), fga)
             cni_h = min(_sec_to_h(s.get('call_noinput_secs')), call_h)
+            # Nivel de actividad (agente 2026.09.28): tambien subconjuntos del
+            # tiempo activo, y tambien acotados.
+            tool_h = min(_sec_to_h(s.get('injected_tool_secs')), fga)
+            nokey_h = min(_sec_to_h(s.get('nokey_secs')), fga)
             # El sitio se cataloga como entidad propia: es lo que permite
             # clasificarlo y que pese distinto que la app que lo muestra.
             site = Site._get_or_create(host) if host else Site.browse()
@@ -293,6 +311,10 @@ class FocoController(http.Controller):
             campos = {'fg_active': fga, 'fg_idle': fgi, 'background': bg,
                       'host_status': status, 'call_hours': call_h,
                       'injected_hours': iny_h, 'call_noinput_hours': cni_h,
+                      'injected_tool_hours': tool_h, 'nokey_hours': nokey_h,
+                      'keys_count': _entero(s.get('keys')),
+                      'mouse_events': _entero(s.get('mouse_events')),
+                      'positions_count': _entero(s.get('positions')),
                       'site_id': site.id or False}
             if call_ref:
                 llamada = Review._buscar(computer, call_ref)
@@ -387,6 +409,12 @@ class FocoController(http.Controller):
             'events_stored': events_stored,
             'commands': out,
             'config': config,
+            # COMO se mide, por perfil: umbral de inactividad, medir fuera de
+            # turno, integridad, llamadas, ventana, navegadores gestionados y
+            # las reglas de bloqueo vigentes (para contar intentos). En CADA
+            # respuesta, por la misma razon que las capturas: cambiarlo en Odoo
+            # tiene que surtir efecto en el siguiente envio.
+            'conducta': request.env['foco.policy'].sudo().conducta_para(computer),
             # Que apps pueden reportar el archivo abierto. Va en CADA respuesta
             # porque apagarlo tiene que surtir efecto igual de rapido que
             # encenderlo: si viajara solo al cambiar, revocar el permiso

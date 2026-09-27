@@ -67,6 +67,112 @@ class FocoPolicy(models.Model):
         help='Nombres de programa tal como los ve Windows (opera.exe), uno por '
              'linea. Aplica con el interruptor de arriba encendido y con el '
              'bloqueo de sitios encendido en Ajustes.')
+    # Por PRODUCTO (27-sep-2026): lo que el binario declara ser, no como se
+    # llame el archivo. Un opera.exe renombrado a chrome.exe se salta la lista
+    # de arriba; su recurso de version sigue diciendo "Opera Internet Browser".
+    # Coincidencia por palabra completa: "Opera" no cierra "Operaciones".
+    kill_products = fields.Text(
+        string='Productos que se cierran (uno por linea)', default='Opera',
+        help='Nombre de producto o descripcion que declara el propio programa '
+             '(Propiedades > Detalles del .exe), uno por linea. Se compara por '
+             'palabra completa: "Opera" cierra "Opera Internet Browser" y '
+             '"Opera GX", no "Sistema de Operaciones". Cubre el ejecutable '
+             'renombrado, que la lista de arriba no cubre.')
+
+    # ---- conducta del agente: COMO se mide, decidido aqui y no en cada laptop
+    #
+    # Hasta el 27-sep estos valores vivian en el foco.ini de cada equipo:
+    # cambiar el umbral de inactividad era tocar tres maquinas. Ahora viajan en
+    # cada respuesta al agente, por perfil, y el equipo los adopta al momento.
+    idle_secs = fields.Integer(
+        string='Segundos sin input para contar inactivo', default=60,
+        help='Sin teclado ni mouse durante este tiempo, la app al frente pasa '
+             'de "activa" a "sin input". 60 s de fabrica. Entre 10 y 3600.')
+    measure_off_shift = fields.Boolean(
+        string='Medir el uso fuera de turno', default=True,
+        help='Encendido: el tiempo fuera de la jornada se mide y se marca como '
+             'fuera de jornada (se ve, no cuenta distinto). Apagado: fuera de '
+             'turno solo quedan eventos del equipo, presencia y ausencias; el '
+             'uso de apps y sitios no se registra.')
+    integrity_enabled = fields.Boolean(
+        string='Vigilar input sintetico', default=True,
+        help='Cuenta eventos de teclado y mouse y lee la marca de Windows de '
+             'input generado por software. Nunca registra que se teclea.')
+    calls_enabled = fields.Boolean(
+        string='Contar llamadas como trabajo', default=True,
+        help='Estar en una junta sin teclear es trabajo. Apagado, ese tiempo '
+             'cae como sin input y puede abrir una ausencia.')
+    ask_enabled = fields.Boolean(
+        string='Ventana de justificacion de ausencias', default=True)
+    ask_cooldown_secs = fields.Integer(
+        string='Volver a abrir la ventana cada (s)', default=120,
+        help='Si sigue habiendo ausencias pendientes. Minimo 30.')
+    ask_max_idle_secs = fields.Integer(
+        string='No abrirla si lleva mas de (s) sin input', default=120,
+        help='Nadie la veria. Minimo 10.')
+    managed_browsers = fields.Text(
+        string='Navegadores gestionados (uno por linea)',
+        default='Chrome\nEdge\nFirefox\nBrave\nVivaldi\nOpera\nChromium',
+        help='A estos programas el agente les lee la barra de direcciones para '
+             'saber el sitio. Se reconocen por lo que el binario declara '
+             '(descripcion o producto) o por el nombre base del ejecutable. Un '
+             'navegador que entregue URLs sin estar aqui se registra como '
+             '"navegador no gestionado". A lo que no es navegador no se le '
+             'leen sus cajas de texto: por ahi entraban las cotas de '
+             'SolidWorks al catalogo como sitios.')
+
+    def _kill_products(self):
+        self.ensure_one()
+        if not self.close_unmanaged:
+            return []
+        return self._patrones(self.kill_products)
+
+    @api.model
+    def _patrones(self, texto):
+        """'Opera\\nOpera GX' -> ['opera', 'opera gx'], sin vacios ni repetidos."""
+        vistos = []
+        for linea in (texto or '').replace(',', '\n').splitlines():
+            p = linea.strip().lower()
+            if p and p not in vistos:
+                vistos.append(p)
+        return vistos
+
+    _CONDUCTA_FABRICA = {
+        'idle_secs': 60, 'medir_fuera_turno': True, 'integridad': True,
+        'llamadas': True, 'ventana': True, 'ventana_cooldown': 120,
+        'ventana_max_idle': 120,
+        'navegadores': ['chrome', 'edge', 'firefox', 'brave', 'vivaldi', 'opera', 'chromium'],
+    }
+
+    @api.model
+    def conducta_para(self, computer):
+        """El bloque `conducta` que viaja al agente en CADA respuesta.
+
+        Sale del perfil vigente del equipo; sin perfil, los valores de fabrica
+        (los mismos que el agente trae de origen). NO depende del interruptor
+        de bloqueo de sitios: como se mide no es lo mismo que que se bloquea.
+        Solo `sitios_bloqueados` respeta ese interruptor, porque cuenta intentos
+        contra las reglas que DE VERDAD estan puestas en el equipo.
+        """
+        perfil = self._perfil_vigente(computer)
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        if perfil:
+            bloque = {
+                'idle_secs': max(10, min(3600, perfil.idle_secs or 60)),
+                'medir_fuera_turno': bool(perfil.measure_off_shift),
+                'integridad': bool(perfil.integrity_enabled),
+                'llamadas': bool(perfil.calls_enabled),
+                'ventana': bool(perfil.ask_enabled),
+                'ventana_cooldown': max(30, perfil.ask_cooldown_secs or 120),
+                'ventana_max_idle': max(10, perfil.ask_max_idle_secs or 120),
+                'navegadores': self._patrones(perfil.managed_browsers),
+            }
+        else:
+            bloque = dict(self._CONDUCTA_FABRICA)
+        bloque['sitios_bloqueados'] = (perfil._listas()[0]
+                                       if perfil and ajustes.block_enabled else [])
+        bloque['version'] = self._hash(bloque)
+        return bloque
 
     def _kill_list(self):
         """Los ejecutables a cerrar, limpios: minusculas, con .exe, sin repetir."""
@@ -249,6 +355,7 @@ class FocoPolicy(models.Model):
         return {'version': perfil._hash((bloquear, permitir)),
                 'block': bloquear, 'allow': permitir,
                 'kill': perfil._kill_list(),
+                'kill_productos': perfil._kill_products(),
                 'policy': perfil.name}
 
     def action_ver_equipos(self):

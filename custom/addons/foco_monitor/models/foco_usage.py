@@ -82,11 +82,34 @@ class FocoUsage(models.Model):
     background = fields.Float(string='2do plano (h)',
                               help='Abierta pero sin foco. No es trabajo.')
     injected_hours = fields.Float(
-        string='Con input sintetico (h)',
-        help='Horas "activas" acompanadas de input generado por software '
-             '(jiggler). Es un HECHO verificable: Windows marca el input '
-             'inyectado. No se descuenta del total: se deja a la vista con su '
-             'evidencia para que una persona lo juzgue.')
+        string='Sintetico sin input real (h)',
+        help='Horas "activas" con input generado por software y NADA real en '
+             'los ultimos tres minutos: la firma de un jiggler. Es un HECHO '
+             'verificable: Windows marca el input inyectado. No se descuenta '
+             'del total: se deja a la vista con su evidencia para que una '
+             'persona lo juzgue. Hasta el agente 2026.09.27 aqui caia tambien '
+             'el inyectado CON input real (drivers, macros, soporte remoto), '
+             'que ahora va aparte.')
+    injected_tool_hours = fields.Float(
+        string='Inyectado con input real (h)',
+        help='Horas activas en las que hubo input inyectado por software Y '
+             'tambien input real de la persona: un raton 3D, un software de '
+             'mouse con macros, soporte remoto. No es una persona ausente; se '
+             'muestra para poder ponerle nombre a la herramienta.')
+    nokey_hours = fields.Float(
+        string='Activo sin teclear (h)',
+        help='Horas "activas" sin una sola tecla en tres minutos: solo mouse. '
+             'Es la evidencia contra un jiggler de HARDWARE, que Windows ve '
+             'como input real. Un numero para interpretar, no un veredicto: '
+             'revisar planos o leer con el mouse tambien cae aqui.')
+    keys_count = fields.Integer(
+        string='Teclas', help='CUANTAS teclas se pulsaron con esta app al frente; '
+                              'nunca cuales.')
+    mouse_events = fields.Integer(string='Eventos de mouse')
+    positions_count = fields.Integer(
+        string='Posiciones del cursor',
+        help='Cuantos puntos distintos (en cuadros de 8 px) toco el cursor, '
+             'sumando ventanas de 2 s. Un jiggler de hardware da muy pocos.')
     call_noinput_hours = fields.Float(
         string='En llamada sin tocar nada (h)',
         help='Tiempo acreditado por estar en llamada pero sin teclado ni mouse. '
