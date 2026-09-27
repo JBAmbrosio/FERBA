@@ -263,8 +263,10 @@ class FocoTomy(models.AbstractModel):
             "herramienta 'grafica' (una o varias) con esos datos; para un reporte escribe secciones con titulos "
             "cortos (Resumen, Por persona, Distracciones, Llamadas, Ausencias, Observaciones). La grafica la "
             "dibuja la interfaz: NUNCA escribas una imagen, ni markdown de imagen ![...](...), ni base64; solo "
-            "una frase de lo que muestra.\n"
-            "9. Usa 'abrir_en_odoo' cuando el usuario quiera ver el detalle completo de algo en Foco.\n"
+            "una frase de lo que muestra. Las etiquetas de una grafica son lo que dice su titulo: 'por persona' "
+            "= nombres de personas (datos de comparar); 'por dia' = fechas (datos de serie). Nunca mezcles.\n"
+            "9. Usa 'abrir_en_odoo' cuando el usuario quiera ver el detalle completo de algo en Foco: el boton "
+            "aparece solo en la respuesta; no escribas ligas ni markdown [texto](url).\n"
             "10. 'estado_ahora' describe el momento de la pregunta ('Ausente 26 h' = tiempo desde su ultima "
             "actividad hasta ahora), no un total del periodo: no lo sumes ni lo cuentes como horas ausentes "
             "del dia.\n"
@@ -344,6 +346,9 @@ class FocoTomy(models.AbstractModel):
         La grafica la pinta la interfaz; cualquier imagen en el texto sobra."""
         limpio = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', texto or '')
         limpio = re.sub(r'data:image/[a-z]+;base64,[A-Za-z0-9+/=]+', '', limpio)
+        # Ligas en markdown ("[Abrir detalle](#)"): Tomy no tiene URLs que dar,
+        # el boton real es un artefacto; se deja solo el texto.
+        limpio = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', limpio)
         return re.sub(r'\n{3,}', '\n\n', limpio).strip()
 
     @staticmethod
@@ -397,11 +402,13 @@ class FocoTomy(models.AbstractModel):
               {'employee_id': emp, 'desde': fecha, 'hasta': fecha}, ['employee_id', 'desde', 'hasta']),
             t('comparar',
               'Ranking de todas las personas del alcance en un periodo: activo, productivo, indice, distraccion, '
-              'sin clasificar y cambio del indice contra el periodo anterior. Para resumenes del equipo.',
+              'sin clasificar y cambio del indice contra el periodo anterior. Para resumenes del equipo y para '
+              'CUALQUIER cosa "por persona", incluidas las graficas por persona (usa activo_h, productivo_h o '
+              'indice_pct de cada una).',
               {'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
             t('serie',
-              'Horas activas y productivas e indice DIA POR DIA, del equipo o de UNA persona. Dibuja la grafica '
-              'sola. Para comparar personas entre si usa comparar (una sola llamada trae a todas).',
+              'Horas activas y productivas e indice DIA POR DIA (etiquetas = fechas), del equipo o de UNA '
+              'persona. Dibuja la grafica sola. NO sirve para nada "por persona": para eso usa comparar.',
               {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt}, ['desde', 'hasta']),
             t('top',
               'Donde se fue el tiempo: las apps, sitios, archivos o distracciones con mas horas activas.',
@@ -409,8 +416,12 @@ class FocoTomy(models.AbstractModel):
                'tipo': {'type': 'string', 'enum': ['apps', 'sitios', 'archivos', 'distracciones']},
                'employee_id': emp_opt}, ['desde', 'hasta', 'tipo']),
             t('ausencias',
-              'Periodos sin actividad dentro del horario (huecos) con su motivo, estado y nota.',
-              {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt}, ['desde', 'hasta']),
+              'Periodos sin actividad dentro del horario (huecos) con su motivo, estado y nota. Con estado='
+              'pendiente trae solo las que faltan por justificar.',
+              {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
+               'estado': {'type': 'string', 'enum': ['pendiente', 'justificada', 'auto', 'todas'],
+                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar'}},
+              ['desde', 'hasta']),
             t('llamadas',
               'Llamadas de WhatsApp hechas desde la laptop y analizadas: cuantas, minutos de trabajo y personales, '
               'rol del interlocutor y motivo. Nunca el contenido (no existe).',
@@ -535,11 +546,13 @@ class FocoTomy(models.AbstractModel):
                 'confianza': r.confianza} for r in regs[:15]]
         return salida
 
-    def _ausencias_resumen(self, emp, d, h):
+    def _ausencias_resumen(self, emp, d, h, estado=None):
         Abs = self.env['foco.absence']
         dominio = [('start', '>=', self._utc(d)), ('start', '<=', self._utc(h, fin=True))]
         if emp:
             dominio.append(('employee_id', '=', emp.id))
+        if estado in ('pendiente', 'justificada', 'auto'):
+            dominio.append(('state', '=', estado))
         regs = Abs.search(dominio, order='start desc')
         motivos = dict(Abs._fields['reason'].selection)
         tipos = dict(Abs._fields['kind'].selection)
@@ -548,6 +561,7 @@ class FocoTomy(models.AbstractModel):
             por_motivo[motivos.get(r.reason, r.reason or 'sin motivo')] = por_motivo.get(
                 motivos.get(r.reason, r.reason or 'sin motivo'), 0) + (r.duration or 0)
         return {
+            'filtro_estado': estado if estado in ('pendiente', 'justificada', 'auto') else 'todas',
             'total': len(regs),
             'pendientes_de_justificar': len(regs.filtered(lambda x: x.state == 'pendiente')),
             'horas_justificadas': _hm(sum(regs.filtered(lambda x: x.state == 'justificada').mapped('duration'))),
@@ -682,13 +696,15 @@ class FocoTomy(models.AbstractModel):
         return {'tipo': tipo, 'sujeto': sujeto, 'periodo': {'desde': str(d), 'hasta': str(h)},
                 'nota': nota or None, 'filas': [dict(zip(cols, f)) for f in filas], 'sin_datos': not filas}
 
-    def _tool_ausencias(self, artefactos, desde=None, hasta=None, employee_id=None):
+    def _tool_ausencias(self, artefactos, desde=None, hasta=None, employee_id=None, estado=None):
         d, h, nota = self._fechas(desde, hasta)
         emp = self._empleado(employee_id) if employee_id else None
-        res = self._ausencias_resumen(emp, d, h)
+        res = self._ausencias_resumen(emp, d, h, estado)
         res.update({'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None})
         if res['ultimas']:
-            self._tabla(artefactos, 'Ausencias (%s a %s)' % (d, h),
+            self._tabla(artefactos, 'Ausencias%s (%s a %s)' % (
+                {'pendiente': ' pendientes de justificar', 'justificada': ' justificadas',
+                 'auto': ' fuera de horario'}.get(estado, ''), d, h),
                         ['Persona', 'Inicio', 'Fin', 'Duracion', 'Tipo', 'Estado', 'Motivo'],
                         [[u['persona'], u['inicio'], u['fin'], u['duracion'], u['tipo'], u['estado'], u['motivo']]
                          for u in res['ultimas']])
@@ -771,10 +787,15 @@ class FocoTomy(models.AbstractModel):
     def _tool_abrir_en_odoo(self, artefactos, pantalla='tablero', employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id) if employee_id else None
         d, h, _n = self._fechas(desde, hasta)
+        # El detalle de uso es de UN dia (foco_desde, como lo manda el tablero):
+        # el ultimo del periodo, pero nunca uno futuro ("esta semana" termina el
+        # domingo y abriria un dia vacio).
+        dia = min(h, self._hoy())
         pantallas = {
             'detalle_uso': ('Detalle de uso', 'foco_monitor.foco_uso_client',
-                            {'foco_employee_id': emp.id if emp else False, 'foco_desde': str(h)}),
-            'jornada': ('Jornada', 'foco_monitor.foco_jornada_client', {}),
+                            {'foco_employee_id': emp.id if emp else False, 'foco_desde': str(dia)}),
+            'jornada': ('Jornada', 'foco_monitor.foco_jornada_client',
+                        {'foco_employee_id': emp.id if emp else False, 'foco_desde': str(d), 'foco_hasta': str(dia)}),
             'ausencias': ('Periodos sin actividad', 'foco_monitor.foco_absence_action',
                           {'search_default_employee_id': emp.id} if emp else {}),
             'llamadas': ('Llamadas de WhatsApp', 'foco_monitor.foco_call_review_action',
@@ -786,4 +807,5 @@ class FocoTomy(models.AbstractModel):
         if emp:
             etiqueta += ' de ' + emp.name.split(' ')[0]
         artefactos.append({'tipo': 'liga', 'etiqueta': 'Abrir ' + etiqueta, 'action': accion, 'context': ctx})
-        return {'ok': True, 'nota': 'El boton para abrir %s ya esta en la respuesta.' % etiqueta}
+        return {'ok': True, 'nota': 'El boton para abrir %s ya esta en la respuesta. No escribas ninguna liga '
+                                    'ni markdown de liga; solo di que el boton esta abajo.' % etiqueta}
