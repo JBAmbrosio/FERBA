@@ -28,6 +28,12 @@ KINDS = [
     # Lo aporta el SERVICIO del equipo (SYSTEM), no el agente: cerro un
     # navegador que no obedece el bloqueo de sitios (Opera). Ver foco.policy.
     ('navegador_cerrado', 'Navegador no permitido cerrado'),
+    # Desde el agente 2026.09.28: hechos de integridad. Cada uno es un conteo
+    # o un si/no con su evidencia; ninguno es un veredicto.
+    ('navegador_desconocido', 'Navegador no gestionado entrego una URL'),
+    ('sitio_bloqueado', 'Sitio bloqueado intentado'),
+    ('input_sintetico', 'Input sintetico sin input real'),
+    ('agente_actualizado', 'El agente se actualizo'),
 ]
 
 class FocoEvent(models.Model):

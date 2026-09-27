@@ -94,6 +94,8 @@
                         <field name="close_unmanaged" widget="boolean_toggle"/>
                         <field name="kill_exes" invisible="not close_unmanaged"
                                placeholder="opera.exe&#10;opera_gx.exe"/>
+                        <field name="kill_products" invisible="not close_unmanaged"
+                               placeholder="Opera"/>
                         <div class="text-muted" colspan="2">
                             Opera <b>no obedece</b> la política de empresa que sí cumplen
                             Chrome, Edge, Brave y Firefox, y además trae una VPN integrada que
@@ -102,6 +104,32 @@
                             en este equipo, usa Chrome o Edge») y lo registra en
                             <b>Actividad</b> como «Navegador no permitido cerrado».
                             Solo aplica con el bloqueo de sitios encendido.
+                            La lista de <b>productos</b> mira lo que el programa declara ser
+                            (Propiedades › Detalles del .exe): un <code>opera.exe</code> renombrado
+                            sigue diciendo «Opera Internet Browser» y se cierra igual.
+                        </div>
+                    </group>
+
+                    <!-- 4. COMO MIDE. Hasta el 27-sep esto vivia en el foco.ini de
+                         cada laptop; cambiarlo era tocar tres maquinas. -->
+                    <group string="4 · Cómo mide el agente en estos equipos">
+                        <group>
+                            <field name="idle_secs"/>
+                            <field name="measure_off_shift" widget="boolean_toggle"/>
+                            <field name="integrity_enabled" widget="boolean_toggle"/>
+                            <field name="calls_enabled" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="ask_enabled" widget="boolean_toggle"/>
+                            <field name="ask_cooldown_secs" invisible="not ask_enabled"/>
+                            <field name="ask_max_idle_secs" invisible="not ask_enabled"/>
+                        </group>
+                        <field name="managed_browsers" colspan="2"
+                               placeholder="Chrome&#10;Edge&#10;Firefox&#10;Brave"/>
+                        <div class="text-muted" colspan="2">
+                            El equipo adopta estos valores en su siguiente envío (cinco minutos)
+                            y los conserva aunque se quede sin red. No dependen del bloqueo de
+                            sitios: cómo se mide no es lo mismo que qué se bloquea.
                         </div>
                     </group>
 
@@ -115,7 +143,7 @@
                     <!-- 3. LO QUE SE ESCAPA. Solo aparece si hay algo que
                          decir: una pestana vacia permanente ensena a ignorarla. -->
                     <div invisible="not sitios_sin_cubrir_ids">
-                        <group string="4 · Se ha visto y no lo alcanza ninguna regla">
+                        <group string="5 · Se ha visto y no lo alcanza ninguna regla">
                             <div colspan="2" class="alert alert-warning" role="alert">
                                 <field name="cobertura_nota" nolabel="1" readonly="1"/>
                                 <div class="mt8">

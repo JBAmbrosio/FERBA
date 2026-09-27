@@ -33,6 +33,13 @@ class FocoComputer(models.Model):
     employee_id = fields.Many2one('hr.employee', string='Empleado')
     department_id = fields.Many2one(
         related='employee_id.department_id', store=True, string='Departamento')
+    user_is_admin = fields.Boolean(
+        string='Usuario con privilegios de administrador', readonly=True,
+        help='El agente reporta si el usuario de la sesion pertenece al grupo '
+             'Administradores del equipo. Si es asi, puede detener el servicio '
+             'de Foco y quitar el bloqueo de navegacion: nada de lo que se '
+             'mida en este equipo esta garantizado. Es una condicion de TI, no '
+             'del software; se resuelve quitandole el privilegio.')
     agent_db_id = fields.Char(
         string='Huella de la base del agente', readonly=True,
         help='Identificador que el agente crea dentro de su base local. Si '

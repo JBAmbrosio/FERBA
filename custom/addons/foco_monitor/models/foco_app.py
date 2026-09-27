@@ -29,6 +29,12 @@ class FocoApp(models.Model):
         string='Suite', readonly=True,
         help='De que producto dice ser el ejecutable, segun su propio recurso '
              'de version. No lo escribe nadie: lo declara el binario.')
+    company = fields.Char(
+        string='Editor', readonly=True,
+        help='Quien hizo el programa segun su propio recurso de version '
+             '(Dassault Systemes, Autodesk, Adobe, Opera...). Lo declara el '
+             'binario. Sirve para categorizar por familia y para tratar '
+             'distinto a un editor desconocido.')
     report_document = fields.Boolean(
         string='Reportar el archivo abierto',
         help='Con esto encendido, el agente manda el NOMBRE del archivo que la '
@@ -211,7 +217,7 @@ class FocoApp(models.Model):
         return self.browse()
 
     @api.model
-    def _get_or_create(self, exe, name=None, product=None):
+    def _get_or_create(self, exe, name=None, product=None, company=None):
         exe = (exe or '').strip().lower()
         if not exe:
             return self.browse()
@@ -219,6 +225,7 @@ class FocoApp(models.Model):
         now = fields.Datetime.now()
         limpio = name if self._nombre_valido(name) else None
         producto = (product or '').strip()[:120] or None
+        editor = (company or '').strip()[:120] or None
         yo = self.with_context(foco_agente=True)
         if app:
             vals = {'last_seen': now}
@@ -228,6 +235,8 @@ class FocoApp(models.Model):
                 vals['name'] = limpio
             if producto and app.product != producto:
                 vals['product'] = producto
+            if editor and app.company != editor:
+                vals['company'] = editor
             app.with_context(foco_agente=True).write(vals)
         else:
             # Al DESCUBRIRLA se propone reportar el archivo si el binario dice
@@ -244,7 +253,7 @@ class FocoApp(models.Model):
             general = self.env['foco.settings'].sudo().get_settings().document_enabled
             app = yo.create({
                 'exe': exe, 'name': limpio or exe, 'last_seen': now,
-                'product': producto,
+                'product': producto, 'company': editor,
                 'report_document': (general
                                     and self._es_suite_documental(producto)),
             })
