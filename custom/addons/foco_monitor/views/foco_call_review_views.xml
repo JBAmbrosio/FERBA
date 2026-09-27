@@ -93,7 +93,9 @@
                         domain="[('state', 'in', ('grabando', 'transcribiendo', 'por_clasificar', 'error'))]"/>
                 <filter name="con_error" string="Con error" domain="[('state', '=', 'error')]"/>
                 <separator/>
-                <filter name="hoy" string="Hoy" date="started_at" default_period="today"/>
+                <!-- Sin default_period: Odoo 19 rechaza «today» al validar la vista
+                     (build de Production 27-sep 00:49, «Invalid default period»). -->
+                <filter name="fecha" string="Fecha" date="started_at"/>
                 <group expand="0" string="Agrupar por">
                     <filter name="g_empleado" string="Empleado" context="{'group_by': 'employee_id'}"/>
                     <filter name="g_veredicto" string="Veredicto" context="{'group_by': 'clasificacion'}"/>
