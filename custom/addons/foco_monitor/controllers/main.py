@@ -315,6 +315,9 @@ class FocoController(http.Controller):
                       'injected_hours': iny_h, 'call_noinput_hours': cni_h,
                       'injected_tool_hours': tool_h, 'nokey_hours': nokey_h,
                       'static_hours': static_h,
+                      # Con que version se midio: el significado de las columnas
+                      # nuevas depende de ella (ver foco.usage.agent_code).
+                      'agent_code': _entero(info.get('version_code')),
                       'keys_count': _entero(s.get('keys')),
                       'mouse_events': _entero(s.get('mouse_events')),
                       'positions_count': _entero(s.get('positions')),

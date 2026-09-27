@@ -126,6 +126,13 @@ CICLO_ENVIO_MIN = 5
 SIN_SENAL_MIN = 30
 # Instalador de Foco tal como aparece en el catalogo cuando corre (Inno Setup).
 INSTALADOR_PREFIJO = 'ferba-foco-setup'
+# Desde que version del agente las columnas de integridad significan lo que
+# aqui se dice (sintetico = sin input real; solo mouse; pantalla sin cambio).
+# Renglones de agentes anteriores NO producen esos hechos: medirian otra cosa.
+CODIGO_SEMANTICA = 202609280
+# Eventos que por naturaleza llegan al siguiente encendido: un apagado no se
+# puede enviar mientras el equipo se apaga. Su retraso no dice nada.
+EVENTOS_DIFERIDOS = ('apagado', 'apagado_solicitado', 'apagado_inesperado', 'suspendido')
 
 
 class FocoCategory(models.Model):
@@ -235,15 +242,28 @@ class FocoIntegrityFact(models.Model):
                 'meaning': SIGNIFICADO.get(kind, ''), 'computed_at': ahora,
             })
 
+        # El alta del equipo: antes de ese dia no habia agente, y lo que hay en
+        # el registro de Windows de esos dias es la lectura historica inicial
+        # (los ultimos 50 eventos), no algo que se midio en vivo.
+        altas = [c.create_date for c in equipos if c.create_date]
+        alta_utc = min(altas) if altas else None
+        alta_local = (pytz.UTC.localize(alta_utc).astimezone(zona or pytz.UTC).date()
+                      if alta_utc else None)
+        antes_del_alta = bool(alta_local and dia < alta_local)
+
         # --- del uso ---------------------------------------------------------
         dominio = [('employee_id', '=', emp.id), ('date', '=', dia)]
-        tot = Usage._read_group(dominio, [], ['injected_hours:sum', 'injected_tool_hours:sum',
-                                            'nokey_hours:sum', 'static_hours:sum',
-                                            'call_noinput_hours:sum', 'fg_active:sum'])
-        (iny, iny_tool, nokey, static, cni, activo) = (tot[0] if tot else (0,) * 6)
+        tot = Usage._read_group(dominio, [], ['call_noinput_hours:sum', 'fg_active:sum'])
+        (cni, activo) = (tot[0] if tot else (0, 0))
+        # Las columnas de integridad solo de agentes que las miden con el
+        # significado de hoy (ver CODIGO_SEMANTICA).
+        dominio_nuevo = dominio + [('agent_code', '>=', CODIGO_SEMANTICA)]
+        tot2 = Usage._read_group(dominio_nuevo, [], ['injected_hours:sum', 'injected_tool_hours:sum',
+                                                   'nokey_hours:sum', 'static_hours:sum'])
+        (iny, iny_tool, nokey, static) = (tot2[0] if tot2 else (0,) * 4)
         por_app = {}
         for app, a_iny, a_nokey, a_static in Usage._read_group(
-                dominio, ['app_id'], ['injected_hours:sum', 'nokey_hours:sum', 'static_hours:sum']):
+                dominio_nuevo, ['app_id'], ['injected_hours:sum', 'nokey_hours:sum', 'static_hours:sum']):
             if app:
                 por_app[app.display_name] = (a_iny or 0.0, a_nokey or 0.0, a_static or 0.0)
 
@@ -297,6 +317,10 @@ class FocoIntegrityFact(models.Model):
         retraso = 0.0
         peor = None
         for e in eventos:
+            # Ni lo anterior al alta (lectura historica), ni lo que por
+            # naturaleza viaja al siguiente encendido.
+            if antes_del_alta or (alta_utc and e.at and e.at < alta_utc) or e.kind in EVENTOS_DIFERIDOS:
+                continue
             if e.create_date and e.at:
                 minutos = (e.create_date - e.at).total_seconds() / 60.0
                 if minutos > retraso:
@@ -307,7 +331,8 @@ class FocoIntegrityFact(models.Model):
                 'ocurrio': self._local(peor.at, zona) if peor else '', 'llego': self._local(peor.create_date, zona) if peor else ''})
 
         # --- checador contra primera senal ----------------------------------
-        if 'hr.attendance' in self.env:
+        # Solo desde el alta del equipo: antes no habia quien diera senal.
+        if 'hr.attendance' in self.env and not antes_del_alta:
             asist = self.env['hr.attendance'].sudo().search(
                 [('employee_id', '=', emp.id), ('check_in', '>=', ini_utc), ('check_in', '<=', fin_utc)],
                 order='check_in asc', limit=1)
