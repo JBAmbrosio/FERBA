@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Hechos de integridad: un renglon por persona, dia y tipo, con su
+         medida, su evidencia y su significado. Solo lectura: los produce el
+         calculo, nadie los captura. -->
+    <record id="foco_integrity_fact_view_list" model="ir.ui.view">
+        <field name="name">foco.integrity.fact.list</field>
+        <field name="model">foco.integrity.fact</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" decoration-muted="maintenance">
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="hide"/>
+                <field name="kind"/>
+                <field name="value_text" string="Medida"/>
+                <field name="evidence_text" string="Evidencia"/>
+                <field name="maintenance" string="Mantenimiento" optional="show"/>
+                <field name="meaning" optional="hide"/>
+                <field name="computer_id" optional="hide"/>
+                <field name="value" column_invisible="1"/>
+                <field name="unit" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_integrity_fact_view_form" model="ir.ui.view">
+        <field name="name">foco.integrity.fact.form</field>
+        <field name="model">foco.integrity.fact</field>
+        <field name="arch" type="xml">
+            <form string="Hecho de integridad" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="computer_id"/>
+                            <field name="date"/>
+                            <field name="kind"/>
+                        </group>
+                        <group>
+                            <field name="value_text" string="Medida"/>
+                            <field name="maintenance"/>
+                            <field name="computed_at"/>
+                        </group>
+                    </group>
+                    <group string="Que significa">
+                        <field name="meaning" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Evidencia">
+                        <field name="evidence_text" nolabel="1" colspan="2"/>
+                        <field name="evidence" nolabel="1" colspan="2" groups="base.group_no_one"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_integrity_fact_view_search" model="ir.ui.view">
+        <field name="name">foco.integrity.fact.search</field>
+        <field name="model">foco.integrity.fact</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="kind"/>
+                <filter name="sin_mantenimiento" string="Sin mantenimiento ese dia"
+                        domain="[('maintenance', '=', False)]"/>
+                <filter name="horas" string="Medidos en horas" domain="[('unit', '=', 'h')]"/>
+                <filter name="veces" string="Contados en veces" domain="[('unit', '=', 'n')]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_kind" string="Hecho" context="{'group_by': 'kind'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'date:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_integrity_fact_action" model="ir.actions.act_window">
+        <field name="name">Integridad</field>
+        <field name="res_model">foco.integrity.fact</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin hechos de integridad</p>
+            <p>
+                Aqui aparece lo que Foco midio y que puede leerse como intento de
+                saltarse la medicion: input sintetico sin input real, horas solo con
+                mouse, pantalla sin cambio, intentos de sitios bloqueados, arranques
+                del agente sin causa, checar sin dar senal... Cada renglon trae su
+                medida, su evidencia y que significa. Ninguno es un veredicto.
+            </p>
+        </field>
+    </record>
+</odoo>

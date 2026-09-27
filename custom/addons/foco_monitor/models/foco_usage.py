@@ -304,6 +304,21 @@ class FocoUsage(models.Model):
             empleados.append(e)
         empleados.sort(key=lambda x: -x['activo'])
 
+        # --- hechos de integridad del periodo, por persona --------------------
+        # Van con el resto de la analitica para que la fila del tablero los
+        # muestre sin otra consulta. Con el env del usuario: su alcance manda.
+        try:
+            hechos = self.env['foco.integrity.fact'].resumen(
+                desde, hasta, [e['id'] for e in empleados])
+        except Exception:
+            hechos = {}
+        for e in empleados:
+            lista = hechos.get(e['id']) or []
+            e['hechos'] = [{'etiqueta': h['etiqueta'], 'texto': h['texto'], 'dias': h['dias'],
+                            'mantenimiento': h['mantenimiento'], 'kind': h['kind']}
+                           for h in lista[:6]]
+            e['hechos_n'] = len(lista)
+
         total_activo = sum(e['activo'] for e in empleados)
         total_prod = sum(e['productivo'] for e in empleados)
         return {

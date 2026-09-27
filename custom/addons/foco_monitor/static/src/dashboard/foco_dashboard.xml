@@ -241,6 +241,14 @@
                                                             <t t-esc="e.cobDias"/>/<t t-esc="e.cobEsperados"/> d
                                                         </span>
                                                     </t>
+                                                    <!-- Hechos de integridad: cuántos y cuáles, en el
+                                                         título. Es evidencia con medida, no una alarma:
+                                                         el color es neutro a propósito. -->
+                                                    <t t-if="e.hechosN">
+                                                        <span class="fd_tag integridad" t-att-title="e.hechosTitulo">
+                                                            <t t-esc="e.hechosN"/> <t t-esc="e.hechosN === 1 ? 'hecho' : 'hechos'"/>
+                                                        </span>
+                                                    </t>
                                                 </span>
                                             </span>
                                         </td>

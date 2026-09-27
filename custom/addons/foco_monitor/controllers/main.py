@@ -393,6 +393,13 @@ class FocoController(http.Controller):
                 dias = {fields.Date.context_today(Usage)}
             request.env['foco.workday'].sudo().rebuild(
                 computer.employee_id, sorted(d for d in dias if d))
+            # Y los hechos de integridad de esos mismos dias: barato (una
+            # persona, uno o dos dias) y asi se ven al momento, no de noche.
+            try:
+                request.env['foco.integrity.fact'].sudo().rebuild(
+                    computer.employee_id, sorted(d for d in dias if d))
+            except Exception:
+                _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
         Command = request.env['foco.command'].sudo()
         cmds = Command.search([('computer_id', '=', computer.id),

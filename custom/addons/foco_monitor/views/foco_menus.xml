@@ -39,6 +39,10 @@
 
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
+    <!-- Hechos de integridad: lo medido que puede leerse como intento de
+         saltarse la medicion, con evidencia y significado; nunca veredicto. -->
+    <menuitem id="menu_foco_integridad" name="Integridad"
+              parent="menu_foco_sec_actividad" action="foco_integrity_fact_action" sequence="45"/>
 
     <!-- Llamadas de WhatsApp desde la laptop, ya clasificadas por el modelo.
          Solo administradores: aunque no haya contenido, "llamada personal de
