@@ -404,10 +404,16 @@ class FocoIntegrityFact(models.Model):
             h = por.setdefault(r.kind, {'kind': r.kind, 'etiqueta': etiquetas.get(r.kind, r.kind),
                                         'valor': 0.0, 'unidad': r.unit, 'dias': 0,
                                         'significado': SIGNIFICADO.get(r.kind, ''),
-                                        'mantenimiento': False, 'evidencia': []})
+                                        'mantenimiento': False, 'mantenimiento_dias': 0,
+                                        'evidencia': []})
             h['valor'] += r.value or 0.0
             h['dias'] += 1
-            h['mantenimiento'] = h['mantenimiento'] or bool(r.maintenance)
+            # Cuantos de esos dias tuvieron mantenimiento, no solo "alguno":
+            # "3 arranques, 2 dias, 1 con mantenimiento" se lee distinto que un
+            # "si" que tapa al dia limpio.
+            if r.maintenance:
+                h['mantenimiento_dias'] += 1
+                h['mantenimiento'] = True
             if len(h['evidencia']) < 3 and r.evidence_text:
                 h['evidencia'].append('%s: %s' % (r.date, r.evidence_text[:120]))
         for emp_id, por in salida.items():
