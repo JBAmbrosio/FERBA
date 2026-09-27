@@ -712,6 +712,10 @@ export class FocoDashboard extends Component {
             const sinSenal = sal.health === "stale" || sal.health === "never";
             const cb = (cobertura || {})[String(e.id)] || null;
             const res = (resumen || {})[String(e.id)] || {};
+            // Hechos de integridad: vienen en la analitica por persona, no en
+            // los renglones de uso con los que se arma esta fila.
+            const hx = (this.state.porPersona || []).find((p) => p.id === e.id) || {};
+            const hechos = hx.hechos || [];
             const expected = res.expected || 0;
             const justified = res.justified || 0;
             // Lo unico que amerita conversacion: ni medido, ni justificado.
@@ -749,9 +753,10 @@ export class FocoDashboard extends Component {
                 // Hechos de integridad del periodo (foco.integrity.fact): lo
                 // medido que puede leerse como intento de saltarse la medicion,
                 // con su medida. Un conteo con su lista, no un semaforo.
-                hechos: e.hechos || [],
-                hechosN: e.hechos_n || 0,
-                hechosTitulo: (e.hechos || []).map((h) => `${h.etiqueta}: ${h.texto} (${h.dias} d)${h.mantenimiento ? " · mantenimiento ese día" : ""}`).join("\n"),
+                hechos,
+                hechosN: hx.hechos_n || 0,
+                hechosTitulo: hechos
+                    .map((h) => `${h.etiqueta}: ${h.texto} (${h.dias} d)${h.mantenimiento ? " · con mantenimiento" : ""}`).join("\n"),
                 call: e.call, hasCall: e.call > 0.008,
                 // Frente a la pantalla sin teclear. NO se resta de nada: se
                 // traslapa con las ausencias justificadas (quien se va al
