@@ -34,6 +34,9 @@ KINDS = [
     ('sitio_bloqueado', 'Sitio bloqueado intentado'),
     ('input_sintetico', 'Input sintetico sin input real'),
     ('agente_actualizado', 'El agente se actualizo'),
+    # Registro de Windows (UserPnP 20001/20003), solo clases de ENTRADA: mouse,
+    # teclado, HID. Un jiggler de hardware o un telefono como mouse entran aqui.
+    ('dispositivo_nuevo', 'Dispositivo de entrada nuevo'),
 ]
 
 class FocoEvent(models.Model):

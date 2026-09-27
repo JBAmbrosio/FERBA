@@ -15,6 +15,7 @@ import hashlib
 import json
 import logging
 import re
+from datetime import datetime
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
@@ -110,6 +111,13 @@ class FocoPolicy(models.Model):
     ask_max_idle_secs = fields.Integer(
         string='No abrirla si lleva mas de (s) sin input', default=120,
         help='Nadie la veria. Minimo 10.')
+    screen_change_secs = fields.Integer(
+        string='Huella de pantalla cada (s)', default=30,
+        help='Cada tantos segundos el agente resume la pantalla en 1,024 bytes '
+             '(32x32 en gris) y la compara con la anterior. El tiempo activo con '
+             'la pantalla identica se reporta como "activo con pantalla sin '
+             'cambio": hubo input y nada cambio. La huella no se guarda ni '
+             'viaja. 0 = apagado.')
     managed_browsers = fields.Text(
         string='Navegadores gestionados (uno por linea)',
         default='Chrome\nEdge\nFirefox\nBrave\nVivaldi\nOpera\nChromium',
@@ -140,7 +148,7 @@ class FocoPolicy(models.Model):
     _CONDUCTA_FABRICA = {
         'idle_secs': 60, 'medir_fuera_turno': True, 'integridad': True,
         'llamadas': True, 'ventana': True, 'ventana_cooldown': 120,
-        'ventana_max_idle': 120,
+        'ventana_max_idle': 120, 'pantalla_cada': 30,
         'navegadores': ['chrome', 'edge', 'firefox', 'brave', 'vivaldi', 'opera', 'chromium'],
     }
 
@@ -165,11 +173,12 @@ class FocoPolicy(models.Model):
                 'ventana': bool(perfil.ask_enabled),
                 'ventana_cooldown': max(30, perfil.ask_cooldown_secs or 120),
                 'ventana_max_idle': max(10, perfil.ask_max_idle_secs or 120),
+                'pantalla_cada': max(0, min(3600, perfil.screen_change_secs or 0)),
                 'navegadores': self._patrones(perfil.managed_browsers),
             }
         else:
             bloque = dict(self._CONDUCTA_FABRICA)
-        bloque['sitios_bloqueados'] = (perfil._listas()[0]
+        bloque['sitios_bloqueados'] = (perfil._patrones_bloqueo()
                                        if perfil and ajustes.block_enabled else [])
         bloque['version'] = self._hash(bloque)
         return bloque
@@ -272,21 +281,73 @@ class FocoPolicy(models.Model):
             p.computer_count = len(p.computer_ids)
             p.rule_count = len(p.rule_ids)
 
-    @api.depends('rule_ids.pattern', 'rule_ids.action', 'rule_ids.active')
+    @api.depends('rule_ids.pattern', 'rule_ids.action', 'rule_ids.active',
+                 'rule_ids.days', 'rule_ids.hour_from', 'rule_ids.hour_to',
+                 'rule_ids.quota_minutes')
     def _compute_version(self):
         for p in self:
-            p.version = p._hash(p._listas())
+            # Sobre las reglas COMPLETAS: un cambio de horario o de cuota es un
+            # cambio de politica aunque las listas planas queden iguales.
+            p.version = p._hash(p._reglas())
 
     # ------------------------------------------------------------ publicacion
     def _listas(self):
-        """(bloquear, permitir) ya normalizadas y sin repetidos."""
+        """(bloquear, permitir) SIN condiciones, ya normalizadas y sin repetidos.
+
+        Es lo que lee un servicio anterior a 2026.09.29, que no sabe de horario
+        ni cuota: una regla condicionada no le viaja, y eso es fallar cerrado
+        para Permitir (sigue bloqueado) y abierto para Bloquear (no se bloquea).
+        Los equipos actualizados usan `_reglas()`.
+        """
         self.ensure_one()
         bloquear, permitir = [], []
         for r in self.rule_ids.sorted('sequence'):
-            if not r.active or not r.pattern:
+            if not r.active or not r.pattern or r.condicionada:
                 continue
             (permitir if r.action == 'allow' else bloquear).append(r.pattern)
         return sorted(set(bloquear)), sorted(set(permitir))
+
+    def _reglas(self):
+        """Las reglas completas, con horario y cuota, en orden. Incluye el
+        salvavidas (el propio Odoo siempre permitido)."""
+        self.ensure_one()
+        reglas = [r._como_regla() for r in self.rule_ids.sorted('sequence')
+                  if r.active and r.pattern]
+        for host in self._salvavidas():
+            reglas.append({'pattern': host, 'action': 'allow', 'days': [1, 2, 3, 4, 5, 6, 7],
+                           'from': 0.0, 'to': 0.0, 'quota_min': 0})
+        return reglas
+
+    def _patrones_bloqueo(self):
+        """TODOS los patrones de bloqueo, condicionados o no: la pagina de
+        bloqueo al frente prueba que en ese momento aplicaba."""
+        self.ensure_one()
+        return sorted({r['pattern'] for r in self._reglas() if r['action'] == 'block'})
+
+    def _usado_min(self, computer, patron):
+        """Minutos ACTIVOS de hoy de este equipo en los sitios que cubre el
+        patron, con lo que el agente ya reporto. Hoy = el dia de la persona."""
+        zona = self.env['foco.settings'].sudo()._tzinfo_for(computer.employee_id, computer)
+        import pytz
+        hoy = datetime.now(zona or pytz.UTC).date()
+        Usage = self.env['foco.usage'].sudo()
+        total = 0.0
+        for host, horas in Usage._read_group(
+                [('computer_id', '=', computer.id), ('date', '=', hoy), ('host', '!=', '')],
+                ['host'], ['fg_active:sum']):
+            if self._cubre(patron, host):
+                total += horas or 0.0
+        return int(round(total * 60.0))
+
+    def _reglas_con_uso(self, computer):
+        """Las reglas mas `used_min` en las que tienen cuota. Va en cada consulta
+        del servicio, que es quien decide si la cuota ya se agoto."""
+        salida = []
+        for r in self._reglas():
+            if r['quota_min']:
+                r = dict(r, used_min=self._usado_min(computer, r['pattern']))
+            salida.append(r)
+        return salida
 
     @api.model
     def _hash(self, listas):
@@ -352,8 +413,12 @@ class FocoPolicy(models.Model):
             return {'version': 'vacio', 'block': [], 'allow': [], 'kill': []}
         bloquear, permitir = perfil._listas()
         permitir = sorted(set(permitir) | set(self._salvavidas()))
-        return {'version': perfil._hash((bloquear, permitir)),
+        return {'version': perfil.version or perfil._hash(perfil._reglas()),
+                # Listas planas SIN condiciones, para servicios anteriores.
                 'block': bloquear, 'allow': permitir,
+                # Reglas completas con horario, cuota y uso del dia, para los
+                # servicios que saben recalcular la lista efectiva.
+                'rules': perfil._reglas_con_uso(computer),
                 'kill': perfil._kill_list(),
                 'kill_productos': perfil._kill_products(),
                 'policy': perfil.name}
@@ -494,6 +559,81 @@ class FocoPolicyRule(models.Model):
         string='Por que',
         help='La razon de la regla. Cuesta diez segundos escribirla y ahorra la '
              'discusion de por que este sitio esta cerrado.')
+
+    # ---- CUANDO aplica (27-sep-2026): horario y cuota ------------------------
+    #
+    # Una regla sin horario ni cuota aplica siempre, como hasta hoy. Con
+    # horario aplica SOLO dentro de esa ventana, en la hora local del equipo.
+    # Con cuota: Permitir vale hasta N minutos al dia (la excepcion se agota);
+    # Bloquear entra al superar N (se bloquea cuando ya se uso lo acordado).
+    #
+    # Quien recalcula la lista efectiva es el servicio del equipo, cada minuto.
+    # El uso del dia se lo manda Odoo en cada consulta de politica (cada 5 min)
+    # y NO lo lee de la base local del agente: esa base vive en una carpeta que
+    # la persona puede escribir, y una cuota que se reinicia borrando un archivo
+    # no es una cuota. El costo es que la cuota se vence con hasta ~10 min de
+    # retraso (envio del agente + consulta del servicio). Se dice, no se oculta.
+    days = fields.Char(
+        string='Dias', default='1,2,3,4,5,6,7',
+        help='Numeros de dia separados por coma: 1 = lunes ... 7 = domingo. '
+             'Vacio = todos los dias.')
+    hour_from = fields.Float(
+        string='Desde', default=0.0,
+        help='Hora local del equipo, de 0 a 24. Con Desde y Hasta en 0 la regla '
+             'aplica todo el dia.')
+    hour_to = fields.Float(string='Hasta', default=0.0)
+    quota_minutes = fields.Integer(
+        string='Cuota (min/dia)', default=0,
+        help='0 = sin cuota. En una regla Permitir: la excepcion vale hasta estos '
+             'minutos al dia. En una regla Bloquear: se bloquea al superar estos '
+             'minutos. El uso lo cuenta Odoo con lo que el agente reporta.')
+    condicionada = fields.Boolean(
+        string='Con horario o cuota', compute='_compute_condicionada',
+        help='Una regla condicionada solo la aplican los equipos con servicio '
+             '2026.09.29 o posterior; los anteriores la ignoran.')
+
+    @api.depends('days', 'hour_from', 'hour_to', 'quota_minutes')
+    def _compute_condicionada(self):
+        for r in self:
+            r.condicionada = bool(r.quota_minutes) or bool(r.hour_from or r.hour_to) \
+                or (len(r._dias()) < 7)
+
+    def _dias(self):
+        """[1..7] tal como se escribio; vacio o invalido = todos."""
+        self.ensure_one()
+        vistos = []
+        for parte in (self.days or '').replace(';', ',').split(','):
+            parte = parte.strip()
+            if parte.isdigit() and 1 <= int(parte) <= 7 and int(parte) not in vistos:
+                vistos.append(int(parte))
+        return sorted(vistos) or [1, 2, 3, 4, 5, 6, 7]
+
+    @api.constrains('days', 'hour_from', 'hour_to', 'quota_minutes')
+    def _check_condiciones(self):
+        for r in self:
+            if r.quota_minutes < 0:
+                raise ValidationError('La cuota no puede ser negativa.')
+            if not (0.0 <= (r.hour_from or 0.0) <= 24.0 and 0.0 <= (r.hour_to or 0.0) <= 24.0):
+                raise ValidationError('Las horas van de 0 a 24.')
+            if (r.hour_from or r.hour_to) and (r.hour_to or 0.0) <= (r.hour_from or 0.0):
+                raise ValidationError('"Hasta" tiene que ser mayor que "Desde" (%s).' % r.pattern)
+            for parte in (r.days or '').replace(';', ',').split(','):
+                parte = parte.strip()
+                if parte and not (parte.isdigit() and 1 <= int(parte) <= 7):
+                    raise ValidationError('Dias: solo numeros del 1 (lunes) al 7 (domingo), '
+                                          'separados por coma. Llego "%s".' % parte)
+
+    def _como_regla(self):
+        """La regla tal como viaja al servicio del equipo."""
+        self.ensure_one()
+        return {
+            'pattern': (self.pattern or '').strip(),
+            'action': self.action,
+            'days': self._dias(),
+            'from': round(self.hour_from or 0.0, 4),
+            'to': round(self.hour_to or 0.0, 4),
+            'quota_min': int(self.quota_minutes or 0),
+        }
 
     # A que alcanza el patron, contrastado contra lo que la empresa abre DE
     # VERDAD.

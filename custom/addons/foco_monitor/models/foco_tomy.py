@@ -44,6 +44,24 @@ DEFINICIONES = {
                'y minutos sin explicar (esperado - medido - justificado).',
     'cobertura': 'Dias laborables del calendario contra dias en que su equipo reporto algo. Un indice sobre '
                  'pocos dias medidos no es comparable con uno sobre el periodo completo.',
+    # Hechos de integridad (agente 2026.09.28+). Ninguno es un veredicto.
+    'sintetico_sin_input_real': 'Horas "activas" con input generado por software y NADA real en los ultimos '
+                                '3 minutos: la firma de un jiggler de software. Windows marca el input '
+                                'inyectado; es un hecho, no una sospecha. Antes del 28-sep esta columna '
+                                'mezclaba tambien las herramientas que inyectan (ratones 3D, macros).',
+    'inyectado_con_input_real': 'Horas activas con input inyectado Y input real de la persona a la vez: una '
+                                'herramienta que inyecta mientras trabaja (raton 3D de SolidWorks, software '
+                                'de mouse, soporte remoto). No es ausencia.',
+    'activo_sin_teclear': 'Horas "activas" sin una sola tecla en 3 minutos: solo mouse. Evidencia contra un '
+                          'jiggler de HARDWARE, que Windows ve como input real. Revisar planos con el mouse '
+                          'tambien cae aqui: numero para interpretar.',
+    'activo_pantalla_sin_cambio': 'Horas "activas" en las que la pantalla quedo identica a la huella anterior '
+                                  '(32x32 en gris, cada tantos segundos segun el perfil): hubo input y nada '
+                                  'cambio. El trabajo real cambia la pantalla.',
+    'sitio_bloqueado_intentado': 'La pagina de bloqueo estuvo al frente: la persona intento abrir un sitio de '
+                                 'la politica y el navegador no lo cargo. No lo vio.',
+    'dispositivo_nuevo': 'Windows instalo un mouse, teclado o HID que no conocia. Normal al estrenar un '
+                         'mouse; junto a horas solo-mouse es evidencia de jiggler de hardware.',
 }
 
 
@@ -473,9 +491,9 @@ class FocoTomy(models.AbstractModel):
         dominio = [('employee_id', '=', emp.id), ('date', '>=', d), ('date', '<=', h)]
         tot = Usage._read_group(dominio, [], ['fg_active:sum', 'fg_idle:sum', 'active_hours:sum',
                                               'productive_hours:sum', 'call_hours:sum', 'injected_hours:sum',
-                                              'injected_tool_hours:sum', 'nokey_hours:sum'])
+                                              'injected_tool_hours:sum', 'nokey_hours:sum', 'static_hours:sum'])
         (activo_b, sin_input, activo, productivo, en_llamada, inyectado,
-         inyectado_util, sin_teclas) = (tot[0] if tot else (0,) * 8)
+         inyectado_util, sin_teclas, pantalla_fija) = (tot[0] if tot else (0,) * 9)
         activo = activo or 0.0
         productivo = productivo or 0.0
         dias_con_dato = len(Usage._read_group(dominio, ['date:day'], ['__count']))
@@ -520,12 +538,15 @@ class FocoTomy(models.AbstractModel):
                 'sintetico_sin_input_real': _hm(inyectado) if inyectado else None,
                 'inyectado_con_input_real': _hm(inyectado_util) if inyectado_util else None,
                 'activo_sin_teclear': _hm(sin_teclas) if sin_teclas else None,
+                'activo_pantalla_sin_cambio': _hm(pantalla_fija) if pantalla_fija else None,
                 'significado_integridad': ('sintetico_sin_input_real = input generado por software y nada '
                                            'real en 3 min (firma de jiggler); inyectado_con_input_real = una '
                                            'herramienta que inyecta mientras la persona trabaja (raton 3D, '
                                            'macro, soporte remoto), NO es ausencia; activo_sin_teclear = solo '
-                                           'mouse durante 3 min, evidencia a interpretar, no veredicto')
-                                          if (inyectado or inyectado_util or sin_teclas) else None,
+                                           'mouse durante 3 min, evidencia a interpretar, no veredicto; '
+                                           'activo_pantalla_sin_cambio = hubo input y la pantalla quedo '
+                                           'identica, el trabajo real cambia la pantalla')
+                                          if (inyectado or inyectado_util or sin_teclas or pantalla_fija) else None,
             },
             'top_apps': apps, 'top_sitios': sitios, 'top_archivos': archivos,
             'llamadas_whatsapp': llamadas, 'ausencias': ausencias, 'jornada': jornada,
@@ -776,6 +797,10 @@ class FocoTomy(models.AbstractModel):
                            'intento de abrirlo, no visita. No vio el sitio.',
         'input_sintetico': 'Primer rato del dia "activo" con input generado por software y NADA '
                            'real en tres minutos; el proceso trae lo que corria en el equipo.',
+        'dispositivo_nuevo': 'Windows instalo un dispositivo de ENTRADA que no habia visto (mouse, '
+                             'teclado o HID); el proceso trae la clase y el identificador del '
+                             'aparato, la palabra de Windows su descripcion. Un mouse nuevo es '
+                             'normal; un mouse nuevo seguido de horas solo-mouse es evidencia.',
         'llamada_inicio': 'Una app tomo el microfono (junta o llamada).',
         'llamada_fin': 'La app solto el microfono.',
         'suspendido': 'El equipo se suspendio (tapa cerrada o reposo).',
