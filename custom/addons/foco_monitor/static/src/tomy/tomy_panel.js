@@ -38,10 +38,12 @@ export class TomyPanel extends Component {
         this._poseTimer = null;
         // Las graficas se dibujan DESPUES de que el mensaje existe en el DOM,
         // y se redibujan enteras si cambia el tema: Chart.js pinta la letra
-        // con el color que tenia al crearse, no con el CSS.
+        // con el color que tenia al crearse, no con el CSS. El scroll al
+        // ultimo mensaje va aqui por la misma razon: OWL pinta en su propio
+        // frame, y un requestAnimationFrame desde el handler llega antes.
         useEffect(
-            () => { this.dibujar(); },
-            () => [this.state.mensajes.length, this.props.dark, this.state.abierto]
+            () => { this.bajar(); this.dibujar(); },
+            () => [this.state.mensajes.length, this.props.dark, this.state.abierto, this.state.cargando]
         );
         onWillUnmount(() => { this.tirar(); clearTimeout(this._poseTimer); });
     }
