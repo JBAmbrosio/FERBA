@@ -102,6 +102,13 @@ class FocoUsage(models.Model):
              'Es la evidencia contra un jiggler de HARDWARE, que Windows ve '
              'como input real. Un numero para interpretar, no un veredicto: '
              'revisar planos o leer con el mouse tambien cae aqui.')
+    static_hours = fields.Float(
+        string='Activo con pantalla sin cambio (h)',
+        help='Horas "activas" en las que la pantalla quedo identica a la huella '
+             'anterior (32x32 en gris, cada tantos segundos segun el perfil): '
+             'hubo teclado o mouse y nada cambio en pantalla. El trabajo real '
+             'cambia la pantalla; un mouse que se mueve sin hacer nada, no. '
+             'Evidencia, no veredicto: se muestra con la app.')
     keys_count = fields.Integer(
         string='Teclas', help='CUANTAS teclas se pulsaron con esta app al frente; '
                               'nunca cuales.')

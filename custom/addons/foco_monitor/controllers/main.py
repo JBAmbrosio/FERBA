@@ -251,7 +251,8 @@ class FocoController(http.Controller):
         bajadas = []
         ACUMULADOS = ('fg_active', 'fg_idle', 'background', 'call_hours',
                       'injected_hours', 'call_noinput_hours', 'injected_tool_hours',
-                      'nokey_hours', 'keys_count', 'mouse_events', 'positions_count')
+                      'nokey_hours', 'keys_count', 'mouse_events', 'positions_count',
+                      'static_hours')
 
         def _entero(v):
             try:
@@ -297,6 +298,7 @@ class FocoController(http.Controller):
             # tiempo activo, y tambien acotados.
             tool_h = min(_sec_to_h(s.get('injected_tool_secs')), fga)
             nokey_h = min(_sec_to_h(s.get('nokey_secs')), fga)
+            static_h = min(_sec_to_h(s.get('static_secs')), fga)
             # El sitio se cataloga como entidad propia: es lo que permite
             # clasificarlo y que pese distinto que la app que lo muestra.
             site = Site._get_or_create(host) if host else Site.browse()
@@ -312,6 +314,7 @@ class FocoController(http.Controller):
                       'host_status': status, 'call_hours': call_h,
                       'injected_hours': iny_h, 'call_noinput_hours': cni_h,
                       'injected_tool_hours': tool_h, 'nokey_hours': nokey_h,
+                      'static_hours': static_h,
                       'keys_count': _entero(s.get('keys')),
                       'mouse_events': _entero(s.get('mouse_events')),
                       'positions_count': _entero(s.get('positions')),

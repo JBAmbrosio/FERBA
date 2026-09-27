@@ -69,6 +69,14 @@
                             <code>music.youtube.com</code>. Para abrir una excepción,
                             agrégalo con acción <b>Permitir</b> — permitir gana sobre
                             bloquear.
+                            <br/>
+                            <b>Horario y cuota.</b> Una regla con Desde y Hasta aplica solo en
+                            esa ventana (hora del equipo) y en los días que diga. Con cuota,
+                            <b>Permitir</b> vale hasta esos minutos al día y <b>Bloquear</b>
+                            entra al superarlos. Ejemplo: bloquear <code>youtube.com</code>
+                            todo el día y permitirlo de 14:00 a 15:00, o permitirlo hasta
+                            30 min. La cuota se vence con hasta diez minutos de retraso
+                            (lo que tarda el equipo en reportar y volver a preguntar).
                         </div>
                         <field name="rule_ids" nolabel="1" colspan="2">
                             <list editable="bottom">
@@ -76,6 +84,11 @@
                                 <field name="pattern"
                                        placeholder="youtube.com   ·   music.youtube.com   ·   ejemplo.com/foro"/>
                                 <field name="action"/>
+                                <field name="days" placeholder="1,2,3,4,5" optional="show"/>
+                                <field name="hour_from" widget="float_time" optional="show"/>
+                                <field name="hour_to" widget="float_time" optional="show"/>
+                                <field name="quota_minutes" optional="show"/>
+                                <field name="condicionada" column_invisible="1"/>
                                 <!-- Contra que sitios REALES pega el patron.
                                      Va junto al patron, no en un tooltip: el
                                      dedazo se caza mirando, no buscando. -->
@@ -123,6 +136,7 @@
                             <field name="ask_enabled" widget="boolean_toggle"/>
                             <field name="ask_cooldown_secs" invisible="not ask_enabled"/>
                             <field name="ask_max_idle_secs" invisible="not ask_enabled"/>
+                            <field name="screen_change_secs"/>
                         </group>
                         <field name="managed_browsers" colspan="2"
                                placeholder="Chrome&#10;Edge&#10;Firefox&#10;Brave"/>
