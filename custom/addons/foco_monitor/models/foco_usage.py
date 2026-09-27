@@ -322,8 +322,12 @@ class FocoUsage(models.Model):
             hechos = {}
         for e in empleados:
             lista = hechos.get(e['id']) or []
+            # `mantenimiento_dias` y no solo el "si" agregado: un solo dia con
+            # mantenimiento tapaba a los limpios en la etiqueta del tablero.
             e['hechos'] = [{'etiqueta': h['etiqueta'], 'texto': h['texto'], 'dias': h['dias'],
-                            'mantenimiento': h['mantenimiento'], 'kind': h['kind']}
+                            'mantenimiento': h['mantenimiento'],
+                            'mantenimiento_dias': h.get('mantenimiento_dias', 0),
+                            'kind': h['kind']}
                            for h in lista[:6]]
             e['hechos_n'] = len(lista)
 
