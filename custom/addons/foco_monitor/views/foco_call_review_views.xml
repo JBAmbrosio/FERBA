@@ -93,14 +93,15 @@
                         domain="[('state', 'in', ('grabando', 'transcribiendo', 'por_clasificar', 'error'))]"/>
                 <filter name="con_error" string="Con error" domain="[('state', '=', 'error')]"/>
                 <separator/>
-                <!-- Sin default_period: Odoo 19 rechaza «today» al validar la vista
-                     (build de Production 27-sep 00:49, «Invalid default period»). -->
-                <filter name="fecha" string="Fecha" date="started_at"/>
-                <group expand="0" string="Agrupar por">
-                    <filter name="g_empleado" string="Empleado" context="{'group_by': 'employee_id'}"/>
-                    <filter name="g_veredicto" string="Veredicto" context="{'group_by': 'clasificacion'}"/>
-                    <filter name="g_dia" string="Dia" context="{'group_by': 'started_at:day'}"/>
-                </group>
+                <!-- Los filtros de agrupacion van sueltos tras un separador, sin
+                     envolverlos en <group expand="0">: es el patron de las demas
+                     vistas del modulo, y el envoltorio hace que Odoo 19 rechace la
+                     vista entera (build de Production 27-sep 01:09). Tampoco lleva
+                     filtro de fecha (date=...): «today» como periodo por omision
+                     ya tumbo el build de las 00:49. -->
+                <filter name="g_empleado" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_veredicto" string="Veredicto" context="{'group_by': 'clasificacion'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'started_at:day'}"/>
             </search>
         </field>
     </record>
