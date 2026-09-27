@@ -158,6 +158,33 @@
         <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
     </record>
 
+    <!-- Conversaciones con Tomy: cada quien ve las suyas; los administradores
+         de Foco ven todas, porque Tomy habla de personas y eso se audita. -->
+    <record id="rule_foco_tomy_thread_propias" model="ir.rule">
+        <field name="name">Foco: conversaciones con Tomy propias</field>
+        <field name="model_id" ref="model_foco_tomy_thread"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_foco_tomy_thread_admin" model="ir.rule">
+        <field name="name">Foco: conversaciones con Tomy, los administradores ven todas</field>
+        <field name="model_id" ref="model_foco_tomy_thread"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_tomy_message_propios" model="ir.rule">
+        <field name="name">Foco: mensajes de Tomy propios</field>
+        <field name="model_id" ref="model_foco_tomy_message"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('thread_id.user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_foco_tomy_message_admin" model="ir.rule">
+        <field name="name">Foco: mensajes de Tomy, los administradores ven todos</field>
+        <field name="model_id" ref="model_foco_tomy_message"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
     <record id="rule_foco_call_admin" model="ir.rule">
         <field name="name">Foco: llamadas, los administradores ven todo</field>
         <field name="model_id" ref="model_foco_call"/>

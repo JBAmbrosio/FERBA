@@ -516,6 +516,10 @@
                     </t>
                 </aside>
             </t>
+
+            <!-- Tomy sabe que periodo esta viendo el usuario: si pregunta
+                 "y esta semana?" con el tablero en 7 dias, se lo pasa. -->
+            <TomyPanel dark="state.dark" rango="state.rango" days="state.days"/>
         </div>
     </t>
 

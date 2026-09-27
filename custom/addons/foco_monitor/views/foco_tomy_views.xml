@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Auditoria de Tomy: quien pregunto que, que herramientas consulto y que
+         contesto. Es de solo lectura: las conversaciones nacen en el panel. -->
+    <record id="foco_tomy_thread_view_list" model="ir.ui.view">
+        <field name="name">foco.tomy.thread.list</field>
+        <field name="model">foco.tomy.thread</field>
+        <field name="arch" type="xml">
+            <list create="false">
+                <field name="last_at"/>
+                <field name="user_id"/>
+                <field name="name"/>
+                <field name="message_count"/>
+                <field name="tokens"/>
+                <field name="costo_usd"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_tomy_thread_view_form" model="ir.ui.view">
+        <field name="name">foco.tomy.thread.form</field>
+        <field name="model">foco.tomy.thread</field>
+        <field name="arch" type="xml">
+            <form string="Conversacion con Tomy" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="name"/>
+                            <field name="last_at"/>
+                        </group>
+                        <group>
+                            <field name="message_count"/>
+                            <field name="tokens"/>
+                            <field name="costo_usd"/>
+                        </group>
+                    </group>
+                    <field name="message_ids">
+                        <list>
+                            <field name="create_date"/>
+                            <field name="role"/>
+                            <field name="content"/>
+                            <field name="tools" optional="hide"/>
+                            <field name="tokens" optional="show"/>
+                            <field name="ms" optional="hide"/>
+                            <field name="fuera_de_alcance" optional="show"/>
+                            <field name="feedback" optional="show"/>
+                            <field name="error" optional="hide"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_tomy_thread_action" model="ir.actions.act_window">
+        <field name="name">Conversaciones con Tomy</field>
+        <field name="res_model">foco.tomy.thread</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nadie ha platicado con Tomy todavia</p>
+            <p>Tomy vive en el tablero de Foco. Aqui queda cada pregunta, las consultas que hizo y lo que contesto.</p>
+        </field>
+    </record>
+</odoo>
