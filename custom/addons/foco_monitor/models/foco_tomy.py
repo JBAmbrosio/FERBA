@@ -467,7 +467,8 @@ class FocoTomy(models.AbstractModel):
               'bloqueados, navegadores cerrados, arranques del agente sin causa, checar sin dar senal, '
               'admin local, dispositivos nuevos, justificaciones, contenedores), con medida, evidencia y '
               'significado, y la lista de lo que Foco NO puede saber. Para "trampa", "evasion", "engano", '
-              '"algo raro". Nunca da veredicto.',
+              '"algo raro". Nunca da veredicto. SIN employee_id trae a TODAS las personas del alcance de '
+              'una vez: para el equipo llamala UNA sola vez, no una por persona.',
               {'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
             t('grafica',
               'Dibuja una grafica en la respuesta con datos que YA obtuviste de otras herramientas.',
@@ -510,22 +511,23 @@ class FocoTomy(models.AbstractModel):
             hechos = resumen.get(emp.id) or []
             personas.append({'persona': emp.name, 'employee_id': emp.id, 'hechos': [
                 {'hecho': x['etiqueta'], 'medida': x['texto'], 'dias_con_el_hecho': x['dias'],
-                 'significado': x['significado'], 'mantenimiento_ese_dia': x['mantenimiento'],
-                 'evidencia': x['evidencia']} for x in hechos]})
+                 'dias_con_mantenimiento': '%d de %d' % (x['mantenimiento_dias'], x['dias']),
+                 'significado': x['significado'], 'evidencia': x['evidencia']} for x in hechos]})
             for x in hechos:
                 filas.append([emp.name, x['etiqueta'], x['texto'], x['dias'],
-                              'si' if x['mantenimiento'] else ''])
+                              '%d de %d' % (x['mantenimiento_dias'], x['dias'])])
         if filas:
             self._tabla(artefactos, 'Hechos de integridad (%s a %s)' % (d, h),
-                        ['Persona', 'Hecho', 'Medida', 'Dias', 'Mantenimiento'], filas)
+                        ['Persona', 'Hecho', 'Medida', 'Dias', 'Dias con mantenimiento'], filas)
         return {'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None,
                 'personas': personas,
                 'sin_hechos': [e.name for e in gente if not resumen.get(e.id)],
                 'lo_que_foco_no_puede_saber': NO_SE_PUEDE_SABER,
-                'regla': 'Cada hecho es una medida con su significado; ninguno prueba intencion. Un '
-                         'dia con mantenimiento (actualizacion o reinstalacion) explica arranques sin '
-                         'causa y bases recreadas. Describe los hechos, di que no se puede saber, y no '
-                         'concluyas "hizo trampa".'}
+                'regla': 'La tabla ya se muestra: no la repitas renglon por renglon. Resume cada '
+                         'persona en dos o tres lineas con lo que mas pesa y su significado, di en '
+                         'cuantos de esos dias hubo mantenimiento (explica arranques sin causa y '
+                         'retrasos), y cierra con lo que Foco no puede saber. Ningun hecho prueba '
+                         'intencion: no concluyas "hizo trampa" ni "no hizo trampa".'}
 
     def _tool_resumen_persona(self, artefactos, employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id)
