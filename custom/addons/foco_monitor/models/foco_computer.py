@@ -109,6 +109,20 @@ class FocoComputer(models.Model):
         help='Ultimo envio del agente que trajo el estado del servicio. Vacio = '
              'el agente es anterior a este reporte.')
 
+    # ------------------------------------------------- llamadas de WhatsApp
+    # POR EQUIPO y apagado de fabrica, ademas del interruptor general: grabar
+    # una llamada es lo mas invasivo que hace el sistema y solo procede con el
+    # consentimiento firmado de ESA persona. La fecha deja constancia.
+    call_review = fields.Boolean(
+        string='Analizar sus llamadas de WhatsApp', default=False,
+        help='Solo con el consentimiento firmado de esta persona. Mientras '
+             'WhatsApp tenga el microfono, el agente graba y sube el audio por '
+             'trozos; Odoo lo transcribe, decide trabajo/personal y borra la '
+             'transcripcion. Nadie escucha la llamada.')
+    call_review_consent_date = fields.Date(
+        string='Consentimiento firmado el',
+        help='Cuando firmo el aviso que contempla el analisis de llamadas.')
+
     # Version instalada, reportada por cada pieza: el agente en su envio y el
     # servicio al pedir la politica. Durante una actualizacion pueden diferir
     # un rato; por eso son dos. Vacio = version anterior a este reporte.

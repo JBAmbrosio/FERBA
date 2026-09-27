@@ -193,6 +193,102 @@ class FocoSettings(models.Model):
             'uninstall_pin': (self.mobile_uninstall_pin or '').strip(),
         }
 
+    # ---- analisis de llamadas de WhatsApp (laptop) -----------------------
+    #
+    # APAGADO de fabrica y con DOS candados: este interruptor general y la
+    # marca por equipo (foco.computer.call_review), que solo se pone con el
+    # consentimiento firmado de esa persona. Es lo mas invasivo del sistema:
+    # el agente graba microfono y bocinas mientras WhatsApp tenga el
+    # microfono. Lo que se guarda es el VEREDICTO (trabajo / personal), no la
+    # llamada: el audio se transcribe al llegar y se descarta, y la
+    # transcripcion se borra en cuanto el modelo decide.
+    call_review_enabled = fields.Boolean(
+        string='Analizar llamadas de WhatsApp (laptop)', default=False,
+        help='Interruptor general. Apagado, NINGUN equipo graba aunque tenga '
+             'la marca puesta, y los trozos que llegaran se rechazan. '
+             'Enciendelo solo con el aviso de privacidad firmado que contemple '
+             'el analisis de llamadas.')
+    call_review_apps = fields.Text(
+        string='Apps cuyas llamadas se analizan (una por linea)',
+        default='5319275A.WhatsAppDesktop\nWhatsApp.Root.exe\nWhatsApp.exe',
+        help='Nombre con el que Windows registra a la app que toma el microfono '
+             '(el que aparece en los eventos «Entro a una llamada»). WhatsApp '
+             'de escritorio es 5319275A.WhatsAppDesktop. Una llamada de '
+             'WhatsApp Web dentro de Chrome NO se distingue de otra llamada del '
+             'navegador y no se analiza.')
+    call_review_notice = fields.Text(
+        string='Aviso en pantalla al empezar',
+        default='Foco esta analizando esta llamada de WhatsApp para clasificarla como '
+                'trabajo o personal. Nadie la escucha y el audio se borra al terminar.',
+        help='Se muestra 8 segundos al detectar la llamada. Vacio = sin aviso '
+             '(no recomendable).')
+    call_review_context = fields.Text(
+        string='Contexto del negocio para el clasificador',
+        default='FERBA (Industrias Tecnologicas EMP, Culiacan): fabricacion y venta de '
+                'maquinaria agricola e industrial, refacciones, servicio y proyectos.',
+        help='«Trabajo» se juzga respecto a lo que hace ESTA empresa. Una linea.')
+    call_review_keep_reason = fields.Boolean(
+        string='Guardar el motivo (maximo 12 palabras)', default=True,
+        help='Apagado, solo queda el veredicto. En las llamadas personales el '
+             'motivo es siempre «asunto personal», sin detalle.')
+    call_review_max_minutes = fields.Integer(
+        string='Maximo de minutos por llamada', default=120,
+        help='Pasado este tiempo el agente deja de grabar esa llamada.')
+    call_review_chunk_minutes = fields.Integer(
+        string='Subir el audio en trozos de (min)', default=3,
+        help='Cada trozo se transcribe al llegar y se descarta. Trozos cortos '
+             'suben mas seguido; largos cargan mas cada peticion. 1 a 10.')
+    openai_api_key = fields.Char(
+        string='API key de OpenAI', compute='_compute_openai_api_key',
+        inverse='_inverse_openai_api_key',
+        help='Vive en un parametro del sistema (foco.openai_api_key). Nunca '
+             'viaja a los equipos: la usa Odoo para transcribir y clasificar.')
+
+    def _compute_openai_api_key(self):
+        key = self.env['ir.config_parameter'].sudo().get_param('foco.openai_api_key') or ''
+        for rec in self:
+            rec.openai_api_key = key
+
+    def _inverse_openai_api_key(self):
+        for rec in self:
+            self.env['ir.config_parameter'].sudo().set_param(
+                'foco.openai_api_key', (rec.openai_api_key or '').strip())
+
+    @api.constrains('call_review_chunk_minutes', 'call_review_max_minutes')
+    def _check_call_review(self):
+        for r in self:
+            if not (1 <= (r.call_review_chunk_minutes or 0) <= 10):
+                raise ValidationError('Los trozos de audio van de 1 a 10 minutos.')
+            if (r.call_review_max_minutes or 0) < 1:
+                raise ValidationError('El maximo por llamada tiene que ser al menos 1 minuto.')
+
+    def call_review_apps_list(self):
+        self.ensure_one()
+        vistos = []
+        for linea in (self.call_review_apps or '').replace(',', '\n').splitlines():
+            linea = linea.strip()
+            if linea and linea not in vistos:
+                vistos.append(linea)
+        return vistos
+
+    def call_review_config(self, computer):
+        """Lo que el agente de ESE equipo necesita saber. Viaja en cada envio
+        para que apagarlo -en general o por equipo- surta efecto en el
+        siguiente ciclo, sin reinstalar nada."""
+        self.ensure_one()
+        activo = bool(self.call_review_enabled and computer and computer.call_review
+                      and self.env['foco.openai'].configurado())
+        return {
+            'enabled': activo,
+            'apps': self.call_review_apps_list(),
+            'aviso': (self.call_review_notice or '').strip(),
+            'max_min': self.call_review_max_minutes or 120,
+            'chunk_min': self.call_review_chunk_minutes or 3,
+        }
+
+    def call_review_allowed(self, computer):
+        return bool(self.call_review_enabled and computer and computer.call_review)
+
     # ---- cuanto tiempo se guarda el dato --------------------------------
     # APAGADA de fabrica (0). Una purga encendida por omision borraria datos
     # que nadie decidio borrar, y ese borrado no se puede deshacer.

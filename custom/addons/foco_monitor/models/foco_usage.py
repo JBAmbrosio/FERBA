@@ -9,8 +9,8 @@ class FocoUsage(models.Model):
     _order = 'date desc, fg_active desc'
 
     _uniq_day = models.Constraint(
-        'unique(computer_id, app_id, date, host, shift, document)',
-        'Ya existe un renglon de uso para ese equipo/app/dia/sitio/turno/archivo.')
+        'unique(computer_id, app_id, date, host, shift, document, call_ref)',
+        'Ya existe un renglon de uso para ese equipo/app/dia/sitio/turno/archivo/llamada.')
 
     computer_id = fields.Many2one(
         'foco.computer', string='Equipo', required=True, ondelete='cascade', index=True)
@@ -119,8 +119,22 @@ class FocoUsage(models.Model):
                 rec.category_id = False
                 rec.category_source = 'none'
 
+    # El rato de una llamada de WhatsApp analizada. Va EN LA LLAVE, como el
+    # sitio y el archivo: asi "Excel durante la llamada #12" es su propio
+    # renglon y el veredicto de esa llamada le pone el peso a ESE rato y no al
+    # dia entero. Vacio = ese rato no fue de una llamada analizada.
+    call_ref = fields.Char(
+        string='Llamada (ref)', default='', index=True,
+        help='Referencia de la llamada de WhatsApp analizada durante la que se '
+             'midio este rato. Vacio = no fue durante una llamada analizada.')
+    call_id = fields.Many2one(
+        'foco.call.review', string='Llamada analizada', ondelete='set null', index=True,
+        help='El veredicto de esta llamada manda sobre el peso de la app: '
+             'trabajo = productivo, personal = no productivo.')
+
     @api.depends('fg_active', 'category_id',
-                 'category_id.weight', 'category_id.is_system')
+                 'category_id.weight', 'category_id.is_system',
+                 'call_id', 'call_id.clasificacion')
     def _compute_metrics(self):
         for rec in self:
             cat = rec.category_id
@@ -129,7 +143,15 @@ class FocoUsage(models.Model):
                 rec.productive_hours = 0.0
             else:
                 rec.active_hours = rec.fg_active
-                rec.productive_hours = rec.fg_active * (cat.weight if cat else 0.0)
+                peso = cat.weight if cat else 0.0
+                # Una llamada de trabajo es trabajo aunque al frente estuviera
+                # WhatsApp (peso 0); una personal no lo es aunque al frente
+                # estuviera Excel. El veredicto manda; sin veredicto, la app.
+                if rec.call_id:
+                    peso_llamada = rec.call_id.weight()
+                    if peso_llamada is not None:
+                        peso = peso_llamada
+                rec.productive_hours = rec.fg_active * peso
 
     # ------------------------------------------------------------ analitica
     #
