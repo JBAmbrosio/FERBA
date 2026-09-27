@@ -755,8 +755,12 @@ export class FocoDashboard extends Component {
                 // con su medida. Un conteo con su lista, no un semaforo.
                 hechos,
                 hechosN: hx.hechos_n || 0,
+                // El mantenimiento se dice por dias ("2 de 4"), no como un
+                // "si" que tapa a los dias limpios.
                 hechosTitulo: hechos
-                    .map((h) => `${h.etiqueta}: ${h.texto} (${h.dias} d)${h.mantenimiento ? " · con mantenimiento" : ""}`).join("\n"),
+                    .map((h) => `${h.etiqueta}: ${h.texto} · ${h.dias} ${h.dias === 1 ? "día" : "días"}`
+                        + (h.mantenimiento_dias ? `, ${h.mantenimiento_dias} con mantenimiento del agente` : ""))
+                    .join("\n"),
                 call: e.call, hasCall: e.call > 0.008,
                 // Frente a la pantalla sin teclear. NO se resta de nada: se
                 // traslapa con las ausencias justificadas (quien se va al
