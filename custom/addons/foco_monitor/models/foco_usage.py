@@ -102,6 +102,14 @@ class FocoUsage(models.Model):
              'Es la evidencia contra un jiggler de HARDWARE, que Windows ve '
              'como input real. Un numero para interpretar, no un veredicto: '
              'revisar planos o leer con el mouse tambien cae aqui.')
+    agent_code = fields.Integer(
+        string='Version del agente (codigo)', index=True,
+        help='El codigo de version del agente que reporto este renglon por ultima '
+             'vez. Existe porque el SIGNIFICADO de algunas columnas cambio con la '
+             'version: "sintetico" antes del 2026.09.28 (202609280) mezclaba '
+             'jigglers y herramientas que inyectan; desde esa version es solo '
+             'sin input real. Los hechos de integridad solo se calculan sobre '
+             'renglones de agentes que saben medirlos. 0 = anterior al sello.')
     static_hours = fields.Float(
         string='Activo con pantalla sin cambio (h)',
         help='Horas "activas" en las que la pantalla quedo identica a la huella '
