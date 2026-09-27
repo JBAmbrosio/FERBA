@@ -40,6 +40,13 @@
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
 
+    <!-- Llamadas de WhatsApp desde la laptop, ya clasificadas por el modelo.
+         Solo administradores: aunque no haya contenido, "llamada personal de
+         20 min" es un dato sensible de la persona. -->
+    <menuitem id="menu_foco_call_review" name="Llamadas de WhatsApp"
+              parent="menu_foco_sec_actividad" action="foco_call_review_action" sequence="50"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- =================================================== EQUIPOS (acciones) -->
     <menuitem id="menu_foco_sec_equipos" name="Equipos"
               parent="menu_foco_root" sequence="30"/>

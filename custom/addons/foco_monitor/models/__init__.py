@@ -12,6 +12,8 @@ from . import foco_watch
 from . import foco_mobile
 from . import foco_app_token
 from . import foco_settings
+from . import foco_openai
+from . import foco_call_review
 from . import foco_invitation
 from . import foco_absence
 from . import hr_employee

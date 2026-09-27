@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Reintenta las clasificaciones que fallaron (la API no contesto) y
+             cierra las llamadas que nunca mandaron «fin». Cada 10 min: una
+             llamada sin veredicto es un renglon gris, no una urgencia. -->
+        <record id="cron_foco_call_review" model="ir.cron">
+            <field name="name">Foco: llamadas de WhatsApp pendientes de veredicto</field>
+            <field name="model_id" ref="model_foco_call_review"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_pendientes()</field>
+            <field name="interval_number">10</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

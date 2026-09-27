@@ -108,6 +108,7 @@ class FocoController(http.Controller):
         info = data.get('computer') or {}
         vals = {'last_seen': fields.Datetime.now()}
         Comp = request.env['foco.computer'].sudo()
+        Review = request.env['foco.call.review'].sudo()
 
         # Todas las anomalias de ESTE envio, en orden de CAUSA a consecuencia.
         # Escribirlas una por una hacia que la ultima pisara a las anteriores, y
@@ -215,6 +216,9 @@ class FocoController(http.Controller):
             # solo se sabria el ultimo archivo del dia. Solo llega con algo si
             # el admin habilito esa app; para las demas el agente ni lo extrae.
             documento = (s.get('document') or '')[:200]
+            # El rato de una llamada de WhatsApp analizada, tambien en la llave:
+            # el veredicto de esa llamada pesa sobre ESE rato, no sobre el dia.
+            call_ref = (s.get('call_ref') or '')[:64]
             status = s.get('host_status')
             if status not in estados:
                 status = 'not_browser'
@@ -236,11 +240,16 @@ class FocoController(http.Controller):
                 ('date', '=', date),
                 ('host', '=', host),
                 ('shift', '=', turno),
-                ('document', '=', documento)], limit=1)
+                ('document', '=', documento),
+                ('call_ref', '=', call_ref)], limit=1)
             campos = {'fg_active': fga, 'fg_idle': fgi, 'background': bg,
                       'host_status': status, 'call_hours': call_h,
                       'injected_hours': iny_h, 'call_noinput_hours': cni_h,
                       'site_id': site.id or False}
+            if call_ref:
+                llamada = Review._buscar(computer, call_ref)
+                if llamada:
+                    campos['call_id'] = llamada.id
             if usage:
                 # Se conserva el valor MAYOR. El agente manda totales absolutos
                 # del dia, asi que el mas alto es el que de verdad se midio;
@@ -256,7 +265,7 @@ class FocoController(http.Controller):
             else:
                 campos.update({'computer_id': computer.id, 'app_id': app.id,
                                'date': date, 'host': host, 'shift': turno,
-                               'document': documento})
+                               'document': documento, 'call_ref': call_ref})
                 Usage.create(campos)
             fechas.add(date)
             stored += 1
@@ -358,7 +367,94 @@ class FocoController(http.Controller):
                                   .monitor_sitios_para(computer.employee_id),
             },
             'absences': pendientes.payload(),
+            # Analisis de llamadas de WhatsApp de ESTE equipo. Viaja en cada
+            # respuesta, interruptor incluido, por la misma razon que las
+            # capturas: apagarlo tiene que surtir efecto en el siguiente envio.
+            'call_review': settings.call_review_config(computer),
         })
+
+    # ------------------------------------------------ llamadas de WhatsApp
+    #
+    # Tres pasos por llamada, todos con la llave del equipo: inicio (crea el
+    # registro), trozos de audio (cada uno se transcribe EN ESTA PETICION y el
+    # audio se descarta: nunca se guarda) y fin (se clasifica y la
+    # transcripcion se borra). Si el analisis esta apagado -en general o para
+    # ese equipo- se contesta `disabled` y el agente tira lo que tenga.
+
+    def _call_review_ok(self, computer):
+        settings = request.env['foco.settings'].sudo().get_settings()
+        return settings.call_review_allowed(computer)
+
+    @http.route('/foco/call/start', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_start(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        data = self._body() or {}
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        Event = request.env['foco.event'].sudo()
+        rec = request.env['foco.call.review'].sudo()._start(
+            computer, ref, data.get('app') or '',
+            Event._parse_utc(data.get('started_at')) or fields.Datetime.now())
+        return request.make_json_response({'ok': True, 'id': rec.id})
+
+    @http.route('/foco/call/chunk', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_chunk(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        h = request.httprequest.headers
+        ref = (h.get('X-Foco-Call') or '').strip()[:64]
+        track = 'otro' if (h.get('X-Foco-Track') or '') == 'otro' else 'empleado'
+        try:
+            seq = int(h.get('X-Foco-Seq') or 0)
+            secs = int(h.get('X-Foco-Secs') or 0)
+        except ValueError:
+            seq, secs = 0, 0
+        wav = request.httprequest.get_data()
+        if not ref or not wav:
+            return request.make_json_response({'ok': False, 'error': 'sin_datos'}, status=400)
+        if len(wav) > 40 * 1024 * 1024:
+            return request.make_json_response({'ok': False, 'error': 'demasiado_grande'}, status=413)
+        try:
+            rec, chars = request.env['foco.call.review'].sudo()._chunk(
+                computer, ref, track, seq, secs, wav)
+        except Exception as e:
+            # El trozo NO se guarda en ningun lado: el agente lo conserva y lo
+            # reintenta mas tarde. 503 = "vuelve luego", no "mal pedido".
+            _logger.warning('foco: trozo %s/%s/%s sin transcribir: %s', ref, track, seq, e)
+            request.env.cr.rollback()
+            return request.make_json_response(
+                {'ok': False, 'error': 'transcripcion', 'detail': str(e)[:200]}, status=503)
+        return request.make_json_response({'ok': True, 'id': rec.id, 'chars': chars})
+
+    @http.route('/foco/call/end', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_end(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        data = self._body() or {}
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        Event = request.env['foco.event'].sudo()
+        rec = request.env['foco.call.review'].sudo()._finish(
+            computer, ref, Event._parse_utc(data.get('ended_at')) or fields.Datetime.now(),
+            data.get('duration') or 0, data.get('chunks'))
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'state': rec.state,
+            'clasificacion': rec.clasificacion or '', 'motivo': rec.motivo or ''})
 
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)

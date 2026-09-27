@@ -447,6 +447,34 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
+                    <group string="Analisis de llamadas de WhatsApp en la laptop (lo mas invasivo)">
+                        <field name="call_review_enabled"/>
+                        <field name="openai_api_key" password="True"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_apps"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_context"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_notice"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_keep_reason"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_chunk_minutes"
+                               invisible="not call_review_enabled"/>
+                        <field name="call_review_max_minutes"
+                               invisible="not call_review_enabled"/>
+                        <div class="text-muted" colspan="2">
+                            Dos candados: este interruptor y la marca «Analizar sus
+                            llamadas de WhatsApp» en cada equipo, que solo se pone con
+                            el consentimiento firmado de esa persona. Mientras WhatsApp
+                            tenga el microfono, el agente graba microfono y bocinas, lo
+                            sube por trozos y Odoo lo transcribe al llegar; al colgar,
+                            el modelo decide trabajo / personal y la transcripcion se
+                            borra. El audio nunca se guarda y nadie lo escucha. Queda el
+                            veredicto, el rol del interlocutor y un motivo de 12
+                            palabras (en las personales, solo «asunto personal»).
+                        </div>
+                    </group>
                     <group string="Agente de escritorio (instalador .exe) y actualizacion sola">
                         <field name="installer" filename="installer_name"/>
                         <field name="installer_name"/>

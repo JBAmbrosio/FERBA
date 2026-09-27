@@ -69,6 +69,13 @@
                             <field name="service_version"/>
                             <field name="agent_outdated"/>
                         </group>
+                        <!-- Consentimiento POR PERSONA: sin esta marca el equipo no
+                             graba aunque el interruptor general este encendido. -->
+                        <group string="Llamadas de WhatsApp (solo con consentimiento firmado)">
+                            <field name="call_review"/>
+                            <field name="call_review_consent_date"
+                                   required="call_review"/>
+                        </group>
                         <group string="Servicio del equipo (diagnostico)">
                             <field name="service_state"/>
                             <field name="service_detail"/>
