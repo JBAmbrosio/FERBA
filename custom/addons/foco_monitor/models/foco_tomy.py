@@ -566,7 +566,9 @@ class FocoTomy(models.AbstractModel):
             'pendientes_de_justificar': len(regs.filtered(lambda x: x.state == 'pendiente')),
             'horas_justificadas': _hm(sum(regs.filtered(lambda x: x.state == 'justificada').mapped('duration'))),
             'por_motivo': {k: _hm(v) for k, v in por_motivo.items()},
-            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start), 'fin': self._hora_local(r.stop),
+            # fin con fecha completa: una ausencia que cruza la noche (18:38 -> 09:17)
+            # obligaba al modelo a adivinar el dia del fin.
+            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start), 'fin': self._local(r.stop),
                          'duracion': _hm(r.duration), 'tipo': tipos.get(r.kind, r.kind),
                          'estado': r.state, 'motivo': motivos.get(r.reason, '') if r.reason else '',
                          'nota': (r.note or '')[:120]} for r in regs[:8]],
