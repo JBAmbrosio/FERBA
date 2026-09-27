@@ -4,6 +4,7 @@ from . import foco_site
 from . import foco_policy
 from . import foco_computer
 from . import foco_usage
+from . import foco_mi_dia
 from . import foco_event
 from . import foco_workday
 from . import foco_command

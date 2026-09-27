@@ -906,6 +906,24 @@ class FocoController(http.Controller):
             ('X-Foco-Sha256', s.installer_sha256),
             ('Content-Disposition', 'attachment; filename="%s"' % fn)])
 
+    # ------------------------------------------------ «mi dia» para la persona
+    #
+    # Lo que Foco midio HOY de la persona de este equipo, para que lo vea ELLA
+    # (foco-agent.exe --mi-dia). Solo lo suyo: el equipo autenticado decide de
+    # quien es la pregunta, no hay parametro de empleado.
+    @http.route('/foco/agent/mi_dia', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_mi_dia(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        try:
+            datos = request.env['foco.usage'].sudo().mi_dia(computer.sudo())
+        except Exception:
+            _logger.exception('Foco: no se pudo armar "mi dia" del equipo %s', computer.id)
+            return request.make_json_response({'ok': False, 'error': 'server'}, status=500)
+        return request.make_json_response(datos)
+
     @http.route('/foco/absence_answer', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def absence_answer(self, **kw):
