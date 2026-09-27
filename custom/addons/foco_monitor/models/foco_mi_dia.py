@@ -213,7 +213,9 @@ class FocoUsageMiDia(models.Model):
                 s['horas'] += activo
 
         def cerrar(d, tope=TOPE_LISTA):
-            lista = sorted(d.values(), key=lambda x: -x['horas'])
+            # Un renglon con 0 h activas (solo sin input) no es "uno mas":
+            # sumaria a un "y 5 mas, 0 min en total" que no dice nada.
+            lista = sorted((x for x in d.values() if x['horas'] > 0.0), key=lambda x: -x['horas'])
             visibles = [x for x in lista if x['horas'] >= MINIMO_H][:tope]
             resto = lista[len(visibles):]
             for x in visibles:
