@@ -746,6 +746,12 @@ export class FocoDashboard extends Component {
                 injected: e.injected, hasInjected: e.injected > 0.008,
                 integrityAlert: sal.integrity || "",
                 hasAnomaly: e.injected > 0.008 || !!sal.integrity,
+                // Hechos de integridad del periodo (foco.integrity.fact): lo
+                // medido que puede leerse como intento de saltarse la medicion,
+                // con su medida. Un conteo con su lista, no un semaforo.
+                hechos: e.hechos || [],
+                hechosN: e.hechos_n || 0,
+                hechosTitulo: (e.hechos || []).map((h) => `${h.etiqueta}: ${h.texto} (${h.dias} d)${h.mantenimiento ? " · mantenimiento ese día" : ""}`).join("\n"),
                 call: e.call, hasCall: e.call > 0.008,
                 // Frente a la pantalla sin teclear. NO se resta de nada: se
                 // traslapa con las ausencias justificadas (quien se va al

@@ -320,6 +320,11 @@
         // clase de aviso -falta dato-, y nunca el rojo de bajo desempeno.
         &.cobertura { color: var(--mid); text-transform: none; letter-spacing: 0;
             font-variant-numeric: tabular-nums; }
+        // Hechos de integridad: tinta secundaria, sin rojo ni ambar. Es un
+        // conteo de evidencia para revisar, no una alarma; el detalle va en el
+        // titulo y en Actividad > Integridad.
+        &.integridad { color: var(--ink2); text-transform: none; letter-spacing: 0;
+            font-variant-numeric: tabular-nums; cursor: help; }
     }
 
     // Presencia. Regla de color: lo explicado va en tinta secundaria -apagar el

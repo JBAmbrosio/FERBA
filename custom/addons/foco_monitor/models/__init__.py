@@ -15,6 +15,7 @@ from . import foco_settings
 from . import foco_openai
 from . import foco_call_review
 from . import foco_tomy
+from . import foco_integrity
 from . import foco_invitation
 from . import foco_absence
 from . import hr_employee

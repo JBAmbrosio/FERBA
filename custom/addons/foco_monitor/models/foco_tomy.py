@@ -291,6 +291,9 @@ class FocoTomy(models.AbstractModel):
             "10. 'estado_ahora' describe el momento de la pregunta ('Ausente 26 h' = tiempo desde su ultima "
             "actividad hasta ahora), no un total del periodo: no lo sumes ni lo cuentes como horas ausentes "
             "del dia.\n"
+            "11. Si preguntan por trampa, evasion, engano, 'algo raro' o integridad, usa 'integridad': "
+            "contesta con los hechos (medida, dias, significado), di si ese dia hubo mantenimiento, y "
+            "cierra con lo que Foco no puede saber. Nunca escribas 'hizo trampa' ni 'no hizo trampa'.\n"
             "%s"
             % (PREFIJO_FUERA, dias[hoy.weekday()], hoy.isoformat(), lunes.isoformat(),
                (lunes + timedelta(days=6)).isoformat(), (hoy - timedelta(days=1)).isoformat(), gente, rango)
@@ -458,6 +461,14 @@ class FocoTomy(models.AbstractModel):
               'El catalogo de Foco: apps o sitios con su categoria y peso, o la cola de sitios sin clasificar.',
               {'tipo': {'type': 'string', 'enum': ['apps', 'sitios', 'sin_clasificar']}}, ['tipo']),
             t('definiciones', 'Que significa cada metrica de Foco.', {}, []),
+            t('integridad',
+              'Hechos de integridad del periodo: lo medido que puede leerse como intento de saltarse la '
+              'medicion (sintetico sin input real, solo mouse, pantalla sin cambio, intentos de sitios '
+              'bloqueados, navegadores cerrados, arranques del agente sin causa, checar sin dar senal, '
+              'admin local, dispositivos nuevos, justificaciones, contenedores), con medida, evidencia y '
+              'significado, y la lista de lo que Foco NO puede saber. Para "trampa", "evasion", "engano", '
+              '"algo raro". Nunca da veredicto.',
+              {'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
             t('grafica',
               'Dibuja una grafica en la respuesta con datos que YA obtuviste de otras herramientas.',
               {'tipo': {'type': 'string', 'enum': ['barras', 'lineas', 'dona']},
@@ -483,6 +494,38 @@ class FocoTomy(models.AbstractModel):
 
     def _tool_definiciones(self, artefactos):
         return DEFINICIONES
+
+    def _tool_integridad(self, artefactos, desde=None, hasta=None, employee_id=None):
+        d, h, nota = self._fechas(desde, hasta)
+        Fact = self.env['foco.integrity.fact']
+        if employee_id:
+            gente = self._empleado(employee_id)
+        else:
+            gente = self._alcance()
+        resumen = Fact.resumen(d, h, gente.ids)
+        from .foco_integrity import NO_SE_PUEDE_SABER
+        personas = []
+        filas = []
+        for emp in gente:
+            hechos = resumen.get(emp.id) or []
+            personas.append({'persona': emp.name, 'employee_id': emp.id, 'hechos': [
+                {'hecho': x['etiqueta'], 'medida': x['texto'], 'dias_con_el_hecho': x['dias'],
+                 'significado': x['significado'], 'mantenimiento_ese_dia': x['mantenimiento'],
+                 'evidencia': x['evidencia']} for x in hechos]})
+            for x in hechos:
+                filas.append([emp.name, x['etiqueta'], x['texto'], x['dias'],
+                              'si' if x['mantenimiento'] else ''])
+        if filas:
+            self._tabla(artefactos, 'Hechos de integridad (%s a %s)' % (d, h),
+                        ['Persona', 'Hecho', 'Medida', 'Dias', 'Mantenimiento'], filas)
+        return {'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None,
+                'personas': personas,
+                'sin_hechos': [e.name for e in gente if not resumen.get(e.id)],
+                'lo_que_foco_no_puede_saber': NO_SE_PUEDE_SABER,
+                'regla': 'Cada hecho es una medida con su significado; ninguno prueba intencion. Un '
+                         'dia con mantenimiento (actualizacion o reinstalacion) explica arranques sin '
+                         'causa y bases recreadas. Describe los hechos, di que no se puede saber, y no '
+                         'concluyas "hizo trampa".'}
 
     def _tool_resumen_persona(self, artefactos, employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id)
