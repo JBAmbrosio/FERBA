@@ -44,3 +44,7 @@ access_foco_app_token_manager,foco.app.token manager,model_foco_app_token,group_
 access_foco_call_user,foco.call user,model_foco_call,group_foco_user,1,0,0,0
 access_foco_call_manager,foco.call manager,model_foco_call,group_foco_manager,1,1,1,1
 access_foco_call_review_manager,foco.call.review manager,model_foco_call_review,group_foco_manager,1,0,0,1
+access_foco_tomy_thread_user,foco.tomy.thread user,model_foco_tomy_thread,group_foco_user,1,1,1,0
+access_foco_tomy_thread_manager,foco.tomy.thread manager,model_foco_tomy_thread,group_foco_manager,1,1,1,1
+access_foco_tomy_message_user,foco.tomy.message user,model_foco_tomy_message,group_foco_user,1,1,1,0
+access_foco_tomy_message_manager,foco.tomy.message manager,model_foco_tomy_message,group_foco_manager,1,1,1,1

@@ -4,6 +4,7 @@ import { Component, useState, onWillStart, onMounted, onWillUnmount, useRef, use
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { loadBundle } from "@web/core/assets";
+import { TomyPanel } from "../tomy/tomy_panel";
 
 // Chart.js NO viaja en este modulo: Odoo ya lo trae (4.4.5) y lo publica en el
 // bundle `web.chartjs_lib`, que es el mismo que carga su vista de graficos. Se
@@ -38,6 +39,9 @@ const REFRESCO_MS = 10 * 60 * 1000;
 export class FocoDashboard extends Component {
     static template = "foco_monitor.Dashboard";
     static props = ["*"];
+    // Tomy, el asistente: un boton flotante y su panel, dentro del tablero
+    // para heredar el tema y saber que periodo esta viendo el usuario.
+    static components = { TomyPanel };
 
     setup() {
         this.orm = useService("orm");

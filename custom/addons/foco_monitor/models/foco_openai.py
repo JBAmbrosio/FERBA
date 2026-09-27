@@ -87,6 +87,37 @@ class FocoOpenAI(models.AbstractModel):
         return (r.json().get('text') or '').strip()
 
     @api.model
+    def chat(self, messages, tools=None, response_format=None, max_tokens=900, model=None):
+        """Una vuelta de chat.completions. Devuelve {'message', 'usage', 'modelo'}.
+
+        Es la pieza que usa Tomy: `message` trae `content` o `tool_calls`, y
+        quien llama decide si ejecuta herramientas y vuelve a llamar."""
+        key = self.api_key()
+        if not key:
+            raise UserError('Falta la API key de OpenAI (Foco > Configuracion > Analisis de llamadas).')
+        modelo = model or self._param('foco.openai_chat_model', 'gpt-4o-mini')
+        cuerpo = {'model': modelo, 'temperature': 0, 'messages': messages,
+                  'max_tokens': int(max_tokens or 900)}
+        if tools:
+            cuerpo['tools'] = tools
+            cuerpo['tool_choice'] = 'auto'
+        if response_format:
+            cuerpo['response_format'] = response_format
+        try:
+            r = requests.post(API + '/chat/completions', headers={'Authorization': 'Bearer ' + key},
+                              json=cuerpo, timeout=60)
+        except requests.RequestException as e:
+            raise UserError('OpenAI chat: sin respuesta (%s)' % e)
+        if r.status_code != 200:
+            raise UserError('OpenAI chat %s: %s' % (r.status_code, r.text[:300]))
+        j = r.json()
+        try:
+            mensaje = j['choices'][0]['message']
+        except (KeyError, IndexError, TypeError):
+            raise UserError('OpenAI chat: respuesta sin mensaje')
+        return {'message': mensaje, 'usage': j.get('usage') or {}, 'modelo': modelo}
+
+    @api.model
     def clasificar(self, contexto, empleado, otro, duracion_s):
         """dict(clasificacion, confianza, con_quien, motivo, tokens, modelo)."""
         key = self.api_key()

@@ -148,6 +148,12 @@
               parent="menu_foco_config" action="foco_access_action" sequence="10"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- Lo que se le pregunto a Tomy y lo que contesto: Tomy habla de
+         personas, asi que cada conversacion queda a la vista del administrador. -->
+    <menuitem id="menu_foco_tomy" name="Conversaciones con Tomy"
+              parent="menu_foco_config" action="foco_tomy_thread_action" sequence="12"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- La tabla generica sigue accesible, pero deja de ser la puerta: abrir
          una pestana en tabla dinamica es pedirle al usuario que construya la
          pregunta antes de poder verla. Vive en Configuracion, como herramienta

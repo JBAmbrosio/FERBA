@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Tomy: el boton flotante con la mascota y el panel de conversacion.
+         Vive dentro del tablero, asi hereda sus variables de color (claro y
+         oscuro) sin repetir nada. -->
+    <t t-name="foco_monitor.TomyPanel">
+        <div class="tomy">
+            <button t-if="!state.abierto" class="tomy_fab" t-on-click="() => this.abrir()"
+                    title="Pregúntale a Tomy sobre lo que midió Foco">
+                <img t-att-src="img('saluda')" alt="" class="tomy_fab_img"/>
+                <span class="tomy_fab_txt">Pregúntale a <b>Tomy</b></span>
+            </button>
+
+            <t t-if="state.abierto">
+                <div class="tomy_scrim" t-on-click="() => this.cerrar()"/>
+                <aside class="tomy_panel" role="dialog" aria-label="Tomy, asistente de Foco">
+                    <header class="tomy_head">
+                        <div class="tomy_mascota_wrap">
+                            <img t-key="state.pose" t-att-src="img(state.pose)" alt=""
+                                 t-attf-class="tomy_mascota {{ state.cargando ? 'pensando' : '' }}"/>
+                        </div>
+                        <div class="tomy_titulo">
+                            <b>Tomy</b>
+                            <span>Solo contesta con lo que Foco midió</span>
+                        </div>
+                        <div class="tomy_acts">
+                            <button class="tomy_icono" title="Nueva conversación" t-on-click="() => this.nueva()"
+                                    t-att-disabled="state.cargando"><i class="fa fa-plus"/></button>
+                            <button class="tomy_icono" title="Cerrar (Esc)" t-on-click="() => this.cerrar()"><i class="fa fa-times"/></button>
+                        </div>
+                    </header>
+
+                    <div class="tomy_lista" t-ref="lista">
+                        <t t-if="!state.listo">
+                            <div class="tomy_nota">Abriendo la conversación…</div>
+                        </t>
+                        <t t-if="state.listo and !state.mensajes.length">
+                            <div class="tomy_bienvenida">
+                                <p>Hola<t t-if="state.nombre">, <t t-esc="state.nombre"/></t>. Pregúntame por lo que
+                                Foco midió: qué hizo alguien hoy, un resumen de la semana, dónde se fue el
+                                tiempo, llamadas, ausencias… Puedo dibujar gráficas y armar reportes con esos datos.</p>
+                            </div>
+                        </t>
+
+                        <t t-foreach="state.mensajes" t-as="m" t-key="m.id">
+                            <div t-attf-class="tomy_msg {{ m.role }} {{ m.error ? 'error' : '' }} {{ m.fuera ? 'fuera' : '' }}">
+                                <div class="tomy_burbuja">
+                                    <div class="tomy_texto" t-out="m.html"/>
+                                    <t t-foreach="m.artefactos" t-as="a" t-key="a_index">
+                                        <t t-if="a.tipo === 'tabla'">
+                                            <div class="tomy_art">
+                                                <div class="tomy_art_t" t-esc="a.titulo"/>
+                                                <div class="tomy_tabla_wrap">
+                                                    <table class="tomy_tabla">
+                                                        <thead><tr>
+                                                            <t t-foreach="a.columnas" t-as="c" t-key="c_index"><th t-esc="c"/></t>
+                                                        </tr></thead>
+                                                        <tbody>
+                                                            <t t-foreach="a.filas" t-as="f" t-key="f_index">
+                                                                <tr><t t-foreach="f" t-as="v" t-key="v_index"><td t-esc="v"/></t></tr>
+                                                            </t>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </t>
+                                        <t t-elif="a.tipo === 'grafica'">
+                                            <div class="tomy_art">
+                                                <div class="tomy_art_t" t-esc="a.titulo"/>
+                                                <div class="tomy_lienzo"><canvas t-att-id="'tomy_c_' + m.id + '_' + a_index"/></div>
+                                            </div>
+                                        </t>
+                                        <t t-elif="a.tipo === 'liga'">
+                                            <button class="tomy_liga" t-on-click="() => this.abrirLiga(a)">
+                                                <i class="fa fa-external-link"/> <t t-esc="a.etiqueta"/>
+                                            </button>
+                                        </t>
+                                    </t>
+                                </div>
+                                <t t-if="m.role === 'assistant' and !m.error">
+                                    <div class="tomy_pie">
+                                        <t t-if="m.fuentes.length">
+                                            <button class="tomy_link" t-on-click="() => this.toggleFuentes(m)">
+                                                <t t-esc="m.verFuentes ? 'ocultar cómo lo calculé' : 'cómo lo calculé'"/>
+                                            </button>
+                                        </t>
+                                        <span class="tomy_fb" t-if="m.idReal">
+                                            <button t-attf-class="tomy_icono sm {{ m.feedback === 'up' ? 'on' : '' }}" title="Útil"
+                                                    t-on-click="() => this.feedback(m, 'up')"><i class="fa fa-thumbs-o-up"/></button>
+                                            <button t-attf-class="tomy_icono sm {{ m.feedback === 'down' ? 'on' : '' }}" title="No útil"
+                                                    t-on-click="() => this.feedback(m, 'down')"><i class="fa fa-thumbs-o-down"/></button>
+                                            <button class="tomy_icono sm" title="Imprimir o guardar como PDF"
+                                                    t-on-click="() => this.imprimir(m)"><i class="fa fa-print"/></button>
+                                        </span>
+                                    </div>
+                                    <t t-if="m.verFuentes">
+                                        <ul class="tomy_fuentes">
+                                            <t t-foreach="m.fuentes" t-as="f" t-key="f_index">
+                                                <li><b t-esc="f.herramienta"/> <span t-esc="argumentos(f)"/>
+                                                    <t t-if="f.error"> · <i t-esc="f.error"/></t></li>
+                                            </t>
+                                        </ul>
+                                    </t>
+                                </t>
+                            </div>
+                        </t>
+
+                        <t t-if="state.cargando">
+                            <div class="tomy_msg assistant">
+                                <div class="tomy_burbuja tomy_pensando" aria-label="Tomy está consultando">
+                                    <span/><span/><span/>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+
+                    <t t-if="state.listo and !state.cargando and state.mensajes.length &lt; 2">
+                        <div class="tomy_chips">
+                            <t t-foreach="chips" t-as="c" t-key="c">
+                                <button class="tomy_chip" t-on-click="() => this.enviar(c)" t-esc="c"/>
+                            </t>
+                        </div>
+                    </t>
+
+                    <footer class="tomy_input">
+                        <textarea t-ref="input" t-model="state.texto" rows="1"
+                                  placeholder="Pregúntale a Tomy… (Enter envía, Shift+Enter salto)"
+                                  t-on-keydown="(ev) => this.tecla(ev)" t-att-disabled="state.cargando"/>
+                        <button class="tomy_enviar" t-on-click="() => this.enviar()" title="Enviar"
+                                t-att-disabled="state.cargando or !state.texto.trim()">
+                            <i class="fa fa-paper-plane"/>
+                        </button>
+                    </footer>
+                </aside>
+            </t>
+        </div>
+    </t>
+</templates>

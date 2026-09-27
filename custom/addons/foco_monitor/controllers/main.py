@@ -6,11 +6,59 @@ import logging
 from datetime import datetime, time as _time, timedelta
 
 import pytz
+from markupsafe import escape
 
 from odoo import fields, http
 from odoo.http import content_disposition, request
 
 _logger = logging.getLogger(__name__)
+
+
+def _tomy_texto_a_html(texto):
+    """El texto plano de Tomy (parrafos, guiones, **negritas**) como HTML
+    escapado. Misma regla que el panel, para que impreso se vea igual."""
+    import re
+    html, parrafo, en_lista = [], [], False
+
+    def inline(s):
+        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', str(escape(s)))
+
+    def cerrar_p():
+        if parrafo:
+            html.append('<p>%s</p>' % '<br/>'.join(parrafo))
+            parrafo.clear()
+
+    def cerrar_l():
+        nonlocal en_lista
+        if en_lista:
+            html.append('</ul>')
+            en_lista = False
+
+    for linea in (texto or '').splitlines():
+        t = linea.strip()
+        if not t:
+            cerrar_p()
+            cerrar_l()
+            continue
+        m = re.match(r'^(?:[-*•]|\d+[.)])\s+(.*)$', t)
+        if m:
+            cerrar_p()
+            if not en_lista:
+                html.append('<ul>')
+                en_lista = True
+            html.append('<li>%s</li>' % inline(m.group(1)))
+            continue
+        h = re.match(r'^#{1,4}\s+(.*)$', t)
+        if h:
+            cerrar_p()
+            cerrar_l()
+            html.append('<h3>%s</h3>' % inline(h.group(1)))
+            continue
+        cerrar_l()
+        parrafo.append(inline(t))
+    cerrar_p()
+    cerrar_l()
+    return ''.join(html)
 
 
 def _sec_to_h(v):
@@ -455,6 +503,50 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True, 'id': rec.id, 'state': rec.state,
             'clasificacion': rec.clasificacion or '', 'motivo': rec.motivo or ''})
+
+    # ------------------------------------------------------------- Tomy
+    @http.route('/foco/tomy/version', type='http', auth='public', methods=['GET'])
+    def tomy_version(self, **kw):
+        """Version del modulo. Publica y diminuta: sirve para saber que un
+        despliegue ya esta en vivo sin sesion."""
+        mod = request.env['ir.module.module'].sudo().search([('name', '=', 'foco_monitor')], limit=1)
+        return request.make_json_response({'ok': True, 'modulo': mod.installed_version or ''})
+
+    @http.route('/foco/tomy/imprimir/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def tomy_imprimir(self, message_id, **kw):
+        """Una respuesta de Tomy como pagina limpia para imprimir o guardar en
+        PDF desde el navegador. Corre con el usuario: las reglas de registro
+        deciden si puede ver ese mensaje."""
+        msg = request.env['foco.tomy.message'].browse(message_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        datos = msg._para_panel()
+        cuerpo = _tomy_texto_a_html(datos['content'])
+        for a in datos['artefactos']:
+            if a.get('tipo') != 'tabla':
+                continue
+            cuerpo += '<h3>%s</h3><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table>' % (
+                escape(a.get('titulo') or ''),
+                ''.join('<th>%s</th>' % escape(str(c)) for c in a.get('columnas') or []),
+                ''.join('<tr>%s</tr>' % ''.join('<td>%s</td>' % escape(str(v)) for v in f)
+                        for f in a.get('filas') or []))
+        pregunta = request.env['foco.tomy.message'].search(
+            [('thread_id', '=', msg.thread_id.id), ('role', '=', 'user'), ('id', '<', msg.id)],
+            order='id desc', limit=1)
+        html = (
+            '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tomy - Foco</title>'
+            '<style>body{font:14px/1.5 system-ui,Segoe UI,sans-serif;color:#0f1520;margin:40px auto;max-width:820px;padding:0 24px}'
+            'h1{font-size:20px;margin:0 0 4px}h3{font-size:14px;margin:18px 0 6px}.meta{color:#5a6577;font-size:12px;margin-bottom:18px}'
+            '.pregunta{background:#f3f5f9;border-left:3px solid #2f6fed;padding:10px 14px;margin:0 0 18px;border-radius:6px}'
+            'table{border-collapse:collapse;width:100%%;font-size:13px}th,td{border:1px solid #e7eaf0;padding:6px 8px;text-align:left}'
+            'th{background:#f3f5f9}ul{padding-left:20px}.btn{position:fixed;top:14px;right:14px;padding:8px 14px;border:1px solid #cfd6e2;'
+            'border-radius:8px;background:#fff;cursor:pointer;font:inherit}@media print{.btn{display:none}body{margin:0}}</style></head><body>'
+            '<button class="btn" onclick="window.print()">Imprimir / guardar PDF</button>'
+            '<h1>Tomy · asistente de Foco</h1><div class="meta">%s · %s</div>%s%s</body></html>'
+        ) % (escape(request.env.user.name), escape(fields.Datetime.context_timestamp(
+                msg, msg.create_date).strftime('%d/%m/%Y %H:%M') if msg.create_date else ''),
+             ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '', cuerpo)
+        return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
 
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
