@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import time
 from datetime import datetime, timedelta
 
@@ -260,8 +261,13 @@ class FocoTomy(models.AbstractModel):
             "resume lo importante.\n"
             "8. Si el usuario pide una grafica, un tablero o un reporte: consulta primero los datos y luego usa la "
             "herramienta 'grafica' (una o varias) con esos datos; para un reporte escribe secciones con titulos "
-            "cortos (Resumen, Por persona, Distracciones, Llamadas, Ausencias, Observaciones).\n"
+            "cortos (Resumen, Por persona, Distracciones, Llamadas, Ausencias, Observaciones). La grafica la "
+            "dibuja la interfaz: NUNCA escribas una imagen, ni markdown de imagen ![...](...), ni base64; solo "
+            "una frase de lo que muestra.\n"
             "9. Usa 'abrir_en_odoo' cuando el usuario quiera ver el detalle completo de algo en Foco.\n"
+            "10. 'estado_ahora' describe el momento de la pregunta ('Ausente 26 h' = tiempo desde su ultima "
+            "actividad hasta ahora), no un total del periodo: no lo sumes ni lo cuentes como horas ausentes "
+            "del dia.\n"
             "%s"
             % (PREFIJO_FUERA, dias[hoy.weekday()], hoy.isoformat(), lunes.isoformat(),
                (lunes + timedelta(days=6)).isoformat(), (hoy - timedelta(days=1)).isoformat(), gente, rango)
@@ -322,12 +328,41 @@ class FocoTomy(models.AbstractModel):
                                 'error': resultado.get('error') if isinstance(resultado, dict) else None})
                 mensajes.append({'role': 'tool', 'tool_call_id': tc.get('id'),
                                  'content': json.dumps(resultado, ensure_ascii=False, default=str)[:12000]})
+        texto_final = self._limpia_texto(texto_final)
+        artefactos = self._poda_graficas(artefactos)
         if not texto_final:
-            texto_final = 'No obtuve respuesta del modelo. Intenta de nuevo.'
+            texto_final = 'Aqui esta lo que encontre.' if artefactos else 'No obtuve respuesta del modelo. Intenta de nuevo.'
         costo = tokens['prompt'] * PRECIO_ENTRADA / 1e6 + tokens['completion'] * PRECIO_SALIDA / 1e6
         return {'texto': texto_final, 'artefactos': artefactos, 'fuentes': fuentes,
                 'tokens': tokens['prompt'] + tokens['completion'], 'costo': costo,
                 'fuera': texto_final.startswith(PREFIJO_FUERA), 'error': error}
+
+    @staticmethod
+    def _limpia_texto(texto):
+        """El modelo a veces "dibuja" la grafica el mismo: un markdown de imagen
+        con un PNG en base64 inventado (medido: 9,700 tokens en una respuesta).
+        La grafica la pinta la interfaz; cualquier imagen en el texto sobra."""
+        limpio = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', texto or '')
+        limpio = re.sub(r'data:image/[a-z]+;base64,[A-Za-z0-9+/=]+', '', limpio)
+        return re.sub(r'\n{3,}', '\n\n', limpio).strip()
+
+    @staticmethod
+    def _poda_graficas(artefactos):
+        """serie y comparar traen su grafica automatica. Si el modelo ademas
+        pidio una con 'grafica', esa es la que el usuario quiso y las
+        automaticas sobran (medido: cuatro graficas para una pregunta).
+        Nunca mas de tres graficas en una respuesta."""
+        explicitas = any(a.get('tipo') == 'grafica' and not a.get('auto') for a in artefactos)
+        salida, graficas = [], 0
+        for a in artefactos:
+            if a.get('tipo') != 'grafica':
+                salida.append(a)
+                continue
+            if (explicitas and a.get('auto')) or graficas >= 3:
+                continue
+            graficas += 1
+            salida.append(a)
+        return salida
 
     def _ejecutar(self, nombre, args, artefactos):
         metodo = getattr(self, '_tool_' + nombre, None)
@@ -365,7 +400,8 @@ class FocoTomy(models.AbstractModel):
               'sin clasificar y cambio del indice contra el periodo anterior. Para resumenes del equipo.',
               {'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
             t('serie',
-              'Horas activas y productivas e indice DIA POR DIA, del equipo o de una persona. Dibuja la grafica sola.',
+              'Horas activas y productivas e indice DIA POR DIA, del equipo o de UNA persona. Dibuja la grafica '
+              'sola. Para comparar personas entre si usa comparar (una sola llamada trae a todas).',
               {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt}, ['desde', 'hasta']),
             t('top',
               'Donde se fue el tiempo: las apps, sitios, archivos o distracciones con mas horas activas.',
@@ -468,9 +504,11 @@ class FocoTomy(models.AbstractModel):
             },
             'top_apps': apps, 'top_sitios': sitios, 'top_archivos': archivos,
             'llamadas_whatsapp': llamadas, 'ausencias': ausencias, 'jornada': jornada,
-            'estado_del_equipo': {'presencia': salud.get('presence_label') or salud.get('presence'),
-                                  'salud_agente': salud.get('health'),
-                                  'alerta_integridad': salud.get('integrity') or None},
+            'estado_ahora': {'presencia': salud.get('presence_label') or salud.get('presence'),
+                             'significa': 'estado en este momento; "Ausente X" es el tiempo desde su ultima '
+                                          'actividad hasta ahora, no un total del periodo',
+                             'salud_agente': salud.get('health'),
+                             'alerta_integridad': salud.get('integrity') or None},
             'sin_datos': not activo and not dias_con_dato,
         }
 
@@ -557,7 +595,7 @@ class FocoTomy(models.AbstractModel):
                         [[g['persona'], g['activo'], g['productivo'],
                           ('%s %%' % g['indice_pct']) if g['indice_pct'] is not None else '-',
                           g['distraccion'], g.get('dias_con_dato', '-')] for g in gente])
-            artefactos.append({'tipo': 'grafica', 'grafica': 'barras', 'titulo': 'Indice por persona (%)',
+            artefactos.append({'tipo': 'grafica', 'grafica': 'barras', 'titulo': 'Indice por persona (%)', 'auto': True,
                                'etiquetas': [g['persona'] for g in gente],
                                'series': [{'nombre': 'Indice %', 'valores': [g['indice_pct'] or 0 for g in gente]}],
                                'unidad': '%'})
@@ -592,7 +630,7 @@ class FocoTomy(models.AbstractModel):
                      'indice_pct': f['indice']} for f in (Usage.analitica(d, h).get('dias') or [])]
         con_dato = [x for x in dias if x['activo_h']]
         if con_dato:
-            artefactos.append({'tipo': 'grafica', 'grafica': 'lineas',
+            artefactos.append({'tipo': 'grafica', 'grafica': 'lineas', 'auto': True,
                                'titulo': 'Horas por dia (%s)' % etiqueta,
                                'etiquetas': [x['dia'][5:] for x in dias],
                                'series': [{'nombre': 'Activo', 'valores': [x['activo_h'] for x in dias]},
@@ -628,12 +666,18 @@ class FocoTomy(models.AbstractModel):
                 filas.append([documento, app.display_name, _hm(horas)])
             cols = ['Archivo', 'Aplicacion', 'Horas']
         else:
+            # Un sitio es el mismo en cualquier navegador: se suma por host, y
+            # las apps sin host (Spotify, juegos) por app. Agrupar por (app, host)
+            # daba "youtube.com" dos veces en el top (Edge y Chrome).
             dist = dominio + [('category_id.weight', '<=', 0), ('category_id.is_system', '=', False),
                               ('category_id', '!=', False)]
-            for app, host, horas in Usage._read_group(dist, ['app_id', 'host'], ['fg_active:sum'],
-                                                      order='fg_active:sum desc', limit=10):
-                filas.append([host or app.display_name, _hm(horas)])
-            cols = ['Distraccion', 'Horas']
+            acum = {}
+            for app, host, horas in Usage._read_group(dist, ['app_id', 'host'], ['fg_active:sum']):
+                clave = (host, 'sitio') if host else (app.display_name, 'aplicacion')
+                acum[clave] = acum.get(clave, 0.0) + (horas or 0.0)
+            for (nombre, clase), horas in sorted(acum.items(), key=lambda kv: -kv[1])[:10]:
+                filas.append([nombre, _hm(horas), clase])
+            cols = ['Distraccion', 'Horas', 'Tipo']
         self._tabla(artefactos, 'Top %s (%s, %s a %s)' % (tipo, sujeto, d, h), cols, filas)
         return {'tipo': tipo, 'sujeto': sujeto, 'periodo': {'desde': str(d), 'hasta': str(h)},
                 'nota': nota or None, 'filas': [dict(zip(cols, f)) for f in filas], 'sin_datos': not filas}
@@ -721,7 +765,8 @@ class FocoTomy(models.AbstractModel):
         artefactos.append({'tipo': 'grafica', 'grafica': tipo if tipo in ('barras', 'lineas', 'dona') else 'barras',
                            'titulo': str(titulo or '')[:120], 'etiquetas': etiquetas, 'series': limpias,
                            'unidad': str(unidad or '')[:8]})
-        return {'ok': True, 'nota': 'La grafica ya se muestra en la respuesta; no repitas sus numeros uno por uno.'}
+        return {'ok': True, 'nota': 'La grafica ya se muestra en la respuesta; no repitas sus numeros uno por uno. '
+                                    'No escribas ninguna imagen ni markdown de imagen: la interfaz la dibuja.'}
 
     def _tool_abrir_en_odoo(self, artefactos, pantalla='tablero', employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id) if employee_id else None
