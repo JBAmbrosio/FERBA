@@ -542,16 +542,21 @@ class FocoMobileAppRequest(models.Model):
         ya = self.sudo().search(dom, limit=1)
         if ya:
             return ya, ''
-        rec = self.sudo().create({
+        # Llega por la ruta publica del telefono: sin esto el historial la
+        # firma "Public user". La firma la persona que la pide, y sobra el
+        # "creado" automatico (el mensaje de abajo ya dice todo).
+        rec = self.sudo().with_context(mail_create_nolog=True).create({
             'device_id': device.id, 'name': nombre or paquete, 'package': paquete or False,
             'reason': motivo,
         })
         grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
         if grupo:
             rec.message_subscribe(partner_ids=grupo.user_ids.partner_id.ids)
+        autor = device.employee_id.work_contact_id
         rec.message_post(
             body='%s pide «%s» desde su teléfono. Motivo: %s' % (
                 device.employee_id.name or device.name, rec.name, motivo),
+            author_id=autor.id or None,
             subtype_xmlid='mail.mt_comment')
         return rec, ''
 
@@ -563,6 +568,10 @@ class FocoMobileAppRequest(models.Model):
             salida.append({
                 'id': r.id, 'name': r.name, 'package': r.package or '',
                 'state': r.state, 'answer': r.answer or '',
+                # "available" = aprobada para que la instale desde la Play
+                # Store; "force" = se instala sola. El aviso del telefono
+                # dice una cosa u otra segun esto.
+                'install': r.install_type or '',
                 'at': fields.Datetime.to_string(r.create_date) if r.create_date else '',
             })
         return salida
