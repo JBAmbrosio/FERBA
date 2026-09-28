@@ -40,9 +40,28 @@ import time
 import requests
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
+
+GRUPO_ADMIN = 'foco_monitor.group_foco_manager'
+
+
+def es_admin(env):
+    """Quien puede administrar los celulares de la empresa: un administrador de
+    Foco, o el propio sistema (el cron corre como superusuario, y los envios
+    que se programan al guardar van con sudo).
+
+    Hace falta revisarlo A MANO: este modelo es abstracto, sin tabla ni
+    permisos, y Odoo deja llamar por RPC cualquier metodo publico de cualquier
+    modelo a cualquier usuario con sesion. Sin esto, un usuario comun podria
+    bloquear o borrar un telefono, o cambiar la llave de la empresa."""
+    return env.su or env.user.has_group(GRUPO_ADMIN)
+
+
+def exigir_admin(env):
+    if not es_admin(env):
+        raise AccessError('Solo un administrador de Foco puede administrar los celulares de la empresa.')
 
 AMAPI = 'https://androidmanagement.googleapis.com/v1/'
 TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -106,6 +125,7 @@ class FocoAmapi(models.AbstractModel):
 
     @api.model
     def guardar_cuenta(self, crudo):
+        exigir_admin(self.env)
         cuenta = self.validar_cuenta(crudo)
         self.env['ir.config_parameter'].sudo().set_param(
             PARAM_CUENTA, json.dumps(cuenta, separators=(',', ':')))
@@ -117,6 +137,8 @@ class FocoAmapi(models.AbstractModel):
     def resumen_cuenta(self):
         """'foco@proyecto.iam.gserviceaccount.com · proyecto' o '' (sin cuenta).
         Nunca devuelve la llave."""
+        if not es_admin(self.env):
+            return ''
         try:
             c = self._cuenta()
         except UserError:
@@ -195,6 +217,8 @@ class FocoAmapi(models.AbstractModel):
 
     @api.model
     def _llamar(self, metodo, ruta, params=None, cuerpo=None):
+        # Toda orden a Google pasa por aqui: es el candado que no se salta.
+        exigir_admin(self.env)
         tok = self._token()
         try:
             r = requests.request(
@@ -209,6 +233,7 @@ class FocoAmapi(models.AbstractModel):
     # ------------------------------------------------------------ empresa
     @api.model
     def empresa(self):
+        exigir_admin(self.env)
         e = self.env['foco.settings'].sudo().get_settings().amapi_enterprise
         if not e:
             raise UserError('La empresa todavía no está registrada en Google. En Foco > '
