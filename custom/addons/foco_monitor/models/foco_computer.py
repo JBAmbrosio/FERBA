@@ -40,6 +40,19 @@ class FocoComputer(models.Model):
              'de Foco y quitar el bloqueo de navegacion: nada de lo que se '
              'mida en este equipo esta garantizado. Es una condicion de TI, no '
              'del software; se resuelve quitandole el privilegio.')
+    # La persona NO ve su consumo ni un resumen: Foco es del administrador y de
+    # quien esta dado de alta en la configuracion. Este interruptor existe para
+    # el caso en que la persona lo SOLICITE; apagado de fabrica. Viaja al agente
+    # en el bloque `conducta` (pone o quita el acceso del menu Inicio) y el
+    # servidor rechaza /foco/agent/mi_dia mientras este apagado.
+    mi_dia_enabled = fields.Boolean(
+        string='Puede ver «Mi día»', default=False,
+        help='Solo si la persona lo solicitó. Encendido, en este equipo aparece '
+             'el acceso «Foco - Mi día» en el menú Inicio y la ventana le enseña '
+             'sus horas de hoy, qué cuenta y qué no, sus sitios sin clasificar, '
+             'las reglas del equipo y sus periodos por justificar. Apagado (lo '
+             'de fábrica), el servidor no entrega ese resumen y el agente quita '
+             'el acceso.')
     agent_db_id = fields.Char(
         string='Huella de la base del agente', readonly=True,
         help='Identificador que el agente crea dentro de su base local. Si '
