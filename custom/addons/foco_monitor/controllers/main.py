@@ -9,6 +9,7 @@ import pytz
 from markupsafe import escape
 
 from odoo import fields, http
+from odoo.exceptions import UserError
 from odoo.http import content_disposition, request
 
 _logger = logging.getLogger(__name__)
@@ -777,12 +778,18 @@ class FocoController(http.Controller):
         # escribirse en una sola operacion en cualquiera de las dos ramas.
         dvals.update(dev._health_vals(data.get('health')))
 
+        # Las solicitudes de apps y su respuesta viajan en CADA envio, con o
+        # sin monitoreo: pedir una app no es un dato medido de la persona, es
+        # un tramite suyo, y la respuesta le tiene que llegar.
+        solicitudes = request.env['foco.mobile.app.request'].sudo().para_telefono(dev)
+
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
             dev.sudo().write(dvals)
             return request.make_json_response(
                 {'ok': True, 'stored': False, 'config': s.mobile_config(),
-                 'screenshot': self._mobile_screenshot_block(dev, s)})
+                 'screenshot': self._mobile_screenshot_block(dev, s),
+                 'solicitudes': solicitudes})
 
         Ev = request.env['foco.event']
         Loc = request.env['foco.location'].sudo()
@@ -874,7 +881,50 @@ class FocoController(http.Controller):
             'ok': True, 'stored': True,
             'counts': {'locations': n_loc, 'usage': n_usg, 'calls': n_call},
             'config': s.mobile_config(),
-            'screenshot': self._mobile_screenshot_block(dev, s)})
+            'screenshot': self._mobile_screenshot_block(dev, s),
+            'solicitudes': solicitudes})
+
+    # ------------------------------------------------ solicitudes de apps
+    #
+    # La persona pide una app desde Foco en su telefono. En un telefono
+    # gestionado con Android Enterprise la Play Store solo muestra lo aprobado,
+    # asi que pedir es la unica via de tener algo mas.
+    @http.route('/foco/mobile/app_request', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_app_request(self, **kw):
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        Req = request.env['foco.mobile.app.request'].sudo()
+        rec, error = Req.desde_telefono(dev, data)
+        if error:
+            return request.make_json_response({'ok': False, 'error': error}, status=400)
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'solicitudes': Req.para_telefono(dev)})
+
+    # ------------------------------------------------ Android Enterprise
+    #
+    # Google vuelve aqui al terminar el alta de la empresa, con el token de la
+    # empresa en la URL. Solo un administrador de Foco con sesion lo completa.
+    @http.route('/foco/amapi/callback', type='http', auth='user')
+    def amapi_callback(self, enterpriseToken=None, **kw):
+        if not request.env.user.has_group('foco_monitor.group_foco_manager'):
+            return request.not_found()
+        s = request.env['foco.settings'].sudo().get_settings()
+        destino = '/odoo/action-foco_monitor.foco_settings_movil_action'
+        if not enterpriseToken or not s.amapi_signup_name:
+            return request.redirect(destino)
+        try:
+            res = request.env['foco.amapi'].sudo().registrar(
+                s.amapi_signup_name, enterpriseToken, s.amapi_enterprise_display)
+            s.write({'amapi_enterprise': res.get('name'), 'amapi_signup_name': False,
+                     'amapi_ultimo_error': False})
+        except UserError as e:
+            s.write({'amapi_ultimo_error': str(e)[:500]})
+        return request.redirect(destino)
 
     @http.route('/foco/download', type='http', auth='public', methods=['GET'])
     def download(self, **kw):

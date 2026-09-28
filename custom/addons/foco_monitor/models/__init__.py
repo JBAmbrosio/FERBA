@@ -11,6 +11,8 @@ from . import foco_command
 from . import foco_capture
 from . import foco_watch
 from . import foco_mobile
+from . import foco_amapi
+from . import foco_mobile_mdm
 from . import foco_app_token
 from . import foco_settings
 from . import foco_openai

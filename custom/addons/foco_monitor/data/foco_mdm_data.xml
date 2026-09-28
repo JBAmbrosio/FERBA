@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Cada 15 minutos: lee de Google el estado y el inventario de los
+         celulares gestionados y reenvia las politicas que no llegaron. Sin la
+         empresa registrada en Google no hace nada. -->
+    <record id="cron_foco_mdm_sync" model="ir.cron">
+        <field name="name">Foco: celulares gestionados (Android Enterprise)</field>
+        <field name="model_id" ref="model_foco_mobile_device"/>
+        <field name="state">code</field>
+        <field name="code">model._mdm_cron()</field>
+        <field name="interval_number">15</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>
