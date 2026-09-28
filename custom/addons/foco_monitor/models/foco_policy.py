@@ -180,6 +180,10 @@ class FocoPolicy(models.Model):
             bloque = dict(self._CONDUCTA_FABRICA)
         bloque['sitios_bloqueados'] = (perfil._patrones_bloqueo()
                                        if perfil and ajustes.block_enabled else [])
+        # «Mi dia» solo para quien lo pidio: la persona no ve su consumo por
+        # defecto (vision de Foco). Va en el bloque para que el agente ponga o
+        # quite el acceso del menu Inicio, y dentro del hash para que se aplique.
+        bloque['mi_dia'] = bool(computer.mi_dia_enabled)
         bloque['version'] = self._hash(bloque)
         return bloque
 

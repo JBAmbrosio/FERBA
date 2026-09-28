@@ -9,6 +9,7 @@
                 <field name="windows_user"/>
                 <field name="user_is_admin" string="Admin local" optional="show"
                        decoration-danger="user_is_admin"/>
+                <field name="mi_dia_enabled" string="Ve «Mi día»" optional="show"/>
                 <field name="employee_id"/>
                 <field name="department_id"/>
                 <field name="last_seen"/>
@@ -48,6 +49,9 @@
                             <field name="employee_id"/>
                             <field name="windows_user"/>
                             <field name="user_is_admin"/>
+                            <!-- Solo si la persona lo pidio: Foco es del
+                                 administrador; apagado de fabrica. -->
+                            <field name="mi_dia_enabled"/>
                             <field name="last_seen"/>
                             <field name="active"/>
                         </group>

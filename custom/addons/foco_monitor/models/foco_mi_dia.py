@@ -172,6 +172,14 @@ class FocoUsageMiDia(models.Model):
         if not emp:
             return {'ok': False, 'error': 'sin_empleado',
                     'mensaje': 'Este equipo no está ligado a ningún empleado.'}
+        # La vision de Foco: la persona no ve su consumo ni un resumen salvo que
+        # lo haya pedido y un administrador lo haya encendido para su equipo.
+        # Se decide AQUI, en el servidor: el acceso del menu Inicio y la
+        # ventana solo son la puerta; sin esto no entregan nada.
+        if not computer.mi_dia_enabled:
+            return {'ok': False, 'error': 'no_habilitado',
+                    'mensaje': 'Foco no muestra este resumen en este equipo. '
+                               'Si lo necesitas, pídelo a tu administrador.'}
         zona = self.env['foco.settings'].sudo()._tzinfo_for(emp, computer) or pytz.UTC
         ahora = datetime.now(zona)
         hoy = ahora.date()
