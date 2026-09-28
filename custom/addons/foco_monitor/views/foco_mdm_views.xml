@@ -76,7 +76,8 @@
                         Pulsa <b>Buscar en Play Store</b>, busca la app y elígela: queda
                         aprobada solo para este teléfono y se instala sola. Si ya sabes el
                         paquete, escríbelo y pulsa <b>Aprobar</b>. Para aprobarla a todo un
-                        grupo, agrégala en el perfil (Navegación permitida › Celular).
+                        grupo, agrégala en su perfil: <b>Navegación permitida</b> › el perfil ›
+                        <b>En el celular</b>.
                     </div>
                 </sheet>
                 <chatter/>
@@ -173,7 +174,9 @@
         <field name="model">foco.policy</field>
         <field name="inherit_id" ref="foco_monitor.foco_policy_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//group[@string='4 · Cómo mide el agente en estos equipos']" position="after">
+            <!-- Odoo 19 no deja ubicar por `string`: se ancla en un campo que
+                 vive dentro del grupo 4 y se sube a su grupo. -->
+            <xpath expr="//field[@name='managed_browsers']/.." position="after">
                 <group string="5 · En el celular (Android Enterprise)">
                     <div colspan="2" class="alert alert-light border" role="alert">
                         Aplica a los teléfonos gestionados de este perfil. Las reglas de
@@ -217,7 +220,7 @@
                 </group>
             </xpath>
             <!-- La seccion condicional de sitios sin cubrir pasa a ser la 6. -->
-            <xpath expr="//group[@string='5 · Se ha visto y no lo alcanza ninguna regla']" position="attributes">
+            <xpath expr="//field[@name='sitios_sin_cubrir_ids']/.." position="attributes">
                 <attribute name="string">6 · Se ha visto y no lo alcanza ninguna regla</attribute>
             </xpath>
         </field>
@@ -274,11 +277,13 @@
                     <field name="installed_count" widget="statinfo" string="Instaladas"/>
                 </button>
             </xpath>
-            <xpath expr="//group[@string='Ultima ubicacion conocida']" position="before">
+            <!-- El grupo "Ultima ubicacion conocida" (sin `string` como ancla:
+                 Odoo 19 no lo permite). -->
+            <xpath expr="//field[@name='last_fix_at']/../.." position="before">
                 <group string="Gestión Android (empresa)">
                     <group>
                         <field name="policy_id" placeholder="Perfil por omisión"/>
-                        <field name="amapi_state" widget="badge"
+                        <field name="amapi_state" widget="badge" invisible="not amapi_state"
                                decoration-success="amapi_state == 'activo'"
                                decoration-info="amapi_state in ('pendiente', 'aprovisionando')"
                                decoration-danger="amapi_state in ('borrado', 'perdido', 'deshabilitado')"/>
@@ -344,7 +349,9 @@
         <field name="model">foco.settings</field>
         <field name="inherit_id" ref="foco_monitor.foco_settings_view_form_movil"/>
         <field name="arch" type="xml">
-            <xpath expr="//sheet/group[1]" position="before">
+            <!-- Despues del interruptor general del monitoreo movil: primero
+                 "se mide o no", luego "que telefonos gestiona la empresa". -->
+            <xpath expr="//field[@name='mobile_enabled']/.." position="after">
                 <group string="Android Enterprise · celulares gestionados por la empresa">
                     <div colspan="2">
                         <field name="amapi_estado" widget="badge" readonly="1"
@@ -370,8 +377,7 @@
                         </ol>
                     </div>
                     <group>
-                        <field name="amapi_cuenta" readonly="1"
-                               placeholder="Sin cuenta de servicio"/>
+                        <field name="amapi_cuenta" readonly="1" invisible="not amapi_cuenta"/>
                         <field name="amapi_enterprise_display"
                                invisible="amapi_enterprise"/>
                         <field name="amapi_enterprise" readonly="1"
