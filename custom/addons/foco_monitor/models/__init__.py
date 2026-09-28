@@ -11,8 +11,6 @@ from . import foco_command
 from . import foco_capture
 from . import foco_watch
 from . import foco_mobile
-from . import foco_amapi
-from . import foco_mobile_mdm
 from . import foco_app_token
 from . import foco_settings
 from . import foco_openai
@@ -24,3 +22,8 @@ from . import foco_absence
 from . import hr_employee
 from . import res_config_settings
 from . import res_users
+# Al final a proposito: extienden foco.settings y foco.invitation, que tienen
+# que estar ya definidos cuando Odoo arma el registro. Importados antes, el
+# modulo no carga ("Failed to load registry").
+from . import foco_amapi
+from . import foco_mobile_mdm
