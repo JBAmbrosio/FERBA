@@ -688,12 +688,14 @@ class FocoMobileDeviceMdm(models.Model):
                               'expiry': fields.Datetime.now() + timedelta(days=30)})
         return inv.token
 
-    def _mdm_neutral(self):
+    def _politica_base(self, perfil=None):
         """La politica en terminos de Odoo, sin nada de Google: que apps, que
         restricciones, que sitios. Es lo que un motor distinto (otro MDM, la
-        propia Foco como administrador) tendria que traducir."""
+        propia Foco como administrador del equipo) tiene que traducir. Con
+        `perfil=None` se usa el del telefono; se pasa explicito para no
+        recalcularlo dos veces."""
         self.ensure_one()
-        perfil = self._mdm_perfil()
+        perfil = self._mdm_perfil() if perfil is None else perfil
         ajustes = self.env['foco.settings'].sudo().get_settings()
         if perfil:
             r = {
@@ -724,8 +726,33 @@ class FocoMobileDeviceMdm(models.Model):
             'apps': apps,
             'restricciones': r,
             'web': {'bloquear': bloquear, 'permitir': permitir},
-            'foco': {'url': ajustes._base_url(), 'codigo': self._mdm_codigo()},
         }
+
+    def _mdm_neutral(self):
+        """La base mas los datos para que Foco se conecte sola (Android
+        Enterprise): direccion de Odoo y codigo de invitacion."""
+        n = self._politica_base()
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        n['foco'] = {'url': ajustes._base_url(), 'codigo': self._mdm_codigo()}
+        return n
+
+    def _politica_agente(self):
+        """La politica que Foco APLICA como administrador del equipo (Device
+        Owner). Viaja en cada envio del telefono. Solo se aplica si el equipo es
+        gestionado por Foco y tiene un perfil: sin perfil, `aplicar` en falso y
+        el telefono no impone nada nuevo (no se endurece un equipo por descuido).
+
+        Lo mide con permisos del sistema: el telefono llega por la ruta publica,
+        sin usuario, y el perfil y las listas de sitios no son visibles para un
+        usuario sin permisos."""
+        self.ensure_one()
+        yo = self.sudo()
+        perfil = yo._mdm_perfil()
+        if not perfil:
+            return {'aplicar': False}
+        base = yo._politica_base(perfil=perfil)
+        base['aplicar'] = True
+        return base
 
     def _mdm_json(self):
         """La politica tal como la entiende Google (Android Management API)."""
