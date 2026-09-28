@@ -673,7 +673,8 @@ class FocoController(http.Controller):
         s = request.env['foco.settings'].sudo().get_settings()
         return request.make_json_response({
             'ok': True, 'api_key': dev.api_key,
-            'employee': inv.employee_id.name, 'config': s.mobile_config()})
+            'employee': inv.employee_id.name, 'config': s.mobile_config(),
+            'politica': dev.sudo()._politica_agente()})
 
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -783,13 +784,19 @@ class FocoController(http.Controller):
         # un tramite suyo, y la respuesta le tiene que llegar.
         solicitudes = request.env['foco.mobile.app.request'].sudo().para_telefono(dev)
 
+        # La politica del equipo gestionado (Foco como administrador del
+        # telefono): que se bloquea, que apps se ocultan, que sitios. Viaja
+        # SIEMPRE, con o sin monitoreo: restringir el equipo no es medir a la
+        # persona. El telefono solo la aplica si es Device Owner.
+        politica = dev.sudo()._politica_agente()
+
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
             dev.sudo().write(dvals)
             return request.make_json_response(
                 {'ok': True, 'stored': False, 'config': s.mobile_config(),
                  'screenshot': self._mobile_screenshot_block(dev, s),
-                 'solicitudes': solicitudes})
+                 'solicitudes': solicitudes, 'politica': politica})
 
         Ev = request.env['foco.event']
         Loc = request.env['foco.location'].sudo()
@@ -882,7 +889,7 @@ class FocoController(http.Controller):
             'counts': {'locations': n_loc, 'usage': n_usg, 'calls': n_call},
             'config': s.mobile_config(),
             'screenshot': self._mobile_screenshot_block(dev, s),
-            'solicitudes': solicitudes})
+            'solicitudes': solicitudes, 'politica': politica})
 
     # ------------------------------------------------ solicitudes de apps
     #
