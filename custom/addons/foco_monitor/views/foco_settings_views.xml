@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Antes "Horario": desde el 28-sep-2026 la pantalla solo dice de donde
+         sale la jornada de cada persona (checador o calendario). -->
     <record id="foco_settings_client" model="ir.actions.client">
-        <field name="name">Horario</field>
+        <field name="name">Jornada</field>
         <field name="tag">foco_settings</field>
     </record>
 
