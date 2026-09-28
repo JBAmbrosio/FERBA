@@ -27,8 +27,8 @@
                 <field name="in_shift_hours" widget="float_time" sum="Dentro"/>
                 <field name="off_shift_hours" widget="float_time" sum="Fuera"
                        decoration-bf="off_shift_hours > 0"/>
-                <field name="shift_gap_hours" string="Jornada sin actividad" widget="float_time"
-                       sum="Sin actividad" optional="show"/>
+                <field name="shift_gap_hours" string="Jornada sin senal" widget="float_time"
+                       sum="Sin senal" optional="show"/>
                 <field name="call_hours" widget="float_time" optional="show"/>
                 <field name="expected_hours" widget="float_time" optional="hide"/>
                 <field name="unexplained_minutes" optional="show"
@@ -49,7 +49,7 @@
                 <field name="department_id"/>
                 <filter name="f_fuera" string="Trabajo fuera de jornada"
                         domain="[('off_shift_hours', '&gt;', 0)]"/>
-                <filter name="f_hueco" string="Jornada sin actividad"
+                <filter name="f_hueco" string="Jornada sin senal del equipo"
                         domain="[('shift_gap_hours', '&gt;', 0)]"/>
                 <filter name="f_sin_explicar" string="Con tiempo sin explicar"
                         domain="[('unexplained_minutes', '&gt;', 0)]"/>

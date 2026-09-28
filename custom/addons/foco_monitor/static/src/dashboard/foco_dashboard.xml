@@ -161,9 +161,10 @@
                             <t t-if="fuentesTexto"><t t-esc="fuentesTexto"/> </t>
                             Fuera de su jornada es activo sin checar: antes de la
                             entrada, después de la salida o un día sin registro.
-                            Jornada sin actividad es checado sin señal del equipo:
-                            una junta lejos de él o una salida sin checar. El
-                            sistema no distingue: solo dice dónde cayó.
+                            Jornada sin señal es checado sin que el equipo diera
+                            señal alguna, ni teclado ni una ventana al frente: una
+                            junta lejos de él o una salida sin checar. El sistema
+                            no distingue: solo dice dónde cayó.
                         </p>
                     </section>
                 </div>

@@ -104,11 +104,13 @@ class FocoWorkday(models.Model):
         help='Cuanto duro la jornada de ese dia segun su fuente: de la entrada '
              'a la salida checadas, o las franjas del calendario laboral.')
     shift_gap_hours = fields.Float(
-        string='Jornada sin actividad (h)', readonly=True,
-        help='La jornada menos lo activo dentro de ella: estuvo checado (o era '
-             'su horario) y el equipo no dio senal. Una junta lejos del equipo '
-             'o una salida sin checar se ven igual aqui: es lo que hay que '
-             'mirar, no un veredicto.')
+        string='Jornada sin senal (h)', readonly=True,
+        help='La jornada menos el tiempo con SENAL del equipo dentro de ella '
+             '(activo o con una ventana al frente sin input): estuvo checado '
+             '(o era su horario) y el equipo no dio senal alguna. Una junta '
+             'lejos del equipo o una salida sin checar se ven igual aqui: es '
+             'lo que hay que mirar, no un veredicto. Un dia en que el equipo '
+             'no reporto nada queda en 0: eso es "sin dato", no "sin senal".')
 
     gap_count = fields.Integer(string='Huecos', readonly=True)
     unexplained_minutes = fields.Integer(
@@ -206,14 +208,22 @@ class FocoWorkday(models.Model):
                         h.duration for h in huecos if h.state == 'pendiente') * 60)),
                     'power_events': len(eventos),
                 }
-                # La jornada del dia y su fuente. `in_shift_hours` ya viene
-                # etiquetado por el agente con la MISMA regla (checador si lo
-                # usa, calendario si no), asi que la resta es honesta.
+                # La jornada del dia y su fuente. Las etiquetas in/off ya vienen
+                # del agente con la MISMA regla (checador si lo usa, calendario
+                # si no), asi que la resta es honesta. Lo que se resta es la
+                # SENAL del equipo dentro de la jornada: activo Y con ventana al
+                # frente sin input. Leer o pensar frente a la pantalla no es un
+                # hueco; una sesion bloqueada, un equipo apagado o una salida
+                # sin checar, si. Y un dia sin dato alguno del equipo no es
+                # "sin senal": es sin dato, y queda en 0.
                 jor = ajustes.jornada_de(emp, dia, zona)
                 vals['shift_source'] = jor['fuente']
                 vals['shift_hours'] = jor['horas']
-                vals['shift_gap_hours'] = round(
-                    max(jor['horas'] - vals['in_shift_hours'], 0.0), 3)
+                senal_dentro = vals['in_shift_hours'] + sum(
+                    u.fg_idle for u in usos if u.shift != 'off')
+                con_senal = bool(usos) or any(e.kind in CON_PERSONA for e in eventos)
+                vals['shift_gap_hours'] = (round(max(jor['horas'] - senal_dentro, 0.0), 3)
+                                           if con_senal else 0.0)
 
                 primero, primero_k, primero_p = self._primera_senal(
                     eventos, huecos, ini_utc, fin_utc)

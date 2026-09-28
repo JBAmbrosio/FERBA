@@ -471,7 +471,7 @@ export class FocoDashboard extends Component {
                         { label: "Fuera de su jornada", data: j.map((x) => x.fuera),
                           backgroundColor: t.accent, borderRadius: 5, borderSkipped: false,
                           maxBarThickness: 34 },
-                        { label: "Jornada sin actividad", data: j.map((x) => x.sin_actividad || 0),
+                        { label: "Jornada sin señal del equipo", data: j.map((x) => x.sin_actividad || 0),
                           backgroundColor: rayas(t.ink3, t.card), borderColor: t.linea,
                           borderWidth: 1, borderRadius: 5, borderSkipped: false,
                           maxBarThickness: 34 },
