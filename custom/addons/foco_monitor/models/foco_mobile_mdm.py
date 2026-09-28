@@ -37,6 +37,8 @@ from datetime import datetime, timedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+from .foco_amapi import exigir_admin
+
 _logger = logging.getLogger(__name__)
 
 FOCO_PKG = 'net.ferba.foco'
@@ -123,12 +125,14 @@ class FocoSettingsMdm(models.Model):
         return (self.env['ir.config_parameter'].sudo().get_param('web.base.url') or '').rstrip('/')
 
     def action_amapi_cuenta(self):
+        exigir_admin(self.env)
         return {
             'type': 'ir.actions.act_window', 'name': 'Cuenta de servicio de Google',
             'res_model': 'foco.amapi.cuenta.wizard', 'view_mode': 'form', 'target': 'new',
         }
 
     def action_amapi_probar(self):
+        exigir_admin(self.env)
         nombres = self.env['foco.amapi'].probar()
         if nombres:
             msg = 'La cuenta funciona. Empresas de este proyecto en Google: %s.' % ', '.join(nombres)
@@ -139,6 +143,7 @@ class FocoSettingsMdm(models.Model):
     def action_amapi_registrar(self):
         """Lleva al administrador a la pagina de Google para dar de alta la
         empresa. Al terminar, Google vuelve a /foco/amapi/callback."""
+        exigir_admin(self.env)
         self.ensure_one()
         base = self._base_url()
         if not base.startswith('https://'):
@@ -148,9 +153,11 @@ class FocoSettingsMdm(models.Model):
         return {'type': 'ir.actions.act_url', 'url': res.get('url'), 'target': 'self'}
 
     def action_amapi_play(self):
+        exigir_admin(self.env)
         return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store de la empresa'}
 
     def action_amapi_sync(self):
+        exigir_admin(self.env)
         n = self.env['foco.mobile.device']._mdm_sync(lanzar=True)
         enviados = self.env['foco.mobile.device'].sudo().search(
             [('amapi_state', 'not in', [False, 'borrado'])])._mdm_enviar()
@@ -158,6 +165,7 @@ class FocoSettingsMdm(models.Model):
                            % (n, enviados), 'success')
 
     def action_amapi_alta(self):
+        exigir_admin(self.env)
         return {
             'type': 'ir.actions.act_window', 'name': 'Alta de un teléfono',
             'res_model': 'foco.mobile.alta.wizard', 'view_mode': 'form', 'target': 'new',
@@ -253,6 +261,7 @@ class FocoPolicyMovil(models.Model):
         return res
 
     def action_play(self):
+        exigir_admin(self.env)
         self.ensure_one()
         return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store · %s' % self.name,
                 'context': {'foco_policy_id': self.id}}
@@ -485,6 +494,7 @@ class FocoMobileInstalled(models.Model):
     def action_bloquear_en_perfil(self):
         """Bloquea esta app en el perfil del telefono (p.ej. YouTube que viene
         de fabrica). Es la forma de apagar una app del sistema."""
+        exigir_admin(self.env)
         for i in self:
             perfil = i.device_id._mdm_perfil()
             if not perfil:
@@ -577,11 +587,13 @@ class FocoMobileAppRequest(models.Model):
         return salida
 
     def action_play(self):
+        exigir_admin(self.env)
         self.ensure_one()
         return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store · %s' % self.name,
                 'context': {'foco_request_id': self.id}}
 
     def action_aprobar(self):
+        exigir_admin(self.env)
         for r in self:
             if r.state not in ('pendiente', 'rechazada'):
                 continue
@@ -600,6 +612,7 @@ class FocoMobileAppRequest(models.Model):
         return True
 
     def action_rechazar(self):
+        exigir_admin(self.env)
         for r in self:
             if not (r.answer or '').strip():
                 raise UserError('Escribe en «Respuesta a la persona» por qué no se aprueba: es lo que lee en su teléfono.')
@@ -609,6 +622,7 @@ class FocoMobileAppRequest(models.Model):
         return True
 
     def action_reabrir(self):
+        exigir_admin(self.env)
         self.write({'state': 'pendiente', 'decided_by': False, 'decided_at': False})
         return True
 
@@ -951,21 +965,25 @@ class FocoMobileDeviceMdm(models.Model):
         return self.amapi_name
 
     def action_mdm_enviar(self):
+        exigir_admin(self.env)
         n = self._mdm_enviar(forzar=True, lanzar=True)
         return self.env['foco.settings'].sudo().get_settings()._aviso(
             'Política enviada a Google (%d). El teléfono la aplica en su siguiente conexión.' % n, 'success')
 
     def action_mdm_bloquear(self):
+        exigir_admin(self.env)
         self.env['foco.amapi'].comando(self._mdm_equipo_google(), 'LOCK')
         self.message_post(body='Se ordenó bloquear la pantalla desde Odoo.')
         return self.env['foco.settings'].sudo().get_settings()._aviso('Orden enviada: el teléfono se bloquea.', 'success')
 
     def action_mdm_reiniciar(self):
+        exigir_admin(self.env)
         self.env['foco.amapi'].comando(self._mdm_equipo_google(), 'REBOOT')
         self.message_post(body='Se ordenó reiniciar el teléfono desde Odoo.')
         return self.env['foco.settings'].sudo().get_settings()._aviso('Orden enviada: el teléfono se reinicia.', 'success')
 
     def action_mdm_borrar(self):
+        exigir_admin(self.env)
         nombre = self._mdm_equipo_google()
         self.env['foco.amapi'].borrar_equipo(nombre, 'Restablecido por la empresa desde Odoo.')
         self.write({'amapi_state': 'borrado', 'amapi_hash': False})
@@ -974,12 +992,14 @@ class FocoMobileDeviceMdm(models.Model):
             'Orden enviada: el teléfono se restablece de fábrica en su siguiente conexión.', 'warning')
 
     def action_mdm_play(self):
+        exigir_admin(self.env)
         self.ensure_one()
         return {'type': 'ir.actions.client', 'tag': 'foco_play',
                 'name': 'Play Store · %s' % (self.employee_id.name or self.name),
                 'context': {'foco_device_id': self.id}}
 
     def action_mdm_alta(self):
+        exigir_admin(self.env)
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window', 'name': 'Alta del teléfono',
@@ -1031,6 +1051,7 @@ class FocoMobileAltaWizard(models.TransientModel):
     telefono_id = fields.Many2one('foco.mobile.device', string='Teléfono en Odoo', readonly=True)
 
     def action_generar(self):
+        exigir_admin(self.env)
         self.ensure_one()
         ajustes = self.env['foco.settings'].sudo().get_settings()
         if ajustes.amapi_estado != 'lista':
