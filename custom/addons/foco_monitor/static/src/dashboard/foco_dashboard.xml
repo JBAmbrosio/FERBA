@@ -151,16 +151,19 @@
 
                     <section class="fd_card fd_grafica">
                         <div class="fd_card_head">
-                            <h2>¿Cayó dentro del horario?</h2>
-                            <span class="fd_card_hint">no cuánto se trabajó, sino cuándo</span>
+                            <h2>¿Trabajó dentro de su jornada?</h2>
+                            <span class="fd_card_hint">jornada = entrada y salida checadas</span>
                         </div>
                         <div class="fd_lienzo">
                             <canvas t-ref="cJornada"/>
                         </div>
                         <p class="fd_pie">
-                            Trabajar fuera de horario puede ser una urgencia
-                            atendida o una carga mal repartida. El sistema no
-                            distingue: solo dice dónde cayó.
+                            <t t-if="fuentesTexto"><t t-esc="fuentesTexto"/> </t>
+                            Fuera de su jornada es activo sin checar: antes de la
+                            entrada, después de la salida o un día sin registro.
+                            Jornada sin actividad es checado sin señal del equipo:
+                            una junta lejos de él o una salida sin checar. El
+                            sistema no distingue: solo dice dónde cayó.
                         </p>
                     </section>
                 </div>

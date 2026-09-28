@@ -22,23 +22,11 @@ class FocoSettings(models.Model):
     _description = 'Configuracion de Foco'
 
     name = fields.Char(default="Configuracion", readonly=True)
-    sched_enabled = fields.Boolean(
-        string="Aplicar horario", default=True,
-        help="Si esta activo, los agentes SOLO miden dentro del horario. "
-             "Si se apaga, miden todo el tiempo (24/7).")
-    sched_from = fields.Float(
-        string="Desde", default=9.0,
-        help="Hora de inicio en formato 24h (9.0 = 09:00, 9.5 = 09:30).")
-    sched_to = fields.Float(
-        string="Hasta", default=20.0,
-        help="Hora de fin en formato 24h (20.0 = 20:00).")
-    day_mon = fields.Boolean("Lunes", default=True)
-    day_tue = fields.Boolean("Martes", default=True)
-    day_wed = fields.Boolean("Miercoles", default=True)
-    day_thu = fields.Boolean("Jueves", default=True)
-    day_fri = fields.Boolean("Viernes", default=True)
-    day_sat = fields.Boolean("Sabado", default=False)
-    day_sun = fields.Boolean("Domingo", default=False)
+
+    # El horario global (sched_*, day_*) se retiro el 28-sep-2026: desde que
+    # RRHH asigna calendarios laborales no gobernaba a nadie, y la jornada la
+    # dice el CHECADOR para quien lo usa (ver `jornada_de`). Las columnas
+    # viejas quedan en la base sin uso; Odoo no las borra y nada las lee.
 
     # ---- bloqueo de navegacion ------------------------------------------
     # APAGADO de fabrica. Una funcion que puede dejar a alguien sin poder abrir
@@ -503,13 +491,151 @@ class FocoSettings(models.Model):
     def get_settings(self):
         return self.search([], limit=1) or self.create({})
 
-    def schedule_dict(self):
-        self.ensure_one()
-        flags = [self.day_mon, self.day_tue, self.day_wed, self.day_thu,
-                 self.day_fri, self.day_sat, self.day_sun]
-        days = [i + 1 for i, on in enumerate(flags) if on]
-        return {"enabled": self.sched_enabled, "from": self.sched_from,
-                "to": self.sched_to, "days": days}
+    # ---- la jornada: checador primero, calendario despues -----------------
+    #
+    # Cuando una persona "usa el checador": tiene un registro de asistencia
+    # ese dia o en los 30 anteriores. Es una definicion declarada, no un
+    # umbral afinado: la misma que aplica el agente al etiquetar en vivo
+    # (`asistencia_para`) y la que aplica la jornada al recalcularse
+    # (`jornada_de`), para que los dos digan lo mismo de un mismo dia se mire
+    # cuando se mire. Quien no lo usa se rige por su calendario laboral; quien
+    # no tiene ninguno, no tiene jornada contra que contrastar.
+    CHECADOR_VENTANA_DIAS = 30
+
+    @api.model
+    def _a_utc(self, dt_local):
+        return dt_local.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    @api.model
+    def _usa_checador(self, employee, dia, zona):
+        if not employee or 'hr.attendance' not in self.env:
+            return False
+        desde = zona.localize(datetime.combine(
+            dia - timedelta(days=self.CHECADOR_VENTANA_DIAS), time.min))
+        hasta = zona.localize(datetime.combine(dia, time.max))
+        try:
+            return bool(self.env['hr.attendance'].sudo().search_count(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '>=', self._a_utc(desde)),
+                 ('check_in', '<=', self._a_utc(hasta))], limit=1))
+        except Exception:
+            return False
+
+    @api.model
+    def _tramos_checados(self, employee, dia, zona):
+        """[(h_ini, h_fin, abierta)] de lo checado ese dia, en horas locales.
+
+        Una asistencia sin salida se cierra en "ahora" si es hoy (sigue
+        checada) y en el fin del dia si es un dia pasado (se le olvido checar
+        salida): lo checado sin actividad se vera, que es lo correcto.
+        """
+        if not employee or 'hr.attendance' not in self.env:
+            return []
+        base = zona.localize(datetime.combine(dia, time.min))
+        fin_dia = zona.localize(datetime.combine(dia, time.max))
+        ahora = datetime.now(zona)
+        tope = min(fin_dia, ahora) if dia == ahora.date() else fin_dia
+        if dia > ahora.date() or tope <= base:
+            return []
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '<=', self._a_utc(tope)),
+                 '|', ('check_out', '=', False), ('check_out', '>=', self._a_utc(base))],
+                ['check_in', 'check_out'], order='check_in')
+        except Exception:
+            return []
+
+        def hora(d):
+            return d.hour + d.minute / 60.0 + d.second / 3600.0
+
+        out = []
+        for r in regs:
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(zona)
+            abierta = not r['check_out']
+            co = tope if abierta else pytz.UTC.localize(
+                fields.Datetime.to_datetime(r['check_out'])).astimezone(zona)
+            a, b = max(ci, base), min(co, tope)
+            if b <= a:
+                continue
+            h_a = 0.0 if a <= base else hora(a)
+            h_b = 24.0 if b >= fin_dia else hora(b)
+            out.append((round(h_a, 4), round(h_b, 4), abierta))
+        return sorted(out)
+
+    @api.model
+    def jornada_de(self, employee, dia, zona):
+        """La jornada de esa persona ese dia: fuente, tramos y duracion."""
+        if employee and self._usa_checador(employee, dia, zona):
+            tramos = [(a, b) for a, b, _ in self._tramos_checados(employee, dia, zona)]
+            return {'fuente': 'checador', 'tramos': tramos,
+                    'horas': round(sum(b - a for a, b in tramos), 3)}
+        intervals = self.calendar_intervals(employee.resource_calendar_id if employee else None)
+        if intervals:
+            tramos = list(intervals.get(dia.isoweekday(), []))
+            return {'fuente': 'calendario', 'tramos': tramos,
+                    'horas': round(sum(b - a for a, b in tramos), 3)}
+        return {'fuente': 'ninguno', 'tramos': [], 'horas': 0.0}
+
+    @api.model
+    def asistencia_para(self, employee, computer=None):
+        """Lo que el agente necesita para etiquetar EN VIVO "en jornada":
+        si esta persona usa el checador y si ahora mismo esta checada."""
+        salida = {'usa': False, 'checado': False, 'desde': None, 'fuente': 'ninguno'}
+        if not employee:
+            return salida
+        zona = self._tzinfo_for(employee, computer)
+        ahora = datetime.now(zona)
+        if self._usa_checador(employee, ahora.date(), zona):
+            salida['usa'] = True
+            salida['fuente'] = 'checador'
+            abierta = self.env['hr.attendance'].sudo().search(
+                [('employee_id', '=', employee.id), ('check_out', '=', False)],
+                order='check_in desc', limit=1)
+            if abierta:
+                salida['checado'] = True
+                salida['desde'] = pytz.UTC.localize(abierta.check_in).astimezone(zona).strftime('%H:%M')
+        elif self.calendar_intervals(employee.resource_calendar_id):
+            salida['fuente'] = 'calendario'
+        return salida
+
+    @api.model
+    def jornada_fuentes(self):
+        """De donde sale la jornada de cada persona monitoreada, HOY.
+
+        Es lo que ensena Configuracion > Jornada, y no se edita ahi: el
+        checador es de Asistencias y el calendario de RRHH. Duplicarlos en
+        Foco seria tener dos verdades sobre la jornada de una persona.
+        """
+        salida = []
+        empleados = self.env['foco.computer'].search(
+            [('employee_id', '!=', False)]).mapped('employee_id')
+        for emp in empleados:
+            zona = self._tzinfo_for(emp)
+            hoy = datetime.now(zona).date()
+            usa = self._usa_checador(emp, hoy, zona)
+            cal = emp.resource_calendar_id
+            con_cal = bool(self.calendar_intervals(cal))
+            ultima = ''
+            if 'hr.attendance' in self.env:
+                reg = self.env['hr.attendance'].sudo().search(
+                    [('employee_id', '=', emp.id)], order='check_in desc', limit=1)
+                if reg:
+                    ultima = fields.Date.to_string(
+                        pytz.UTC.localize(reg.check_in).astimezone(zona).date())
+            salida.append({
+                'id': emp.id, 'nombre': emp.name,
+                'fuente': 'checador' if usa else ('calendario' if con_cal else 'ninguno'),
+                'calendario': cal.name or '', 'calendario_id': cal.id or 0,
+                'calendario_valido': con_cal, 'ultima_checada': ultima,
+            })
+        orden = {'checador': 0, 'calendario': 1, 'ninguno': 2}
+        salida.sort(key=lambda p: (orden[p['fuente']], p['nombre']))
+        conteo = {'checador': 0, 'calendario': 0, 'ninguno': 0}
+        for p in salida:
+            conteo[p['fuente']] += 1
+        return {'personas': salida, 'conteo': conteo,
+                'ventana_dias': self.CHECADOR_VENTANA_DIAS}
 
     @api.model
     def calendar_intervals(self, calendar):
@@ -601,13 +727,14 @@ class FocoSettings(models.Model):
         return self.env.company.resource_calendar_id.tz or 'UTC'
 
     def schedule_for(self, employee=None):
-        """Jornada que se le manda al agente de ese equipo.
+        """El calendario laboral que se le manda al agente de ese equipo.
 
-        Preferencia: calendario del empleado > horario global > apagado.
+        Es el respaldo del agente: etiqueta con el checador si la persona lo
+        usa (bloque `asistencia`) y con esto si no. Sin calendario no hay
+        jornada: `enabled` False y el agente etiqueta todo "en jornada", que
+        es lo conservador (no acusa a nadie de trabajar fuera de nada).
         """
         self.ensure_one()
-        if not self.sched_enabled:
-            return {"enabled": False, "intervals": {}, "source": "off", "tz": ""}
         calendar = employee.resource_calendar_id if employee else None
         intervals = self.calendar_intervals(calendar)
         if intervals:
@@ -615,10 +742,8 @@ class FocoSettings(models.Model):
                     "tz": calendar.tz or self._tz_for(employee),
                     "source": "employee_calendar",
                     "intervals": {str(k): v for k, v in intervals.items()}}
-        data = self.schedule_dict()
-        data["source"] = "global"
-        data["tz"] = self._tz_for(employee)
-        return data
+        return {"enabled": False, "intervals": {}, "source": "sin_calendario",
+                "tz": self._tz_for(employee)}
 
     # ---- purga ----------------------------------------------------------
     def _purgar_modelo(self, modelo, dominio, cupo):
@@ -726,44 +851,6 @@ class FocoSettings(models.Model):
         _logger.info('Foco: purga anterior a %s -> %s, quedan %d',
                      corte, ', '.join(detalle), pendientes)
         return borrados
-
-    @api.model
-    def cobertura_horario(self):
-        """A quien gobierna DE VERDAD este horario.
-
-        schedule_for() da preferencia al calendario laboral del empleado sobre
-        este horario global. Es lo correcto -la jornada la define RRHH, no una
-        pantalla de Foco- pero deja un ajuste que para parte de la plantilla no
-        surte ningun efecto, sin decirlo. Un control que no aplica y no lo
-        avisa es peor que no tenerlo: se configura, se cree aplicado, y los
-        numeros salen distintos por una razon invisible.
-
-        Devuelve el reparto real sobre las personas MONITOREADAS (las que
-        tienen equipo), no sobre toda la plantilla.
-        """
-        empleados = self.env['foco.computer'].search(
-            [('employee_id', '!=', False)]).mapped('employee_id')
-        sin_cal = empleados.filtered(lambda e: not e.resource_calendar_id)
-        con_cal = empleados - sin_cal
-
-        por_calendario = {}
-        for emp in con_cal:
-            cal = emp.resource_calendar_id
-            grupo = por_calendario.setdefault(
-                cal.id, {'id': cal.id, 'nombre': cal.name or 'Sin nombre', 'quienes': []})
-            grupo['quienes'].append(emp.name)
-        calendarios = sorted(por_calendario.values(),
-                             key=lambda g: (-len(g['quienes']), g['nombre']))
-        for g in calendarios:
-            g['personas'] = len(g['quienes'])
-
-        return {
-            'total': len(empleados),
-            'global': len(sin_cal),
-            'con_calendario': len(con_cal),
-            'nombres_global': sin_cal.mapped('name')[:10],
-            'calendarios': calendarios,
-        }
 
     @api.model
     def _presencia_por_dia(self, employee, ini, fin, tz):

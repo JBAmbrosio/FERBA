@@ -55,7 +55,7 @@ export class FocoDashboard extends Component {
             detail: null, open: false,
             refrescando: false, ultimo: null,
             // analitica
-            serie: [], porPersona: [], jornada: [],
+            serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
             expEmpleado: "", expGrano: "dia",
             // Que hizo cada quien, desplegado debajo de su renglon. El arbol
             // se pide al abrir y se guarda por persona Y periodo: cambiar de
@@ -437,29 +437,43 @@ export class FocoDashboard extends Component {
             });
         }
 
-        // 3) DENTRO O FUERA DEL HORARIO, en COLUMNAS. No dice cuanto se trabajo:
-        //    dice si cayo donde debia. La columna del dia con trabajo fuera de
-        //    jornada se ve crecer por encima en otro color, y esa es justo la
-        //    que abre la conversacion.
+        // 3) LA JORNADA, en COLUMNAS. No dice cuanto se trabajo: dice si cayo
+        //    donde debia. "Donde debia" lo dice el checador para quien lo usa y
+        //    el calendario de RRHH para quien no (jornada_serie). Tres cubetas:
+        //    activo en la jornada, activo fuera de ella (sin checar: antes de
+        //    la entrada, despues de la salida, dias sin registro) y jornada
+        //    sin actividad (checado o en horario, sin senal del equipo). Las
+        //    dos ultimas abren conversaciones distintas, y por eso van con
+        //    tratamientos distintos: color pleno la primera, rayado la segunda,
+        //    que es "hueco" y no "trabajo".
         if (this.cJornada.el && this.state.jornada.length) {
             const j = this.state.jornada;
-            const grad = (hex1, hex2) => (ctx) => {
-                const { ctx: c, chartArea: a } = ctx.chart;
-                if (!a) return hex1;
-                const g = c.createLinearGradient(0, a.bottom, 0, a.top);
-                g.addColorStop(0, hex2); g.addColorStop(1, hex1);
-                return g;
+            const rayas = (linea, fondo) => {
+                const c = document.createElement("canvas");
+                c.width = c.height = 8;
+                const x = c.getContext("2d");
+                x.fillStyle = fondo; x.fillRect(0, 0, 8, 8);
+                x.strokeStyle = linea; x.lineWidth = 1.4;
+                x.beginPath();
+                x.moveTo(-2, 6); x.lineTo(6, -2);
+                x.moveTo(2, 10); x.lineTo(10, 2);
+                x.stroke();
+                return x.createPattern(c, "repeat");
             };
             this.graficas.jornada = new Chart(this.cJornada.el, {
                 type: "bar",
                 data: {
                     labels: j.map((x) => this.ejeDia(x.date)),
                     datasets: [
-                        { label: "Dentro de jornada", data: j.map((x) => x.dentro),
+                        { label: "En su jornada", data: j.map((x) => x.dentro),
                           backgroundColor: t.fuerte, borderRadius: 5, borderSkipped: false,
                           maxBarThickness: 34 },
-                        { label: "Fuera de jornada", data: j.map((x) => x.fuera),
+                        { label: "Fuera de su jornada", data: j.map((x) => x.fuera),
                           backgroundColor: t.accent, borderRadius: 5, borderSkipped: false,
+                          maxBarThickness: 34 },
+                        { label: "Jornada sin actividad", data: j.map((x) => x.sin_actividad || 0),
+                          backgroundColor: rayas(t.ink3, t.card), borderColor: t.linea,
+                          borderWidth: 1, borderRadius: 5, borderSkipped: false,
                           maxBarThickness: 34 },
                     ],
                 },
@@ -488,6 +502,18 @@ export class FocoDashboard extends Component {
                 },
             });
         }
+    }
+
+    /** De donde salio la jornada en el periodo, para el pie de la grafica:
+     *  "según el checador para 2 personas y el calendario de RRHH para 1". */
+    get fuentesTexto() {
+        const f = this.state.jornadaFuentes || {};
+        const p = (n) => (n === 1 ? "1 persona" : `${n} personas`);
+        const partes = [];
+        if (f.checador) partes.push(`según el checador para ${p(f.checador)}`);
+        if (f.calendario) partes.push(`según el calendario de RRHH para ${p(f.calendario)}`);
+        if (f.ninguno) partes.push(`sin jornada definida para ${p(f.ninguno)}`);
+        return partes.length ? `Jornada ${partes.join(", ")}.` : "";
     }
 
     // ------------------------------------------------------------ exportar
@@ -603,7 +629,10 @@ export class FocoDashboard extends Component {
         ]);
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
-        this.state.jornada = jornada || [];
+        // Desde 19.0.18: {dias, fuentes}. `fuentes` dice cuantas personas se
+        // rigen por el checador y cuantas por el calendario en el periodo.
+        this.state.jornada = (jornada && jornada.dias) || [];
+        this.state.jornadaFuentes = (jornada && jornada.fuentes) || {};
         // Reparto GLOBAL del tiempo activo del equipo, para la dona. El "otro"
         // -tiempo activo que no es productivo, ni distraccion, ni sin
         // clasificar: lo neutral y el navegador- se deriva aqui para que los

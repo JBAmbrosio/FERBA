@@ -394,8 +394,15 @@ class FocoController(http.Controller):
                     dias.add(d.date())
             if not dias:
                 dias = {fields.Date.context_today(Usage)}
-            request.env['foco.workday'].sudo().rebuild(
-                computer.employee_id, sorted(d for d in dias if d))
+            # La jornada es una VISTA derivada del dato ya guardado: si su
+            # calculo falla, el envio tiene que responder ok igual. Un 500
+            # aqui haria que el agente reintentara el mismo lote sin fin y el
+            # equipo dejara de reportar (paso con el NUL del 24-sep).
+            try:
+                request.env['foco.workday'].sudo().rebuild(
+                    computer.employee_id, sorted(d for d in dias if d))
+            except Exception:
+                _logger.exception('Foco: jornada de %s', computer.id)
             # Y los hechos de integridad de esos mismos dias: barato (una
             # persona, uno o dos dias) y asi se ven al momento, no de noche.
             try:
@@ -422,6 +429,11 @@ class FocoController(http.Controller):
             'events_stored': events_stored,
             'commands': out,
             'config': config,
+            # El CHECADOR, en vivo: si esta persona lo usa y si ahora mismo
+            # esta checada. Con eso el agente etiqueta "en jornada" por lo
+            # checado y no por el calendario. Viaja tambien en el sondeo de
+            # 25 s (/foco/commands), que es donde importa la puntualidad.
+            'asistencia': settings.asistencia_para(computer.employee_id, computer),
             # COMO se mide, por perfil: umbral de inactividad, medir fuera de
             # turno, integridad, llamadas, ventana, navegadores gestionados y
             # las reglas de bloqueo vigentes (para contar intentos). En CADA
@@ -1085,6 +1097,10 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True,
             'commands': salida,
+            # El estado del checador va en el sondeo ligero a proposito: una
+            # entrada o salida checada tiene que cambiar la etiqueta "en
+            # jornada" en segundos, no en cinco minutos.
+            'asistencia': ajustes.asistencia_para(computer.employee_id, computer),
             'screenshot': {
                 'enabled': ajustes.screenshot_enabled,
                 'minutos_sin_clasificar': ajustes.screenshot_unclassified_minutes,

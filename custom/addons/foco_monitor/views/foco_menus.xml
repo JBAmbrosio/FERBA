@@ -134,7 +134,10 @@
               parent="menu_foco_root" sequence="90"
               groups="foco_monitor.group_foco_manager"/>
 
-    <menuitem id="menu_foco_horario" name="Horario"
+    <!-- Antes "Horario": un horario global editable que, desde que RRHH
+         asigna calendarios, no gobernaba a nadie. Ahora dice de donde sale la
+         jornada de cada persona (checador o calendario) y no se edita aqui. -->
+    <menuitem id="menu_foco_horario" name="Jornada"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
 
     <!-- Monitoreo periodico de pantalla POR EMPLEADO: que apps, cada cuanto, y

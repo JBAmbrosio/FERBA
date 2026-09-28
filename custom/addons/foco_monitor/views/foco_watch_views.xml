@@ -62,7 +62,8 @@
                         mostraría. Para una aplicación solo se listan las que el
                         empleado ya ha usado; para un sitio basta escribir su
                         dominio y vale en cualquier navegador. Todo depende del
-                        interruptor general de capturas en Configuración &gt; Horario.
+                        interruptor general de capturas en los Ajustes de Foco
+                        (Configuración de Odoo &gt; Ajustes &gt; Foco).
                     </p>
                 </sheet>
             </form>
@@ -104,8 +105,8 @@
             <p>Elige un empleado y qué vigilar: una aplicación que ya haya usado,
                o un sitio web escribiendo su dominio (por ejemplo
                <b>web.whatsapp.com</b>). Di cada cuántos minutos capturar mientras
-               eso esté al frente. Recuerda encender las capturas en
-               Configuración &gt; Horario.</p>
+               eso esté al frente. Recuerda encender las capturas en los
+               Ajustes de Foco (Configuración de Odoo &gt; Ajustes &gt; Foco).</p>
         </field>
     </record>
 

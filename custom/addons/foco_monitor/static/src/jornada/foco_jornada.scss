@@ -141,6 +141,7 @@
         .sep { color: var(--ink3); margin: 0 7px; }
         .fj_dato { border-bottom: 1px dotted var(--ink3); cursor: help; }
         .fj_fuera b { color: var(--accent); }
+        .fj_hueco b { color: var(--ink2); }
         .fj_alerta { color: var(--mid); text-decoration: none;
             b { color: var(--mid); }
             &:hover { text-decoration: underline; }
@@ -215,6 +216,12 @@
     // porque los bloques se salen de la banda, sin necesidad de pintarlo.
     .fj_franja { position: absolute; left: 0; right: 0; background: var(--band);
         border-top: 1px solid var(--band-edge); border-bottom: 1px solid var(--band-edge); }
+
+    // Entradas y salidas checadas: hechos del checador, con el acento de la
+    // interfaz para que no se confundan con los del equipo, que van en tinta.
+    .fj_pin.checada_entrada, .fj_pin.checada_salida { width: 7px; height: 2px;
+        background: var(--accent); opacity: 1; }
+    .fj_leg .sw.checada { height: 2px; width: 12px; background: var(--accent); border-radius: 1px; }
 
     // Empiezan en 9px porque los primeros 7 son el canal de las marcas del
     // equipo. Encimarlos era perderlos: una marca gris sobre un bloque de
@@ -331,9 +338,11 @@
         .v { font-size: 30px; font-weight: 300; letter-spacing: -0.035em; line-height: 1; } }
     .fj_ficha_nota { margin: 8px 0 0; font-size: 11px; color: var(--ink3); cursor: help; }
 
-    .fj_reparto { display: flex; gap: 18px; margin-top: 18px; font-size: 12.5px; color: var(--ink2);
+    .fj_reparto { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px;
+        font-size: 12.5px; color: var(--ink2);
         b { color: var(--ink); margin-left: 4px; }
-        .fuera b { color: var(--accent); } }
+        .fuera b { color: var(--accent); }
+        .hueco b { color: var(--ink3); } }
 
     .fj_ficha h3 { margin: 26px 0 8px; font-size: 12px; font-weight: 600; color: var(--ink3);
         letter-spacing: .06em; text-transform: uppercase; }
@@ -364,7 +373,8 @@
         // una acusacion, y el dia que alguien discuta la hora ya esta ahi.
         .src { font-size: 10px; color: var(--ink3); border: 1px solid var(--line);
             border-radius: 999px; padding: 1px 7px; white-space: nowrap;
-            &.os { color: var(--accent); border-color: var(--accent); opacity: .75; } }
+            &.os { color: var(--accent); border-color: var(--accent); opacity: .75; }
+            &.checador { color: var(--ink); border-color: var(--ink2); } }
     }
 
     .fj_vacio_ficha { margin: 0; font-size: 12.5px; color: var(--ink3); }
