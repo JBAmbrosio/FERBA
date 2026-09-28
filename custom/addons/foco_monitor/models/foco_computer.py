@@ -40,6 +40,35 @@ class FocoComputer(models.Model):
              'de Foco y quitar el bloqueo de navegacion: nada de lo que se '
              'mida en este equipo esta garantizado. Es una condicion de TI, no '
              'del software; se resuelve quitandole el privilegio.')
+    # De donde sale la jornada de esta persona HOY: el checador si lo usa, el
+    # calendario laboral si no, y "sin jornada" cuando no hay ni uno ni otro
+    # (entonces nada puede decir si trabajo dentro o fuera de ella).
+    jornada_fuente = fields.Char(
+        string='Jornada según', compute='_compute_jornada_fuente',
+        help='Checador: tiene registros de asistencia ese día o en los 30 días '
+             'anteriores; su jornada es de la entrada a la salida checadas. '
+             'Calendario: no usa el checador y RRHH le asignó un calendario '
+             'laboral. Sin jornada: ni checador ni calendario; su actividad se '
+             'mide igual, pero no hay contra qué contrastarla.')
+    jornada_sin = fields.Boolean(compute='_compute_jornada_fuente')
+
+    def _compute_jornada_fuente(self):
+        Ajustes = self.env['foco.settings'].sudo()
+        for rec in self:
+            emp = rec.employee_id
+            if not emp:
+                rec.jornada_fuente = ''
+                rec.jornada_sin = False
+                continue
+            a = Ajustes.asistencia_para(emp, rec)
+            if a['fuente'] == 'checador':
+                rec.jornada_fuente = 'Checador'
+            elif a['fuente'] == 'calendario':
+                rec.jornada_fuente = 'Calendario · %s' % (emp.resource_calendar_id.name or '')
+            else:
+                rec.jornada_fuente = 'Sin jornada'
+            rec.jornada_sin = a['fuente'] == 'ninguno'
+
     # La persona NO ve su consumo ni un resumen: Foco es del administrador y de
     # quien esta dado de alta en la configuracion. Este interruptor existe para
     # el caso en que la persona lo SOLICITE; apagado de fabrica. Viaja al agente

@@ -12,6 +12,9 @@
                 <field name="mi_dia_enabled" string="Ve «Mi día»" optional="show"/>
                 <field name="employee_id"/>
                 <field name="department_id"/>
+                <field name="jornada_sin" column_invisible="1"/>
+                <field name="jornada_fuente" string="Jornada" optional="show"
+                       decoration-warning="jornada_sin"/>
                 <field name="last_seen"/>
                 <field name="health" decoration-warning="health in ('stale','never')"
                        decoration-muted="health == 'resting'"/>
@@ -52,6 +55,7 @@
                             <!-- Solo si la persona lo pidio: Foco es del
                                  administrador; apagado de fabrica. -->
                             <field name="mi_dia_enabled"/>
+                            <field name="jornada_fuente"/>
                             <field name="last_seen"/>
                             <field name="active"/>
                         </group>

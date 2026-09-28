@@ -29,6 +29,9 @@ const PIN = {
     agente_fin: "Cerró sesión",
     bloqueo: "Bloqueo",
     desbloqueo: "Desbloqueo",
+    // Hechos del checador (hr.attendance), no del equipo.
+    checada_entrada: "Checó entrada",
+    checada_salida: "Checó salida",
 };
 
 // Marcas que valen una línea completa: el equipo cambió de estado de verdad.
@@ -159,8 +162,24 @@ export class FocoJornada extends Component {
             fin_txt: f.last === null ? "" : this.hhmm(f.last),
             activo_txt: f.active > 0.008 ? this.dur(f.active) : "",
             fuera_txt: f.off_shift > 0.008 ? this.dur(f.off_shift) : "",
+            // De donde salio la jornada de ESE dia y cuanto de ella quedo sin
+            // senal del equipo (checado o en horario, sin actividad).
+            fuente: f.shift_source || "",
+            gap_txt: f.shift_gap > 0.008 ? this.dur(f.shift_gap) : "",
             sin_explicar: f.unexplained || 0,
         };
+    }
+
+    /** De donde sale la jornada de esta persona en el periodo, para la leyenda. */
+    get fuenteLabel() {
+        const n = { checador: 0, calendario: 0 };
+        for (const x of this.state.filas) {
+            if (!x.futuro && (x.fuente === "checador" || x.fuente === "calendario")) n[x.fuente]++;
+        }
+        if (n.checador && n.calendario) return "según el checador y el calendario";
+        if (n.checador) return "según el checador";
+        if (n.calendario) return "según el calendario de RRHH";
+        return "";
     }
 
     // --- la escala vertical ------------------------------------------------
@@ -205,6 +224,7 @@ export class FocoJornada extends Component {
             salida_y: sal === null ? null : y(sal),
             activo_txt: this.dur(sum("active")),
             fuera: sum("off_shift"), fuera_txt: this.dur(sum("off_shift")),
+            gap: sum("shift_gap"), gap_txt: this.dur(sum("shift_gap")),
             llamada: sum("call"), llamada_txt: this.dur(sum("call")),
             sin_explicar: f.reduce((a, x) => a + (x.unexplained || 0), 0),
             sin_detalle: f.filter((x) => x.state === "sin_detalle").length,
