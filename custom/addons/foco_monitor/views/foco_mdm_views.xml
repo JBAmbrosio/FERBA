@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =================================================== SOLICITUDES -->
+    <record id="foco_mobile_app_request_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.app.request.list</field>
+        <field name="model">foco.mobile.app.request</field>
+        <field name="arch" type="xml">
+            <list string="Solicitudes de apps"
+                  decoration-info="state == 'pendiente'"
+                  decoration-muted="state in ('rechazada', 'instalada')">
+                <field name="create_date" string="Pedida" widget="datetime"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="hide"/>
+                <field name="name"/>
+                <field name="reason" optional="show"/>
+                <field name="app_id" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'pendiente'"
+                       decoration-success="state in ('aprobada', 'instalada')"
+                       decoration-danger="state == 'rechazada'"/>
+                <field name="decided_by" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_request_view_form" model="ir.ui.view">
+        <field name="name">foco.mobile.app.request.form</field>
+        <field name="model">foco.mobile.app.request</field>
+        <field name="arch" type="xml">
+            <form string="Solicitud de app">
+                <header>
+                    <button name="action_play" type="object" string="Buscar en Play Store"
+                            class="btn-primary" icon="fa-search"
+                            invisible="state not in ('pendiente', 'rechazada')"/>
+                    <button name="action_aprobar" type="object" string="Aprobar"
+                            invisible="state not in ('pendiente', 'rechazada') or (not app_id and not package)"/>
+                    <button name="action_rechazar" type="object" string="Rechazar"
+                            invisible="state != 'pendiente'"/>
+                    <button name="action_reabrir" type="object" string="Volver a pendiente"
+                            invisible="state == 'pendiente'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pendiente,aprobada,instalada"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Quién la pide">
+                            <field name="employee_id"/>
+                            <field name="device_id"/>
+                            <field name="create_date" string="Pedida el" readonly="1"/>
+                        </group>
+                        <group string="Para qué">
+                            <field name="reason" nolabel="1" colspan="2" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Decisión">
+                        <group>
+                            <field name="app_id" options="{'no_create': True}"
+                                   readonly="state not in ('pendiente', 'rechazada')"/>
+                            <field name="package" readonly="state not in ('pendiente', 'rechazada')"
+                                   placeholder="com.whatsapp.w4b (lo llena la Play Store al elegir)"/>
+                            <field name="install_type" widget="radio"
+                                   readonly="state not in ('pendiente', 'rechazada')"/>
+                        </group>
+                        <group>
+                            <field name="answer" placeholder="Lo lee la persona en su teléfono. Obligatoria para rechazar."/>
+                            <field name="decided_by"/>
+                            <field name="decided_at"/>
+                        </group>
+                    </group>
+                    <div class="text-muted" invisible="state not in ('pendiente', 'rechazada')">
+                        Pulsa <b>Buscar en Play Store</b>, busca la app y elígela: queda
+                        aprobada solo para este teléfono y se instala sola. Si ya sabes el
+                        paquete, escríbelo y pulsa <b>Aprobar</b>. Para aprobarla a todo un
+                        grupo, agrégala en el perfil (Navegación permitida › Celular).
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_request_view_search" model="ir.ui.view">
+        <field name="name">foco.mobile.app.request.search</field>
+        <field name="model">foco.mobile.app.request</field>
+        <field name="arch" type="xml">
+            <search string="Solicitudes">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="package"/>
+                <filter name="pendientes" string="Pendientes" domain="[('state', '=', 'pendiente')]"/>
+                <filter name="aprobadas" string="Aprobadas" domain="[('state', 'in', ('aprobada', 'instalada'))]"/>
+                <filter name="rechazadas" string="Rechazadas" domain="[('state', '=', 'rechazada')]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_estado" string="Estado" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_mobile_app_request_action" model="ir.actions.act_window">
+        <field name="name">Solicitudes de apps</field>
+        <field name="res_model">foco.mobile.app.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_pendientes': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay solicitudes pendientes</p>
+            <p>En los teléfonos gestionados la Play Store muestra solo las apps
+               aprobadas. Cuando alguien necesita otra, la pide desde Foco en su
+               teléfono («Solicitar una app») y llega aquí.</p>
+        </field>
+    </record>
+
+    <!-- =================================================== INVENTARIO -->
+    <record id="foco_mobile_installed_view_list" model="ir.ui.view">
+        <field name="name">foco.mobile.installed.list</field>
+        <field name="model">foco.mobile.installed</field>
+        <field name="arch" type="xml">
+            <list string="Apps instaladas" create="0" edit="0" delete="0"
+                  decoration-muted="state == 'quitada'">
+                <field name="device_id" optional="show"/>
+                <field name="name"/>
+                <field name="package" optional="show"/>
+                <field name="version" optional="hide"/>
+                <field name="source" widget="badge"/>
+                <field name="state" optional="show"/>
+                <button name="action_bloquear_en_perfil" type="object" icon="fa-ban"
+                        string="Bloquear en su perfil"
+                        confirm="Se bloquea esta app para TODOS los teléfonos de ese perfil. ¿Continuar?"
+                        invisible="state != 'instalada'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_mobile_installed_view_search" model="ir.ui.view">
+        <field name="name">foco.mobile.installed.search</field>
+        <field name="model">foco.mobile.installed</field>
+        <field name="arch" type="xml">
+            <search string="Apps instaladas">
+                <field name="name"/>
+                <field name="package"/>
+                <field name="device_id"/>
+                <filter name="instaladas" string="Instaladas" domain="[('state', '=', 'instalada')]"/>
+                <filter name="play" string="De la Play Store" domain="[('source', '=', 'play')]"/>
+                <filter name="sistema" string="Del sistema" domain="[('source', '=', 'sistema')]"/>
+                <separator/>
+                <filter name="g_origen" string="Origen" context="{'group_by': 'source'}"/>
+                <filter name="g_equipo" string="Teléfono" context="{'group_by': 'device_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_mobile_installed_action" model="ir.actions.act_window">
+        <field name="name">Apps instaladas (inventario)</field>
+        <field name="res_model">foco.mobile.installed</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_instaladas': 1, 'search_default_play': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay inventario</p>
+            <p>Google cuenta qué tiene instalado cada teléfono gestionado; Odoo lo lee
+               cada 15 minutos. Aparece en cuanto el primer teléfono se da de alta
+               con el QR.</p>
+        </field>
+    </record>
+
+    <!-- =================================================== PERFIL: CELULAR -->
+    <record id="foco_policy_view_form_movil" model="ir.ui.view">
+        <field name="name">foco.policy.form.movil</field>
+        <field name="model">foco.policy</field>
+        <field name="inherit_id" ref="foco_monitor.foco_policy_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@string='4 · Cómo mide el agente en estos equipos']" position="after">
+                <group string="5 · En el celular (Android Enterprise)">
+                    <div colspan="2" class="alert alert-light border" role="alert">
+                        Aplica a los teléfonos gestionados de este perfil. Las reglas de
+                        sitios de arriba se aplican también en <b>Chrome del celular</b>,
+                        igual que en la laptop.
+                        <field name="mobile_web_nota" readonly="1" nolabel="1"
+                               invisible="not mobile_web_nota" class="d-block mt4"/>
+                    </div>
+                    <group>
+                        <field name="mobile_play_mode" widget="radio"/>
+                        <field name="mobile_web_filter" widget="boolean_toggle"/>
+                        <field name="mobile_block_tethering" widget="boolean_toggle"/>
+                        <field name="mobile_block_accounts" widget="boolean_toggle"/>
+                        <field name="mobile_block_sideload" widget="boolean_toggle"/>
+                    </group>
+                    <group>
+                        <field name="mobile_block_factory_reset" widget="boolean_toggle"/>
+                        <field name="mobile_block_safe_boot" widget="boolean_toggle"/>
+                        <field name="mobile_block_debug" widget="boolean_toggle"/>
+                        <field name="mobile_block_add_user" widget="boolean_toggle"/>
+                        <field name="mobile_block_usb_files" widget="boolean_toggle"/>
+                    </group>
+                    <div colspan="2" class="d-flex align-items-center gap-2 mt8">
+                        <b>Apps del perfil</b>
+                        <span class="text-muted">— lo que tiene todo el que use este perfil. Lo que se apruebe a una sola persona va en su teléfono.</span>
+                        <button name="action_play" type="object" string="Buscar en Play Store"
+                                icon="fa-search" class="btn-secondary btn-sm ms-auto"
+                                invisible="not id"/>
+                        <field name="mobile_device_count" invisible="1"/>
+                        <button name="action_ver_celulares" type="object" string="Ver sus celulares"
+                                class="btn-link btn-sm" invisible="not mobile_device_count"/>
+                    </div>
+                    <field name="mobile_grant_ids" nolabel="1" colspan="2">
+                        <list editable="bottom">
+                            <field name="app_id" options="{'no_create': True}"/>
+                            <field name="package" readonly="1" optional="show"/>
+                            <field name="install_type"/>
+                            <field name="note" placeholder="Por qué" optional="show"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+            <!-- La seccion condicional de sitios sin cubrir pasa a ser la 6. -->
+            <xpath expr="//group[@string='5 · Se ha visto y no lo alcanza ninguna regla']" position="attributes">
+                <attribute name="string">6 · Se ha visto y no lo alcanza ninguna regla</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- =================================================== TELEFONO -->
+    <record id="foco_mobile_device_view_list_mdm" model="ir.ui.view">
+        <field name="name">foco.mobile.device.list.mdm</field>
+        <field name="model">foco.mobile.device</field>
+        <field name="inherit_id" ref="foco_monitor.foco_mobile_device_view_list"/>
+        <field name="arch" type="xml">
+            <field name="employee_id" position="after">
+                <field name="policy_id" string="Perfil" optional="show"/>
+                <field name="amapi_state" widget="badge" optional="show"
+                       decoration-success="amapi_state == 'activo'"
+                       decoration-info="amapi_state in ('pendiente', 'aprovisionando')"
+                       decoration-danger="amapi_state in ('borrado', 'perdido', 'deshabilitado')"/>
+                <field name="amapi_compliant" string="Cumple" optional="hide"
+                       invisible="amapi_state != 'activo'"/>
+                <field name="request_pendientes" string="Solicitudes" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="foco_mobile_device_view_form_mdm" model="ir.ui.view">
+        <field name="name">foco.mobile.device.form.mdm</field>
+        <field name="model">foco.mobile.device</field>
+        <field name="inherit_id" ref="foco_monitor.foco_mobile_device_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_mdm_alta" type="object" string="QR de alta"
+                        icon="fa-qrcode" invisible="amapi_state in ('activo', 'aprovisionando')"/>
+                <button name="action_mdm_play" type="object" string="Instalarle una app"
+                        icon="fa-search" invisible="not amapi_state or amapi_state == 'borrado'"/>
+                <button name="action_mdm_enviar" type="object" string="Enviar política ahora"
+                        invisible="not amapi_state or amapi_state == 'borrado'"/>
+                <button name="action_mdm_bloquear" type="object" string="Bloquear pantalla"
+                        icon="fa-lock" invisible="amapi_state != 'activo'"
+                        confirm="El teléfono se bloquea ahora mismo. ¿Continuar?"/>
+                <button name="action_mdm_reiniciar" type="object" string="Reiniciar"
+                        invisible="amapi_state != 'activo'"
+                        confirm="El teléfono se reinicia ahora mismo. ¿Continuar?"/>
+                <button name="action_mdm_borrar" type="object" string="Restablecer de fábrica"
+                        class="btn-danger" invisible="amapi_state != 'activo'"
+                        confirm="SE BORRA TODO EL TELÉFONO y deja de estar gestionado. No se puede deshacer. ¿Continuar?"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_ver_solicitudes" type="object"
+                        class="oe_stat_button" icon="fa-inbox">
+                    <field name="request_pendientes" widget="statinfo" string="Por decidir"/>
+                </button>
+                <button name="action_ver_instaladas" type="object"
+                        class="oe_stat_button" icon="fa-th" invisible="not amapi_state">
+                    <field name="installed_count" widget="statinfo" string="Instaladas"/>
+                </button>
+            </xpath>
+            <xpath expr="//group[@string='Ultima ubicacion conocida']" position="before">
+                <group string="Gestión Android (empresa)">
+                    <group>
+                        <field name="policy_id" placeholder="Perfil por omisión"/>
+                        <field name="amapi_state" widget="badge"
+                               decoration-success="amapi_state == 'activo'"
+                               decoration-info="amapi_state in ('pendiente', 'aprovisionando')"
+                               decoration-danger="amapi_state in ('borrado', 'perdido', 'deshabilitado')"/>
+                        <field name="amapi_compliant" invisible="amapi_state != 'activo'"/>
+                        <field name="amapi_alta_at" invisible="not amapi_alta_at"/>
+                        <field name="amapi_reporte_at" invisible="not amapi_reporte_at"/>
+                    </group>
+                    <group>
+                        <field name="amapi_serial" invisible="not amapi_serial"/>
+                        <field name="amapi_envio_at" invisible="not amapi_envio_at"/>
+                        <field name="amapi_politica_aplicada" invisible="not amapi_politica_aplicada"/>
+                        <field name="amapi_name" groups="base.group_no_one"/>
+                    </group>
+                    <div colspan="2" class="alert alert-danger" role="alert" invisible="not amapi_error">
+                        <b>Google no aceptó la última política:</b>
+                        <field name="amapi_error" nolabel="1" readonly="1"/>
+                    </div>
+                    <div colspan="2" class="alert alert-warning" role="alert"
+                         invisible="amapi_state != 'activo' or amapi_compliant or not amapi_incumple">
+                        <b>El teléfono no cumple todo:</b>
+                        <field name="amapi_incumple" nolabel="1" readonly="1"/>
+                    </div>
+                    <div colspan="2" class="text-muted" invisible="amapi_state">
+                        Este teléfono no está gestionado por la empresa: se conectó a Foco
+                        a mano. Para restringirlo (Play Store solo con lo aprobado, sin
+                        compartir internet, sin cuentas personales), restablécelo de
+                        fábrica y dalo de alta con el <b>QR de alta</b>.
+                    </div>
+                    <div colspan="2" class="mt8" invisible="not amapi_state">
+                        <b>Apps de esta persona</b>
+                        <span class="text-muted">— aprobadas o bloqueadas solo en este teléfono; mandan sobre las del perfil.</span>
+                    </div>
+                    <field name="grant_ids" nolabel="1" colspan="2" invisible="not amapi_state">
+                        <list editable="bottom">
+                            <field name="app_id" options="{'no_create': True}"/>
+                            <field name="package" readonly="1" optional="show"/>
+                            <field name="install_type"/>
+                            <field name="request_id" readonly="1" optional="show"/>
+                            <field name="note" placeholder="Por qué" optional="hide"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- =================================================== CATALOGO -->
+    <record id="foco_mobile_app_view_list_mdm" model="ir.ui.view">
+        <field name="name">foco.mobile.app.list.mdm</field>
+        <field name="model">foco.mobile.app</field>
+        <field name="inherit_id" ref="foco_monitor.foco_mobile_app_view_list"/>
+        <field name="arch" type="xml">
+            <field name="no_captura" position="after">
+                <field name="sistema" optional="show" readonly="1"/>
+                <field name="installed_count" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- =================================================== AJUSTES -->
+    <record id="foco_settings_view_form_movil_mdm" model="ir.ui.view">
+        <field name="name">foco.settings.movil.mdm</field>
+        <field name="model">foco.settings</field>
+        <field name="inherit_id" ref="foco_monitor.foco_settings_view_form_movil"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group[1]" position="before">
+                <group string="Android Enterprise · celulares gestionados por la empresa">
+                    <div colspan="2">
+                        <field name="amapi_estado" widget="badge" readonly="1"
+                               decoration-success="amapi_estado == 'lista'"
+                               decoration-warning="amapi_estado != 'lista'"/>
+                        <p class="text-muted mt8 mb8">
+                            Con Android Enterprise la Play Store del teléfono muestra solo
+                            las apps aprobadas, Odoo manda instalar las que se aprueban,
+                            y se bloquea compartir internet, las cuentas personales y los
+                            sitios de cada perfil. Google no cobra por esto. Se configura
+                            una sola vez:
+                        </p>
+                        <ol class="text-muted">
+                            <li>En Google Cloud: crea un proyecto, habilita
+                                <b>Android Management API</b>, crea una cuenta de servicio y
+                                descarga su clave <b>JSON</b>.</li>
+                            <li>Aquí: <b>Cargar cuenta de servicio</b> y <b>Probar conexión</b>.</li>
+                            <li><b>Registrar la empresa en Google</b>: te lleva a Google para
+                                crear la Play Store administrada de FERBA y vuelve solo.</li>
+                            <li>En <b>Play Store de la empresa › Apps privadas</b>, sube el APK
+                                de Foco (una vez, y cada versión nueva).</li>
+                            <li>Por cada teléfono: <b>Alta de un teléfono</b> genera el QR.</li>
+                        </ol>
+                    </div>
+                    <group>
+                        <field name="amapi_cuenta" readonly="1"
+                               placeholder="Sin cuenta de servicio"/>
+                        <field name="amapi_enterprise_display"
+                               invisible="amapi_enterprise"/>
+                        <field name="amapi_enterprise" readonly="1"
+                               invisible="not amapi_enterprise"/>
+                    </group>
+                    <group>
+                        <field name="amapi_ultima_sync" readonly="1" invisible="not amapi_ultima_sync"/>
+                        <field name="amapi_ultimo_error" readonly="1" invisible="not amapi_ultimo_error"/>
+                    </group>
+                    <div colspan="2" class="d-flex flex-wrap gap-2">
+                        <button name="action_amapi_cuenta" type="object"
+                                string="Cargar cuenta de servicio" class="btn-secondary"/>
+                        <button name="action_amapi_probar" type="object"
+                                string="Probar conexión" class="btn-secondary"
+                                invisible="amapi_estado == 'sin_cuenta'"/>
+                        <button name="action_amapi_registrar" type="object"
+                                string="Registrar la empresa en Google" class="btn-primary"
+                                invisible="amapi_estado != 'sin_empresa'"/>
+                        <button name="action_amapi_play" type="object"
+                                string="Play Store de la empresa" class="btn-primary"
+                                invisible="amapi_estado != 'lista'"/>
+                        <button name="action_amapi_alta" type="object"
+                                string="Alta de un teléfono" class="btn-secondary"
+                                invisible="amapi_estado != 'lista'"/>
+                        <button name="action_amapi_sync" type="object"
+                                string="Sincronizar teléfonos" class="btn-secondary"
+                                invisible="amapi_estado != 'lista'"/>
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- =================================================== ASISTENTES -->
+    <record id="foco_amapi_cuenta_wizard_view_form" model="ir.ui.view">
+        <field name="name">foco.amapi.cuenta.wizard.form</field>
+        <field name="model">foco.amapi.cuenta.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cuenta de servicio de Google">
+                <p class="text-muted">
+                    Google Cloud › IAM y administración › Cuentas de servicio › (la
+                    cuenta) › Claves › Agregar clave › Crear clave nueva › JSON. Abre el
+                    archivo con el Bloc de notas y pega aquí todo su contenido. Se guarda
+                    en un parámetro del sistema y no se vuelve a mostrar.
+                </p>
+                <field name="cuenta_json" nolabel="1"
+                       placeholder='{ "type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..." }'/>
+                <footer>
+                    <button name="action_guardar" type="object" string="Guardar" class="btn-primary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_alta_wizard_view_form" model="ir.ui.view">
+        <field name="name">foco.mobile.alta.wizard.form</field>
+        <field name="model">foco.mobile.alta.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Alta de un teléfono">
+                <field name="estado" invisible="1"/>
+                <group invisible="estado != 'datos'">
+                    <group>
+                        <field name="employee_id" options="{'no_create': True}"/>
+                        <field name="policy_id" options="{'no_create': True}"
+                               placeholder="Perfil por omisión"/>
+                        <field name="device_id" options="{'no_create': True}"
+                               placeholder="Solo para volver a dar de alta un teléfono"/>
+                        <field name="dias"/>
+                    </group>
+                    <group>
+                        <field name="wifi_ssid" placeholder="Opcional"/>
+                        <field name="wifi_password" password="True" invisible="not wifi_ssid"/>
+                        <field name="wifi_tipo" invisible="not wifi_ssid"/>
+                        <field name="conservar_sistema"/>
+                    </group>
+                </group>
+                <div invisible="estado != 'qr'" class="text-center">
+                    <field name="qr" widget="image" readonly="1" nolabel="1"
+                           options="{'size': [360, 360]}"/>
+                    <p class="text-muted mt8">
+                        Caduca: <field name="expira" readonly="1" nolabel="1"/> ·
+                        Teléfono en Odoo: <field name="telefono_id" readonly="1" nolabel="1"/>
+                    </p>
+                </div>
+                <div invisible="estado != 'qr'">
+                    <ol>
+                        <li>El teléfono tiene que estar <b>de fábrica</b> (recién sacado de caja o
+                            restablecido). En la pantalla de bienvenida, <b>toca 6 veces</b> el mismo
+                            punto de la pantalla.</li>
+                        <li>Se abre el lector de QR: escanea este código. Si pide red, conéctalo
+                            a una Wi-Fi.</li>
+                        <li>El teléfono se configura solo como <b>equipo de la empresa</b>: instala
+                            Foco, que se conecta sola a Odoo con los datos de esta persona.</li>
+                        <li>Abre Foco una vez y concede el <b>acceso al uso de apps</b> y la
+                            <b>accesibilidad</b> (Android no deja que la empresa los encienda).</li>
+                    </ol>
+                    <p class="text-muted">
+                        El QR sirve para un solo teléfono. Si lo pierdes o caduca, genera otro.
+                    </p>
+                </div>
+                <footer>
+                    <button name="action_generar" type="object" string="Generar QR"
+                            class="btn-primary" invisible="estado != 'datos'"/>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_mobile_alta_action" model="ir.actions.act_window">
+        <field name="name">Alta de un teléfono</field>
+        <field name="res_model">foco.mobile.alta.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- La Play Store administrada, dentro de Odoo. -->
+    <record id="foco_play_client" model="ir.actions.client">
+        <field name="name">Play Store de la empresa</field>
+        <field name="tag">foco_play</field>
+    </record>
+
+    <!-- =================================================== MENUS -->
+    <menuitem id="menu_foco_mobile_requests" name="Solicitudes de apps"
+              parent="menu_foco_sec_movil" action="foco_mobile_app_request_action" sequence="7"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_mobile_play" name="Play Store de la empresa"
+              parent="menu_foco_sec_movil" action="foco_play_client" sequence="36"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_mobile_installed" name="Apps instaladas"
+              parent="menu_foco_sec_movil" action="foco_mobile_installed_action" sequence="37"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_mobile_alta" name="Alta de un teléfono"
+              parent="menu_foco_sec_movil" action="foco_mobile_alta_action" sequence="12"
+              groups="foco_monitor.group_foco_manager"/>
+
+</odoo>

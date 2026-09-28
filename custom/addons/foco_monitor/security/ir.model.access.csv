@@ -50,3 +50,11 @@ access_foco_tomy_thread_user,foco.tomy.thread user,model_foco_tomy_thread,group_
 access_foco_tomy_thread_manager,foco.tomy.thread manager,model_foco_tomy_thread,group_foco_manager,1,1,1,1
 access_foco_tomy_message_user,foco.tomy.message user,model_foco_tomy_message,group_foco_user,1,1,1,0
 access_foco_tomy_message_manager,foco.tomy.message manager,model_foco_tomy_message,group_foco_manager,1,1,1,1
+access_foco_mobile_grant_user,foco.mobile.grant user,model_foco_mobile_grant,group_foco_user,1,0,0,0
+access_foco_mobile_grant_manager,foco.mobile.grant manager,model_foco_mobile_grant,group_foco_manager,1,1,1,1
+access_foco_mobile_installed_user,foco.mobile.installed user,model_foco_mobile_installed,group_foco_user,1,0,0,0
+access_foco_mobile_installed_manager,foco.mobile.installed manager,model_foco_mobile_installed,group_foco_manager,1,1,1,1
+access_foco_mobile_app_request_user,foco.mobile.app.request user,model_foco_mobile_app_request,group_foco_user,1,0,0,0
+access_foco_mobile_app_request_manager,foco.mobile.app.request manager,model_foco_mobile_app_request,group_foco_manager,1,1,1,1
+access_foco_mobile_alta_wizard_manager,foco.mobile.alta.wizard manager,model_foco_mobile_alta_wizard,group_foco_manager,1,1,1,1
+access_foco_amapi_cuenta_wizard_manager,foco.amapi.cuenta.wizard manager,model_foco_amapi_cuenta_wizard,group_foco_manager,1,1,1,1

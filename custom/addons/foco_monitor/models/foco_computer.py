@@ -297,7 +297,8 @@ class FocoComputer(models.Model):
         if hay_fallo and not destinatarios:
             grupo = self.env.ref('foco_monitor.group_foco_manager',
                                  raise_if_not_found=False)
-            destinatarios = grupo.users.partner_id if grupo else destinatarios
+            # `user_ids`: en Odoo 19 el campo se llama asi (antes `users`).
+            destinatarios = grupo.user_ids.partner_id if grupo else destinatarios
         if not destinatarios:
             return
 
