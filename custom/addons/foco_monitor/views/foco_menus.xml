@@ -140,6 +140,12 @@
     <menuitem id="menu_foco_horario" name="Jornada"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
 
+    <!-- La ventana bloqueante de justificacion de inactividad: umbral GLOBAL en
+         minutos y a QUIEN le sale (por empleado, apagada para todos de fabrica). -->
+    <menuitem id="menu_foco_ventana" name="Ventana de inactividad"
+              parent="menu_foco_config" action="foco_ventana_action" sequence="6"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- Monitoreo periodico de pantalla POR EMPLEADO: que apps, cada cuanto, y
          cuanto viven las capturas. Vive en Configuracion porque es una politica
          que se define, no una accion sobre un equipo. -->

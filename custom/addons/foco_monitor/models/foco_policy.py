@@ -184,6 +184,16 @@ class FocoPolicy(models.Model):
         # defecto (vision de Foco). Va en el bloque para que el agente ponga o
         # quite el acceso del menu Inicio, y dentro del hash para que se aplique.
         bloque['mi_dia'] = bool(computer.mi_dia_enabled)
+        # Umbral GLOBAL de inactividad (configurable en Foco > Ventana de
+        # inactividad): el hueco a partir del cual se abre un periodo por
+        # justificar. En segundos para el agente; 15 min de fabrica.
+        bloque['gap_min'] = max(60, min(3600, (ajustes.gap_min_minutes or 15) * 60))
+        # La ventana BLOQUEANTE es POR EMPLEADO y APAGADA para todos de fabrica:
+        # solo sale a quien el encargado la haya encendido, sin importar el perfil
+        # (por eso pisa el `ventana` que venia del perfil). Un equipo sin empleado
+        # ligado no la muestra.
+        bloque['ventana'] = bool(computer.employee_id
+                                 and computer.employee_id.sudo().foco_ventana_inactividad)
         bloque['version'] = self._hash(bloque)
         return bloque
 

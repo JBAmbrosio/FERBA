@@ -133,9 +133,8 @@
                             <field name="calls_enabled" widget="boolean_toggle"/>
                         </group>
                         <group>
-                            <field name="ask_enabled" widget="boolean_toggle"/>
-                            <field name="ask_cooldown_secs" invisible="not ask_enabled"/>
-                            <field name="ask_max_idle_secs" invisible="not ask_enabled"/>
+                            <field name="ask_cooldown_secs"/>
+                            <field name="ask_max_idle_secs"/>
                             <field name="screen_change_secs"/>
                         </group>
                         <field name="managed_browsers" colspan="2"
@@ -144,6 +143,11 @@
                             El equipo adopta estos valores en su siguiente envío (cinco minutos)
                             y los conserva aunque se quede sin red. No dependen del bloqueo de
                             sitios: cómo se mide no es lo mismo que qué se bloquea.
+                            <br/>La <b>ventana de justificación</b> (a quién le sale y a partir de
+                            cuántos minutos de inactividad) ya <b>no se decide por perfil</b>:
+                            está apagada para todos y se enciende por persona en
+                            <b>Configuración › Ventana de inactividad</b>. Los tiempos de arriba
+                            (cada cuánto reabre, idle máximo) solo aplican a quien la tenga encendida.
                         </div>
                     </group>
 
