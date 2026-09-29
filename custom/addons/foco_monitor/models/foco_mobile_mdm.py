@@ -308,6 +308,27 @@ class FocoMobileAppMdm(models.Model):
              'se puede Bloquear en un perfil.')
     installed_count = fields.Integer(string='Teléfonos que la tienen', compute='_compute_installed_count')
 
+    # ---- App PROPIA de la empresa: su APK, para instalarla y actualizarla sola.
+    #      Solo para apps que la empresa tiene derecho a repartir (propias o de
+    #      codigo abierto), NUNCA apps de la Play Store (esas se instalan desde
+    #      la Play Store real; ver la solicitud/aprobacion).
+    apk = fields.Binary(string='APK', attachment=True,
+                        help='El archivo .apk de la app. Solo apps propias o de código abierto.')
+    apk_name = fields.Char(string='Nombre del archivo')
+    apk_version_code = fields.Integer(
+        string='Versión del APK (código)',
+        help='El versionCode del APK. El teléfono compara con lo instalado: si el '
+             'de aquí es mayor, actualiza la app sola.')
+    apk_sha256 = fields.Char(string='Huella del APK', compute='_compute_apk_sha256', store=True, readonly=True)
+
+    @api.depends('apk')
+    def _compute_apk_sha256(self):
+        for a in self:
+            if a.apk:
+                a.apk_sha256 = hashlib.sha256(base64.b64decode(a.apk)).hexdigest()
+            else:
+                a.apk_sha256 = False
+
     def _compute_installed_count(self):
         Inst = self.env['foco.mobile.installed'].sudo()
         datos = {pkg: n for pkg, n in Inst._read_group(
@@ -721,11 +742,29 @@ class FocoMobileDeviceMdm(models.Model):
         if perfil and r['web'] and ajustes.block_enabled:
             bloquear, permitir = perfil._listas()
             permitir = sorted(set(permitir) | set(self.env['foco.policy']._salvavidas()))
+        # Apps PROPIAS que Foco instala/actualiza sola: las que van en «instalar
+        # sola» (force) Y tienen un APK cargado en Odoo. El telefono las baja de
+        # /foco/mobile/app_binario (autenticado con su llave) y las instala en
+        # silencio como dueño del equipo. Las de la Play Store NO entran aqui.
+        instalar = []
+        forzadas = [p for p, t in apps.items() if t == 'force']
+        if forzadas:
+            base = ajustes._base_url()
+            Apps = self.env['foco.mobile.app'].sudo()
+            for app in Apps.search([('package', 'in', forzadas)]):
+                if app.apk and app.apk_version_code:
+                    instalar.append({
+                        'package': app.package,
+                        'version': app.apk_version_code,
+                        'sha256': app.apk_sha256 or '',
+                        'url': '%s/foco/mobile/app_binario?pkg=%s' % (base, app.package),
+                    })
         return {
             'perfil': perfil.name if perfil else '',
             'apps': apps,
             'restricciones': r,
             'web': {'bloquear': bloquear, 'permitir': permitir},
+            'instalar': instalar,
         }
 
     def _mdm_neutral(self):
