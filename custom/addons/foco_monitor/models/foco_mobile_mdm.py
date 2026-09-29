@@ -1122,6 +1122,23 @@ class FocoMobileDeviceMdm(models.Model):
         return self.env['foco.settings'].sudo().get_settings()._aviso(
             'Orden enviada: el teléfono se libera en su siguiente conexión.', 'warning')
 
+    # Compatibilidad de ACTUALIZACIÓN: al actualizar (no en install limpio), la
+    # vista BASE del dispositivo se re-valida con el inherit VIEJO todavía en la
+    # BD, que aún trae los botones "Instalarle una app" (action_mdm_play) y
+    # "Enviar política ahora" (action_mdm_enviar). Si el método no existe, la
+    # validación de la vista truena ("... is not a valid action"). Se conservan
+    # como métodos inofensivos; la UI nueva ya no los invoca (los botones se
+    # quitaron). NO borrar mientras exista una versión previa desplegada.
+    def action_mdm_play(self):
+        exigir_admin(self.env)
+        return {'type': 'ir.actions.act_url',
+                'url': 'https://play.google.com/store/apps', 'target': 'new'}
+
+    def action_mdm_enviar(self):
+        exigir_admin(self.env)
+        return self.env['foco.settings'].sudo().get_settings()._aviso(
+            'La política ahora viaja sola en cada conexión del teléfono; ya no hay que enviarla a mano.', 'info')
+
     def action_mdm_alta(self):
         exigir_admin(self.env)
         self.ensure_one()
