@@ -99,3 +99,22 @@ class FocoDistribucion(http.Controller):
             ('Content-Type', 'application/vnd.android.package-archive'),
             ('Content-Disposition', 'attachment; filename="%s"' % fn),
         ])
+
+    @http.route('/foco/mobile/app_binario', type='http', auth='public', methods=['GET'])
+    def mobile_app_binario(self, pkg=None, **kw):
+        """Sirve el APK de una app PROPIA del catalogo (foco.mobile.app) para que
+        Foco la instale/actualice en silencio como dueño del equipo. El telefono
+        se autentica con su X-Foco-Key. Solo apps con APK cargado."""
+        if not self._auth_movil():
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        app = request.env['foco.mobile.app'].sudo().search(
+            [('package', '=', (pkg or '').strip())], limit=1)
+        if not app or not app.apk:
+            return request.not_found()
+        content = base64.b64decode(app.apk)
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/vnd.android.package-archive'),
+            ('Content-Length', str(len(content))),
+            ('X-Foco-Sha256', app.apk_sha256 or ''),
+            ('Content-Disposition', 'attachment; filename="%s"' % (app.apk_name or (app.package + '.apk'))),
+        ])
