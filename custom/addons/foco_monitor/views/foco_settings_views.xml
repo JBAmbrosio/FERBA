@@ -73,22 +73,23 @@
                         <h1>Ventana de inactividad</h1>
                         <p class="text-muted">
                             La ventana bloqueante que pide justificar los periodos largos sin
-                            actividad. Está <b>apagada para todos</b>: solo le aparece a las
-                            personas que elijas aquí. El umbral en minutos es el mismo para todos.
+                            actividad. Está <b>apagada para todos</b>: solo aparece en los
+                            equipos que elijas aquí. El umbral en minutos es el mismo para todos.
                         </p>
                     </div>
                     <group>
                         <field name="gap_min_minutes"/>
                     </group>
                     <group>
-                        <field name="ventana_employee_ids" widget="many2many_tags"
+                        <field name="ventana_computer_ids" widget="many2many_tags"
                                options="{'no_create': True}"
-                               placeholder="Selecciona los empleados..."/>
+                               placeholder="Selecciona los equipos..."/>
                     </group>
                     <div class="alert alert-info" role="alert">
-                        Quien no esté en la lista NO ve la ventana. Deben ser empleados ya
-                        registrados (con un equipo Foco). El cambio llega a cada equipo en su
-                        siguiente envío (unos minutos), sin reinstalar nada.
+                        El equipo que no esté en la lista NO muestra la ventana. La lista son
+                        los equipos con Foco instalado (los mismos de <b>Equipos ▸ Computadoras</b>),
+                        por su nombre. El cambio llega a cada equipo en su siguiente envío
+                        (unos minutos), sin reinstalar nada.
                     </div>
                 </sheet>
             </form>

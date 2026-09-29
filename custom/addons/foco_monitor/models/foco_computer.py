@@ -82,6 +82,19 @@ class FocoComputer(models.Model):
              'las reglas del equipo y sus periodos por justificar. Apagado (lo '
              'de fábrica), el servidor no entrega ese resumen y el agente quita '
              'el acceso.')
+    # A QUE EQUIPO le sale la ventana BLOQUEANTE de justificacion de inactividad.
+    # Vive en el EQUIPO (no en el empleado) porque la ventana la muestra el
+    # agente de ESTA maquina y solo los equipos tienen Foco: un empleado sin
+    # equipo no la puede recibir. APAGADO de fabrica para TODOS. Se enciende en
+    # Foco > Configuracion > Ventana de inactividad y viaja en el bloque
+    # `conducta` (foco.policy.conducta_para -> `ventana`); el umbral en minutos
+    # es global (foco.settings.gap_min_minutes).
+    foco_ventana_inactividad = fields.Boolean(
+        string='Le sale la ventana de inactividad', default=False,
+        help='Encendido, en ESTE equipo aparece la ventana bloqueante para '
+             'justificar los periodos largos sin actividad. Apagado (de fabrica '
+             'para todos), no aparece. Se administra desde Foco > Configuracion > '
+             'Ventana de inactividad. El umbral en minutos es global.')
     agent_db_id = fields.Char(
         string='Huella de la base del agente', readonly=True,
         help='Identificador que el agente crea dentro de su base local. Si '
