@@ -1050,10 +1050,23 @@ class FocoMobileDeviceMdm(models.Model):
 
 
 # =============================================================== ALTA POR QR
+# Huella de firma del APK de Foco (base64url del SHA-256 del certificado de
+# firma), la que Android exige en el QR para confirmar que baja el APK legitimo.
+# El keystore de la empresa es fijo; si algun dia cambia, se actualiza el
+# parametro `foco.provisioning_cert_sha256` con la huella nueva (la imprime
+# `apksigner verify --print-certs`).
+CERT_SHA256_DEFECTO = '9da2fc24c825a1ee68d5b91dd2ce745969c66916a9f318840a2bb99cfc2bf209'
+FOCO_ADMIN = '%s/%s.FocoDeviceAdminReceiver' % (FOCO_PKG, FOCO_PKG)
+
+
 class FocoMobileAltaWizard(models.TransientModel):
-    """El QR con el que un telefono de fabrica queda gestionado por la empresa."""
+    """El QR con el que un telefono de FABRICA queda gestionado por la empresa,
+    con Foco como dueña del equipo (Device Owner), SIN pasar por Google. El QR
+    le dice al telefono de donde bajar Foco (una direccion de Odoo), que la
+    ponga de administradora del equipo, y el codigo de la persona; Foco se
+    instala, queda de dueña y se conecta sola."""
     _name = 'foco.mobile.alta.wizard'
-    _description = 'Alta de un teléfono con Android Enterprise'
+    _description = 'Alta de un teléfono (Foco como dueña del equipo)'
 
     employee_id = fields.Many2one('hr.employee', string='Empleado', required=True)
     policy_id = fields.Many2one(
@@ -1077,52 +1090,77 @@ class FocoMobileAltaWizard(models.TransientModel):
     expira = fields.Datetime(string='El QR caduca', readonly=True)
     telefono_id = fields.Many2one('foco.mobile.device', string='Teléfono en Odoo', readonly=True)
 
+    def _checksum_firma(self):
+        """La huella de firma que va en el QR: base64url (sin relleno) del
+        SHA-256 del certificado de firma del APK."""
+        hexstr = (self.env['ir.config_parameter'].sudo()
+                  .get_param('foco.provisioning_cert_sha256') or CERT_SHA256_DEFECTO).strip()
+        try:
+            crudo = bytes.fromhex(hexstr)
+        except ValueError:
+            raise UserError('La huella de firma configurada no es hexadecimal válido.')
+        return base64.urlsafe_b64encode(crudo).rstrip(b'=').decode('ascii')
+
     def action_generar(self):
         exigir_admin(self.env)
         self.ensure_one()
         ajustes = self.env['foco.settings'].sudo().get_settings()
-        if ajustes.amapi_estado != 'lista':
-            raise UserError('Android Enterprise no está conectado todavía (%s).' % dict(
-                ajustes._fields['amapi_estado'].selection).get(ajustes.amapi_estado))
+        if not ajustes.mobile_apk_ready():
+            raise UserError('Todavía no hay APK de Foco publicado. En Configuración > '
+                            'Movil, sube el APK antes de generar el QR.')
+        base = ajustes._base_url()
+        if not base.startswith('https://'):
+            raise UserError('La dirección de Odoo (web.base.url) tiene que ser https para el alta por QR. '
+                            'Hoy es: %s' % (base or '(vacía)'))
         Dev = self.env['foco.mobile.device'].sudo()
         dev = self.device_id
         if not dev:
             # Un alta pendiente de la misma persona se reusa: generar dos QR no
-            # debe dejar dos telefonos fantasma.
+            # debe dejar dos telefonos fantasma (uno sin conectarse todavia).
             dev = Dev.search([('employee_id', '=', self.employee_id.id),
-                              ('amapi_state', '=', 'pendiente'), ('amapi_name', '=', False)], limit=1)
+                              ('last_seen', '=', False), ('android_id', '=', False)], limit=1)
         vals = {'employee_id': self.employee_id.id, 'policy_id': self.policy_id.id or False}
         if dev:
-            vals['amapi_state'] = 'pendiente' if not dev.amapi_name else dev.amapi_state
             dev.write(vals)
         else:
-            vals.update({'name': 'Teléfono de %s' % self.employee_id.name, 'amapi_state': 'pendiente'})
+            vals['name'] = 'Teléfono de %s' % self.employee_id.name
             dev = Dev.create(vals)
-        # La politica tiene que existir en Google ANTES del QR.
-        dev._mdm_enviar(forzar=True, lanzar=True)
-        token = self.env['foco.amapi'].token_alta(
-            dev._mdm_nombre_politica(), 'foco:%d' % dev.id, max(1, min(90, self.dias or 7)))
-        try:
-            carga = json.loads(token.get('qrCode') or '{}')
-        except ValueError:
-            raise UserError('Google no devolvió un QR válido.')
-        if self.conservar_sistema:
-            carga['android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED'] = True
+
+        # El codigo de la persona con el que Foco se conecta sola al arrancar.
+        inv = self.env['foco.invitation'].sudo().create({
+            'employee_id': self.employee_id.id, 'mobile_id': dev.id,
+            'expiry': fields.Datetime.now() + timedelta(days=max(1, min(90, self.dias or 7)))})
+        # Enlace efimero para bajar el APK durante el aprovisionamiento.
+        tok = self.env['foco.app.token'].sudo().emitir(max(1, min(90, self.dias or 7)) * 24 * 60)
+
+        carga = {
+            'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME': FOCO_ADMIN,
+            'android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM': self._checksum_firma(),
+            'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION':
+                '%s/foco/app/apk?t=%s' % (base, tok.token),
+            'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
+                'odoo_url': base, 'enroll_code': inv.token},
+            'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': bool(self.conservar_sistema),
+            'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': False,
+        }
         if self.wifi_ssid:
             carga['android.app.extra.PROVISIONING_WIFI_SSID'] = self.wifi_ssid
             carga['android.app.extra.PROVISIONING_WIFI_SECURITY_TYPE'] = self.wifi_tipo or 'WPA'
             if self.wifi_password and self.wifi_tipo != 'NONE':
                 carga['android.app.extra.PROVISIONING_WIFI_PASSWORD'] = self.wifi_password
+
         from reportlab.graphics.barcode import createBarcodeDrawing
         dibujo = createBarcodeDrawing('QR', value=json.dumps(carga, ensure_ascii=False),
                                       format='png', width=460, height=460)
+        expira = min(tok.expires_at, inv.expiry)
         self.write({
             'estado': 'qr', 'telefono_id': dev.id,
             'qr': base64.b64encode(dibujo.asString('png')),
-            'expira': _ts(token.get('expirationTimestamp')) or (fields.Datetime.now() + timedelta(days=self.dias or 7)),
+            'expira': expira,
             # La contraseña de la red no se queda guardada.
             'wifi_password': False,
         })
-        dev.message_post(body='Se generó el QR de alta (caduca %s).' % fields.Datetime.to_string(self.expira))
+        dev.message_post(body='Se generó el QR de alta como equipo de la empresa (caduca %s).'
+                         % fields.Datetime.to_string(expira))
         return {'type': 'ir.actions.act_window', 'res_model': self._name, 'res_id': self.id,
                 'view_mode': 'form', 'target': 'new', 'name': 'Alta del teléfono'}
