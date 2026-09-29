@@ -44,10 +44,15 @@ class FocoCallReview(models.Model):
     motivo es siempre «asunto personal».
 
     QUE NO SE GUARDA: el audio nunca toca la base -se transcribe en la misma
-    peticion en que llega y se descarta-; la transcripcion vive en este
-    registro solo mientras la llamada sigue y hasta que el modelo decide, y en
-    ese momento se borra (`transcript_cleared`). El administrador ve etiqueta,
-    duracion y motivo; nunca lo que se dijo.
+    peticion en que llega y se descarta-. La transcripcion, de fabrica, vive en
+    este registro solo mientras la llamada sigue y hasta que el modelo decide, y
+    en ese momento se borra (`transcript_cleared`); el administrador ve etiqueta,
+    duracion y motivo, nunca lo que se dijo.
+
+    RETENCION OPCIONAL: si Ajustes enciende `call_review_keep_transcript` -algo
+    que depende del aviso de privacidad firmado-, la transcripcion se CONSERVA
+    para poder validar que la IA clasifica bien. Solo la ven quienes administran
+    Foco (los campos `transcript_*` estan restringidos a `group_foco_manager`).
     """
     _name = 'foco.call.review'
     _description = 'Llamada de WhatsApp analizada (laptop)'
@@ -79,8 +84,10 @@ class FocoCallReview(models.Model):
 
     chunks_received = fields.Integer(string='Trozos recibidos')
     audio_seconds = fields.Integer(string='Audio transcrito (s)')
-    transcript_empleado = fields.Text(string='Transcripcion (empleado)', groups='base.group_no_one')
-    transcript_otro = fields.Text(string='Transcripcion (interlocutor)', groups='base.group_no_one')
+    transcript_empleado = fields.Text(string='Transcripcion (empleado)',
+                                      groups='foco_monitor.group_foco_manager')
+    transcript_otro = fields.Text(string='Transcripcion (interlocutor)',
+                                  groups='foco_monitor.group_foco_manager')
     transcript_chars = fields.Integer(string='Caracteres transcritos')
     transcript_cleared = fields.Boolean(string='Transcripcion borrada', default=False)
     tokens = fields.Integer(string='Tokens del modelo')
@@ -192,15 +199,20 @@ class FocoCallReview(models.Model):
                         tokens=res.get('tokens'), modelo=res.get('modelo'))
 
     def _cerrar(self, clasificacion, confianza, con_quien, motivo, estado, tokens=0, modelo=''):
-        """Guarda el veredicto y BORRA la transcripcion en el mismo write."""
-        self.write({
+        """Guarda el veredicto. BORRA la transcripcion en el mismo write, salvo
+        que Ajustes pida conservarla (call_review_keep_transcript), decision que
+        depende del aviso de privacidad firmado."""
+        guardar = self.env['foco.settings'].sudo().get_settings().call_review_keep_transcript
+        vals = {
             'clasificacion': clasificacion, 'confianza': confianza,
             'con_quien': con_quien, 'motivo': motivo or False,
             'state': estado, 'decided_at': fields.Datetime.now(),
             'tokens': int(tokens or 0), 'modelo': modelo or False,
-            'transcript_empleado': False, 'transcript_otro': False,
-            'transcript_cleared': True,
-        })
+        }
+        if not guardar:
+            vals.update({'transcript_empleado': False, 'transcript_otro': False,
+                         'transcript_cleared': True})
+        self.write(vals)
 
     # ------------------------------------------------------------ cron
     @api.model

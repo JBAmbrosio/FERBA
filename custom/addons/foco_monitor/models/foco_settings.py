@@ -273,6 +273,14 @@ class FocoSettings(models.Model):
         string='Guardar el motivo (maximo 12 palabras)', default=True,
         help='Apagado, solo queda el veredicto. En las llamadas personales el '
              'motivo es siempre «asunto personal», sin detalle.')
+    call_review_keep_transcript = fields.Boolean(
+        string='Guardar la transcripcion de la llamada', default=False,
+        help='Apagado (de fabrica), la transcripcion se BORRA en cuanto el modelo '
+             'da su veredicto y solo queda la etiqueta. Encendido, la transcripcion '
+             'se conserva para poder validar si la IA clasifica bien. Es lo que se '
+             'dijo en la llamada: enciendelo SOLO con el aviso de privacidad firmado '
+             'que contemple guardar la transcripcion. La ven unicamente quienes '
+             'administran Foco.')
     call_review_max_minutes = fields.Integer(
         string='Maximo de minutos por llamada', default=120,
         help='Pasado este tiempo el agente deja de grabar esa llamada.')
