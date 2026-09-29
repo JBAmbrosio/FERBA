@@ -60,4 +60,45 @@
         <field name="state">code</field>
         <field name="code">action = model.action_accesos()</field>
     </record>
+
+    <!-- Ventana de inactividad: umbral GLOBAL (minutos) + a QUIEN le sale
+         (por empleado, apagada para todos de fabrica). -->
+    <record id="foco_settings_view_form_ventana" model="ir.ui.view">
+        <field name="name">foco.settings.ventana</field>
+        <field name="model">foco.settings</field>
+        <field name="arch" type="xml">
+            <form string="Ventana de inactividad">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Ventana de inactividad</h1>
+                        <p class="text-muted">
+                            La ventana bloqueante que pide justificar los periodos largos sin
+                            actividad. Está <b>apagada para todos</b>: solo le aparece a las
+                            personas que elijas aquí. El umbral en minutos es el mismo para todos.
+                        </p>
+                    </div>
+                    <group>
+                        <field name="gap_min_minutes"/>
+                    </group>
+                    <group>
+                        <field name="ventana_employee_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Selecciona los empleados..."/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Quien no esté en la lista NO ve la ventana. Deben ser empleados ya
+                        registrados (con un equipo Foco). El cambio llega a cada equipo en su
+                        siguiente envío (unos minutos), sin reinstalar nada.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_ventana_action" model="ir.actions.server">
+        <field name="name">Ventana de inactividad</field>
+        <field name="model_id" ref="model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_ventana()</field>
+    </record>
 </odoo>

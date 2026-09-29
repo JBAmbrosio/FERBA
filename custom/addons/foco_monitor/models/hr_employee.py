@@ -7,6 +7,18 @@ from odoo import api, fields, models
 class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 
+    # A quien le sale la ventana BLOQUEANTE de justificacion de inactividad.
+    # APAGADO de fabrica para TODOS: la ventana solo aparece a quien el encargado
+    # la encienda a proposito (Foco > Ventana de inactividad). Viaja al agente por
+    # el bloque `conducta` (foco.policy.conducta_para) como `ventana`, y el
+    # umbral de minutos es global (foco.settings.gap_min_minutes).
+    foco_ventana_inactividad = fields.Boolean(
+        string='Le sale la ventana de inactividad', default=False,
+        help='Encendido, a esta persona le aparece la ventana bloqueante para '
+             'justificar los periodos largos sin actividad. Apagado (de fabrica '
+             'para todos), no le aparece. Se administra desde Foco > Ventana de '
+             'inactividad.')
+
     foco_token = fields.Char(
         string='Token de justificacion', copy=False, readonly=True,
         help='Token de la liga con la que el empleado justifica sus periodos '
