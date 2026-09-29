@@ -37,10 +37,17 @@
         <field name="arch" type="xml">
             <form string="Llamada analizada" create="false" edit="false">
                 <sheet>
-                    <div class="alert alert-info" role="alert">
+                    <div class="alert alert-info" role="alert" invisible="not transcript_cleared">
                         Aqui no hay audio ni transcripcion: el audio se transcribio al
                         llegar y se descarto, y la transcripcion se borro en cuanto el
                         modelo decidio. Queda el veredicto, no lo que se dijo.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="transcript_cleared"
+                         groups="foco_monitor.group_foco_manager">
+                        La transcripcion se esta CONSERVANDO por configuracion (aviso de
+                        privacidad firmado). Es lo que se dijo en la llamada: trata este
+                        dato con ese cuidado. El audio nunca se guarda.
                     </div>
                     <group>
                         <group string="Llamada">
@@ -70,6 +77,12 @@
                             <field name="retries"/>
                             <field name="error_detail"/>
                         </group>
+                    </group>
+                    <group string="Transcripcion (conservada)"
+                           invisible="transcript_cleared"
+                           groups="foco_monitor.group_foco_manager">
+                        <field name="transcript_empleado" nolabel="0"/>
+                        <field name="transcript_otro"/>
                     </group>
                 </sheet>
             </form>

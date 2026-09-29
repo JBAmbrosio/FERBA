@@ -459,6 +459,8 @@
                                invisible="not call_review_enabled"/>
                         <field name="call_review_keep_reason"
                                invisible="not call_review_enabled"/>
+                        <field name="call_review_keep_transcript"
+                               invisible="not call_review_enabled"/>
                         <field name="call_review_chunk_minutes"
                                invisible="not call_review_enabled"/>
                         <field name="call_review_max_minutes"
