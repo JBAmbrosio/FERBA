@@ -153,8 +153,12 @@ class FocoSettingsMdm(models.Model):
         return {'type': 'ir.actions.act_url', 'url': res.get('url'), 'target': 'self'}
 
     def action_amapi_play(self):
+        # Android Enterprise (Play administrada de Google) ya no se usa: Foco
+        # gestiona como DUEÑA del equipo, sin Google. Método dormido por si algo
+        # viejo lo invoca; abre la Play pública.
         exigir_admin(self.env)
-        return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store de la empresa'}
+        return {'type': 'ir.actions.act_url',
+                'url': 'https://play.google.com/store/apps', 'target': 'new'}
 
     def action_amapi_sync(self):
         exigir_admin(self.env)
@@ -261,10 +265,13 @@ class FocoPolicyMovil(models.Model):
         return res
 
     def action_play(self):
+        """Abre la Play Store PÚBLICA en otra pestaña para hallar la app y copiar
+        su paquete (el de la URL, id=...). Sin Google: aquí no se elige la app,
+        se busca su paquete y se pega en la aprobación del perfil."""
         exigir_admin(self.env)
         self.ensure_one()
-        return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store · %s' % self.name,
-                'context': {'foco_policy_id': self.id}}
+        return {'type': 'ir.actions.act_url',
+                'url': 'https://play.google.com/store/apps', 'target': 'new'}
 
     def action_ver_celulares(self):
         self.ensure_one()
@@ -526,6 +533,37 @@ class FocoMobileInstalled(models.Model):
         return True
 
 
+# =============================================================== ORDENES
+class FocoMobileCommandMdm(models.Model):
+    """Acciones a distancia que Foco ejecuta como DUEÑO del equipo, sin Google.
+    Amplia las ordenes (que ya servian para pedir capturas) con: bloquear
+    pantalla, reiniciar, restablecer de fabrica y dar de baja."""
+    _inherit = 'foco.mobile.command'
+
+    kind = fields.Selection(selection_add=[
+        ('lock', 'Bloquear pantalla'),
+        ('reboot', 'Reiniciar'),
+        ('wipe', 'Restablecer de fábrica'),
+        ('release', 'Dar de baja (liberar)'),
+    ], ondelete={'lock': 'cascade', 'reboot': 'cascade', 'wipe': 'cascade', 'release': 'cascade'})
+
+    @api.model
+    def para_telefono(self, device):
+        """Las ordenes PENDIENTES de un telefono (menos la captura, que va por su
+        propio bloque). Se marcan 'sent' al entregarlas."""
+        pend = self.sudo().search([('device_id', '=', device.id), ('state', '=', 'pending'),
+                                   ('kind', 'in', ('lock', 'reboot', 'wipe', 'release'))])
+        pend.write({'state': 'sent', 'sent_at': fields.Datetime.now()})
+        return [{'id': o.id, 'kind': o.kind, 'payload': o.payload or ''} for o in pend]
+
+    @api.model
+    def marcar_hechas(self, ids):
+        if not ids:
+            return
+        self.sudo().browse([int(i) for i in ids]).exists().write({
+            'state': 'done', 'done_at': fields.Datetime.now()})
+
+
 # =============================================================== SOLICITUDES
 class FocoMobileAppRequest(models.Model):
     """La persona pide una app desde su telefono. El administrador decide."""
@@ -608,10 +646,16 @@ class FocoMobileAppRequest(models.Model):
         return salida
 
     def action_play(self):
+        """Busca la app pedida en la Play Store PÚBLICA (otra pestaña) para hallar
+        su paquete y pegarlo en «Paquete». Sin Google no hay elección automática:
+        se copia el paquete de la URL de la app (…/details?id=<paquete>)."""
         exigir_admin(self.env)
         self.ensure_one()
-        return {'type': 'ir.actions.client', 'tag': 'foco_play', 'name': 'Play Store · %s' % self.name,
-                'context': {'foco_request_id': self.id}}
+        from urllib.parse import quote
+        q = quote((self.name or '').strip())
+        return {'type': 'ir.actions.act_url',
+                'url': 'https://play.google.com/store/search?q=%s&c=apps' % q,
+                'target': 'new'}
 
     def action_aprobar(self):
         exigir_admin(self.env)
@@ -622,8 +666,9 @@ class FocoMobileAppRequest(models.Model):
             if not app and r.package:
                 app = self.env['foco.mobile.app']._asegurar(r.package, r.name)
             if not app:
-                raise UserError('Falta elegir la app: pulsa «Buscar en Play Store» y selecciónala, '
-                                'o escribe su paquete (por ejemplo com.whatsapp.w4b).')
+                raise UserError('Falta la app: usa «Buscar en Google Play» para hallar su paquete '
+                                '(el de la URL, …/details?id=<paquete>) y escríbelo aquí '
+                                '(por ejemplo com.whatsapp.w4b).')
             self.env['foco.mobile.grant']._conceder(app, r.install_type or 'force',
                                                     device=r.device_id, request=r)
             r.write({'state': 'aprobada', 'app_id': app.id, 'package': app.package,
@@ -777,9 +822,13 @@ class FocoMobileDeviceMdm(models.Model):
 
     def _politica_agente(self):
         """La politica que Foco APLICA como administrador del equipo (Device
-        Owner). Viaja en cada envio del telefono. Solo se aplica si el equipo es
-        gestionado por Foco y tiene un perfil: sin perfil, `aplicar` en falso y
-        el telefono no impone nada nuevo (no se endurece un equipo por descuido).
+        Owner). Viaja en cada envio del telefono.
+
+        SIN perfil no se deja el equipo como estaba: se mandan las restricciones
+        en FALSO y las listas vacias, para que Foco LIMPIE lo que hubiera puesto.
+        Asi, quitarle el perfil a un telefono lo DESRESTRINGE (si no, quedaria
+        trabado con la ultima politica). `aplicar` va en verdadero igual: el
+        telefono es gestionado, solo que sin nada que imponer.
 
         Lo mide con permisos del sistema: el telefono llega por la ruta publica,
         sin usuario, y el perfil y las listas de sitios no son visibles para un
@@ -788,7 +837,11 @@ class FocoMobileDeviceMdm(models.Model):
         yo = self.sudo()
         perfil = yo._mdm_perfil()
         if not perfil:
-            return {'aplicar': False}
+            return {
+                'aplicar': True, 'perfil': '',
+                'restricciones': {k: False for k in _MOVIL_FABRICA},
+                'apps': {}, 'web': {'bloquear': [], 'permitir': []}, 'instalar': [],
+            }
         base = yo._politica_base(perfil=perfil)
         base['aplicar'] = True
         return base
@@ -1030,39 +1083,44 @@ class FocoMobileDeviceMdm(models.Model):
                             'aprovisiónalo con el QR de alta.')
         return self.amapi_name
 
-    def action_mdm_enviar(self):
+    # ------------------------------------------------------------ ordenes
+    #
+    # Las acciones a distancia NO pasan por Google: se ENCOLAN como
+    # foco.mobile.command y el telefono las ejecuta como dueño del equipo en su
+    # siguiente conexion (llegan en el bloque `comandos` del envio). Reusa el
+    # mismo modelo de ordenes de las capturas.
+    def _encolar(self, kind, payload=''):
+        self.ensure_one()
         exigir_admin(self.env)
-        n = self._mdm_enviar(forzar=True, lanzar=True)
-        return self.env['foco.settings'].sudo().get_settings()._aviso(
-            'Política enviada a Google (%d). El teléfono la aplica en su siguiente conexión.' % n, 'success')
+        return self.env['foco.mobile.command'].sudo().create({
+            'device_id': self.id, 'kind': kind, 'payload': payload or ''})
 
     def action_mdm_bloquear(self):
-        exigir_admin(self.env)
-        self.env['foco.amapi'].comando(self._mdm_equipo_google(), 'LOCK')
-        self.message_post(body='Se ordenó bloquear la pantalla desde Odoo.')
-        return self.env['foco.settings'].sudo().get_settings()._aviso('Orden enviada: el teléfono se bloquea.', 'success')
+        self._encolar('lock')
+        self.message_post(body='Se ordenó bloquear la pantalla.')
+        return self.env['foco.settings'].sudo().get_settings()._aviso(
+            'Orden enviada: el teléfono se bloquea en su siguiente conexión.', 'success')
 
     def action_mdm_reiniciar(self):
-        exigir_admin(self.env)
-        self.env['foco.amapi'].comando(self._mdm_equipo_google(), 'REBOOT')
-        self.message_post(body='Se ordenó reiniciar el teléfono desde Odoo.')
-        return self.env['foco.settings'].sudo().get_settings()._aviso('Orden enviada: el teléfono se reinicia.', 'success')
+        self._encolar('reboot')
+        self.message_post(body='Se ordenó reiniciar el teléfono.')
+        return self.env['foco.settings'].sudo().get_settings()._aviso(
+            'Orden enviada: el teléfono se reinicia en su siguiente conexión.', 'success')
 
     def action_mdm_borrar(self):
-        exigir_admin(self.env)
-        nombre = self._mdm_equipo_google()
-        self.env['foco.amapi'].borrar_equipo(nombre, 'Restablecido por la empresa desde Odoo.')
-        self.write({'amapi_state': 'borrado', 'amapi_hash': False})
-        self.message_post(body='Se ordenó RESTABLECER DE FÁBRICA el teléfono desde Odoo (%s).' % self.env.user.name)
+        self._encolar('wipe')
+        self.message_post(body='Se ordenó RESTABLECER DE FÁBRICA el teléfono (%s).' % self.env.user.name)
         return self.env['foco.settings'].sudo().get_settings()._aviso(
             'Orden enviada: el teléfono se restablece de fábrica en su siguiente conexión.', 'warning')
 
-    def action_mdm_play(self):
-        exigir_admin(self.env)
-        self.ensure_one()
-        return {'type': 'ir.actions.client', 'tag': 'foco_play',
-                'name': 'Play Store · %s' % (self.employee_id.name or self.name),
-                'context': {'foco_device_id': self.id}}
+    def action_mdm_baja(self):
+        """Dar de baja: Foco renuncia a ser dueña del equipo y QUITA las
+        restricciones, sin borrar los datos. El teléfono queda como uno normal."""
+        self._encolar('release')
+        self.write({'policy_id': False})
+        self.message_post(body='Se ordenó DAR DE BAJA el teléfono (Foco deja de administrarlo).')
+        return self.env['foco.settings'].sudo().get_settings()._aviso(
+            'Orden enviada: el teléfono se libera en su siguiente conexión.', 'warning')
 
     def action_mdm_alta(self):
         exigir_admin(self.env)

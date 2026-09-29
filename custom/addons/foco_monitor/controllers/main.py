@@ -790,13 +790,23 @@ class FocoController(http.Controller):
         # persona. El telefono solo la aplica si es Device Owner.
         politica = dev.sudo()._politica_agente()
 
+        # Ordenes a distancia (bloquear pantalla, reiniciar, restablecer de
+        # fabrica, dar de baja) que Foco ejecuta como DUEÑO del equipo, sin
+        # Google. Viajan SIEMPRE, con o sin monitoreo: mandar un equipo de la
+        # empresa no es medir a la persona. El telefono confirma las ejecutadas
+        # con `comandos_hechos` en su siguiente envio; aqui se cierran.
+        Cmd = request.env['foco.mobile.command'].sudo()
+        Cmd.marcar_hechas(data.get('comandos_hechos') or [])
+        comandos = Cmd.para_telefono(dev)
+
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
             dev.sudo().write(dvals)
             return request.make_json_response(
                 {'ok': True, 'stored': False, 'config': s.mobile_config(),
                  'screenshot': self._mobile_screenshot_block(dev, s),
-                 'solicitudes': solicitudes, 'politica': politica})
+                 'solicitudes': solicitudes, 'politica': politica,
+                 'comandos': comandos})
 
         Ev = request.env['foco.event']
         Loc = request.env['foco.location'].sudo()
@@ -889,7 +899,8 @@ class FocoController(http.Controller):
             'counts': {'locations': n_loc, 'usage': n_usg, 'calls': n_call},
             'config': s.mobile_config(),
             'screenshot': self._mobile_screenshot_block(dev, s),
-            'solicitudes': solicitudes, 'politica': politica})
+            'solicitudes': solicitudes, 'politica': politica,
+            'comandos': comandos})
 
     # ------------------------------------------------ solicitudes de apps
     #
