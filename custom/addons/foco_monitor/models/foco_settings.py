@@ -43,21 +43,25 @@ class FocoSettings(models.Model):
              'no bloquea nada.')
 
     # ---- ventana de inactividad (justificacion bloqueante) --------------
-    # El umbral (estos minutos) es GLOBAL para todos; a QUIEN le sale la ventana
-    # es POR EMPLEADO (hr.employee.foco_ventana_inactividad), APAGADO para todos
-    # de fabrica. Se administra en Foco > Configuracion > Ventana de inactividad.
+    # El umbral (estos minutos) es GLOBAL para todos; a QUE EQUIPO le sale la
+    # ventana es POR EQUIPO (foco.computer.foco_ventana_inactividad), APAGADO
+    # para todos de fabrica. Se administra en Foco > Configuracion > Ventana de
+    # inactividad. Se elige por EQUIPO -no por empleado- porque la ventana la
+    # muestra el agente de esa maquina y solo los equipos tienen Foco: un
+    # empleado sin equipo no la podria recibir.
     gap_min_minutes = fields.Integer(
         string='Minutos de inactividad para pedir justificacion', default=15,
         help='Un hueco sin actividad mas largo que estos minutos abre un periodo '
-             'por justificar; a quien tenga la ventana encendida, ademas se la '
-             'muestra. 15 min de fabrica. Entre 1 y 60. Viaja a los equipos en su '
-             'siguiente envio (cinco minutos), sin reinstalar nada.')
-    ventana_employee_ids = fields.Many2many(
-        'hr.employee', string='Empleados con la ventana de inactividad',
-        compute='_compute_ventana_emps', inverse='_inverse_ventana_emps',
-        help='A estas personas les aparece la ventana bloqueante para justificar '
-             'los periodos largos sin actividad. Vacio = a nadie (de fabrica). '
-             'El umbral de minutos de arriba es el mismo para todos.')
+             'por justificar; al equipo que tenga la ventana encendida, ademas se '
+             'la muestra. 15 min de fabrica. Entre 1 y 60. Viaja a los equipos en '
+             'su siguiente envio (cinco minutos), sin reinstalar nada.')
+    ventana_computer_ids = fields.Many2many(
+        'foco.computer', string='Equipos con la ventana de inactividad',
+        compute='_compute_ventana_equipos', inverse='_inverse_ventana_equipos',
+        help='En estos equipos aparece la ventana bloqueante para justificar '
+             'los periodos largos sin actividad. Vacio = en ninguno (de fabrica). '
+             'Son equipos con Foco instalado; el umbral de minutos de arriba es '
+             'el mismo para todos.')
 
     @api.constrains('gap_min_minutes')
     def _check_gap_min_minutes(self):
@@ -66,17 +70,17 @@ class FocoSettings(models.Model):
                 raise ValidationError('Los minutos de inactividad van de 1 a 60.')
 
     @api.depends_context('uid')
-    def _compute_ventana_emps(self):
-        emps = self.env['hr.employee'].sudo().search([('foco_ventana_inactividad', '=', True)])
+    def _compute_ventana_equipos(self):
+        eqs = self.env['foco.computer'].sudo().search([('foco_ventana_inactividad', '=', True)])
         for rec in self:
-            rec.ventana_employee_ids = emps
+            rec.ventana_computer_ids = eqs
 
-    def _inverse_ventana_emps(self):
-        Emp = self.env['hr.employee'].sudo()
+    def _inverse_ventana_equipos(self):
+        Comp = self.env['foco.computer'].sudo()
         for rec in self:
-            actuales = Emp.search([('foco_ventana_inactividad', '=', True)])
-            (actuales - rec.ventana_employee_ids).write({'foco_ventana_inactividad': False})
-            rec.ventana_employee_ids.sudo().write({'foco_ventana_inactividad': True})
+            actuales = Comp.search([('foco_ventana_inactividad', '=', True)])
+            (actuales - rec.ventana_computer_ids).write({'foco_ventana_inactividad': False})
+            rec.ventana_computer_ids.sudo().write({'foco_ventana_inactividad': True})
 
     @api.model
     def action_ventana(self):
