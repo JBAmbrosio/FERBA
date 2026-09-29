@@ -30,7 +30,7 @@
         <field name="arch" type="xml">
             <form string="Solicitud de app">
                 <header>
-                    <button name="action_play" type="object" string="Buscar en Play Store"
+                    <button name="action_play" type="object" string="Buscar en Google Play"
                             class="btn-primary" icon="fa-search"
                             invisible="state not in ('pendiente', 'rechazada')"/>
                     <button name="action_aprobar" type="object" string="Aprobar"
@@ -73,11 +73,14 @@
                         </group>
                     </group>
                     <div class="text-muted" invisible="state not in ('pendiente', 'rechazada')">
-                        Pulsa <b>Buscar en Play Store</b>, busca la app y elígela: queda
-                        aprobada solo para este teléfono y se instala sola. Si ya sabes el
-                        paquete, escríbelo y pulsa <b>Aprobar</b>. Para aprobarla a todo un
-                        grupo, agrégala en su perfil: <b>Navegación permitida</b> › el perfil ›
-                        <b>En el celular</b>.
+                        Usa <b>Buscar en Google Play</b> para hallar la app y copiar su
+                        <b>paquete</b> (el de la URL, …/details?id=&lt;paquete&gt;); pégalo en
+                        <b>Paquete</b> y pulsa <b>Aprobar</b>. Aprobar la desbloquea en el
+                        teléfono; la persona la instala desde la Play Store. Si es una app
+                        <b>propia</b>, súbele el <b>APK</b> en el catálogo y márcala
+                        <b>«instalar sola»</b>: Foco la instala sin que nadie toque nada.
+                        Para todo un grupo, agrégala en su perfil: <b>Navegación permitida</b>
+                        › el perfil › <b>En el celular</b>.
                     </div>
                 </sheet>
                 <chatter/>
@@ -202,7 +205,7 @@
                     <div colspan="2" class="d-flex align-items-center gap-2 mt8">
                         <b>Apps del perfil</b>
                         <span class="text-muted">— lo que tiene todo el que use este perfil. Lo que se apruebe a una sola persona va en su teléfono.</span>
-                        <button name="action_play" type="object" string="Buscar en Play Store"
+                        <button name="action_play" type="object" string="Buscar en Google Play"
                                 icon="fa-search" class="btn-secondary btn-sm ms-auto"
                                 invisible="not id"/>
                         <field name="mobile_device_count" invisible="1"/>
@@ -234,12 +237,7 @@
         <field name="arch" type="xml">
             <field name="employee_id" position="after">
                 <field name="policy_id" string="Perfil" optional="show"/>
-                <field name="amapi_state" widget="badge" optional="show"
-                       decoration-success="amapi_state == 'activo'"
-                       decoration-info="amapi_state in ('pendiente', 'aprovisionando')"
-                       decoration-danger="amapi_state in ('borrado', 'perdido', 'deshabilitado')"/>
-                <field name="amapi_compliant" string="Cumple" optional="hide"
-                       invisible="amapi_state != 'activo'"/>
+                <field name="health_device_owner" string="Gestionado" optional="show"/>
                 <field name="request_pendientes" string="Solicitudes" optional="show"/>
             </field>
         </field>
@@ -251,72 +249,58 @@
         <field name="inherit_id" ref="foco_monitor.foco_mobile_device_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
+                <!-- Foco es DUEÑA del equipo (Device Owner), sin Google. El QR de
+                     alta se muestra mientras el teléfono no reporte que ya es
+                     gestionado; las órdenes a distancia, solo cuando lo es. -->
                 <button name="action_mdm_alta" type="object" string="QR de alta"
-                        icon="fa-qrcode" invisible="amapi_state in ('activo', 'aprovisionando')"/>
-                <button name="action_mdm_play" type="object" string="Instalarle una app"
-                        icon="fa-search" invisible="not amapi_state or amapi_state == 'borrado'"/>
-                <button name="action_mdm_enviar" type="object" string="Enviar política ahora"
-                        invisible="not amapi_state or amapi_state == 'borrado'"/>
+                        icon="fa-qrcode" invisible="health_device_owner"/>
                 <button name="action_mdm_bloquear" type="object" string="Bloquear pantalla"
-                        icon="fa-lock" invisible="amapi_state != 'activo'"
-                        confirm="El teléfono se bloquea ahora mismo. ¿Continuar?"/>
+                        icon="fa-lock" invisible="not health_device_owner"
+                        confirm="El teléfono se bloqueará en su próxima conexión. ¿Continuar?"/>
                 <button name="action_mdm_reiniciar" type="object" string="Reiniciar"
-                        invisible="amapi_state != 'activo'"
-                        confirm="El teléfono se reinicia ahora mismo. ¿Continuar?"/>
+                        invisible="not health_device_owner"
+                        confirm="El teléfono se reiniciará en su próxima conexión. ¿Continuar?"/>
+                <button name="action_mdm_baja" type="object" string="Dar de baja"
+                        invisible="not health_device_owner"
+                        confirm="Foco dejará de administrar el teléfono y quitará las restricciones (sin borrar datos). ¿Continuar?"/>
                 <button name="action_mdm_borrar" type="object" string="Restablecer de fábrica"
-                        class="btn-danger" invisible="amapi_state != 'activo'"
-                        confirm="SE BORRA TODO EL TELÉFONO y deja de estar gestionado. No se puede deshacer. ¿Continuar?"/>
+                        class="btn-danger" invisible="not health_device_owner"
+                        confirm="SE BORRARÁ TODO EL TELÉFONO en su próxima conexión y dejará de estar gestionado. No se puede deshacer. ¿Continuar?"/>
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_ver_solicitudes" type="object"
                         class="oe_stat_button" icon="fa-inbox">
                     <field name="request_pendientes" widget="statinfo" string="Por decidir"/>
                 </button>
-                <button name="action_ver_instaladas" type="object"
-                        class="oe_stat_button" icon="fa-th" invisible="not amapi_state">
-                    <field name="installed_count" widget="statinfo" string="Instaladas"/>
-                </button>
             </xpath>
             <!-- El grupo "Ultima ubicacion conocida" (sin `string` como ancla:
                  Odoo 19 no lo permite). -->
             <xpath expr="//field[@name='last_fix_at']/../.." position="before">
-                <group string="Gestión Android (empresa)">
+                <group string="Gestión del equipo (Foco como dueña, sin Google)">
                     <group>
                         <field name="policy_id" placeholder="Perfil por omisión"/>
-                        <field name="amapi_state" widget="badge" invisible="not amapi_state"
-                               decoration-success="amapi_state == 'activo'"
-                               decoration-info="amapi_state in ('pendiente', 'aprovisionando')"
-                               decoration-danger="amapi_state in ('borrado', 'perdido', 'deshabilitado')"/>
-                        <field name="amapi_compliant" invisible="amapi_state != 'activo'"/>
-                        <field name="amapi_alta_at" invisible="not amapi_alta_at"/>
-                        <field name="amapi_reporte_at" invisible="not amapi_reporte_at"/>
+                        <field name="health_device_owner"/>
+                        <field name="health_status" widget="badge"
+                               decoration-success="health_status == 'ok'"
+                               decoration-warning="health_status == 'warn'"
+                               decoration-danger="health_status == 'bad'"/>
                     </group>
                     <group>
-                        <field name="amapi_serial" invisible="not amapi_serial"/>
-                        <field name="amapi_envio_at" invisible="not amapi_envio_at"/>
-                        <field name="amapi_politica_aplicada" invisible="not amapi_politica_aplicada"/>
-                        <field name="amapi_name" groups="base.group_no_one"/>
+                        <field name="health_at" invisible="not health_at"/>
+                        <field name="health_issues" invisible="not health_issues"/>
                     </group>
-                    <div colspan="2" class="alert alert-danger" role="alert" invisible="not amapi_error">
-                        <b>Google no aceptó la última política:</b>
-                        <field name="amapi_error" nolabel="1" readonly="1"/>
+                    <div colspan="2" class="text-muted" invisible="health_device_owner">
+                        Este teléfono todavía no es un equipo gestionado por la empresa:
+                        o se conectó a Foco a mano, o aún no reporta que Foco es su dueña.
+                        Para restringirlo (Play Store solo con lo aprobado, sin compartir
+                        internet, sin cuentas personales) restablécelo de fábrica y dalo
+                        de alta con el <b>QR de alta</b>.
                     </div>
-                    <div colspan="2" class="alert alert-warning" role="alert"
-                         invisible="amapi_state != 'activo' or amapi_compliant or not amapi_incumple">
-                        <b>El teléfono no cumple todo:</b>
-                        <field name="amapi_incumple" nolabel="1" readonly="1"/>
-                    </div>
-                    <div colspan="2" class="text-muted" invisible="amapi_state">
-                        Este teléfono no está gestionado por la empresa: se conectó a Foco
-                        a mano. Para restringirlo (Play Store solo con lo aprobado, sin
-                        compartir internet, sin cuentas personales), restablécelo de
-                        fábrica y dalo de alta con el <b>QR de alta</b>.
-                    </div>
-                    <div colspan="2" class="mt8" invisible="not amapi_state">
+                    <div colspan="2" class="mt8" invisible="not health_device_owner">
                         <b>Apps de esta persona</b>
                         <span class="text-muted">— aprobadas o bloqueadas solo en este teléfono; mandan sobre las del perfil.</span>
                     </div>
-                    <field name="grant_ids" nolabel="1" colspan="2" invisible="not amapi_state">
+                    <field name="grant_ids" nolabel="1" colspan="2" invisible="not health_device_owner">
                         <list editable="bottom">
                             <field name="app_id" options="{'no_create': True}"/>
                             <field name="package" readonly="1" optional="show"/>
@@ -343,96 +327,7 @@
         </field>
     </record>
 
-    <!-- =================================================== AJUSTES -->
-    <record id="foco_settings_view_form_movil_mdm" model="ir.ui.view">
-        <field name="name">foco.settings.movil.mdm</field>
-        <field name="model">foco.settings</field>
-        <field name="inherit_id" ref="foco_monitor.foco_settings_view_form_movil"/>
-        <field name="arch" type="xml">
-            <!-- Despues del interruptor general del monitoreo movil: primero
-                 "se mide o no", luego "que telefonos gestiona la empresa". -->
-            <xpath expr="//field[@name='mobile_enabled']/.." position="after">
-                <group string="Android Enterprise · celulares gestionados por la empresa">
-                    <div colspan="2">
-                        <field name="amapi_estado" widget="badge" readonly="1"
-                               decoration-success="amapi_estado == 'lista'"
-                               decoration-warning="amapi_estado != 'lista'"/>
-                        <p class="text-muted mt8 mb8">
-                            Con Android Enterprise la Play Store del teléfono muestra solo
-                            las apps aprobadas, Odoo manda instalar las que se aprueban,
-                            y se bloquea compartir internet, las cuentas personales y los
-                            sitios de cada perfil. Google no cobra por esto. Se configura
-                            una sola vez:
-                        </p>
-                        <ol class="text-muted">
-                            <li>En Google Cloud: crea un proyecto, habilita
-                                <b>Android Management API</b>, crea una cuenta de servicio y
-                                descarga su clave <b>JSON</b>.</li>
-                            <li>Aquí: <b>Cargar cuenta de servicio</b> y <b>Probar conexión</b>.</li>
-                            <li><b>Registrar la empresa en Google</b>: te lleva a Google para
-                                crear la Play Store administrada de FERBA y vuelve solo.</li>
-                            <li>En <b>Play Store de la empresa › Apps privadas</b>, sube el APK
-                                de Foco (una vez, y cada versión nueva).</li>
-                            <li>Por cada teléfono: <b>Alta de un teléfono</b> genera el QR.</li>
-                        </ol>
-                    </div>
-                    <group>
-                        <field name="amapi_cuenta" readonly="1" invisible="not amapi_cuenta"/>
-                        <field name="amapi_enterprise_display"
-                               invisible="amapi_enterprise"/>
-                        <field name="amapi_enterprise" readonly="1"
-                               invisible="not amapi_enterprise"/>
-                    </group>
-                    <group>
-                        <field name="amapi_ultima_sync" readonly="1" invisible="not amapi_ultima_sync"/>
-                        <field name="amapi_ultimo_error" readonly="1" invisible="not amapi_ultimo_error"/>
-                    </group>
-                    <div colspan="2" class="d-flex flex-wrap gap-2">
-                        <button name="action_amapi_cuenta" type="object"
-                                string="Cargar cuenta de servicio" class="btn-secondary"/>
-                        <button name="action_amapi_probar" type="object"
-                                string="Probar conexión" class="btn-secondary"
-                                invisible="amapi_estado == 'sin_cuenta'"/>
-                        <button name="action_amapi_registrar" type="object"
-                                string="Registrar la empresa en Google" class="btn-primary"
-                                invisible="amapi_estado != 'sin_empresa'"/>
-                        <button name="action_amapi_play" type="object"
-                                string="Play Store de la empresa" class="btn-primary"
-                                invisible="amapi_estado != 'lista'"/>
-                        <button name="action_amapi_alta" type="object"
-                                string="Alta de un teléfono" class="btn-secondary"
-                                invisible="amapi_estado != 'lista'"/>
-                        <button name="action_amapi_sync" type="object"
-                                string="Sincronizar teléfonos" class="btn-secondary"
-                                invisible="amapi_estado != 'lista'"/>
-                    </div>
-                </group>
-            </xpath>
-        </field>
-    </record>
-
     <!-- =================================================== ASISTENTES -->
-    <record id="foco_amapi_cuenta_wizard_view_form" model="ir.ui.view">
-        <field name="name">foco.amapi.cuenta.wizard.form</field>
-        <field name="model">foco.amapi.cuenta.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Cuenta de servicio de Google">
-                <p class="text-muted">
-                    Google Cloud › IAM y administración › Cuentas de servicio › (la
-                    cuenta) › Claves › Agregar clave › Crear clave nueva › JSON. Abre el
-                    archivo con el Bloc de notas y pega aquí todo su contenido. Se guarda
-                    en un parámetro del sistema y no se vuelve a mostrar.
-                </p>
-                <field name="cuenta_json" nolabel="1"
-                       placeholder='{ "type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..." }'/>
-                <footer>
-                    <button name="action_guardar" type="object" string="Guardar" class="btn-primary"/>
-                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
-                </footer>
-            </form>
-        </field>
-    </record>
-
     <record id="foco_mobile_alta_wizard_view_form" model="ir.ui.view">
         <field name="name">foco.mobile.alta.wizard.form</field>
         <field name="model">foco.mobile.alta.wizard</field>
@@ -495,23 +390,9 @@
         <field name="target">new</field>
     </record>
 
-    <!-- La Play Store administrada, dentro de Odoo. -->
-    <record id="foco_play_client" model="ir.actions.client">
-        <field name="name">Play Store de la empresa</field>
-        <field name="tag">foco_play</field>
-    </record>
-
     <!-- =================================================== MENUS -->
     <menuitem id="menu_foco_mobile_requests" name="Solicitudes de apps"
               parent="menu_foco_sec_movil" action="foco_mobile_app_request_action" sequence="7"
-              groups="foco_monitor.group_foco_manager"/>
-
-    <menuitem id="menu_foco_mobile_play" name="Play Store de la empresa"
-              parent="menu_foco_sec_movil" action="foco_play_client" sequence="36"
-              groups="foco_monitor.group_foco_manager"/>
-
-    <menuitem id="menu_foco_mobile_installed" name="Apps instaladas"
-              parent="menu_foco_sec_movil" action="foco_mobile_installed_action" sequence="37"
               groups="foco_monitor.group_foco_manager"/>
 
     <menuitem id="menu_foco_mobile_alta" name="Alta de un teléfono"
