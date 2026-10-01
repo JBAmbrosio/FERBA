@@ -54,6 +54,20 @@ INSTALL_TYPES = [
 ]
 AMAPI_INSTALL = {'force': 'FORCE_INSTALLED', 'available': 'AVAILABLE', 'blocked': 'BLOCKED'}
 
+# Qué pasa cuando el admin APRUEBA una solicitud. En el modelo gratis (Foco como
+# Device Owner, sin Google de pago) la via normal es "play": el agente la instala
+# SOLO desde la Play Store OFICIAL (asi las actualizaciones y la integridad las
+# maneja Google). "force" = app PROPIA (APK cargado en Odoo, instalacion
+# silenciosa). "available" = solo la habilita para que la persona la instale.
+REQ_MODES = [
+    ('play', 'Instalar desde la Play (automático)'),
+    ('force', 'Instalar sola (app propia, APK en Odoo)'),
+    ('available', 'Solo habilitar (la instala la persona)'),
+]
+# Cuantas veces se reintenta una instalacion por Play que FALLA (transitorio)
+# antes de dejar de reenviarla y marcarla para que el admin la vea.
+PLAY_MAX_INTENTOS = 6
+
 # Lo que aplica a un celular SIN perfil. Son los mismos valores de fabrica de
 # los campos del perfil: un telefono sin perfil no queda abierto, queda como
 # un perfil recien creado.
@@ -587,13 +601,20 @@ class FocoMobileAppRequest(models.Model):
         ('rechazada', 'Rechazada'),
     ], string='Estado', default='pendiente', required=True, index=True, tracking=True)
     app_id = fields.Many2one('foco.mobile.app', string='App aprobada')
-    install_type = fields.Selection(INSTALL_TYPES[:2], string='Al aprobar', default='force',
-                                    help='Instalar sola: aparece en su teléfono sin que haga nada. '
-                                         'Disponible: la ve en su Play Store y la instala si quiere.')
+    install_type = fields.Selection(REQ_MODES, string='Al aprobar', default='play',
+                                    help='Instalar desde la Play (automático): el agente la instala solo '
+                                         'desde la Play Store oficial, sin que la persona toque nada. '
+                                         'Instalar sola (app propia): si subiste su APK en el catálogo. '
+                                         'Solo habilitar: la ve en su Play Store y la instala si quiere.')
     answer = fields.Char(string='Respuesta a la persona',
                          help='Lo lee en su teléfono. Obligatoria al rechazar.')
     decided_by = fields.Many2one('res.users', string='Decidió', readonly=True)
     decided_at = fields.Datetime(string='Decidida el', readonly=True)
+    # Instalacion por Play (el agente): intentos y ultimo problema. Tras varios
+    # fallos la solicitud deja de reenviarse y queda aqui para que el admin la vea.
+    play_attempts = fields.Integer(string='Intentos de instalación', default=0,
+                                   readonly=True, copy=False)
+    play_error = fields.Char(string='Último problema al instalar', readonly=True, copy=False)
 
     @api.model
     def desde_telefono(self, device, datos):
@@ -645,6 +666,93 @@ class FocoMobileAppRequest(models.Model):
             })
         return salida
 
+    @api.model
+    def aplicar_play_hechos(self, hechos):
+        """Resultados que reporta el agente tras instalar por Play: una lista de
+        {id, estado, version}. 'instalada' cierra la solicitud; un fallo
+        transitorio suma un intento (se reintenta hasta PLAY_MAX_INTENTOS); un
+        problema estructural (sin cuenta de Google, sin accesibilidad) se detiene
+        y se marca para que el admin lo resuelva."""
+        if not hechos:
+            return
+        MENSAJE = {
+            'sin_cuenta': 'El teléfono no tiene una cuenta de Google: la Play no instala sin ella.',
+            'sin_accesibilidad': 'Falta encender el servicio de accesibilidad de Foco en el teléfono.',
+            'fallo': 'No se pudo instalar desde la Play.',
+        }
+        for h in hechos:
+            try:
+                rid = int(h.get('id') or 0)
+            except (TypeError, ValueError):
+                continue
+            r = self.sudo().browse(rid).exists()
+            if not r or r.install_type != 'play':
+                continue
+            estado = (h.get('estado') or '').strip()
+            if estado == 'instalada':
+                if r.state != 'instalada':
+                    r.write({'state': 'instalada', 'play_error': False})
+                    r.message_post(body='Instalada desde la Play en el teléfono.')
+                continue
+            if r.state != 'aprobada':
+                continue
+            if estado in ('sin_cuenta', 'sin_accesibilidad'):
+                # Estructural: no tiene caso reintentar. Se detiene y se avisa.
+                r.write({'play_attempts': PLAY_MAX_INTENTOS, 'play_error': MENSAJE[estado]})
+                r.message_post(body='Instalación por Play detenida: %s' % MENSAJE[estado])
+            elif estado == 'fallo':
+                nuevo = (r.play_attempts or 0) + 1
+                r.write({'play_attempts': nuevo, 'play_error': MENSAJE['fallo']})
+                if nuevo >= PLAY_MAX_INTENTOS:
+                    r.message_post(body='No se pudo instalar «%s» desde la Play tras %d intentos.'
+                                   % (r.name, nuevo))
+
+    @api.model
+    def play_accion_ia(self, package, nodos):
+        """El CEREBRO del agente: dados los nodos clickeables de la pantalla de la
+        Play ({t,d,x,y}), decide la siguiente acción para avanzar la instalación.
+        Devuelve {action:'tap', x, y} / {action:'wait'} / {action:'done'}. Si no
+        hay OpenAI o algo falla, 'wait' (el agente sigue con sus textos de
+        siempre). Vive en el servidor para poder ajustarlo sin recompilar el APK."""
+        oi = self.env['foco.openai'].sudo()
+        nodos = nodos or []
+        if not oi.configurado() or not nodos:
+            return {'action': 'wait'}
+        lista = []
+        for i, n in enumerate(nodos[:40]):
+            lista.append({'i': i, 't': (n.get('t') or '')[:80], 'd': (n.get('d') or '')[:80],
+                          'x': int(n.get('x') or 0), 'y': int(n.get('y') or 0)})
+        sistema = (
+            "Instalas una app en la Play Store de Android tocando botones. Te doy los nodos "
+            "CLICKEABLES de la pantalla (indice i, texto t, descripcion d, centro x,y) y el "
+            "paquete a instalar. Devuelve la SIGUIENTE accion para AVANZAR la instalacion: el "
+            "boton 'Instalar'/'Install', o 'Aceptar'/'Continuar'/'Entendido' si hay un dialogo. "
+            "NUNCA elijas 'Cancelar', 'Desinstalar', 'Abrir', 'Pagar', 'Buscar' ni nada ajeno a "
+            "instalar ESTE paquete. Si ningun nodo sirve, action='wait'. Si ya aparece "
+            "instalada/'Abrir', action='done'. En 'i' va el indice del nodo a tocar (si 'tap').")
+        esquema = {
+            'name': 'accion_play', 'strict': True,
+            'schema': {'type': 'object', 'additionalProperties': False,
+                       'properties': {'action': {'type': 'string', 'enum': ['tap', 'wait', 'done']},
+                                      'i': {'type': 'integer'}},
+                       'required': ['action', 'i']},
+        }
+        try:
+            res = oi.chat(
+                [{'role': 'system', 'content': sistema},
+                 {'role': 'user', 'content': json.dumps({'package': package, 'nodos': lista})}],
+                response_format={'type': 'json_schema', 'json_schema': esquema},
+                max_tokens=60)
+            obj = json.loads(res['message'].get('content') or '{}')
+        except Exception:
+            return {'action': 'wait'}
+        if obj.get('action') == 'tap':
+            idx = obj.get('i')
+            if isinstance(idx, int) and 0 <= idx < len(lista):
+                return {'action': 'tap', 'x': lista[idx]['x'], 'y': lista[idx]['y']}
+            return {'action': 'wait'}
+        return {'action': obj.get('action') if obj.get('action') in ('wait', 'done') else 'wait'}
+
     def action_play(self):
         """Busca la app pedida en la Play Store PÚBLICA (otra pestaña) para hallar
         su paquete y pegarlo en «Paquete». Sin Google no hay elección automática:
@@ -669,12 +777,31 @@ class FocoMobileAppRequest(models.Model):
                 raise UserError('Falta la app: usa «Buscar en Google Play» para hallar su paquete '
                                 '(el de la URL, …/details?id=<paquete>) y escríbelo aquí '
                                 '(por ejemplo com.whatsapp.w4b).')
-            self.env['foco.mobile.grant']._conceder(app, r.install_type or 'force',
+            modo = r.install_type or 'play'
+            # El permiso (grant) deja la app VISIBLE (no bloqueada) en el equipo:
+            # "force" es APK propio; "play" y "solo habilitar" van como 'available'.
+            # La instalacion por Play la dispara el bloque `play` de la politica,
+            # no el grant (ese solo controla visible/bloqueada).
+            grant_tipo = 'force' if modo == 'force' else 'available'
+            self.env['foco.mobile.grant']._conceder(app, grant_tipo,
                                                     device=r.device_id, request=r)
-            r.write({'state': 'aprobada', 'app_id': app.id, 'package': app.package,
-                     'decided_by': self.env.uid, 'decided_at': fields.Datetime.now()})
+            vals = {'state': 'aprobada', 'app_id': app.id, 'package': app.package,
+                    'decided_by': self.env.uid, 'decided_at': fields.Datetime.now()}
+            if modo == 'play':
+                # Arranca limpio el contador de intentos de la instalacion por Play.
+                vals.update({'play_attempts': 0, 'play_error': False})
+            r.write(vals)
             r.message_post(body='Aprobada: %s (%s).' % (
-                app.app_label or app.package, dict(INSTALL_TYPES)[r.install_type or 'force']))
+                app.app_label or app.package, dict(REQ_MODES)[modo]))
+        return True
+
+    def action_play_reintentar(self):
+        """Reinicia el contador para que el agente vuelva a intentar instalar por
+        Play una solicitud que se quedó trabada (p. ej. tras poner la cuenta de
+        Google que faltaba)."""
+        exigir_admin(self.env)
+        self.filtered(lambda r: r.state == 'aprobada' and r.install_type == 'play').write(
+            {'play_attempts': 0, 'play_error': False})
         return True
 
     def action_rechazar(self):
@@ -835,16 +962,44 @@ class FocoMobileDeviceMdm(models.Model):
         usuario sin permisos."""
         self.ensure_one()
         yo = self.sudo()
+        # Apps aprobadas para instalar por Play (el robot) y la config del agente.
+        # Van SIEMPRE, tenga perfil o no: una app aprobada debe instalarse aunque
+        # el equipo no tenga perfil de navegacion.
+        play = yo._play_pendientes()
+        play_ui = yo._play_ui()
         perfil = yo._mdm_perfil()
         if not perfil:
             return {
                 'aplicar': True, 'perfil': '',
                 'restricciones': {k: False for k in _MOVIL_FABRICA},
                 'apps': {}, 'web': {'bloquear': [], 'permitir': []}, 'instalar': [],
+                'play': play, 'play_ui': play_ui,
             }
         base = yo._politica_base(perfil=perfil)
         base['aplicar'] = True
+        base['play'] = play
+        base['play_ui'] = play_ui
         return base
+
+    def _play_pendientes(self):
+        """Solicitudes aprobadas para instalar desde la Play (install_type='play')
+        que el teléfono aún no reporta instaladas. Se dejan de enviar tras varios
+        intentos fallidos (quedan marcadas para el admin)."""
+        self.ensure_one()
+        Req = self.env['foco.mobile.app.request'].sudo()
+        out = []
+        for r in Req.search([('device_id', '=', self.id), ('state', '=', 'aprobada'),
+                             ('install_type', '=', 'play'),
+                             ('play_attempts', '<', PLAY_MAX_INTENTOS)]):
+            if r.package:
+                out.append({'id': str(r.id), 'package': r.package, 'timeout_s': 240})
+        return out
+
+    def _play_ui(self):
+        """Config para el agente de instalación por Play: si usar el cerebro IA
+        (hay OpenAI configurado). Los textos de los botones los trae el agente de
+        fábrica (es/en); aquí solo se decide el respaldo IA."""
+        return {'ia': bool(self.env['foco.openai'].sudo().configurado())}
 
     def _mdm_json(self):
         """La politica tal como la entiende Google (Android Management API)."""
