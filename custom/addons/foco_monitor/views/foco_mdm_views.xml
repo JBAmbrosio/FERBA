@@ -39,6 +39,9 @@
                             invisible="state != 'pendiente'"/>
                     <button name="action_reabrir" type="object" string="Volver a pendiente"
                             invisible="state == 'pendiente'"/>
+                    <button name="action_play_reintentar" type="object" string="Reintentar instalación"
+                            icon="fa-refresh"
+                            invisible="state != 'aprobada' or install_type != 'play' or play_attempts == 0"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="pendiente,aprobada,instalada"/>
                 </header>
@@ -72,15 +75,20 @@
                             <field name="decided_at"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'aprobada' or not play_error">
+                        <b>Instalación por Play:</b> <field name="play_error" nolabel="1" readonly="1"/>
+                        <span invisible="install_type != 'play'"> Resuélvelo y pulsa
+                        <b>Reintentar instalación</b>.</span>
+                    </div>
                     <div class="text-muted" invisible="state not in ('pendiente', 'rechazada')">
                         Usa <b>Buscar en Google Play</b> para hallar la app y copiar su
                         <b>paquete</b> (el de la URL, …/details?id=&lt;paquete&gt;); pégalo en
-                        <b>Paquete</b> y pulsa <b>Aprobar</b>. Aprobar la desbloquea en el
-                        teléfono; la persona la instala desde la Play Store. Si es una app
-                        <b>propia</b>, súbele el <b>APK</b> en el catálogo y márcala
-                        <b>«instalar sola»</b>: Foco la instala sin que nadie toque nada.
-                        Para todo un grupo, agrégala en su perfil: <b>Navegación permitida</b>
-                        › el perfil › <b>En el celular</b>.
+                        <b>Paquete</b> y pulsa <b>Aprobar</b>. Con <b>«Instalar desde la Play
+                        (automático)»</b> el teléfono la instala solo desde la Play Store oficial,
+                        sin que nadie toque nada. Si es una app <b>propia</b>, súbele el <b>APK</b>
+                        en el catálogo y usa <b>«instalar sola»</b>. Para todo un grupo, agrégala
+                        en su perfil: <b>Navegación permitida</b> › el perfil › <b>En el celular</b>.
                     </div>
                 </sheet>
                 <chatter/>

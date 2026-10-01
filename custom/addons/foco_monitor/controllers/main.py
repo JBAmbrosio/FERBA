@@ -779,6 +779,13 @@ class FocoController(http.Controller):
         # escribirse en una sola operacion en cualquiera de las dos ramas.
         dvals.update(dev._health_vals(data.get('health')))
 
+        # Resultados de las instalaciones por Play que reporta el agente
+        # (instalada / fallo / sin_cuenta / sin_accesibilidad). Se aplican ANTES
+        # de armar solicitudes y politica, para que una recien instalada se cierre
+        # y deje de pedirse en este mismo ciclo.
+        request.env['foco.mobile.app.request'].sudo().aplicar_play_hechos(
+            data.get('play_hechos') or [])
+
         # Las solicitudes de apps y su respuesta viajan en CADA envio, con o
         # sin monitoreo: pedir una app no es un dato medido de la persona, es
         # un tramite suyo, y la respuesta le tiene que llegar.
@@ -922,6 +929,25 @@ class FocoController(http.Controller):
             return request.make_json_response({'ok': False, 'error': error}, status=400)
         return request.make_json_response({
             'ok': True, 'id': rec.id, 'solicitudes': Req.para_telefono(dev)})
+
+    # ------------------------------------------------ cerebro del agente de Play
+    #
+    # El agente que instala desde la Play (el "robot") consulta aqui cuando no
+    # reconoce la pantalla con sus textos de siempre: manda los nodos clickeables
+    # y el servidor (IA) decide que tocar. Asi, si la Play cambia la interfaz, se
+    # ajusta en Odoo sin recompilar el APK. Respuesta: {action, x?, y?}.
+    @http.route('/foco/mobile/play_action', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_play_action(self, **kw):
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        accion = request.env['foco.mobile.app.request'].sudo().play_accion_ia(
+            data.get('package') or '', data.get('nodos') or [])
+        return request.make_json_response(accion)
 
     # ------------------------------------------------ Android Enterprise
     #
