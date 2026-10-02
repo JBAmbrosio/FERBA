@@ -324,6 +324,13 @@ class SaleOrder(models.Model):
         self._ferba_exigir_aprobacion('confirmarla')
         return super().action_confirm()
 
+    def action_share(self):
+        # «Compartir» genera una liga del portal: el cliente ve la cotizacion.
+        # Es sacarla al cliente, igual que enviarla, asi que pasa por la misma
+        # compuerta (un aprobador que comparte, aprueba en el acto).
+        self._ferba_exigir_aprobacion('compartirla con el cliente')
+        return super().action_share()
+
     def write(self, vals):
         res = super().write(vals)
         # Una aprobacion vale para LO QUE SE APROBO. Si cambian las lineas, el
