@@ -498,6 +498,56 @@ class FocoMobileApp(models.Model):
              'privacidad, no una clasificacion.')
     first_seen = fields.Datetime(string='Vista por primera vez', readonly=True)
     last_seen = fields.Datetime(string='Vista por ultima vez', readonly=True, index=True)
+    # Icono de la app (PNG 192 px) tomado UNA vez de su ficha publica en la Play
+    # (og:image). El telefono lo pinta en la escena "app en camino" mientras la
+    # instala: la app todavia no esta en el equipo, asi que no puede leerlo de ahi.
+    icon = fields.Binary(string='Icono', attachment=True)
+    icon_intentos = fields.Integer(default=0)
+
+    def _asegurar_icono(self):
+        """Baja el icono (y el nombre oficial, si falta) de la ficha publica de la
+        Play Store. Hasta 3 intentos; nunca falla hacia afuera: sin icono el
+        telefono pinta la inicial del nombre."""
+        import base64
+        import logging
+        import re
+        import requests
+        from odoo.tools.image import image_process
+        log = logging.getLogger(__name__)
+        for app in self:
+            if app.icon or (app.icon_intentos or 0) >= 3 or not app.package:
+                continue
+            vals = {'icon_intentos': (app.icon_intentos or 0) + 1}
+            try:
+                r = requests.get('https://play.google.com/store/apps/details',
+                                 params={'id': app.package, 'hl': 'es'}, timeout=6,
+                                 headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
+                                                        'AppleWebKit/537.36 Chrome/124 Safari/537.36'})
+                if r.ok:
+                    m = re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', r.text)
+                    if m:
+                        # La imagen de la Play acepta el tamano en la URL (=s192 → PNG 192 px).
+                        url = m.group(1).split('=')[0] + '=s192'
+                        ri = requests.get(url, timeout=6)
+                        if ri.ok and ri.content:
+                            png = image_process(ri.content, size=(192, 192), output_format='PNG')
+                            vals['icon'] = base64.b64encode(png)
+                    if not app.app_label:
+                        t = re.search(r'<meta\s+property="og:title"\s+content="([^"]+)"', r.text)
+                        if t:
+                            nombre = re.sub(r'\s*[-–|].*?Google Play.*$', '', t.group(1)).strip()
+                            if nombre:
+                                vals['app_label'] = nombre[:120]
+            except Exception as e:  # red, HTML distinto, imagen rara: no pasa nada
+                log.info('foco: sin icono de la Play para %s: %s', app.package, e)
+            app.sudo().write(vals)
+
+    def _icono_b64(self):
+        """El icono como texto base64 para el telefono ('' si no hay)."""
+        self.ensure_one()
+        if not self.icon:
+            return ''
+        return self.icon.decode('ascii') if isinstance(self.icon, bytes) else str(self.icon)
 
     @api.model
     def descubrir(self, pares):

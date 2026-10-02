@@ -808,6 +808,12 @@ class FocoMobileAppRequest(models.Model):
             if modo == 'play':
                 # Arranca limpio el contador de intentos de la instalacion por Play.
                 vals.update({'play_attempts': 0, 'play_error': False})
+                # El icono y el nombre oficial, de una vez (la Play publica la ficha);
+                # si no se puede, el telefono pinta la inicial. Nunca detiene la aprobacion.
+                try:
+                    app._asegurar_icono()
+                except Exception:
+                    pass
             r.write(vals)
             r.message_post(body='Aprobada: %s (%s).' % (
                 app.app_label or app.package, dict(REQ_MODES)[modo]))
@@ -1005,12 +1011,28 @@ class FocoMobileDeviceMdm(models.Model):
         intentos fallidos (quedan marcadas para el admin)."""
         self.ensure_one()
         Req = self.env['foco.mobile.app.request'].sudo()
+        Apps = self.env['foco.mobile.app'].sudo()
         out = []
         for r in Req.search([('device_id', '=', self.id), ('state', '=', 'aprobada'),
                              ('install_type', '=', 'play'),
                              ('play_attempts', '<', PLAY_MAX_INTENTOS)]):
-            if r.package:
-                out.append({'id': str(r.id), 'package': r.package, 'timeout_s': 240})
+            if not r.package:
+                continue
+            item = {'id': str(r.id), 'package': r.package, 'timeout_s': 240,
+                    'name': (r.name or '').strip()[:60]}
+            # Nombre oficial e icono para la escena "app en camino" del telefono.
+            app = r.app_id or Apps.search([('package', '=', r.package)], limit=1)
+            if app:
+                try:
+                    app._asegurar_icono()
+                except Exception:
+                    pass
+                if app.app_label:
+                    item['name'] = app.app_label[:60]
+                icono = app._icono_b64()
+                if icono:
+                    item['icon'] = icono
+            out.append(item)
         return out
 
     def _play_ui(self):
