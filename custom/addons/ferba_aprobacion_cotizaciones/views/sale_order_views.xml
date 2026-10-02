@@ -81,6 +81,10 @@
         <field name="inherit_id" ref="sale.view_quotation_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
+                <!-- `requiere_aprobacion` (oculto) viaja para que el engrane de la
+                     lista sepa, por fila seleccionada, si la cotizacion esta
+                     liberada; `aprobacion_state` tambien lo usa el badge. -->
+                <field name="requiere_aprobacion" column_invisible="1"/>
                 <field name="aprobacion_state" string="Aprobacion" optional="show" widget="badge"
                        decoration-info="aprobacion_state == 'revision'"
                        decoration-success="aprobacion_state == 'aprobada'"
