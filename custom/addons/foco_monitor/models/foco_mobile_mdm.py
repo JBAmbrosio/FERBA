@@ -673,7 +673,7 @@ class FocoMobileAppRequest(models.Model):
         """Las ultimas solicitudes de ese telefono, para su pantalla."""
         salida = []
         for r in self.sudo().search([('device_id', '=', device.id)], limit=20):
-            salida.append({
+            item = {
                 'id': r.id, 'name': r.name, 'package': r.package or '',
                 'state': r.state, 'answer': r.answer or '',
                 # "available" = aprobada para que la instale desde la Play
@@ -681,7 +681,15 @@ class FocoMobileAppRequest(models.Model):
                 # dice una cosa u otra segun esto.
                 'install': r.install_type or '',
                 'at': fields.Datetime.to_string(r.create_date) if r.create_date else '',
-            })
+            }
+            # El icono real de la app (si ya se tomo de la Play) para la lista
+            # "Mis solicitudes" del telefono; sin el, pinta la inicial.
+            app = r.app_id
+            if app and app.icon:
+                item['icon'] = app._icono_b64()
+                if app.app_label:
+                    item['name'] = app.app_label
+            salida.append(item)
         return salida
 
     @api.model
