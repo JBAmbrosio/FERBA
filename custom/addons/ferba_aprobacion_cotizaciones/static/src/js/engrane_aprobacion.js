@@ -2,24 +2,26 @@
 
 import { patch } from "@web/core/utils/patch";
 import { FormCogMenu } from "@web/views/form/form_cog_menu/form_cog_menu";
-import { ListCogMenu } from "@web/views/list/list_cog_menu";
+import { ListController } from "@web/views/list/list_controller";
 import { STATIC_ACTIONS_GROUP_NUMBER } from "@web/search/action_menus/action_menus";
 
 /**
- * El engrane (menu de acciones) de una cotizacion que todavia no esta aprobada
- * deja solo lo que no la saca al cliente:
- *  - en el formulario, solo «Duplicar»;
- *  - en la lista, solo las acciones seguras sobre la seleccion (exportar,
- *    duplicar, archivar, eliminar).
+ * El menu de acciones de una cotizacion que todavia no esta aprobada deja solo
+ * lo que no la saca al cliente:
+ *  - en el formulario, el engrane muestra solo «Duplicar»;
+ *  - en la lista, al seleccionar cotizaciones, la barra de seleccion oculta
+ *    «Imprimir» y deja en «Acciones» solo las seguras (exportar, duplicar,
+ *    archivar, eliminar).
  * Imprimir, Compartir, Enviar un correo, Marcar como enviada y lo demas
  * aparecen al aprobarse.
  *
  * Esto es lo que se VE. Las guardas de verdad viven en el servidor: el motor de
  * reportes no genera el PDF/HTML de la cotizacion sin aprobar (imprimir desde el
- * formulario, desde la lista o por la URL directa), y enviar/confirmar/compartir
- * pasan por la aprobacion. El formulario y la lista ponen su modelo en el env
- * (useSubEnv), por eso se lee el registro o la seleccion; como el modelo vuelve a
- * pintar al cambiar, el menu se actualiza solo al aprobar.
+ * formulario, desde la lista o por la URL directa /report/...), y
+ * enviar/confirmar/compartir pasan por la aprobacion. El formulario y la lista
+ * ponen su modelo en el env (useSubEnv), por eso se lee el registro o la
+ * seleccion; como el modelo vuelve a pintar al cambiar, el menu se actualiza
+ * solo al aprobar.
  */
 function esCotizacionSinAprobar(data) {
     return Boolean(data && data.requiere_aprobacion) && data.aprobacion_state !== "aprobada";
@@ -32,16 +34,6 @@ function formularioSinAprobar(model) {
         return false;
     }
     return esCotizacionSinAprobar(root.data);
-}
-
-/** Lista: alguna de las cotizaciones seleccionadas no esta aprobada. */
-function seleccionSinAprobar(model) {
-    const root = model && model.root;
-    if (!root || root.resModel !== "sale.order") {
-        return false;
-    }
-    const seleccion = root.selection || [];
-    return seleccion.some((registro) => esCotizacionSinAprobar(registro.data));
 }
 
 patch(FormCogMenu.prototype, {
@@ -62,23 +54,32 @@ patch(FormCogMenu.prototype, {
     },
 });
 
-patch(ListCogMenu.prototype, {
-    get cogItems() {
-        const items = super.cogItems;
-        if (!seleccionSinAprobar(this.env.model)) {
+/**
+ * La barra de seleccion de la lista arma «Imprimir» y «Acciones» desde
+ * `actionMenuItems`. Si en la seleccion hay una cotizacion sin aprobar, se quita
+ * Imprimir (print: []) y de las acciones se dejan solo las estaticas seguras
+ * (exportar, duplicar, archivar, eliminar), fuera las de servidor (Compartir,
+ * Enviar un correo, Marcar como enviada...). Aplica tanto a la barra de escritorio
+ * (ActionMenus) como al engrane de pantalla chica (ambos leen de aqui).
+ */
+patch(ListController.prototype, {
+    get actionMenuItems() {
+        const items = super.actionMenuItems;
+        const root = this.model && this.model.root;
+        if (!root || root.resModel !== "sale.order") {
             return items;
         }
-        // Solo las acciones estaticas seguras (exportar, duplicar, archivar,
-        // eliminar): no sacan la cotizacion al cliente. Se van las de servidor
-        // (Compartir, Enviar un correo, Marcar como enviada, etc.).
-        return items.filter((item) => item.groupNumber === STATIC_ACTIONS_GROUP_NUMBER);
-    },
-
-    async loadPrintItems() {
-        if (seleccionSinAprobar(this.env.model)) {
-            this.state.printItems = [];
-            return;
+        const hayBloqueada = (root.selection || []).some((registro) =>
+            esCotizacionSinAprobar(registro.data)
+        );
+        if (!hayBloqueada) {
+            return items;
         }
-        return super.loadPrintItems(...arguments);
+        return {
+            action: (items.action || []).filter(
+                (item) => item.groupNumber === STATIC_ACTIONS_GROUP_NUMBER
+            ),
+            print: [],
+        };
     },
 });

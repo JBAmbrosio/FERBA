@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'FERBA - Aprobacion de cotizaciones',
-    'version': '19.0.1.5.0',
+    'version': '19.0.1.5.1',
     'summary': 'El vendedor manda la cotizacion a revision; un aprobador la aprueba o rechaza; '
                'hasta entonces no se puede enviar al cliente ni confirmar.',
     'description': """
@@ -24,9 +24,10 @@ Flujo de aprobacion de cotizaciones
   desde la LISTA seleccionando varias, la URL directa /report/pdf/... y el PDF que se adjunta a
   un correo. Imprimir no aprueba (ni a un aprobador): se aprueba con el boton y luego se imprime.
 * «Compartir» (liga del portal) pasa por la aprobacion, igual que enviar y confirmar.
-* El engrane de la LISTA, si la seleccion trae una cotizacion sin aprobar, deja solo las acciones
-  seguras (exportar, duplicar, archivar, eliminar) y oculta Imprimir, Compartir, Enviar un correo
-  y Marcar como enviada.
+* En la LISTA, si la seleccion trae una cotizacion sin aprobar, la barra de seleccion oculta
+  «Imprimir» y deja en «Acciones» solo las seguras (exportar, duplicar, archivar, eliminar);
+  fuera Compartir, Enviar un correo y Marcar como enviada. (La barra de seleccion arma esos
+  menus desde ListController.actionMenuItems, no desde el engrane de arriba.)
 
 19.0.1.4.0
 ----------
