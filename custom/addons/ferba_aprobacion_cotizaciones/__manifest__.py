@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'FERBA - Aprobacion de cotizaciones',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.1.1',
     'summary': 'El vendedor manda la cotizacion a revision; un aprobador la aprueba o rechaza; '
                'hasta entonces no se puede enviar al cliente ni confirmar.',
     'description': """
@@ -15,6 +15,11 @@ Flujo de aprobacion de cotizaciones
 * Si la cotizacion cambia despues de aprobarse (lineas, cliente, lista de precios, plazo,
   moneda, posicion fiscal o vigencia) vuelve a «Sin revisar».
 * Las cotizaciones que ya estaban enviadas o confirmadas antes de instalar quedan aprobadas.
+
+19.0.1.1.1
+----------
+* «Imprimir» tambien se oculta hasta que la cotizacion este aprobada (igual que «Enviar»):
+  no se manda al cliente ni un PDF de una cotizacion que la direccion no libero.
     """,
     'author': 'FERBA',
     'category': 'Sales',
