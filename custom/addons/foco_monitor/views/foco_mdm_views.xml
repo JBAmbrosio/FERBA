@@ -209,6 +209,7 @@
                         <field name="mobile_block_debug" widget="boolean_toggle"/>
                         <field name="mobile_block_add_user" widget="boolean_toggle"/>
                         <field name="mobile_block_usb_files" widget="boolean_toggle"/>
+                        <field name="mobile_update_hour"/>
                     </group>
                     <div colspan="2" class="d-flex align-items-center gap-2 mt8">
                         <b>Apps del perfil</b>
@@ -296,6 +297,21 @@
                     <group>
                         <field name="health_at" invisible="not health_at"/>
                         <field name="health_issues" invisible="not health_issues"/>
+                    </group>
+                    <group string="Actualización de apps (ventana nocturna, tienda oculta)"
+                           colspan="2" invisible="not health_device_owner">
+                        <group>
+                            <field name="play_update_at"/>
+                            <field name="play_update_mode"/>
+                        </group>
+                        <group>
+                            <field name="play_update_result"/>
+                            <field name="play_update_secs"/>
+                        </group>
+                        <div colspan="2" class="text-muted" invisible="play_update_at">
+                            Todavía no corre ninguna ventana en este teléfono (corre a la hora
+                            del perfil, con Wi-Fi; el agente debe ser 1.36.0 o posterior).
+                        </div>
                     </group>
                     <div colspan="2" class="text-muted" invisible="health_device_owner">
                         Este teléfono todavía no es un equipo gestionado por la empresa:

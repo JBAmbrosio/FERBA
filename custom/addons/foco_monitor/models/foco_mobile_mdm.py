@@ -244,6 +244,24 @@ class FocoPolicyMovil(models.Model):
         string='Bloquear pasar archivos por USB', default=False,
         help='Conectado a una computadora, el telefono no deja copiar archivos. '
              'Apagado de fabrica: sirve para bajar fotos de trabajo.')
+    # La Play Store va OCULTA en el telefono gestionado (solo Foco la abre para
+    # instalar lo aprobado), y una app oculta no corre sus actualizaciones
+    # automaticas. Foco abre una ventana UNA vez al dia, a esta hora local del
+    # telefono, para actualizar lo instalado: con la pantalla tapada por el aviso
+    # "Actualizacion en curso" pulsa "Actualizar todo" en la tienda y la vuelve a
+    # ocultar al terminar. Si el telefono esta bloqueado con PIN a esa hora, solo
+    # deja la tienda disponible en segundo plano mientras siga bloqueado.
+    mobile_update_hour = fields.Integer(
+        string='Hora de actualización de apps', default=3,
+        help='Hora local del teléfono (0 a 23) en la que Foco abre la tienda, '
+             'tapada, para actualizar las apps instaladas. De fábrica, las 3 de '
+             'la mañana. El teléfono necesita Wi-Fi a esa hora.')
+
+    @api.constrains('mobile_update_hour')
+    def _check_mobile_update_hour(self):
+        for p in self:
+            if p.mobile_update_hour < 0 or p.mobile_update_hour > 23:
+                raise ValidationError('La hora de actualización de apps va de 0 a 23.')
     mobile_web_filter = fields.Boolean(
         string='Aplicar las reglas de sitios en el celular', default=True,
         help='Las reglas de este perfil (Bloquear / Permitir) se aplican en '

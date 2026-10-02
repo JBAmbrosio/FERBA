@@ -147,6 +147,68 @@ class FocoMobileDevice(models.Model):
             'health_buffered': int(health.get('buffered') or 0),
         }
 
+    # --- Ventana nocturna de actualizacion de apps -----------------------------
+    # Con la Play Store oculta, Foco la abre una vez al dia (hora del perfil,
+    # `mobile_update_hour`) tapada por el aviso, pulsa "Actualizar todo" y la
+    # vuelve a ocultar. El telefono reporta el ULTIMO resultado en cada envio
+    # (`play_update`); aqui solo se escribe cuando cambia, asi `play_update_at`
+    # es cuando TERMINO esa ventana (al minuto del siguiente envio), no cada envio.
+    play_update_at = fields.Datetime(string='Última actualización de apps', readonly=True)
+    play_update_date = fields.Date(string='Día de la ventana', readonly=True)
+    play_update_mode = fields.Selection([
+        ('activo', 'Activa (pulsó "Actualizar todo")'),
+        ('pasivo', 'Pasiva (bloqueado con PIN: tienda en 2º plano)'),
+        ('ninguno', 'No corrió'),
+    ], string='Modo', readonly=True)
+    play_update_result = fields.Char(
+        string='Resultado', readonly=True,
+        help='ok = terminó de actualizar · sin_pendientes = no había nada que actualizar · '
+             'tope = se agotó el tiempo con actualizaciones en curso · pasivo / '
+             'pasivo_interrumpido = teléfono bloqueado con PIN, la tienda quedó disponible '
+             'en 2º plano (hasta que alguien lo desbloqueó) · sin_wifi · sin_cuenta (la '
+             'tienda pide iniciar sesión) · sin_accesibilidad · fallo_abrir / fallo_pantalla '
+             '(no reconoció la pantalla de la tienda) · fallo.')
+    play_update_secs = fields.Integer(string='Duración (s)', readonly=True)
+
+    def _play_update_vals(self, bloque):
+        """Traduce el bloque `play_update` del telefono a valores del modelo.
+        {} si no vino (agente viejo) o si es el MISMO resultado ya guardado."""
+        if not isinstance(bloque, dict) or not bloque:
+            return {}
+        self.ensure_one()
+        modo = bloque.get('modo') or 'ninguno'
+        if modo not in ('activo', 'pasivo', 'ninguno'):
+            modo = 'ninguno'
+        try:
+            dia = fields.Date.to_date(str(bloque.get('fecha') or '')[:10])
+        except Exception:
+            dia = False
+        resultado = str(bloque.get('resultado') or '')[:64]
+        try:
+            segundos = int(bloque.get('segundos') or 0)
+        except (TypeError, ValueError):
+            segundos = 0
+        if (self.play_update_date == dia and self.play_update_mode == modo
+                and (self.play_update_result or '') == resultado
+                and (self.play_update_secs or 0) == segundos):
+            return {}
+        return {
+            'play_update_at': fields.Datetime.now(),
+            'play_update_date': dia,
+            'play_update_mode': modo,
+            'play_update_result': resultado,
+            'play_update_secs': segundos,
+        }
+
+    def _update_hour(self):
+        """Hora local (0-23) de la ventana de actualizacion: la del perfil del
+        equipo; sin perfil, las 3 de la manana."""
+        self.ensure_one()
+        p = self.policy_id
+        if p and 0 <= (p.mobile_update_hour or 0) <= 23:
+            return p.mobile_update_hour or 0
+        return 3
+
     active = fields.Boolean(default=True)
 
     location_ids = fields.One2many('foco.location', 'device_id', string='Ubicaciones')

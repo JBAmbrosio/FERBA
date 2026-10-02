@@ -778,6 +778,13 @@ class FocoController(http.Controller):
         # -es telemetria del equipo, no del empleado-. Se mezcla en dvals para
         # escribirse en una sola operacion en cualquiera de las dos ramas.
         dvals.update(dev._health_vals(data.get('health')))
+        # Ultimo resultado de la ventana nocturna de actualizacion de apps (solo
+        # se escribe cuando cambia; el telefono lo repite en cada envio).
+        dvals.update(dev.sudo()._play_update_vals(data.get('play_update')))
+        # Lo que el telefono necesita saber para comportarse, mas la hora local
+        # de su ventana de actualizacion de apps (viene del perfil del equipo).
+        config = dict(s.mobile_config())
+        config['update_hour'] = dev.sudo()._update_hour()
 
         # Resultados de las instalaciones por Play que reporta el agente
         # (instalada / fallo / sin_cuenta / sin_accesibilidad). Se aplican ANTES
@@ -810,7 +817,7 @@ class FocoController(http.Controller):
         if not s.mobile_enabled:
             dev.sudo().write(dvals)
             return request.make_json_response(
-                {'ok': True, 'stored': False, 'config': s.mobile_config(),
+                {'ok': True, 'stored': False, 'config': config,
                  'screenshot': self._mobile_screenshot_block(dev, s),
                  'solicitudes': solicitudes, 'politica': politica,
                  'comandos': comandos})
@@ -904,7 +911,7 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True, 'stored': True,
             'counts': {'locations': n_loc, 'usage': n_usg, 'calls': n_call},
-            'config': s.mobile_config(),
+            'config': config,
             'screenshot': self._mobile_screenshot_block(dev, s),
             'solicitudes': solicitudes, 'politica': politica,
             'comandos': comandos})
