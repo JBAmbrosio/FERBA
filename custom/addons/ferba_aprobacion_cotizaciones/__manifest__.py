@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'FERBA - Aprobacion de cotizaciones',
-    'version': '19.0.1.3.0',
+    'version': '19.0.1.4.0',
     'summary': 'El vendedor manda la cotizacion a revision; un aprobador la aprueba o rechaza; '
                'hasta entonces no se puede enviar al cliente ni confirmar.',
     'description': """
@@ -15,6 +15,17 @@ Flujo de aprobacion de cotizaciones
 * Si la cotizacion cambia despues de aprobarse (lineas, cliente, lista de precios, plazo,
   moneda, posicion fiscal o vigencia) vuelve a «Sin revisar».
 * Las cotizaciones que ya estaban enviadas o confirmadas antes de instalar quedan aprobadas.
+
+19.0.1.4.0
+----------
+* Mientras la cotizacion no este aprobada, del encabezado solo se ven «Enviar a revision» y
+  «Cancelar» (mas «Aprobar» y «Rechazar» para los aprobadores). Enviar, Confirmar, Vista
+  previa, Imprimir, PROFORMA y los botones de Studio (Crear almacen, Lanzar fabricacion,
+  Crear CC) aparecen al aprobarse. La regla corre sobre la vista ya combinada
+  (sale.order._get_view), asi cubre tambien botones que se agreguen despues.
+* El engrane (menu de acciones) de una cotizacion sin aprobar solo ofrece «Duplicar»:
+  imprimir, eliminar, compartir, enlace de pago, enviar correo, marcar como enviada y
+  solicitar firma aparecen al aprobarse.
 
 19.0.1.3.0
 ----------
@@ -46,6 +57,11 @@ Flujo de aprobacion de cotizaciones
         'views/res_config_settings_views.xml',
         'views/menus.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'ferba_aprobacion_cotizaciones/static/src/js/engrane_aprobacion.js',
+        ],
+    },
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,

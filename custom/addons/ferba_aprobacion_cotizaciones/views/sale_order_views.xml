@@ -27,33 +27,15 @@
                        invisible="not requiere_aprobacion and aprobacion_state == 'sin'"/>
             </xpath>
 
-            <!-- Enviar y Confirmar solo con la aprobacion puesta. La misma regla
-                 vive en Python (action_quotation_send / action_confirm): esto es
-                 para que no se vea lo que no se puede hacer, no la guarda. -->
-            <xpath expr="//button[@id='quotation_send_primary']" position="attributes">
-                <attribute name="invisible">state != 'draft' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='quotation_send']" position="attributes">
-                <attribute name="invisible">state not in ('sent', 'sale') or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='action_confirm']" position="attributes">
-                <attribute name="invisible">state != 'sent' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//header/button[@name='action_confirm'][not(@id)]" position="attributes">
-                <attribute name="invisible">state != 'draft' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='send_proforma_primary']" position="attributes">
-                <attribute name="invisible">state != 'draft' or invoice_count >= 1 or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='send_proforma']" position="attributes">
-                <attribute name="invisible">state == 'draft' or invoice_count >= 1 or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <!-- Imprimir tampoco se ve hasta que este aprobada: no se manda al cliente
-                 ni un PDF de una cotizacion que la direccion no libero. Se conserva la
-                 condicion de Odoo (se oculta ya confirmada, state == 'sale'). -->
-            <xpath expr="//button[@name='sale.action_report_saleorder']" position="attributes">
-                <attribute name="invisible">state == 'sale' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
+            <!-- Mientras no este aprobada, del encabezado solo se ven «Enviar a
+                 revision» y «Cancelar» (mas «Aprobar» y «Rechazar» para los
+                 aprobadores). Enviar, Confirmar, Vista previa, Imprimir, PROFORMA y
+                 los botones de Studio aparecen al aprobarse. Eso ya no va aqui con un
+                 xpath por boton: lo hace sale.order._get_view sobre la vista ya
+                 combinada (19.0.1.4.0), asi cubre tambien los botones que agregue
+                 Studio u otro modulo. Las compuertas de enviar y confirmar siguen en
+                 Python (action_quotation_send / action_confirm). -->
+
 
             <!-- Lo que le pasa a la cotizacion se dice arriba, no hay que buscarlo -->
             <xpath expr="//sheet" position="before">
