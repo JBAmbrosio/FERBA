@@ -26,6 +26,40 @@ RESUMEN_ACTIVIDAD = 'Revisar cotizacion'
 # la mande a revision primero (19.0.1.2.0).
 ESTADOS_QUE_SE_APRUEBAN = ('sin', 'revision', 'rechazada')
 
+# Botones del encabezado que SI se ven mientras la cotizacion no esta aprobada:
+# el flujo (mandarla a revision; aprobar y rechazar, que solo ven los
+# aprobadores) y cancelarla. Todos los demas -Enviar, Confirmar, Vista previa,
+# Imprimir, PROFORMA, Crear factura y los de Studio (Crear almacen, Lanzar
+# fabricacion, Crear CC)- aparecen hasta que este aprobada (19.0.1.4.0).
+BOTONES_ANTES_DE_APROBAR = frozenset({
+    'action_enviar_revision', 'action_aprobar', 'action_rechazar', 'action_cancel'})
+SIN_APROBAR = "(requiere_aprobacion and aprobacion_state != 'aprobada')"
+
+
+def ocultar_botones_sin_aprobar(form):
+    """Agrega la condicion `SIN_APROBAR` al `invisible` de cada boton del
+    encabezado del formulario, salvo los del flujo. Recibe la vista YA COMBINADA
+    (todos los modulos y Studio), asi que cubre tambien los botones que se
+    agreguen despues, sin un xpath por boton: un xpath a un boton que pone otro
+    modulo o Studio no lo encuentra cuando corre antes que ellos y rompe el
+    formulario. Solo el encabezado del formulario principal (no el de una
+    subvista de lineas) y solo si ese encabezado trae los dos campos que usa la
+    condicion. Devuelve cuantos botones toco."""
+    tocados = 0
+    for header in form.findall('header'):
+        campos = {f.get('name') for f in header.iter('field')}
+        if not {'requiere_aprobacion', 'aprobacion_state'} <= campos:
+            continue
+        for boton in header.iter('button'):
+            if boton.get('name') in BOTONES_ANTES_DE_APROBAR:
+                continue
+            actual = (boton.get('invisible') or '').strip()
+            if SIN_APROBAR in actual:
+                continue
+            boton.set('invisible', '(%s) or %s' % (actual, SIN_APROBAR) if actual else SIN_APROBAR)
+            tocados += 1
+    return tocados
+
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
@@ -50,6 +84,14 @@ class SaleOrder(models.Model):
         string='Aprobacion retirada', copy=False, readonly=True,
         help='Por que dejo de valer la ultima aprobacion: que cambio, quien y cuando. '
              'Se ve arriba de la cotizacion y se limpia al mandarla a revision o al aprobarla.')
+
+    # ------------------------------------------------------------ vista
+    @api.model
+    def _get_view(self, view_id=None, view_type='form', **options):
+        arch, view = super()._get_view(view_id, view_type, **options)
+        if view_type == 'form':
+            ocultar_botones_sin_aprobar(arch)
+        return arch, view
 
     # ------------------------------------------------------------ computes
     @api.depends('state', 'company_id.ferba_aprobacion_cotizaciones')
