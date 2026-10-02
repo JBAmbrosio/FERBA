@@ -48,6 +48,12 @@
             <xpath expr="//button[@id='send_proforma']" position="attributes">
                 <attribute name="invisible">state == 'draft' or invoice_count >= 1 or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
             </xpath>
+            <!-- Imprimir tampoco se ve hasta que este aprobada: no se manda al cliente
+                 ni un PDF de una cotizacion que la direccion no libero. Se conserva la
+                 condicion de Odoo (se oculta ya confirmada, state == 'sale'). -->
+            <xpath expr="//button[@name='sale.action_report_saleorder']" position="attributes">
+                <attribute name="invisible">state == 'sale' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
+            </xpath>
 
             <!-- Lo que le pasa a la cotizacion se dice arriba, no hay que buscarlo -->
             <xpath expr="//sheet" position="before">
