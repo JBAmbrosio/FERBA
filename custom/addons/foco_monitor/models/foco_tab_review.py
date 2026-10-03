@@ -34,6 +34,26 @@ def _normaliza_titulo(t):
     return t[:300]
 
 
+_IPV4 = re.compile(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
+_TLD_ALFA = re.compile(r'^[a-z]{2,}$')
+
+
+def _dominio_bloqueable(host):
+    """¿`host` (ya normalizado) sirve como patron de bloqueo REAL? IPv4 valida,
+    localhost, o dominio cuyo TLD sean letras. Rechaza basura como '0.00' o
+    'x.123': crearian una regla que no bloquea nada, el fallo silencioso que este
+    proyecto evita. A nivel de modulo para poder probarla sin Odoo."""
+    h = (host or '').strip().lower()
+    if not h:
+        return False
+    if h == 'localhost':
+        return True
+    m = _IPV4.match(h)
+    if m:
+        return all(int(x) <= 255 for x in m.groups())
+    return '.' in h and bool(_TLD_ALFA.match(h.rsplit('.', 1)[-1]))
+
+
 class FocoTabReview(models.Model):
     """Una pestaña abierta que la IA clasifico contra el perfil del puesto y que
     espera la decision de un aprobador (permitir / bloquear).
@@ -119,11 +139,13 @@ class FocoTabReview(models.Model):
         existentes = self.search([
             ('computer_id', '=', computer.id), ('title', 'in', limpios)])
         ya = set(existentes.mapped('title'))
-        # Mejorar lo que ya existe: si llego el host real de un titulo que aun no
-        # lo tiene capturado (tenia la conjetura de la IA, o nada), pegarselo.
+        # Mejorar lo que ya existe: si llego el host real de un titulo PENDIENTE
+        # que aun no lo tiene capturado (tenia la conjetura de la IA, o nada),
+        # pegarselo. Solo pendientes: en una fila ya bloqueada la regla ya se creo
+        # con el host de entonces, y cambiarlo dejaria fila y regla distintas.
         for f in existentes:
             h = real.get(f.title)
-            if h and not f.host_capturado:
+            if h and not f.host_capturado and f.state == 'pendiente':
                 f.write({'host': h, 'host_capturado': True})
         perfil = self.env['foco.policy']._perfil_vigente(computer)
         nuevos = []
@@ -193,15 +215,20 @@ class FocoTabReview(models.Model):
         """Agrega el dominio a las reglas del perfil y marca la fila bloqueada.
         El servicio del equipo hace cumplir la regla en su siguiente ciclo."""
         Rule = self.env['foco.policy.rule'].sudo()
+        Site = self.env['foco.site']
         for r in self:
             if r.state == 'bloqueado':
                 continue
-            host = (r.host or '').strip().lower()
-            if not host:
+            # Se normaliza el dominio (quita esquema, www y ruta, y VALIDA que sea
+            # un host real): asi no se mete una regla que no bloquea nada, como
+            # 'www.youtube.com' (no cubre youtube.com) o basura que la IA hubiera
+            # adivinado mal.
+            host = Site._normalizar_host(r.host or '')
+            if not _dominio_bloqueable(host):
                 raise UserError(
-                    'Para bloquear "%s" falta el dominio. Escribelo en la columna '
-                    'Dominio (p. ej. youtube.com) y vuelve a bloquear.'
-                    % (r.title or ''))
+                    'Para bloquear "%s" hace falta un dominio valido (p. ej. '
+                    'youtube.com). "%s" no lo parece; corrigelo en la columna '
+                    'Dominio y vuelve a bloquear.' % (r.title or '', r.host or ''))
             perfil = r.policy_id
             if not perfil:
                 raise UserError(
@@ -214,6 +241,9 @@ class FocoTabReview(models.Model):
                     'sequence': max(perfil.rule_ids.mapped('sequence') or [0]) + 10,
                     'note': 'Bloqueado desde la revision de pestañas',
                 })
-            r.write({'state': 'bloqueado', 'decided_uid': self.env.uid,
-                     'decided_at': fields.Datetime.now()})
+            vals = {'state': 'bloqueado', 'decided_uid': self.env.uid,
+                    'decided_at': fields.Datetime.now()}
+            if host != (r.host or ''):
+                vals['host'] = host      # deja guardado el dominio limpio que se bloqueo
+            r.write(vals)
         return True
