@@ -371,6 +371,17 @@ class FocoController(http.Controller):
         Event = request.env['foco.event'].sudo()
         events_stored = Event.record_events(computer, data.get('events') or [])
 
+        # --- pestañas abiertas (camino 1) -----------------------------------
+        # Los TITULOS de todas las pestañas del navegador. Se guardan como filas
+        # por clasificar; la IA corre en un cron, no aqui. Nunca tumba el ingest:
+        # un fallo aqui haria que el agente reintentara el lote sin fin.
+        try:
+            tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
+                computer, data.get('tabs') or [])
+        except Exception:
+            _logger.exception('Foco: pestañas de %s', computer.id)
+            tabs_stored = 0
+
         # --- donde esta la persona AHORA ------------------------------------
         presencia = data.get('presence') or {}
         estados = dict(Comp._fields['presence_state'].selection)
@@ -428,6 +439,7 @@ class FocoController(http.Controller):
             'stored': stored,
             'gaps_stored': gaps_stored,
             'events_stored': events_stored,
+            'tabs_stored': tabs_stored,
             'commands': out,
             'config': config,
             # El CHECADOR, en vivo: si esta persona lo usa y si ahora mismo

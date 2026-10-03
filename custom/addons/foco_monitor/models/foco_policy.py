@@ -46,6 +46,18 @@ class FocoPolicy(models.Model):
         string='Para que es',
         help='Quien usa este perfil y por que. Se lee el dia que alguien '
              'pregunte por que no puede abrir un sitio.')
+    # El perfil del PUESTO, en lenguaje natural: la IA lo usa para decidir si una
+    # pestaña abierta encaja con el trabajo del grupo (camino de clasificacion de
+    # pestañas). Es aparte de `note` -documentacion para humanos- a proposito:
+    # mezclar una instruccion para el modelo con una nota para personas empeora
+    # las dos.
+    rol_prompt = fields.Text(
+        string='Perfil del puesto',
+        help='Que hace este puesto, en tus palabras. La IA lo usa para decidir '
+             'si una pestaña abierta encaja con el trabajo del grupo. Ej.: "Un '
+             'disenador trabaja con CAD, catalogos de proveedores de piezas, '
+             'correo y el ERP; no es parte de su trabajo ver deportes, redes '
+             'sociales ni streaming."')
     rule_ids = fields.One2many('foco.policy.rule', 'policy_id', string='Reglas')
     computer_ids = fields.One2many('foco.computer', 'policy_id', string='Equipos')
 

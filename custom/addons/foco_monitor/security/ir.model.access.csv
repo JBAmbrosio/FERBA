@@ -58,3 +58,5 @@ access_foco_mobile_app_request_user,foco.mobile.app.request user,model_foco_mobi
 access_foco_mobile_app_request_manager,foco.mobile.app.request manager,model_foco_mobile_app_request,group_foco_manager,1,1,1,1
 access_foco_mobile_alta_wizard_manager,foco.mobile.alta.wizard manager,model_foco_mobile_alta_wizard,group_foco_manager,1,1,1,1
 access_foco_amapi_cuenta_wizard_manager,foco.amapi.cuenta.wizard manager,model_foco_amapi_cuenta_wizard,group_foco_manager,1,1,1,1
+access_foco_tab_review_user,foco.tab.review user,model_foco_tab_review,group_foco_user,1,0,0,0
+access_foco_tab_review_manager,foco.tab.review manager,model_foco_tab_review,group_foco_manager,1,1,1,1

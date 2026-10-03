@@ -19,6 +19,7 @@ from . import foco_tomy
 from . import foco_integrity
 from . import foco_invitation
 from . import foco_absence
+from . import foco_tab_review
 from . import hr_employee
 from . import res_config_settings
 from . import res_users
