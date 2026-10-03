@@ -10,6 +10,48 @@ _logger = logging.getLogger(__name__)
 
 API = 'https://api.openai.com/v1'
 
+
+def _alinea_pestanas(items, lote, modelo):
+    """Empareja los items que devolvio el modelo con `lote` por el INDICE 'i'
+    (1-based) que cada item trae, no por posicion.
+
+    Por que: emparejar por posicion se rompe si el modelo devuelve menos items,
+    los reordena o se salta uno (medido: con 12 titulos un salto corrio los
+    veredictos y un Bitbucket quedo como 'Facebook'). Aqui cada item dice a que
+    numero responde, asi un item de menos solo deja ESE titulo en 'revisar', sin
+    correr a los demas.
+
+    Robusto a: items de menos o de mas, 'i' fuera de rango, 'i' repetido (gana el
+    ultimo), 'i' como texto ('3'), 'i' booleano (se ignora), e items que no son
+    dict. Funcion a nivel de modulo para poder probarla sin Odoo.
+    """
+    porindice = {}
+    for it in (items or []):
+        if not isinstance(it, dict):
+            continue
+        i = it.get('i')
+        if isinstance(i, bool):          # bool es subclase de int: no cuenta como indice
+            continue
+        if not isinstance(i, int):
+            try:
+                i = int(str(i).strip())
+            except (TypeError, ValueError):
+                continue
+        porindice[i] = it
+    salida = []
+    for pos, t in enumerate(lote, start=1):
+        it = porindice.get(pos, {})
+        sug = it.get('sugerencia')
+        salida.append({
+            'titulo': t,
+            'va_con_rol': bool(it.get('va_con_rol', True)),
+            'sugerencia': sug if sug in ('permitir', 'bloquear', 'revisar') else 'revisar',
+            'motivo': (it.get('motivo') or '')[:200],
+            'dominio': (it.get('dominio') or '').strip().lower(),
+            'modelo': modelo,
+        })
+    return salida
+
 # Lo que el clasificador tiene que saber para decidir. El contexto del negocio
 # viene de Configuracion (call_review_context): "trabajo" se juzga respecto a lo
 # que hace ESTA empresa, no en abstracto.
@@ -229,21 +271,4 @@ class FocoOpenAI(models.AbstractModel):
             items = json.loads(resp['message'].get('content') or '{}').get('items') or []
         except (ValueError, TypeError):
             items = []
-        porindice = {}
-        for it in items:
-            if isinstance(it, dict) and isinstance(it.get('i'), int):
-                porindice[it['i']] = it
-        modelo = resp.get('modelo') or ''
-        salida = []
-        for i, t in enumerate(lote, start=1):
-            it = porindice.get(i, {})
-            sug = it.get('sugerencia')
-            salida.append({
-                'titulo': t,
-                'va_con_rol': bool(it.get('va_con_rol', True)),
-                'sugerencia': sug if sug in ('permitir', 'bloquear', 'revisar') else 'revisar',
-                'motivo': (it.get('motivo') or '')[:200],
-                'dominio': (it.get('dominio') or '').strip().lower(),
-                'modelo': modelo,
-            })
-        return salida
+        return _alinea_pestanas(items, lote, resp.get('modelo') or '')
