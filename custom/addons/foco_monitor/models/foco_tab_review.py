@@ -10,12 +10,27 @@ _logger = logging.getLogger(__name__)
 # "(5) WhatsApp" son la misma pestaña y no deben crear dos filas.
 _CONTADOR = re.compile(r'^\(\d+\)\s*')
 
+# Chrome/Edge 154 (ahorro de memoria) decoran el titulo de una pestaña dormida
+# con "Uso de memoria: N MB". Llega como PREFIJO ("Uso de memoria de X: N MB") o
+# como SUFIJO ("X: Uso de memoria: N MB" / "X - Uso de memoria - N MB"). Es ruido
+# que ademas impide deduplicar (dos pestañas iguales con distinto MB se veian
+# distintas). Se quita; se cubre español e ingles, que es lo que usa la flota.
+_MEM_PREFIJO = re.compile(
+    r'^(?:uso de memoria de|memory usage for)\s+(.*?):\s*[\d.,]+\s*[KMG]B\s*$', re.I)
+_MEM_SUFIJO = re.compile(
+    r'\s*[-:]\s*(?:uso de memoria|memory usage)\s*[-:]\s*[\d.,]+\s*[KMG]B\s*$', re.I)
+
 
 def _normaliza_titulo(t):
     """El titulo tal como se guarda y se compara. Funcion a nivel de modulo para
     poder probarla sin Odoo."""
     t = (t or '').strip()
     t = _CONTADOR.sub('', t)
+    m = _MEM_PREFIJO.match(t)
+    if m:
+        t = m.group(1).strip()
+    else:
+        t = _MEM_SUFIJO.sub('', t).strip()
     return t[:300]
 
 

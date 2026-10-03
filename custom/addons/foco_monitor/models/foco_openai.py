@@ -157,26 +157,43 @@ class FocoOpenAI(models.AbstractModel):
     def clasificar_pestanas(self, rol_prompt, titulos):
         """Clasifica TITULOS de pestañas contra el perfil de un puesto.
 
-        Devuelve una lista alineada con `titulos`: por cada uno un dict con
-        titulo, va_con_rol (bool), sugerencia (permitir/bloquear/revisar),
-        motivo (<=12 palabras) y dominio (mejor conjetura del sitio desde el
-        titulo, '' si no se deduce; para poder bloquear despues). UserError si la
-        API falla: quien llama decide si reintenta mas tarde.
+        Devuelve una lista alineada con `titulos` (uno por cada entrada) con
+        titulo, va_con_rol, sugerencia (permitir/bloquear/revisar), motivo y
+        dominio (mejor conjetura del sitio desde el titulo, '' si no se deduce).
+
+        Se empareja por el INDICE que el modelo devuelve, no por posicion:
+        emparejar por posicion se rompe si el modelo reordena o se SALTA uno
+        (medido el 3-oct: con 12 titulos un salto corrio los veredictos y un
+        Bitbucket quedo clasificado como 'Facebook'). Se procesa en lotes para no
+        pedirle demasiados de una vez. Un fallo de la API sube como UserError
+        (quien llama decide si reintenta); una respuesta sin JSON valido deja ese
+        lote en 'revisar'.
         """
         titulos = [t for t in (titulos or []) if t]
         if not titulos:
             return []
+        rol = (rol_prompt or '').strip() or '(sin descripcion del puesto)'
+        CHUNK = 20
+        salida = []
+        for inicio in range(0, len(titulos), CHUNK):
+            salida.extend(self._clasificar_lote(rol, titulos[inicio:inicio + CHUNK]))
+        return salida
+
+    @api.model
+    def _clasificar_lote(self, rol, lote):
+        """Un lote: pide al modelo que DEVUELVA el indice de cada titulo y
+        empareja por ese indice."""
         sistema = (
             "Eres el clasificador de PRODUCTIVIDAD de pestañas de navegador de una empresa. Te "
-            "doy el PERFIL de un puesto y una lista de TITULOS de pestañas que un empleado de ese "
-            "puesto tiene abiertas. Por cada titulo decide si la pestaña encaja con el trabajo de "
-            "ese perfil. Reglas: (1) 'va_con_rol' true si es plausiblemente de ese trabajo; (2) "
-            "'sugerencia'='permitir' si encaja, 'bloquear' si claramente es ocio o ajeno al "
-            "puesto, 'revisar' si no se puede saber por el titulo; (3) 'motivo' maximo 12 "
-            "palabras, sin nombres de personas; (4) 'dominio'=tu mejor conjetura del dominio "
-            "(p. ej. 'youtube.com') si el titulo lo deja claro, si no cadena vacia; NO inventes "
-            "un dominio que no se deduzca del titulo. Responde por TODOS los titulos, en el MISMO "
-            "orden en que te los doy.")
+            "doy el PERFIL de un puesto y una lista NUMERADA de titulos de pestañas que un "
+            "empleado de ese puesto tiene abiertas. Por cada titulo decide si encaja con el "
+            "trabajo de ese perfil. Reglas: (1) responde un item POR CADA numero, e incluye su "
+            "'i' (el numero del titulo al que responde); (2) 'va_con_rol' true si es plausiblemente "
+            "de ese trabajo; (3) 'sugerencia'='permitir' si encaja, 'bloquear' si claramente es "
+            "ocio o ajeno al puesto, 'revisar' si no se puede saber por el titulo; (4) 'motivo' "
+            "maximo 12 palabras, sin nombres de personas; (5) 'dominio'=tu mejor conjetura del "
+            "dominio (p. ej. 'youtube.com') si el titulo lo deja claro, si no cadena vacia; NO "
+            "inventes un dominio que no se deduzca del titulo. Juzga cada titulo por SI MISMO.")
         esquema = {
             'name': 'clasificacion_pestanas', 'strict': True,
             'schema': {
@@ -187,35 +204,39 @@ class FocoOpenAI(models.AbstractModel):
                         'items': {
                             'type': 'object', 'additionalProperties': False,
                             'properties': {
+                                'i': {'type': 'integer'},
                                 'va_con_rol': {'type': 'boolean'},
                                 'sugerencia': {'type': 'string',
                                                'enum': ['permitir', 'bloquear', 'revisar']},
                                 'motivo': {'type': 'string'},
                                 'dominio': {'type': 'string'},
                             },
-                            'required': ['va_con_rol', 'sugerencia', 'motivo', 'dominio'],
+                            'required': ['i', 'va_con_rol', 'sugerencia', 'motivo', 'dominio'],
                         },
                     },
                 },
                 'required': ['items'],
             },
         }
-        usuario = ("PERFIL DEL PUESTO:\n%s\n\nPESTAÑAS (%d), en orden:\n%s"
-                   % ((rol_prompt or '').strip() or '(sin descripcion del puesto)',
-                      len(titulos),
-                      "\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(titulos))))
+        usuario = ("PERFIL DEL PUESTO:\n%s\n\nPESTAÑAS:\n%s"
+                   % (rol, "\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(lote))))
         resp = self.chat(
             [{'role': 'system', 'content': sistema},
              {'role': 'user', 'content': usuario}],
             response_format={'type': 'json_schema', 'json_schema': esquema},
-            max_tokens=1600)
+            max_tokens=1800)
         try:
             items = json.loads(resp['message'].get('content') or '{}').get('items') or []
         except (ValueError, TypeError):
             items = []
+        porindice = {}
+        for it in items:
+            if isinstance(it, dict) and isinstance(it.get('i'), int):
+                porindice[it['i']] = it
+        modelo = resp.get('modelo') or ''
         salida = []
-        for i, t in enumerate(titulos):
-            it = items[i] if i < len(items) and isinstance(items[i], dict) else {}
+        for i, t in enumerate(lote, start=1):
+            it = porindice.get(i, {})
             sug = it.get('sugerencia')
             salida.append({
                 'titulo': t,
@@ -223,6 +244,6 @@ class FocoOpenAI(models.AbstractModel):
                 'sugerencia': sug if sug in ('permitir', 'bloquear', 'revisar') else 'revisar',
                 'motivo': (it.get('motivo') or '')[:200],
                 'dominio': (it.get('dominio') or '').strip().lower(),
-                'modelo': resp.get('modelo') or '',
+                'modelo': modelo,
             })
         return salida
