@@ -152,3 +152,77 @@ class FocoOpenAI(models.AbstractModel):
         res['tokens'] = int((j.get('usage') or {}).get('total_tokens') or 0)
         res['modelo'] = modelo
         return res
+
+    @api.model
+    def clasificar_pestanas(self, rol_prompt, titulos):
+        """Clasifica TITULOS de pestañas contra el perfil de un puesto.
+
+        Devuelve una lista alineada con `titulos`: por cada uno un dict con
+        titulo, va_con_rol (bool), sugerencia (permitir/bloquear/revisar),
+        motivo (<=12 palabras) y dominio (mejor conjetura del sitio desde el
+        titulo, '' si no se deduce; para poder bloquear despues). UserError si la
+        API falla: quien llama decide si reintenta mas tarde.
+        """
+        titulos = [t for t in (titulos or []) if t]
+        if not titulos:
+            return []
+        sistema = (
+            "Eres el clasificador de PRODUCTIVIDAD de pestañas de navegador de una empresa. Te "
+            "doy el PERFIL de un puesto y una lista de TITULOS de pestañas que un empleado de ese "
+            "puesto tiene abiertas. Por cada titulo decide si la pestaña encaja con el trabajo de "
+            "ese perfil. Reglas: (1) 'va_con_rol' true si es plausiblemente de ese trabajo; (2) "
+            "'sugerencia'='permitir' si encaja, 'bloquear' si claramente es ocio o ajeno al "
+            "puesto, 'revisar' si no se puede saber por el titulo; (3) 'motivo' maximo 12 "
+            "palabras, sin nombres de personas; (4) 'dominio'=tu mejor conjetura del dominio "
+            "(p. ej. 'youtube.com') si el titulo lo deja claro, si no cadena vacia; NO inventes "
+            "un dominio que no se deduzca del titulo. Responde por TODOS los titulos, en el MISMO "
+            "orden en que te los doy.")
+        esquema = {
+            'name': 'clasificacion_pestanas', 'strict': True,
+            'schema': {
+                'type': 'object', 'additionalProperties': False,
+                'properties': {
+                    'items': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object', 'additionalProperties': False,
+                            'properties': {
+                                'va_con_rol': {'type': 'boolean'},
+                                'sugerencia': {'type': 'string',
+                                               'enum': ['permitir', 'bloquear', 'revisar']},
+                                'motivo': {'type': 'string'},
+                                'dominio': {'type': 'string'},
+                            },
+                            'required': ['va_con_rol', 'sugerencia', 'motivo', 'dominio'],
+                        },
+                    },
+                },
+                'required': ['items'],
+            },
+        }
+        usuario = ("PERFIL DEL PUESTO:\n%s\n\nPESTAÑAS (%d), en orden:\n%s"
+                   % ((rol_prompt or '').strip() or '(sin descripcion del puesto)',
+                      len(titulos),
+                      "\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(titulos))))
+        resp = self.chat(
+            [{'role': 'system', 'content': sistema},
+             {'role': 'user', 'content': usuario}],
+            response_format={'type': 'json_schema', 'json_schema': esquema},
+            max_tokens=1600)
+        try:
+            items = json.loads(resp['message'].get('content') or '{}').get('items') or []
+        except (ValueError, TypeError):
+            items = []
+        salida = []
+        for i, t in enumerate(titulos):
+            it = items[i] if i < len(items) and isinstance(items[i], dict) else {}
+            sug = it.get('sugerencia')
+            salida.append({
+                'titulo': t,
+                'va_con_rol': bool(it.get('va_con_rol', True)),
+                'sugerencia': sug if sug in ('permitir', 'bloquear', 'revisar') else 'revisar',
+                'motivo': (it.get('motivo') or '')[:200],
+                'dominio': (it.get('dominio') or '').strip().lower(),
+                'modelo': resp.get('modelo') or '',
+            })
+        return salida

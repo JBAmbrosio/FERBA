@@ -151,6 +151,19 @@
                         </div>
                     </group>
 
+                    <!-- El perfil del PUESTO para la IA que clasifica las
+                         pestañas abiertas. Lo que no encaja aparece en
+                         Actividad › Pestañas por revisar para aprobar o bloquear. -->
+                    <group string="Perfil del puesto (para clasificar pestañas con IA)">
+                        <field name="rol_prompt" nolabel="1" colspan="2"
+                               placeholder="Describe qué hace este puesto. Ej.: Un diseñador trabaja con CAD, catálogos de proveedores de piezas, correo y el ERP. No es parte de su trabajo ver deportes, redes sociales ni streaming."/>
+                        <div class="text-muted" colspan="2">
+                            La IA usa esta descripción para decidir si una pestaña abierta encaja
+                            con el puesto. Las que no, aparecen en
+                            <b>Actividad › Pestañas por revisar</b> para aprobarlas o bloquearlas.
+                        </div>
+                    </group>
+
                     <group>
                         <field name="note" string="Para qué es este perfil"
                                placeholder="Quién lo usa y por qué. Se lee el día que alguien pregunte por qué no puede abrir un sitio."/>

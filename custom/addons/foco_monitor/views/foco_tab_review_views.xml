@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- La IA clasifica las pestañas pendientes fuera del ingest, cada 10 min.
+         Asi el envio del agente no carga con la latencia de OpenAI. -->
+    <record id="foco_tab_review_cron" model="ir.cron">
+        <field name="name">Foco: clasificar pestañas por revisar</field>
+        <field name="model_id" ref="model_foco_tab_review"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_clasificar()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="foco_tab_review_view_list" model="ir.ui.view">
+        <field name="name">foco.tab.review.list</field>
+        <field name="model">foco.tab.review</field>
+        <field name="arch" type="xml">
+            <list string="Pestañas por revisar"
+                  decoration-warning="ia_suggestion == 'bloquear' and state == 'pendiente'"
+                  decoration-muted="state != 'pendiente'">
+                <field name="create_date" string="Visto"/>
+                <field name="employee_id"/>
+                <field name="policy_id"/>
+                <field name="title"/>
+                <field name="ia_suggestion" string="IA"/>
+                <field name="ia_reason" string="Motivo"/>
+                <field name="host"/>
+                <field name="state"/>
+                <field name="ia_clasificado" column_invisible="1"/>
+                <button name="action_permitir" type="object" string="Permitir"
+                        icon="fa-check" invisible="state == 'permitido'"/>
+                <button name="action_bloquear" type="object" string="Bloquear"
+                        icon="fa-ban" invisible="state == 'bloqueado'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_tab_review_view_form" model="ir.ui.view">
+        <field name="name">foco.tab.review.form</field>
+        <field name="model">foco.tab.review</field>
+        <field name="arch" type="xml">
+            <form string="Pestaña por revisar">
+                <header>
+                    <button name="action_permitir" type="object" string="Permitir"
+                            class="btn-primary" invisible="state == 'permitido'"/>
+                    <button name="action_bloquear" type="object" string="Bloquear"
+                            class="btn-secondary" invisible="state == 'bloqueado'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pendiente,permitido,bloqueado"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="title" readonly="1"/>
+                        <field name="employee_id" readonly="1"/>
+                        <field name="policy_id" readonly="1"/>
+                        <field name="host"
+                               placeholder="youtube.com — escríbelo si falta, para poder bloquear"/>
+                    </group>
+                    <group string="Lo que dice la IA">
+                        <field name="ia_suggestion" readonly="1"/>
+                        <field name="ia_matches" readonly="1"/>
+                        <field name="ia_reason" readonly="1"/>
+                        <field name="ia_model" readonly="1" groups="base.group_no_one"/>
+                    </group>
+                    <group>
+                        <field name="decided_uid" readonly="1"/>
+                        <field name="decided_at" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_tab_review_view_search" model="ir.ui.view">
+        <field name="name">foco.tab.review.search</field>
+        <field name="model">foco.tab.review</field>
+        <field name="arch" type="xml">
+            <search string="Pestañas">
+                <field name="title"/>
+                <field name="employee_id"/>
+                <field name="policy_id"/>
+                <field name="host"/>
+                <separator/>
+                <filter name="pendiente" string="Pendientes" domain="[('state', '=', 'pendiente')]"/>
+                <filter name="sug_bloquear" string="IA aconseja bloquear"
+                        domain="[('ia_suggestion', '=', 'bloquear')]"/>
+                <filter name="bloqueado" string="Bloqueadas" domain="[('state', '=', 'bloqueado')]"/>
+                <filter name="permitido" string="Permitidas" domain="[('state', '=', 'permitido')]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_pol" string="Perfil" context="{'group_by': 'policy_id'}"/>
+                <filter name="g_state" string="Estado" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_tab_review_action" model="ir.actions.act_window">
+        <field name="name">Pestañas por revisar</field>
+        <field name="res_model">foco.tab.review</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_pendiente': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nada por revisar</p>
+            <p>
+                Aquí aparecen las pestañas que la IA no considera parte del trabajo
+                del puesto, según el <b>perfil del puesto</b> que escribiste en cada
+                perfil de navegación. Revisa cada una y decide: <b>Permitir</b> la deja
+                pasar, <b>Bloquear</b> agrega su dominio a las reglas del perfil y el
+                equipo deja de poder abrirlo.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_foco_tab_review" name="Pestañas por revisar"
+              parent="menu_foco_sec_actividad" action="foco_tab_review_action"
+              sequence="55" groups="foco_monitor.group_foco_manager"/>
+
+</odoo>
