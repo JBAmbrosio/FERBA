@@ -27,6 +27,7 @@
                 <field name="ia_suggestion" string="IA"/>
                 <field name="ia_reason" string="Motivo"/>
                 <field name="host"/>
+                <field name="host_capturado" string="Por uso" optional="show"/>
                 <field name="state"/>
                 <field name="ia_clasificado" column_invisible="1"/>
                 <button name="action_permitir" type="object" string="Permitir"
@@ -57,6 +58,7 @@
                         <field name="policy_id" readonly="1"/>
                         <field name="host"
                                placeholder="youtube.com — escríbelo si falta, para poder bloquear"/>
+                        <field name="host_capturado" readonly="1"/>
                     </group>
                     <group string="Lo que dice la IA">
                         <field name="ia_suggestion" readonly="1"/>

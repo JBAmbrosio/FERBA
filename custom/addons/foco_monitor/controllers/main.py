@@ -377,7 +377,7 @@ class FocoController(http.Controller):
         # un fallo aqui haria que el agente reintentara el lote sin fin.
         try:
             tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
-                computer, data.get('tabs') or [])
+                computer, data.get('tabs') or [], data.get('tab_hosts') or {})
         except Exception:
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
