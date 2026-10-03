@@ -64,9 +64,15 @@ class FocoTabReview(models.Model):
     title = fields.Char(required=True)
     host = fields.Char(
         string='Dominio',
-        help='Para bloquear hace falta el dominio. La IA lo sugiere desde el '
-             'titulo si puede; si no, escribelo (p. ej. youtube.com) y ya se '
-             'puede bloquear.')
+        help='Para bloquear hace falta el dominio. Lo mejor es el capturado "por '
+             'uso" (host real de cuando la persona tuvo la pestaña al frente); si '
+             'no, la IA lo sugiere desde el titulo; si tampoco, escribelo a mano '
+             '(p. ej. youtube.com) y ya se puede bloquear.')
+    host_capturado = fields.Boolean(
+        string='Dominio por uso', default=False,
+        help='El dominio se capturo cuando la persona tuvo la pestaña al frente '
+             '(dato real), no es la conjetura de la IA desde el titulo. Es el que '
+             'conviene para bloquear.')
     ia_clasificado = fields.Boolean(default=False, index=True)
     ia_matches = fields.Boolean(string='Va con el rol')
     ia_suggestion = fields.Selection(
@@ -81,13 +87,19 @@ class FocoTabReview(models.Model):
     decided_at = fields.Datetime(string='Decidido', readonly=True)
 
     @api.model
-    def ingest_tabs(self, computer, titulos):
+    def ingest_tabs(self, computer, titulos, tab_hosts=None):
         """Guarda las pestañas NUEVAS de un equipo como filas por clasificar.
 
         NO clasifica aqui: la IA corre en un cron, fuera del camino caliente del
         ingest (una llamada a OpenAI no puede meterle latencia a cada envio del
         agente). No repregunta: si ya hay una fila -en cualquier estado- para
         (equipo, titulo), no crea otra. Devuelve cuantas filas nuevas creo.
+
+        `tab_hosts` es {titulo: host} con los hosts REALES que el agente capturo
+        cuando esa pestaña estuvo al frente. Es la verdad para bloquear: se pega a
+        la fila y gana sobre la conjetura de la IA. Tambien MEJORA filas ya
+        existentes: si el host real llega despues (la persona enfoco la pestaña mas
+        tarde), se les pone.
         """
         vistos, limpios = set(), []
         for t in (titulos or []):
@@ -97,14 +109,33 @@ class FocoTabReview(models.Model):
                 limpios.append(n)
         if not limpios:
             return 0
-        ya = set(self.search([
-            ('computer_id', '=', computer.id),
-            ('title', 'in', limpios)]).mapped('title'))
+        # Hosts reales por titulo, con la llave normalizada igual que el titulo.
+        real = {}
+        for k, v in (tab_hosts or {}).items():
+            nt = _normaliza_titulo(k)
+            host = (v or '').strip().lower()
+            if nt and host:
+                real[nt] = host
+        existentes = self.search([
+            ('computer_id', '=', computer.id), ('title', 'in', limpios)])
+        ya = set(existentes.mapped('title'))
+        # Mejorar lo que ya existe: si llego el host real de un titulo que aun no
+        # lo tiene capturado (tenia la conjetura de la IA, o nada), pegarselo.
+        for f in existentes:
+            h = real.get(f.title)
+            if h and not f.host_capturado:
+                f.write({'host': h, 'host_capturado': True})
         perfil = self.env['foco.policy']._perfil_vigente(computer)
-        nuevos = [{'computer_id': computer.id,
-                   'policy_id': perfil.id if perfil else False,
-                   'title': t}
-                  for t in limpios if t not in ya]
+        nuevos = []
+        for t in limpios:
+            if t in ya:
+                continue
+            h = real.get(t)
+            nuevos.append({'computer_id': computer.id,
+                           'policy_id': perfil.id if perfil else False,
+                           'title': t,
+                           'host': h or False,
+                           'host_capturado': bool(h)})
         if nuevos:
             self.create(nuevos)
         return len(nuevos)
@@ -140,14 +171,18 @@ class FocoTabReview(models.Model):
                 if not r:
                     f.ia_clasificado = True        # no se repregunta en vano
                     continue
-                f.write({
+                vals = {
                     'ia_matches': r['va_con_rol'],
                     'ia_suggestion': r['sugerencia'],
                     'ia_reason': r['motivo'],
-                    'host': f.host or r['dominio'] or False,
                     'ia_model': r['modelo'],
                     'ia_clasificado': True,
-                })
+                }
+                # El host REAL capturado manda; la conjetura de la IA solo rellena
+                # cuando no hay un host capturado.
+                if not f.host_capturado:
+                    vals['host'] = f.host or r['dominio'] or False
+                f.write(vals)
 
     def action_permitir(self):
         self.write({'state': 'permitido', 'decided_uid': self.env.uid,
