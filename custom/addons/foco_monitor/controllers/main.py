@@ -654,6 +654,33 @@ class FocoController(http.Controller):
         key = request.httprequest.headers.get('X-Foco-Key')
         return request.env['foco.mobile.device']._authenticate(key)
 
+    @http.route('/foco/mobile/avatar', type='http', auth='public',
+                methods=['GET', 'POST'], csrf=False)
+    def mobile_avatar(self, **kw):
+        """La foto del empleado para el saludo de la pantalla de Inicio. Devuelve
+        la imagen tal cual (PNG/JPEG); 204 si el empleado no tiene foto, y ahi el
+        telefono muestra su inicial en un circulo coral. Autentica con la llave
+        del equipo, como el resto de los endpoints moviles."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        emp = dev.sudo().employee_id
+        img = None
+        if emp:
+            img = emp.image_256 or emp.image_512 or emp.image_128
+            if not img and emp.user_id:
+                img = emp.user_id.image_256
+        if not img:
+            return request.make_response(b'', status=204)
+        try:
+            raw = base64.b64decode(img)
+        except Exception:
+            return request.make_response(b'', status=204)
+        return request.make_response(raw, headers=[
+            ('Content-Type', 'image/png'),
+            ('Content-Length', str(len(raw))),
+            ('Cache-Control', 'no-store')])
+
     @http.route('/foco/mobile/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_enroll(self, **kw):
