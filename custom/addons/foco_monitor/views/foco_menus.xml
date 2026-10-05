@@ -112,6 +112,31 @@
               parent="menu_foco_sec_movil" action="foco_mobile_capture_action" sequence="50"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- ================================================= VENTAS EN CAMPO -->
+    <!-- El flujo de vendedores: el mapa de clientes (reemplaza el Google My Maps
+         a mano), la cartera de clientes, las visitas y el importador de la Hoja
+         Maestra. De administrador: es la cartera comercial y la ubicacion de los
+         clientes y vendedores. -->
+    <menuitem id="menu_foco_sec_ventas" name="Ventas en campo"
+              parent="menu_foco_root" sequence="36"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_mapa" name="Mapa de clientes"
+              parent="menu_foco_sec_ventas" action="foco_vendedores_client" sequence="5"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_clientes" name="Clientes"
+              parent="menu_foco_sec_ventas" action="foco_cliente_ventas_action" sequence="10"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_visitas" name="Visitas"
+              parent="menu_foco_sec_ventas" action="foco_visita_action" sequence="20"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_import" name="Importar Hoja Maestra"
+              parent="menu_foco_sec_ventas" action="foco_vendedor_import_action" sequence="30"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- ================================================= CATALOGO (clasificar) -->
     <menuitem id="menu_foco_sec_catalogo" name="Catalogo"
               parent="menu_foco_root" sequence="40"/>

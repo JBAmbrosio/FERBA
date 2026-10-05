@@ -60,3 +60,6 @@ access_foco_mobile_alta_wizard_manager,foco.mobile.alta.wizard manager,model_foc
 access_foco_amapi_cuenta_wizard_manager,foco.amapi.cuenta.wizard manager,model_foco_amapi_cuenta_wizard,group_foco_manager,1,1,1,1
 access_foco_tab_review_user,foco.tab.review user,model_foco_tab_review,group_foco_user,1,0,0,0
 access_foco_tab_review_manager,foco.tab.review manager,model_foco_tab_review,group_foco_manager,1,1,1,1
+access_foco_visita_user,foco.visita user,model_foco_visita,group_foco_user,1,0,0,0
+access_foco_visita_manager,foco.visita manager,model_foco_visita,group_foco_manager,1,1,1,1
+access_foco_vendedor_import_manager,foco.vendedor.import manager,model_foco_vendedor_import,group_foco_manager,1,1,1,1
