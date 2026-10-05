@@ -149,7 +149,7 @@ class ResPartner(models.Model):
                 'estatus': est, 'color': ESTATUS_COLOR.get(est, '#94a3b8'),
                 'empaque': c.foco_empaque or '', 'zona': c.foco_zona or '',
                 'cultivo': c.foco_cultivo or '', 'contacto': c.foco_contacto or '',
-                'phone': c.phone or c.mobile or '',
+                'phone': c.phone or '',
                 'expediente': c.foco_expediente_url or '',
                 'ubicacion_url': c.foco_ubicacion_url or '',
                 'ubicacion_fisica': c.foco_ubicacion_fisica or '',
