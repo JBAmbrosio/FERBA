@@ -141,9 +141,11 @@ export class FocoVendedores extends Component {
         for (const c of this.state.clientes) {
             if (!c.lat && !c.lng) continue;
             const sel = this.state.sel && this.state.sel.id === c.id;
+            const anillo = sel ? (this.state.dark ? "#ffffff" : "#111827")
+                                : (this.state.dark ? "#1d232e" : "#ffffff");
             const mk = L.circleMarker([c.lat, c.lng], {
                 radius: sel ? 11 : 7,
-                color: sel ? "#111827" : "#ffffff",
+                color: anillo,
                 weight: sel ? 3 : 2,
                 fillColor: c.color, fillOpacity: 1,
             }).addTo(this.capa);
