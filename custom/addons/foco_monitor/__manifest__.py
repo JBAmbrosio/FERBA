@@ -1,4 +1,4 @@
-﻿{
+{
     'name': 'Foco - Monitor de Productividad',
     'version': '19.0.28.9.0',
     'summary': 'Mide el uso real de aplicaciones (primer plano vs segundo plano) '
