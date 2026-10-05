@@ -28,6 +28,10 @@
                        decoration-warning="policy_sync in ('pendiente','nunca','sin_verificar')"
                        decoration-muted="policy_sync in ('off','sin_perfil')"
                        optional="show"/>
+                <field name="block_attention" string="Atencion bloqueo" optional="show"
+                       decoration-danger="block_attention in ('servicio_caido','alterado')"
+                       decoration-warning="block_attention in ('pendiente','equipo_ausente','nunca')"
+                       decoration-muted="block_attention == 'ok'"/>
                 <field name="pending_command_count" string="Ordenes pend."/>
             </list>
         </field>
@@ -68,6 +72,9 @@
                                  le mando. Sin esta fila, "lo bloquee" y "esta
                                  bloqueado" se leen igual. -->
                             <field name="policy_sync"/>
+                            <!-- Separa "servicio caido con el equipo en uso" de
+                                 "equipo sin reportar": el cron avisa del primero. -->
+                            <field name="block_attention"/>
                             <field name="policy_applied_at"/>
                             <field name="policy_verified_at"/>
                             <field name="policy_drift"/>
