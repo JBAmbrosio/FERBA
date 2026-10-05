@@ -16,6 +16,10 @@ HEALTH_OK_MINUTES = 15
 # inventado, es multiplo de la cadencia real.
 POLICY_STALE_MINUTES = 15
 
+# Cada cuanto se REAVISA de un bloqueo sin confirmar que sigue sin resolverse:
+# avisar en cada ciclo seria ruido; callar para siempre, olvido. Una vez al dia.
+REALERT_HOURS = 24
+
 
 class FocoComputer(models.Model):
     _name = 'foco.computer'
@@ -333,6 +337,117 @@ class FocoComputer(models.Model):
             })
         self.message_post(body=cuerpo, subject=titulo,
                           message_type='comment', subtype_xmlid='mail.mt_note')
+
+    # --- Verificacion del bloqueo: de estado pasivo a AVISO activo -----------
+    # `policy_sync` dice si el bloqueo esta al dia. Pero 'sin_verificar' mezcla
+    # dos fallas opuestas que piden respuestas distintas, y hoy ninguna avisa
+    # sola: alguien tiene que ir a mirar. `block_attention` las separa usando la
+    # salud del agente, y `_cron_revisar_bloqueo` las convierte en un aviso.
+    block_attention = fields.Selection(
+        [('ok', 'Sin pendientes'),
+         ('servicio_caido', 'Servicio de bloqueo caido (agente vivo)'),
+         ('alterado', 'Bloqueo alterado'),
+         ('equipo_ausente', 'Equipo sin reportar'),
+         ('pendiente', 'Cambio pendiente'),
+         ('nunca', 'Nunca aplicada')],
+        string='Atencion del bloqueo', compute='_compute_block_attention',
+        help='Refina "Estado del bloqueo" para saber QUE hacer. Lo clave: '
+             'distingue un servicio de bloqueo caido con el equipo EN USO (el '
+             'agente sigue reportando pero el bloqueo no se confirma: atender ya) '
+             'de un equipo que simplemente no reporta (apagado o sin red).')
+    block_alert_state = fields.Char(
+        string='Ultimo aviso de bloqueo', readonly=True, copy=False,
+        help='Estado por el que se aviso por ultima vez. Evita repetir el mismo '
+             'aviso en cada ciclo; se limpia al recuperarse.')
+    block_alert_at = fields.Datetime(string='Bloqueo avisado el', readonly=True, copy=False)
+
+    @api.depends('policy_sync', 'health', 'minutes_since_seen')
+    def _compute_block_attention(self):
+        for c in self:
+            s = c.policy_sync
+            if s == 'drift':
+                c.block_attention = 'alterado'
+            elif s == 'sin_verificar':
+                # El agente SIGUE reportando pero el bloqueo no se confirma: el
+                # servicio SYSTEM -que impone Y verifica- esta caido. Si el equipo
+                # tampoco reporta, es ausencia (lo cubre la salud del agente),
+                # no un servicio caido con la maquina en uso.
+                c.block_attention = 'servicio_caido' if c.health == 'ok' else 'equipo_ausente'
+            elif s == 'pendiente':
+                c.block_attention = 'pendiente'
+            elif s == 'nunca':
+                c.block_attention = 'nunca'
+            else:  # off, sin_perfil, al_dia
+                c.block_attention = 'ok'
+
+    def _alerta_bloqueo(self, estado):
+        """Avisa (toast por el bus + constancia en el chatter) que un equipo
+        necesita atencion en su bloqueo. A los administradores de Foco y a quien
+        edito el perfil por ultimo, igual que `notificar_politica`."""
+        self.ensure_one()
+        perfil = self.policy_id
+        grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
+        destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
+        if perfil and perfil.write_uid.partner_id:
+            destinatarios |= perfil.write_uid.partner_id
+        if not destinatarios:
+            return
+        nombre = perfil.name if perfil else 'sin perfil'
+        if estado == 'servicio_caido':
+            desde = fields.Datetime.to_string(self.policy_verified_at) or 'nunca'
+            titulo = 'Foco · bloqueo SIN CONFIRMAR'
+            cuerpo = ('%s sigue reportando, pero su servicio de bloqueo no confirma '
+                      'desde %s UTC. El bloqueo (%s) podria no estar imponiendose: '
+                      'revisar el servicio de Foco (SYSTEM) en el equipo.'
+                      % (self.display_name, desde, nombre))
+        elif estado == 'alterado':
+            titulo = 'Foco · bloqueo ALTERADO'
+            cuerpo = ('%s reporto que le quitaron el bloqueo (%s). Se reconcilia '
+                      'solo, pero mientras tanto NO esta puesto.'
+                      % (self.display_name, nombre))
+        else:
+            return
+        for p in destinatarios:
+            p._bus_send('simple_notification', {
+                'type': 'warning', 'title': titulo, 'message': cuerpo, 'sticky': False})
+        self.message_post(body=cuerpo, subject=titulo,
+                          message_type='comment', subtype_xmlid='mail.mt_note')
+
+    @api.model
+    def _cron_revisar_bloqueo(self):
+        """Vuelve ACTIVO lo que hoy es un estado pasivo: avisa de los equipos con
+        el bloqueo sin confirmar (servicio caido, agente vivo) o alterado. Avisa
+        al aparecer y reavisa cada REALERT_HOURS si persiste; limpia el marcador
+        al recuperarse para que un fallo nuevo vuelva a avisar. La ausencia
+        (equipo sin reportar) la cubre la vigilancia de salud del agente."""
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        if not ajustes.block_enabled:
+            return
+        ahora = fields.Datetime.now()
+        umbral = ahora - timedelta(minutes=POLICY_STALE_MINUTES)
+        # Prefiltro barato con campos ALMACENADOS; la clasificacion fina va en
+        # Python porque block_attention depende de la hora y no se almacena.
+        candidatos = self.sudo().search([
+            ('active', '=', True),
+            ('policy_id', '!=', False),
+            '|', ('policy_drift', '=', True),
+                 '|', ('policy_verified_at', '=', False),
+                      ('policy_verified_at', '<', umbral),
+        ])
+        for c in candidatos:
+            estado = c.block_attention
+            if estado in ('servicio_caido', 'alterado'):
+                reavisar = bool(c.block_alert_at) and (
+                    ahora - c.block_alert_at) >= timedelta(hours=REALERT_HOURS)
+                if estado != c.block_alert_state or not c.block_alert_at or reavisar:
+                    try:
+                        c._alerta_bloqueo(estado)
+                    except Exception:
+                        _logger.exception(
+                            'Foco: no se pudo avisar del bloqueo de %s', c.id)
+                    c.sudo().write({'block_alert_state': estado, 'block_alert_at': ahora})
+            elif c.block_alert_state:
+                c.sudo().write({'block_alert_state': False, 'block_alert_at': False})
 
     @api.model
     def note_integrity(self, computer, motivo):
