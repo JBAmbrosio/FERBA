@@ -1,191 +1,194 @@
+// Tablero de Vendedores. Se apega al sistema de diseno de Odoo: hereda los
+// tokens de Bootstrap/Odoo (--bs-*) para color y superficie, usa componentes
+// nativos (.btn, .form-select, .badge, .card) e iconos Font Awesome 4.7. Asi se
+// ve como una pantalla mas del backend y respeta el modo oscuro de Odoo sin JS.
 .foco_vend {
-    --fv-bg: #f4f6fa;
-    --fv-card: #ffffff;
-    --fv-ink: #0f1520;
-    --fv-ink2: #5a6577;
-    --fv-ink3: #8b95a6;
-    --fv-line: #e7eaf0;
-    --fv-accent: #f0384a;        // coral FERBA
-    --fv-accent-ink: #ffffff;
-    --fv-wa: #25d366;
+    --fv-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --fv-border: var(--bs-border-color, #dee2e6);
+    --fv-muted: var(--bs-secondary-color, #6c757d);
+    --fv-faint: var(--bs-tertiary-color, #9aa4af);
+    --fv-surface: var(--bs-body-bg, #fff);
+    --fv-sunken: var(--bs-tertiary-bg, #f6f7f9);
+    --fv-ink: var(--bs-body-color, #212529);
+    --fv-primary: var(--bs-primary, #714B67);
 
     padding: 16px;
-    background: var(--fv-bg);
-    min-height: 100%;
     color: var(--fv-ink);
     font-size: 13px;
-
-    &.fv-dark {
-        --fv-bg: #0e131b;
-        --fv-card: #171c27;
-        --fv-ink: #e9edf4;
-        --fv-ink2: #aab4c4;
-        --fv-ink3: #7c8797;
-        --fv-line: #2b3442;
-        --fv-accent: #ff6a5c;
-    }
+    min-height: 100%;
 
     * { box-sizing: border-box; }
 
-    .sep { color: var(--fv-ink3); margin: 0 6px; }
-    .fv_muted { color: var(--fv-ink3); }
-    .fv_aviso { color: #e08e0b; }
-
-    // ---- header
+    // ---------------------------------------------------------------- header
     .fv_head {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px; margin-bottom: 14px;
-        h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
-        .fv_sub { margin: 2px 0 0; color: var(--fv-ink2); font-size: 12.5px; }
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
     }
-    .fv_refrescar {
-        display: inline-flex; align-items: center; gap: 7px;
-        border: 1px solid var(--fv-line); background: var(--fv-card);
-        color: var(--fv-ink); border-radius: 10px; padding: 8px 13px;
-        font-weight: 600; cursor: pointer; transition: transform .12s ease, border-color .12s ease;
-        &:hover { border-color: var(--fv-accent); }
-        &:active { transform: scale(.97); }
+    .fv_title { margin: 0; font-size: 1.4rem; font-weight: 600; line-height: 1.2; }
+    .fv_sub {
+        margin: 4px 0 0; color: var(--fv-muted); font-size: 12.5px;
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
+    .fv_sub .fv_warn { color: var(--bs-warning-text-emphasis, #997404); font-weight: 500; }
+    .fv_actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-    // ---- KPIs
+    // ------------------------------------------------------------------ kpis
     .fv_kpis {
-        display: grid; grid-template-columns: repeat(4, 1fr);
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         gap: 12px; margin-bottom: 14px;
-        .fv_kpi {
-            background: var(--fv-card); border: 1px solid var(--fv-line);
-            border-radius: 14px; padding: 13px 15px;
-            .fv_kpi_label { color: var(--fv-ink3); font-size: 11.5px; font-weight: 600;
-                text-transform: uppercase; letter-spacing: .4px; }
-            .fv_kpi_v { font-size: 26px; font-weight: 800; margin-top: 4px; letter-spacing: -.5px; }
-        }
-        .fv_kpi_warn .fv_kpi_v { color: #e08e0b; }
     }
-
-    // ---- filtros
-    .fv_filtros {
-        display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 14px;
-        select {
-            appearance: none; background: var(--fv-card); color: var(--fv-ink);
-            border: 1px solid var(--fv-line); border-radius: 10px;
-            padding: 8px 30px 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a6' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 11px center;
-            &:focus { outline: none; border-color: var(--fv-accent); }
-        }
-        .fv_limpiar {
-            border: 1px solid var(--fv-line); background: transparent; color: var(--fv-ink2);
-            border-radius: 10px; padding: 8px 12px; font-weight: 600; cursor: pointer;
-            &:active { transform: scale(.97); }
-        }
+    .fv_kpi {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 10px; padding: 12px 14px;
     }
+    .fv_kpi_ico {
+        flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px;
+        display: grid; place-items: center; font-size: 15px;
+        color: var(--fv-primary);
+        background: color-mix(in srgb, var(--fv-primary) 12%, transparent);
+    }
+    .fv_kpi.is-warn .fv_kpi_ico {
+        color: var(--bs-warning, #f59e0b);
+        background: color-mix(in srgb, var(--bs-warning, #f59e0b) 16%, transparent);
+    }
+    .fv_kpi_txt { min-width: 0; }
+    .fv_kpi_label {
+        color: var(--fv-muted); font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .3px;
+    }
+    .fv_kpi_v { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
 
-    // ---- main
+    // --------------------------------------------------------------- filtros
+    .fv_filters {
+        display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+        padding: 9px 12px; margin-bottom: 14px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 10px;
+    }
+    .fv_fi { display: flex; align-items: center; gap: 6px; }
+    .fv_fi > i { color: var(--fv-faint); font-size: 12px; width: 13px; text-align: center; }
+    .fv_filters .form-select { width: auto; min-width: 158px; }
+    .fv_spacer { flex: 1 1 auto; }
+
+    // ----------------------------------------------------------- grid principal
     .fv_main {
-        display: grid; grid-template-columns: 1fr 360px; gap: 14px;
-        align-items: start;
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+        gap: 16px; align-items: start;
     }
+    .fv_card {
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 12px; overflow: hidden;
+    }
+    .fv_map_card { position: relative; height: 600px; }
+    .fv_side { display: flex; flex-direction: column; height: 600px; }
     @media (max-width: 1100px) {
-        .fv_kpis { grid-template-columns: repeat(2, 1fr); }
         .fv_main { grid-template-columns: 1fr; }
+        .fv_map_card { height: 420px; }
+        .fv_side { height: auto; max-height: 560px; }
     }
 
-    .fv_map_card {
-        position: relative;
-        background: var(--fv-card); border: 1px solid var(--fv-line);
-        border-radius: 16px; overflow: hidden; min-height: 540px;
-    }
-    .fv_map { width: 100%; height: 540px; }
-    .leaflet-container { background: var(--fv-card); font: inherit; }
-
+    // ------------------------------------------------------------------ mapa
+    .fv_map { position: absolute; inset: 0; }
+    .leaflet-container { background: var(--fv-sunken); font: inherit; }
     .fv_legend {
         position: absolute; left: 12px; bottom: 12px; z-index: 500;
-        display: flex; flex-wrap: wrap; gap: 6px 12px;
-        background: var(--fv-card); border: 1px solid var(--fv-line);
-        border-radius: 10px; padding: 8px 11px; box-shadow: 0 3px 12px rgba(0,0,0,.08);
-        .fv_leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fv-ink2); }
-        b { color: var(--fv-ink); }
+        display: flex; flex-wrap: wrap; gap: 4px 14px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 8px; padding: 8px 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+    }
+    .fv_leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fv-muted); }
+    .fv_leg b { color: var(--fv-ink); font-weight: 600; }
+    .fv_dot {
+        width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+        box-shadow: 0 0 0 2px var(--fv-surface);
     }
 
-    .fv_dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
-
-    // ---- panel lateral
-    .fv_side {
-        background: var(--fv-card); border: 1px solid var(--fv-line);
-        border-radius: 16px; overflow: hidden; max-height: 600px; display: flex; flex-direction: column;
+    // ------------------------------------------------------------ panel lateral
+    .fv_side_head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 11px 14px; border-bottom: 1px solid var(--fv-border);
+        font-weight: 600; flex: 0 0 auto;
     }
+    .fv_side_head .fv_count { color: var(--fv-faint); font-weight: 500; }
+    .fv_scroll { overflow-y: auto; flex: 1 1 auto; }
 
-    // lista
-    .fv_lista { overflow-y: auto; }
-    .fv_lista_head {
-        position: sticky; top: 0; background: var(--fv-card); z-index: 1;
-        padding: 12px 15px; font-weight: 700; border-bottom: 1px solid var(--fv-line);
-        span { color: var(--fv-ink3); font-weight: 600; }
-    }
+    // lista de clientes
     .fv_row {
-        display: flex; align-items: center; gap: 10px; padding: 10px 15px;
-        border-bottom: 1px solid var(--fv-line); cursor: pointer; transition: background .1s ease;
-        &:hover { background: rgba(240,56,74,.05); }
-        .fv_row_txt { flex: 1; min-width: 0; }
-        .fv_row_n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .fv_row_m { color: var(--fv-ink3); font-size: 11.5px; }
-        .fv_row_op { color: var(--fv-accent); font-weight: 700; font-size: 12px; }
+        display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+        border-bottom: 1px solid var(--fv-border); cursor: pointer;
+        transition: background-color 120ms ease;
+    }
+    .fv_row:last-child { border-bottom: 0; }
+    @media (hover: hover) {
+        .fv_row:hover { background: color-mix(in srgb, var(--fv-primary) 6%, transparent); }
+    }
+    .fv_row_txt { flex: 1 1 auto; min-width: 0; }
+    .fv_row_n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fv_row_m {
+        color: var(--fv-faint); font-size: 11.5px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .fv_row .badge { flex: 0 0 auto; }
+
+    // ficha del cliente
+    .fv_ficha {
+        display: flex; flex-direction: column; overflow-y: auto; padding: 14px;
+        animation: fvFicha 200ms var(--fv-ease);
+    }
+    @keyframes fvFicha {
+        from { opacity: 0; transform: translateX(10px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    .fv_ficha_head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .fv_ficha_title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .fv_ficha_title b { font-size: 15px; line-height: 1.25; }
+    .fv_badge {
+        align-self: flex-start; display: inline-flex; align-items: center;
+        margin-top: 8px; font-size: 11.5px; font-weight: 600;
+        padding: 2px 10px; border-radius: 20px; border: 1px solid;
+    }
+    .fv_meta { margin: 12px 0 4px; display: grid; gap: 7px; }
+    .fv_meta > div { display: flex; align-items: center; gap: 9px; color: var(--fv-muted); font-size: 12.5px; }
+    .fv_meta i { width: 15px; text-align: center; color: var(--fv-faint); flex: 0 0 auto; }
+    .fv_acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+
+    .fv_sec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fv-border); }
+    .fv_sec_h {
+        margin: 0 0 8px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .4px; color: var(--fv-faint);
+    }
+    .fv_op {
+        border: 1px solid var(--fv-border); border-radius: 9px; padding: 9px 11px;
+        margin-bottom: 7px; cursor: pointer; transition: border-color 120ms ease;
+    }
+    @media (hover: hover) { .fv_op:hover { border-color: var(--fv-primary); } }
+    .fv_op_n { font-weight: 600; }
+    .fv_op_m { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 5px; font-size: 11.5px; color: var(--fv-faint); }
+    .fv_op_rev { color: var(--bs-success-text-emphasis, #0f5132); font-weight: 700; }
+
+    .fv_visinfo {
+        margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fv-border);
+        color: var(--fv-muted); font-size: 12.5px; display: flex; align-items: center; gap: 8px;
     }
 
-    // ficha
-    .fv_ficha { overflow-y: auto; padding: 15px; }
-    .fv_ficha_head {
-        display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-        b { font-size: 15.5px; }
-        .fv_ficha_est { color: var(--fv-ink3); font-size: 12px; margin-top: 2px; margin-left: 18px; }
-        .fv_x { border: none; background: transparent; color: var(--fv-ink3); cursor: pointer; font-size: 15px; }
+    // feedback de presion en botones (sin pelear con los estilos de Odoo)
+    .btn {
+        transition: transform 140ms var(--fv-ease), background-color .15s ease,
+                    border-color .15s ease, color .15s ease, box-shadow .15s ease;
     }
-    .fv_ficha_meta {
-        margin: 12px 0; display: grid; gap: 6px;
-        div { color: var(--fv-ink2); font-size: 12.5px; }
-        i { width: 16px; color: var(--fv-ink3); }
-    }
-    .fv_acciones {
-        display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px;
-        .fv_btn {
-            display: inline-flex; align-items: center; gap: 7px;
-            background: var(--fv-accent); color: var(--fv-accent-ink) !important;
-            border: none; border-radius: 10px; padding: 8px 12px;
-            font-weight: 600; font-size: 12.5px; cursor: pointer; text-decoration: none;
-            transition: transform .12s ease, filter .12s ease;
-            &:hover { filter: brightness(1.05); }
-            &:active { transform: scale(.97); }
-        }
-        .fv_wa { background: var(--fv-wa); }
-        .fv_ghost {
-            background: transparent; color: var(--fv-ink) !important;
-            border: 1px solid var(--fv-line);
-        }
-    }
-    .fv_oport {
-        margin-top: 14px; border-top: 1px solid var(--fv-line); padding-top: 12px;
-        h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--fv-ink3); }
-        .fv_op {
-            border: 1px solid var(--fv-line); border-radius: 10px; padding: 9px 11px;
-            margin-bottom: 8px; cursor: pointer; transition: border-color .12s ease;
-            &:hover { border-color: var(--fv-accent); }
-            .fv_op_n { font-weight: 600; }
-            .fv_op_meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; align-items: center; font-size: 11.5px; color: var(--fv-ink3); }
-            .fv_op_rev { color: #10b981; font-weight: 700; }
-        }
-    }
-    .fv_chip {
-        background: rgba(47,111,237,.12); color: #2f6fed; border-radius: 6px;
-        padding: 1px 7px; font-weight: 600;
-    }
-    .fv_visitas_info {
-        margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fv-line);
-        color: var(--fv-ink2); font-size: 12.5px;
-        i { color: #10b981; margin-right: 5px; }
-    }
+    .btn:active { transform: scale(0.97); }
 
-    .fv_empty { padding: 24px 16px; text-align: center; color: var(--fv-ink3); }
+    .fv_empty { padding: 28px 16px; text-align: center; color: var(--fv-faint); }
     .fv_loading {
-        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-        color: var(--fv-ink2); font-weight: 600; pointer-events: none;
+        display: flex; align-items: center; justify-content: center;
+        padding: 40px; color: var(--fv-muted);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fv_ficha { animation: none; }
+        .btn:active { transform: none; }
+        .fv_row, .fv_op, .btn { transition: none; }
     }
 }
