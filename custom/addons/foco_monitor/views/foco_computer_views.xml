@@ -29,7 +29,7 @@
                        decoration-muted="policy_sync in ('off','sin_perfil')"
                        optional="show"/>
                 <field name="block_attention" string="Atencion bloqueo" optional="show"
-                       decoration-danger="block_attention in ('servicio_caido','alterado')"
+                       decoration-danger="block_attention in ('servicio_error','servicio_caido','alterado')"
                        decoration-warning="block_attention in ('pendiente','equipo_ausente','nunca')"
                        decoration-muted="block_attention == 'ok'"/>
                 <field name="pending_command_count" string="Ordenes pend."/>
