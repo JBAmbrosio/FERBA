@@ -89,6 +89,33 @@
         </field>
     </record>
 
+    <!-- ============== APPS REQUERIDAS POR PUESTO (hr.job) ============== -->
+    <record id="hr_job_form_foco_apps" model="ir.ui.view">
+        <field name="name">hr.job.form.foco.apps</field>
+        <field name="model">hr.job</field>
+        <field name="inherit_id" ref="hr.view_hr_job_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Foco · apps requeridas del puesto"
+                       groups="foco_monitor.group_foco_manager">
+                    <div colspan="2" class="text-muted">
+                        Apps que Foco instala a TODOS los de este puesto y que el
+                        usuario NO puede quitar. Lo que la persona pida y le aprueben
+                        (nivel equipo) sí lo puede quitar.
+                    </div>
+                    <field name="foco_app_ids" nolabel="1" colspan="2"
+                           context="{'default_install_type': 'force'}">
+                        <list editable="bottom">
+                            <field name="app_id"/>
+                            <field name="install_type"/>
+                            <field name="note"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
     <record id="foco_mobile_app_action" model="ir.actions.act_window">
         <field name="name">Apps moviles</field>
         <field name="res_model">foco.mobile.app</field>
