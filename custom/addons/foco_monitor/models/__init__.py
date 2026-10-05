@@ -23,6 +23,10 @@ from . import foco_tab_review
 from . import hr_employee
 from . import res_config_settings
 from . import res_users
+# Flujo de vendedores: el cliente es un res.partner, la oportunidad un crm.lead.
+from . import res_partner
+from . import foco_visita
+from . import foco_vendedor_import
 # Al final a proposito: extienden foco.settings y foco.invitation, que tienen
 # que estar ya definidos cuando Odoo arma el registro. Importados antes, el
 # modulo no carga ("Failed to load registry").

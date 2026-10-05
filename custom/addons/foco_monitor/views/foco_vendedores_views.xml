@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================================================== CLIENTE (partner) -->
+    <!-- La ficha del partner gana una pestana "Ventas de campo" con lo que la
+         Hoja Maestra traia, y un boton con el conteo de visitas. Solo aparece
+         para los clientes del flujo (foco_cliente_ventas). -->
+    <record id="view_partner_form_foco_ventas" model="ir.ui.view">
+        <field name="name">res.partner.form.foco.ventas</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="foco_cliente_ventas" invisible="1"/>
+                <button class="oe_stat_button" type="object"
+                        name="action_foco_ver_visitas" icon="fa-map-marker"
+                        invisible="not foco_cliente_ventas">
+                    <field name="foco_visita_count" widget="statinfo" string="Visitas"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Ventas de campo" name="foco_ventas"
+                      invisible="not foco_cliente_ventas">
+                    <group>
+                        <group string="Comercial">
+                            <field name="foco_cliente_ventas"/>
+                            <field name="foco_empaque"/>
+                            <field name="foco_contacto"/>
+                            <field name="foco_estatus"/>
+                            <field name="user_id"/>
+                            <field name="foco_expediente_url" widget="url"/>
+                        </group>
+                        <group string="Ubicacion y zona">
+                            <field name="foco_zona"/>
+                            <field name="foco_cultivo"/>
+                            <field name="partner_latitude"/>
+                            <field name="partner_longitude"/>
+                            <field name="foco_geo_pendiente"/>
+                            <field name="foco_ubicacion_url" widget="url"/>
+                            <field name="foco_ubicacion_fisica"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_list_foco_ventas" model="ir.ui.view">
+        <field name="name">res.partner.list.foco.ventas</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Clientes de ventas">
+                <field name="name"/>
+                <field name="foco_empaque" optional="show"/>
+                <field name="foco_zona" optional="show"/>
+                <field name="foco_cultivo" optional="show"/>
+                <field name="foco_estatus"/>
+                <field name="user_id"/>
+                <field name="phone" optional="show"/>
+                <field name="foco_ultima_visita" optional="show"/>
+                <field name="foco_geo_pendiente" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_partner_search_foco_ventas" model="ir.ui.view">
+        <field name="name">res.partner.search.foco.ventas</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search string="Clientes de ventas">
+                <field name="name" string="Cliente / empaque"
+                       filter_domain="['|', ('name', 'ilike', self), ('foco_empaque', 'ilike', self)]"/>
+                <field name="foco_zona"/>
+                <field name="foco_cultivo"/>
+                <field name="user_id" string="Vendedor"/>
+                <filter name="geo_pendiente" string="Sin ubicacion"
+                        domain="[('foco_geo_pendiente', '=', True)]"/>
+                <separator/>
+                <filter name="est_activo" string="Seguimiento activo"
+                        domain="[('foco_estatus', '=', 'activo')]"/>
+                <filter name="est_postergado" string="Postergado"
+                        domain="[('foco_estatus', '=', 'postergado')]"/>
+                <filter name="est_cerrado" string="Venta cerrada"
+                        domain="[('foco_estatus', '=', 'cerrado')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_vendedor" string="Vendedor" context="{'group_by': 'user_id'}"/>
+                    <filter name="g_zona" string="Zona" context="{'group_by': 'foco_zona'}"/>
+                    <filter name="g_cultivo" string="Cultivo" context="{'group_by': 'foco_cultivo'}"/>
+                    <filter name="g_estatus" string="Estatus" context="{'group_by': 'foco_estatus'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_cliente_ventas_action" model="ir.actions.act_window">
+        <field name="name">Clientes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('foco_cliente_ventas', '=', True)]</field>
+        <field name="context">{'default_foco_cliente_ventas': True,
+            'default_company_type': 'company',
+            'search_default_g_vendedor': 1}</field>
+        <field name="search_view_id" ref="view_partner_search_foco_ventas"/>
+        <field name="view_id" ref="view_partner_list_foco_ventas"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay clientes de ventas de campo</p>
+            <p>Importa una Hoja Maestra desde el menu, o crea un cliente a mano.</p>
+        </field>
+    </record>
+
+    <!-- ===================================================== VISITA -->
+    <record id="view_foco_visita_list" model="ir.ui.view">
+        <field name="name">foco.visita.list</field>
+        <field name="model">foco.visita</field>
+        <field name="arch" type="xml">
+            <list string="Visitas" default_order="check_in desc"
+                  decoration-success="en_sitio == 'si'"
+                  decoration-warning="en_sitio == 'lejos'"
+                  decoration-muted="en_sitio == 'sin_pin'">
+                <field name="check_in"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="en_sitio"/>
+                <field name="distancia_m" optional="show"/>
+                <field name="resultado" optional="show"/>
+                <field name="lead_id" optional="hide"/>
+                <field name="proxima_fecha" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_foco_visita_form" model="ir.ui.view">
+        <field name="name">foco.visita.form</field>
+        <field name="model">foco.visita</field>
+        <field name="arch" type="xml">
+            <form string="Visita">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="user_id"/>
+                            <field name="check_in"/>
+                            <field name="lead_id"/>
+                        </group>
+                        <group>
+                            <field name="en_sitio"/>
+                            <field name="distancia_m"/>
+                            <field name="precision_m"/>
+                            <field name="origen"/>
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="resultado"/>
+                        <field name="proxima_fecha"/>
+                        <field name="nota" placeholder="Que paso en la visita..."/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_visita_action" model="ir.actions.act_window">
+        <field name="name">Visitas</field>
+        <field name="res_model">foco.visita</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay visitas registradas</p>
+            <p>Las visitas las registra el vendedor desde el telefono (Fase 2),
+               o se pueden capturar a mano aqui.</p>
+        </field>
+    </record>
+
+    <!-- ===================================================== IMPORTADOR -->
+    <record id="view_foco_vendedor_import_form" model="ir.ui.view">
+        <field name="name">foco.vendedor.import.form</field>
+        <field name="model">foco.vendedor.import</field>
+        <field name="arch" type="xml">
+            <form string="Importar Hoja Maestra">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Importar Hoja Maestra</h1>
+                        <p>Sube el .xlsx del vendedor. Se crean/actualizan los
+                           clientes con su ubicacion (sacada del enlace de Google
+                           Maps), y la oportunidad cuando la fila la trae.</p>
+                    </div>
+                    <group>
+                        <field name="archivo" filename="nombre_archivo"/>
+                        <field name="nombre_archivo" invisible="1"/>
+                        <field name="vendedor_id"/>
+                        <field name="actualizar"/>
+                        <field name="crear_oportunidad"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Importar" name="action_importar" type="object"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vendedor_import_action" model="ir.actions.act_window">
+        <field name="name">Importar Hoja Maestra</field>
+        <field name="res_model">foco.vendedor.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,6 +1,6 @@
 ﻿{
     'name': 'Foco - Monitor de Productividad',
-    'version': '19.0.28.8.0',
+    'version': '19.0.28.9.0',
     'summary': 'Mide el uso real de aplicaciones (primer plano vs segundo plano) '
                'por empleado, con control remoto de equipos.',
     'description': """
@@ -21,7 +21,7 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
     'author': 'FERBA',
     'category': 'Human Resources/Productivity',
     'license': 'LGPL-3',
-    'depends': ['base', 'hr', 'mail'],
+    'depends': ['base', 'hr', 'mail', 'crm', 'base_geolocalize'],
     'data': [
         'security/foco_security.xml',
         'security/ir.model.access.csv',
@@ -60,6 +60,8 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'views/foco_justify_templates.xml',
         'views/foco_distribucion_templates.xml',
         'views/foco_dashboard_action.xml',
+        'views/foco_vendedores_views.xml',
+        'views/foco_vendedores_action.xml',
         'views/foco_menus.xml',
         'views/foco_mdm_views.xml',
         'security/foco_mdm_rules.xml',
@@ -86,6 +88,9 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
             'foco_monitor/static/src/tomy/tomy_panel.js',
             'foco_monitor/static/src/tomy/tomy_panel.xml',
             'foco_monitor/static/src/tomy/tomy_panel.scss',
+            'foco_monitor/static/src/vendedores/foco_vendedores.js',
+            'foco_monitor/static/src/vendedores/foco_vendedores.xml',
+            'foco_monitor/static/src/vendedores/foco_vendedores.scss',
         ],
     },
     'post_init_hook': 'post_init_hook',
