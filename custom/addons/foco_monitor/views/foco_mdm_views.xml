@@ -144,6 +144,10 @@
                         string="Bloquear en su perfil"
                         confirm="Se bloquea esta app para TODOS los teléfonos de ese perfil. ¿Continuar?"
                         invisible="state != 'instalada'"/>
+                <button name="action_quitar_del_equipo" type="object" icon="fa-trash"
+                        string="Quitar del teléfono"
+                        confirm="Foco quitará esta app de ESTE teléfono en su siguiente conexión. ¿Continuar?"
+                        invisible="state != 'instalada'"/>
             </list>
         </field>
     </record>

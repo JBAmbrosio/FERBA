@@ -584,6 +584,19 @@ class FocoMobileInstalled(models.Model):
             self.env['foco.mobile.grant']._conceder(app, 'blocked', policy=perfil)
         return True
 
+    def action_quitar_del_equipo(self):
+        """Ordena QUITAR esta app del telefono (desinstalacion silenciosa que Foco
+        ejecuta como dueño). Es la baja de una app REQUERIDA, que el usuario no
+        puede quitar por su cuenta: la decide el admin. Nunca Foco."""
+        exigir_admin(self.env)
+        for i in self:
+            if i.package == FOCO_PKG:
+                raise UserError('Foco no se quita: se da de baja el equipo (Liberar).')
+            i.device_id._encolar('uninstall', i.package)
+            i.device_id.message_post(body='Se ordenó quitar %s del teléfono.' % (i.name or i.package))
+        return self.env['foco.settings'].sudo().get_settings()._aviso(
+            'Orden enviada: la app se quita en la siguiente conexión del teléfono.', 'success')
+
 
 # =============================================================== ORDENES
 class FocoMobileCommandMdm(models.Model):
@@ -597,14 +610,16 @@ class FocoMobileCommandMdm(models.Model):
         ('reboot', 'Reiniciar'),
         ('wipe', 'Restablecer de fábrica'),
         ('release', 'Dar de baja (liberar)'),
-    ], ondelete={'lock': 'cascade', 'reboot': 'cascade', 'wipe': 'cascade', 'release': 'cascade'})
+        ('uninstall', 'Quitar una app'),
+    ], ondelete={'lock': 'cascade', 'reboot': 'cascade', 'wipe': 'cascade',
+                 'release': 'cascade', 'uninstall': 'cascade'})
 
     @api.model
     def para_telefono(self, device):
         """Las ordenes PENDIENTES de un telefono (menos la captura, que va por su
         propio bloque). Se marcan 'sent' al entregarlas."""
         pend = self.sudo().search([('device_id', '=', device.id), ('state', '=', 'pending'),
-                                   ('kind', 'in', ('lock', 'reboot', 'wipe', 'release'))])
+                                   ('kind', 'in', ('lock', 'reboot', 'wipe', 'release', 'uninstall'))])
         pend.write({'state': 'sent', 'sent_at': fields.Datetime.now()})
         return [{'id': o.id, 'kind': o.kind, 'payload': o.payload or ''} for o in pend]
 
