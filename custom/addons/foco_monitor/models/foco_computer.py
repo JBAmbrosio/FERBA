@@ -20,6 +20,19 @@ POLICY_STALE_MINUTES = 15
 # avisar en cada ciclo seria ruido; callar para siempre, olvido. Una vez al dia.
 REALERT_HOURS = 24
 
+# `service_state` (lo que el watchdog reporta de su ultimo ciclo) que significa
+# "el watchdog CORRE pero su verificacion fallo", con el motivo. No es un
+# servicio caido: es error de servidor/credencial/red. Todo lo que no sea esto
+# ni un exito ('verificado'/'aplicado') se trata como watchdog sin ciclo.
+_SERVICE_ERROR_STATES = {
+    'http_500', 'http_502', 'http_503', 'http_504', 'http_400', 'http_401',
+    'http_403', 'http_404', 'sin_conexion', 'sin_llave', 'ssl', 'timeout',
+}
+
+# Un `servicio_error` transitorio (un http_500 suelto) se resuelve en minutos y
+# NO debe paginar. Solo se avisa si la verificacion lleva fallando este tiempo.
+SERVICIO_ERROR_HORAS = 2
+
 
 class FocoComputer(models.Model):
     _name = 'foco.computer'
@@ -345,34 +358,48 @@ class FocoComputer(models.Model):
     # salud del agente, y `_cron_revisar_bloqueo` las convierte en un aviso.
     block_attention = fields.Selection(
         [('ok', 'Sin pendientes'),
-         ('servicio_caido', 'Servicio de bloqueo caido (agente vivo)'),
+         ('servicio_error', 'Verificacion falla (watchdog vivo)'),
+         ('servicio_caido', 'Watchdog sin ciclo reciente'),
          ('alterado', 'Bloqueo alterado'),
          ('equipo_ausente', 'Equipo sin reportar'),
          ('pendiente', 'Cambio pendiente'),
          ('nunca', 'Nunca aplicada')],
         string='Atencion del bloqueo', compute='_compute_block_attention',
-        help='Refina "Estado del bloqueo" para saber QUE hacer. Lo clave: '
-             'distingue un servicio de bloqueo caido con el equipo EN USO (el '
-             'agente sigue reportando pero el bloqueo no se confirma: atender ya) '
-             'de un equipo que simplemente no reporta (apagado o sin red).')
+        help='Refina "Estado del bloqueo" para saber QUE hacer, con el motivo que '
+             'reporta el propio watchdog (`service_state`):\n'
+             '- servicio_error: el watchdog CORRE pero su verificacion falla '
+             '(http_500 = servidor; http_401/sin_llave = credencial; sin_conexion '
+             '= red). NO es el servicio del equipo: no se reinicia.\n'
+             '- servicio_caido: el watchdog dejo de dejar un ciclo reciente '
+             '(revisar FocoWatchdog en el equipo).\n'
+             '- equipo_ausente: el equipo no reporta (apagado o sin red).')
     block_alert_state = fields.Char(
         string='Ultimo aviso de bloqueo', readonly=True, copy=False,
         help='Estado por el que se aviso por ultima vez. Evita repetir el mismo '
              'aviso en cada ciclo; se limpia al recuperarse.')
     block_alert_at = fields.Datetime(string='Bloqueo avisado el', readonly=True, copy=False)
 
-    @api.depends('policy_sync', 'health', 'minutes_since_seen')
+    @api.depends('policy_sync', 'health', 'minutes_since_seen', 'service_state')
     def _compute_block_attention(self):
         for c in self:
             s = c.policy_sync
             if s == 'drift':
                 c.block_attention = 'alterado'
             elif s == 'sin_verificar':
-                # El agente SIGUE reportando pero el bloqueo no se confirma: el
-                # servicio SYSTEM -que impone Y verifica- esta caido. Si el equipo
-                # tampoco reporta, es ausencia (lo cubre la salud del agente),
-                # no un servicio caido con la maquina en uso.
-                c.block_attention = 'servicio_caido' if c.health == 'ok' else 'equipo_ausente'
+                if c.health != 'ok':
+                    # El equipo no reporta: apagado o sin red (lo cubre la
+                    # vigilancia de salud del agente), no un servicio en uso.
+                    c.block_attention = 'equipo_ausente'
+                elif (c.service_state or '').strip().lower() in _SERVICE_ERROR_STATES:
+                    # El watchdog CORRE y reporto su ultimo ciclo, pero la
+                    # verificacion fallo con ESE motivo (http_500 = servidor;
+                    # http_401/sin_llave = credencial; sin_conexion = red). NO es
+                    # "el servicio del equipo se cayo": no se reinicia la maquina.
+                    c.block_attention = 'servicio_error'
+                else:
+                    # Agente vivo, sin motivo de error reportado: el watchdog no
+                    # esta dejando un ciclo reciente (sin_archivo / detenido).
+                    c.block_attention = 'servicio_caido'
             elif s == 'pendiente':
                 c.block_attention = 'pendiente'
             elif s == 'nunca':
@@ -393,13 +420,23 @@ class FocoComputer(models.Model):
         if not destinatarios:
             return
         nombre = perfil.name if perfil else 'sin perfil'
-        if estado == 'servicio_caido':
-            desde = fields.Datetime.to_string(self.policy_verified_at) or 'nunca'
-            titulo = 'Foco · bloqueo SIN CONFIRMAR'
-            cuerpo = ('%s sigue reportando, pero su servicio de bloqueo no confirma '
-                      'desde %s UTC. El bloqueo (%s) podria no estar imponiendose: '
-                      'revisar el servicio de Foco (SYSTEM) en el equipo.'
-                      % (self.display_name, desde, nombre))
+        desde = fields.Datetime.to_string(self.policy_verified_at) or 'nunca'
+        if estado == 'servicio_error':
+            motivo = (self.service_state or '?').strip()
+            detalle = (' (%s)' % self.service_detail) if self.service_detail else ''
+            titulo = 'Foco · verificacion del bloqueo FALLA'
+            cuerpo = ('%s: su watchdog esta CORRIENDO, pero su verificacion del '
+                      'bloqueo (%s) falla con "%s"%s desde %s UTC. http_5xx = error '
+                      'del SERVIDOR (revisar logs; suele ser transitorio); '
+                      'http_401/sin_llave = credencial; sin_conexion = red del '
+                      'equipo. El servicio del equipo NO necesita reinicio.'
+                      % (self.display_name, nombre, motivo, detalle, desde))
+        elif estado == 'servicio_caido':
+            titulo = 'Foco · watchdog SIN CICLO'
+            cuerpo = ('%s sigue reportando, pero su watchdog no deja un ciclo '
+                      'reciente (sin confirmar desde %s UTC). El bloqueo (%s) '
+                      'podria no estar imponiendose: revisar que FocoWatchdog '
+                      'corra en el equipo.' % (self.display_name, desde, nombre))
         elif estado == 'alterado':
             titulo = 'Foco · bloqueo ALTERADO'
             cuerpo = ('%s reporto que le quitaron el bloqueo (%s). Se reconcilia '
@@ -416,10 +453,12 @@ class FocoComputer(models.Model):
     @api.model
     def _cron_revisar_bloqueo(self):
         """Vuelve ACTIVO lo que hoy es un estado pasivo: avisa de los equipos con
-        el bloqueo sin confirmar (servicio caido, agente vivo) o alterado. Avisa
-        al aparecer y reavisa cada REALERT_HOURS si persiste; limpia el marcador
-        al recuperarse para que un fallo nuevo vuelva a avisar. La ausencia
-        (equipo sin reportar) la cubre la vigilancia de salud del agente."""
+        el bloqueo alterado, con el watchdog sin ciclo reciente (servicio_caido),
+        o con la verificacion fallando (servicio_error: watchdog vivo pero
+        http_500/credencial/red; solo si persiste > SERVICIO_ERROR_HORAS, para no
+        paginar por un error transitorio). Avisa al aparecer y reavisa cada
+        REALERT_HOURS; limpia el marcador al recuperarse. La ausencia (equipo sin
+        reportar) la cubre la vigilancia de salud del agente."""
         ajustes = self.env['foco.settings'].sudo().get_settings()
         if not ajustes.block_enabled:
             return
@@ -436,7 +475,15 @@ class FocoComputer(models.Model):
         ])
         for c in candidatos:
             estado = c.block_attention
-            if estado in ('servicio_caido', 'alterado'):
+            # `servicio_error` solo pagina si PERSISTE: un http_500 transitorio se
+            # resuelve en minutos y no debe despertar a nadie (medido: un equipo
+            # con http_500 que se recupero solo). `servicio_caido`/`alterado` si
+            # son accionables de inmediato.
+            alertable = estado in ('servicio_caido', 'alterado')
+            if estado == 'servicio_error':
+                alertable = bool(c.policy_verified_at) and (
+                    ahora - c.policy_verified_at) >= timedelta(hours=SERVICIO_ERROR_HORAS)
+            if alertable:
                 reavisar = bool(c.block_alert_at) and (
                     ahora - c.block_alert_at) >= timedelta(hours=REALERT_HOURS)
                 if estado != c.block_alert_state or not c.block_alert_at or reavisar:
