@@ -715,6 +715,36 @@ class FocoController(http.Controller):
             'employee': inv.employee_id.name, 'config': s.mobile_config(),
             'politica': dev.sudo()._politica_agente()})
 
+    @http.route('/foco/mobile/clientes', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_clientes(self, **kw):
+        """Cartera de clientes de ventas para la pantalla de Visita del telefono
+        (la del boton 'Llegue'). El telefono la cachea y la ordena por cercania
+        al GPS actual. Autentica con la llave del equipo."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        return request.make_json_response(
+            {'ok': True, 'clientes': dev.sudo().clientes_para()})
+
+    @http.route('/foco/mobile/visita', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_visita(self, **kw):
+        """Check-in de visita desde el telefono. Acepta una o varias (la cola
+        offline reenvia en lote). Deduplica por `uuid`. Devuelve los uuid
+        guardados para que el telefono los saque de su cola."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        visitas = data.get('visitas')
+        if visitas is None:
+            visitas = [data] if data.get('uuid') else []
+        saved = dev.sudo().registrar_visitas(visitas)
+        return request.make_json_response({'ok': True, 'stored': True, 'saved': saved})
+
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_beacon(self, **kw):

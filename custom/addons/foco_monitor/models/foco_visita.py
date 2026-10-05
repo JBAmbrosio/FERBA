@@ -36,9 +36,17 @@ class FocoVisita(models.Model):
     _order = 'check_in desc'
 
     name = fields.Char(string='Visita', compute='_compute_name', store=True)
-    user_id = fields.Many2one('res.users', string='Vendedor', required=True,
+    # El vendedor puede estar vacio: desde el telefono el actor seguro es el
+    # EMPLEADO del equipo; su usuario Odoo (user_id) solo se llena si existe.
+    user_id = fields.Many2one('res.users', string='Vendedor',
                               default=lambda s: s.env.user, index=True,
                               tracking=True)
+    employee_id = fields.Many2one('hr.employee', string='Empleado', index=True)
+    device_id = fields.Many2one('foco.mobile.device', string='Telefono',
+                                ondelete='set null')
+    device_uuid = fields.Char(string='UUID del telefono', index=True, copy=False,
+                              help='Id que genera el telefono para no duplicar '
+                                   'una visita al reenviarla sin internet.')
     partner_id = fields.Many2one('res.partner', string='Cliente', required=True,
                                  index=True, tracking=True,
                                  domain=[('foco_cliente_ventas', '=', True)])
