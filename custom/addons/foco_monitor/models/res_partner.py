@@ -54,7 +54,7 @@ class ResPartner(models.Model):
 
     foco_visita_ids = fields.One2many('foco.visita', 'partner_id',
                                       string='Visitas')
-    foco_visita_count = fields.Integer(string='Visitas',
+    foco_visita_count = fields.Integer(string='Numero de visitas',
                                        compute='_compute_foco_visita')
     foco_ultima_visita = fields.Datetime(string='Ultima visita',
                                          compute='_compute_foco_visita')
