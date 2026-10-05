@@ -82,12 +82,14 @@
                         domain="[('foco_estatus', '=', 'postergado')]"/>
                 <filter name="est_cerrado" string="Venta cerrada"
                         domain="[('foco_estatus', '=', 'cerrado')]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter name="g_vendedor" string="Vendedor" context="{'group_by': 'user_id'}"/>
-                    <filter name="g_zona" string="Zona" context="{'group_by': 'foco_zona'}"/>
-                    <filter name="g_cultivo" string="Cultivo" context="{'group_by': 'foco_cultivo'}"/>
-                    <filter name="g_estatus" string="Estatus" context="{'group_by': 'foco_estatus'}"/>
-                </group>
+                <!-- Agrupar por: los filtros de group_by van SUELTOS en el search.
+                     Envolverlos en <group expand="0"> hace que Odoo 19 rechace la
+                     vista entera (mismo caso que foco_capture_views.xml). -->
+                <separator/>
+                <filter name="g_vendedor" string="Vendedor" context="{'group_by': 'user_id'}"/>
+                <filter name="g_zona" string="Zona" context="{'group_by': 'foco_zona'}"/>
+                <filter name="g_cultivo" string="Cultivo" context="{'group_by': 'foco_cultivo'}"/>
+                <filter name="g_estatus" string="Estatus" context="{'group_by': 'foco_estatus'}"/>
             </search>
         </field>
     </record>
