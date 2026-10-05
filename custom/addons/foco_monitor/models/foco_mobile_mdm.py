@@ -466,14 +466,18 @@ class FocoMobileGrant(models.Model):
     telefono manda sobre la del perfil: asi se aprueba algo a una sola persona
     sin tocar a las demas."""
     _name = 'foco.mobile.grant'
-    _description = 'App aprobada o bloqueada en un perfil o un celular'
-    _order = 'policy_id, device_id, app_id'
+    _description = 'App aprobada o bloqueada en un perfil, un puesto o un celular'
+    _order = 'policy_id, job_id, device_id, app_id'
 
     _perfil_uniq = models.Constraint('unique(policy_id, app_id)', 'Esa app ya está en el perfil.')
     _equipo_uniq = models.Constraint('unique(device_id, app_id)', 'Esa app ya está en ese teléfono.')
+    _puesto_uniq = models.Constraint('unique(job_id, app_id)', 'Esa app ya está en ese puesto.')
 
     policy_id = fields.Many2one('foco.policy', string='Perfil', ondelete='cascade', index=True)
     device_id = fields.Many2one('foco.mobile.device', string='Teléfono', ondelete='cascade', index=True)
+    # Apps REQUERIDAS por puesto: se instalan solas a todos los de ese puesto y el
+    # usuario NO las puede quitar (las de nivel equipo, que pidio el, si).
+    job_id = fields.Many2one('hr.job', string='Puesto', ondelete='cascade', index=True)
     app_id = fields.Many2one('foco.mobile.app', string='App', required=True, ondelete='cascade', index=True)
     package = fields.Char(related='app_id.package', string='Paquete')
     install_type = fields.Selection(INSTALL_TYPES, string='Qué pasa', required=True, default='available',
@@ -483,11 +487,12 @@ class FocoMobileGrant(models.Model):
     request_id = fields.Many2one('foco.mobile.app.request', string='Por la solicitud', ondelete='set null')
     note = fields.Char(string='Por qué')
 
-    @api.constrains('policy_id', 'device_id')
+    @api.constrains('policy_id', 'device_id', 'job_id')
     def _check_destino(self):
         for g in self:
-            if bool(g.policy_id) == bool(g.device_id):
-                raise ValidationError('Una aprobación es de un perfil o de un teléfono, no de los dos ni de ninguno.')
+            if (bool(g.policy_id) + bool(g.device_id) + bool(g.job_id)) != 1:
+                raise ValidationError('Una aprobación es de un perfil, un puesto o un '
+                                      'teléfono: exactamente uno, no varios ni ninguno.')
             if g.app_id.package == FOCO_PKG:
                 raise ValidationError('Foco se instala siempre; no hace falta aprobarla.')
 
@@ -508,7 +513,12 @@ class FocoMobileGrant(models.Model):
         return g
 
     def _mdm_equipos(self):
-        return self.device_id | self.policy_id._mdm_equipos()
+        equipos = self.device_id | self.policy_id._mdm_equipos()
+        jobs = self.mapped('job_id')
+        if jobs:
+            equipos |= self.env['foco.mobile.device'].sudo().search(
+                [('employee_id.job_id', 'in', jobs.ids)])
+        return equipos
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -527,6 +537,16 @@ class FocoMobileGrant(models.Model):
         res = super().unlink()
         equipos.exists()._mdm_programar()
         return res
+
+
+class HrJob(models.Model):
+    _inherit = 'hr.job'
+
+    foco_app_ids = fields.One2many(
+        'foco.mobile.grant', 'job_id', string='Apps requeridas (Foco)',
+        help='Apps que Foco instala a TODOS los de este puesto y que el usuario '
+             'NO puede quitar (las de nivel equipo, que pidio la persona, si). '
+             '"Instalar sola" = forzada; "Disponible" = aparece en su Play.')
 
 
 class FocoMobileInstalled(models.Model):
@@ -937,11 +957,34 @@ class FocoMobileDeviceMdm(models.Model):
             }
         else:
             r = dict(_MOVIL_FABRICA)
+        # Apps en TRES capas, de menor a mayor prioridad. Las dos primeras son de
+        # la EMPRESA (el usuario no las puede quitar: van en `requeridas`); la del
+        # equipo es lo que la PERSONA pidio (auto-servicio: la puede quitar).
         apps = {}
-        for g in (perfil.mobile_grant_ids if perfil else self.env['foco.mobile.grant']):
+        requeridas = set()
+        Grant = self.env['foco.mobile.grant'].sudo()
+        # 1) Perfil (navegacion/MDM del telefono).
+        for g in (perfil.mobile_grant_ids if perfil else Grant):
             apps[g.app_id.package] = g.install_type
+            requeridas.discard(g.app_id.package)
+            if g.install_type != 'blocked':
+                requeridas.add(g.app_id.package)
+        # 2) Puesto: las REQUERIDAS por el puesto del empleado. Mandan sobre el
+        #    perfil y son de la empresa.
+        job = self.employee_id.job_id
+        if job:
+            for g in Grant.search([('job_id', '=', job.id)]):
+                apps[g.app_id.package] = g.install_type
+                requeridas.discard(g.app_id.package)
+                if g.install_type != 'blocked':
+                    requeridas.add(g.app_id.package)
+        # 3) Equipo: lo que la persona pidio y le aprobaron. Manda sobre todo y
+        #    NO es requerida (la puede quitar), salvo que la empresa tambien la
+        #    exija por perfil/puesto (ahi se queda en `requeridas`).
         for g in self.grant_ids:
-            apps[g.app_id.package] = g.install_type      # la de la persona manda
+            apps[g.app_id.package] = g.install_type
+            if g.install_type == 'blocked':
+                requeridas.discard(g.app_id.package)
         bloquear, permitir = [], []
         if perfil and r['web'] and ajustes.block_enabled:
             bloquear, permitir = perfil._listas()
@@ -966,6 +1009,9 @@ class FocoMobileDeviceMdm(models.Model):
         return {
             'perfil': perfil.name if perfil else '',
             'apps': apps,
+            # Paquetes que el usuario NO puede quitar (empresa: perfil + puesto).
+            # Lo administrado NO requerido (lo que pidio el) si lo puede quitar.
+            'requeridas': sorted(requeridas),
             'restricciones': r,
             'web': {'bloquear': bloquear, 'permitir': permitir},
             'instalar': instalar,
@@ -1004,8 +1050,8 @@ class FocoMobileDeviceMdm(models.Model):
             return {
                 'aplicar': True, 'perfil': '',
                 'restricciones': {k: False for k in _MOVIL_FABRICA},
-                'apps': {}, 'web': {'bloquear': [], 'permitir': []}, 'instalar': [],
-                'play': play, 'play_ui': play_ui,
+                'apps': {}, 'requeridas': [], 'web': {'bloquear': [], 'permitir': []},
+                'instalar': [], 'play': play, 'play_ui': play_ui,
             }
         base = yo._politica_base(perfil=perfil)
         base['aplicar'] = True
