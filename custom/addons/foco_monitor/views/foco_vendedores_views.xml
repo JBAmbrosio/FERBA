@@ -141,6 +141,7 @@
                         <group>
                             <field name="partner_id"/>
                             <field name="user_id"/>
+                            <field name="employee_id"/>
                             <field name="check_in"/>
                             <field name="lead_id"/>
                         </group>
@@ -149,6 +150,7 @@
                             <field name="distancia_m"/>
                             <field name="precision_m"/>
                             <field name="origen"/>
+                            <field name="device_id"/>
                             <field name="latitude"/>
                             <field name="longitude"/>
                         </group>

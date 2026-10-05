@@ -414,6 +414,80 @@ class FocoMobileDevice(models.Model):
             'apps': apps,
         }
 
+    # ------------------------------------------------------- visitas de campo
+    def clientes_para(self):
+        """Cartera de clientes de ventas para la pantalla de Visita del telefono.
+        Si el vendedor (usuario del empleado del equipo) tiene cartera asignada,
+        devuelve la suya; si no (aun no se asignan), devuelve todos. Campos
+        minimos para ubicar y elegir en el telefono."""
+        self.ensure_one()
+        Partner = self.env['res.partner'].sudo()
+        base = [('foco_cliente_ventas', '=', True)]
+        emp = self.employee_id
+        user = emp.user_id if emp else Partner.env['res.users']
+        dom = base
+        if user and Partner.search_count(base + [('user_id', '=', user.id)]):
+            dom = base + [('user_id', '=', user.id)]
+        filas = []
+        for c in Partner.search(dom, limit=3000):
+            filas.append({
+                'id': c.id, 'name': c.display_name,
+                'lat': c.partner_latitude, 'lon': c.partner_longitude,
+                'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
+                'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
+            })
+        return filas
+
+    def registrar_visitas(self, visitas):
+        """Crea foco.visita desde el telefono (check-in del boton 'Llegue').
+        Deduplica por `uuid` (el telefono reenvia sin internet y no debe
+        duplicar). Un prospecto nuevo -sin partner_id pero con nombre- se crea
+        con las coordenadas del check-in como su pin. Devuelve los uuid
+        guardados, para que el telefono los saque de su cola."""
+        self.ensure_one()
+        Visita = self.env['foco.visita'].sudo()
+        Partner = self.env['res.partner'].sudo()
+        emp = self.employee_id
+        user = emp.user_id if emp else self.env['res.users']
+        guardados = []
+        for v in (visitas or []):
+            uuid = (v.get('uuid') or '').strip()
+            if not uuid:
+                continue
+            if Visita.search_count([('device_uuid', '=', uuid)]):
+                guardados.append(uuid)          # ya estaba: idempotente
+                continue
+            lat = v.get('lat') or 0.0
+            lon = v.get('lon') or 0.0
+            partner = None
+            if v.get('partner_id'):
+                partner = Partner.browse(int(v['partner_id']))
+                if not partner.exists():
+                    partner = None
+            if partner is None and (v.get('nuevo_nombre') or '').strip():
+                partner = Partner.create({
+                    'name': v['nuevo_nombre'].strip()[:120],
+                    'company_type': 'company',
+                    'foco_cliente_ventas': True, 'foco_estatus': 'prospecto',
+                    'user_id': user.id if user else False,
+                    'partner_latitude': lat, 'partner_longitude': lon,
+                })
+            if partner is None:
+                continue
+            Visita.create({
+                'device_uuid': uuid, 'device_id': self.id,
+                'employee_id': emp.id if emp else False,
+                'user_id': user.id if user else False,
+                'partner_id': partner.id,
+                'check_in': v.get('at') or fields.Datetime.now(),
+                'latitude': lat, 'longitude': lon,
+                'precision_m': v.get('accuracy') or 0.0,
+                'origen': 'gps',
+                'nota': (v.get('nota') or '').strip() or False,
+            })
+            guardados.append(uuid)
+        return guardados
+
 
 class FocoLocation(models.Model):
     _name = 'foco.location'
