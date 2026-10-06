@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Control de Asistencia',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'summary': 'Centro de control de asistencia: detecta marcas incompletas, '
                'permite corregirlas en linea y validarlas para la nomina, sin Excel.',
     'description': """
