@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="ferba_asistencia.Dashboard">
+        <div class="o_ferba_dash">
+            <div class="o_ferba_dash_head">
+                <div>
+                    <h1>Panel de Asistencia</h1>
+                    <span class="o_ferba_dash_sub" t-esc="state.mesNombre"/>
+                </div>
+                <div class="o_ferba_dash_actions">
+                    <button class="btn btn-secondary" t-on-click="() => this.cargar()"
+                            t-att-disabled="state.cargando">
+                        <i class="fa fa-refresh me-1"/>Actualizar
+                    </button>
+                    <button class="btn btn-primary" t-on-click="() => this.generarMes()"
+                            t-att-disabled="state.generando">
+                        <i class="fa fa-cogs me-1"/>
+                        <t t-if="state.generando">Generando...</t>
+                        <t t-else="">Generar el mes</t>
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="state.cargando" class="o_ferba_dash_loading">
+                <i class="fa fa-spinner fa-spin fa-2x"/>
+            </div>
+
+            <div t-else="">
+                <!-- Tarjetas KPI -->
+                <div class="o_ferba_kpis">
+                    <div class="o_ferba_kpi o_ferba_kpi_click" t-on-click="() => this.abrirCorregir()">
+                        <div class="o_ferba_kpi_val" t-esc="state.kpi.corregir"/>
+                        <div class="o_ferba_kpi_lbl">Marcas por corregir</div>
+                        <div class="o_ferba_kpi_ic" style="color:#f97316"><i class="fa fa-wrench"/></div>
+                    </div>
+                    <div class="o_ferba_kpi o_ferba_kpi_click" t-on-click="() => this.abrirAbiertas()">
+                        <div class="o_ferba_kpi_val" t-esc="state.kpi.abiertas"/>
+                        <div class="o_ferba_kpi_lbl">Abiertas ahora (sin salida)</div>
+                        <div class="o_ferba_kpi_ic" style="color:#dc2626"><i class="fa fa-sign-in"/></div>
+                    </div>
+                    <div class="o_ferba_kpi o_ferba_kpi_click" t-on-click="() => this.abrirAusencias()">
+                        <div class="o_ferba_kpi_val" t-esc="state.kpi.ausencias"/>
+                        <div class="o_ferba_kpi_lbl">Ausencias del mes</div>
+                        <div class="o_ferba_kpi_ic" style="color:#b91c1c"><i class="fa fa-user-times"/></div>
+                    </div>
+                    <div class="o_ferba_kpi">
+                        <div class="o_ferba_kpi_val"><t t-esc="state.kpi.cumplimiento"/>%</div>
+                        <div class="o_ferba_kpi_lbl">Cumplimiento de horas</div>
+                        <div class="o_ferba_kpi_ic" style="color:#16a34a"><i class="fa fa-check-circle"/></div>
+                    </div>
+                    <div class="o_ferba_kpi">
+                        <div class="o_ferba_kpi_val" t-esc="state.kpi.validadas"/>
+                        <div class="o_ferba_kpi_lbl">Validadas este mes</div>
+                        <div class="o_ferba_kpi_ic" style="color:#0ea5e9"><i class="fa fa-thumbs-up"/></div>
+                    </div>
+                    <div class="o_ferba_kpi">
+                        <div class="o_ferba_kpi_val" t-esc="state.kpi.checan"/>
+                        <div class="o_ferba_kpi_lbl">Empleados que checan</div>
+                        <div class="o_ferba_kpi_ic" style="color:#8b5cf6"><i class="fa fa-users"/></div>
+                    </div>
+                </div>
+
+                <div t-if="state.sinDatos" class="o_ferba_empty">
+                    <i class="fa fa-calendar-o me-2"/>
+                    Aun no hay lista generada para <t t-esc="state.mesNombre"/>.
+                    Pulsa <b>Generar el mes</b> para reconstruirla.
+                </div>
+
+                <div class="o_ferba_cols">
+                    <!-- Asistencia por estado -->
+                    <div class="o_ferba_card">
+                        <div class="o_ferba_card_h">
+                            <span>Asistencia del mes</span>
+                            <a class="o_ferba_link" t-on-click="() => this.abrirLista()">Ver detalle</a>
+                        </div>
+                        <div class="o_ferba_bars">
+                            <t t-foreach="state.estados" t-as="e" t-key="e.code">
+                                <div class="o_ferba_bar_row">
+                                    <span class="o_ferba_bar_lbl" t-esc="e.label"/>
+                                    <div class="o_ferba_bar_track">
+                                        <div class="o_ferba_bar_fill"
+                                             t-attf-style="width:{{e.ancho}}%;background:{{e.color}}"/>
+                                    </div>
+                                    <span class="o_ferba_bar_num" t-esc="e.count"/>
+                                </div>
+                            </t>
+                            <div t-if="!state.estados.length" class="o_ferba_muted">Sin datos del mes.</div>
+                        </div>
+                    </div>
+
+                    <!-- Pendientes ahora -->
+                    <div class="o_ferba_card">
+                        <div class="o_ferba_card_h">
+                            <span>Pendientes ahora</span>
+                            <a class="o_ferba_link" t-on-click="() => this.abrirAbiertas()">Ver todas</a>
+                        </div>
+                        <table class="o_ferba_table" t-if="state.abiertasLista.length">
+                            <tbody>
+                                <tr t-foreach="state.abiertasLista" t-as="a" t-key="a.id">
+                                    <td t-esc="a.empleado"/>
+                                    <td class="o_ferba_td_r"><span class="o_ferba_chip">desde <t t-esc="a.desde"/></span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div t-else="" class="o_ferba_muted"><i class="fa fa-check me-1"/>Sin marcas abiertas.</div>
+                    </div>
+                </div>
+
+                <!-- Horas por departamento (nomina) -->
+                <div class="o_ferba_card">
+                    <div class="o_ferba_card_h"><span>Horas del mes por departamento</span></div>
+                    <table class="o_ferba_table" t-if="state.deptos.length">
+                        <thead>
+                            <tr><th>Departamento</th><th class="o_ferba_td_r">Trabajadas</th><th class="o_ferba_td_r">Esperadas</th><th class="o_ferba_td_r">Cumplimiento</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="state.deptos" t-as="d" t-key="d.nombre">
+                                <td t-esc="d.nombre"/>
+                                <td class="o_ferba_td_r" t-esc="d.trab.toFixed(1)"/>
+                                <td class="o_ferba_td_r" t-esc="d.esp.toFixed(1)"/>
+                                <td class="o_ferba_td_r">
+                                    <span t-attf-class="o_ferba_pct {{ d.pct >= 95 ? 'o_ferba_pct_ok' : (d.pct >= 80 ? 'o_ferba_pct_mid' : 'o_ferba_pct_bad') }}"><t t-esc="d.pct"/>%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div t-else="" class="o_ferba_muted">Sin datos del mes.</div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

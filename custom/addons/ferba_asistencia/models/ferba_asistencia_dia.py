@@ -58,10 +58,10 @@ class FerbaAsistenciaDia(models.Model):
         ],
         string='Estado', index=True)
 
-    _sql_constraints = [
-        ('empleado_dia_unico', 'unique(employee_id, fecha)',
-         'Ya existe el renglon de ese empleado en ese dia.'),
-    ]
+    _empleado_dia_unico = models.Constraint(
+        'unique(employee_id, fecha)',
+        'Ya existe el renglon de ese empleado en ese dia.',
+    )
 
     @api.depends('horas_trabajadas', 'horas_permiso', 'horas_esperadas')
     def _compute_diferencia(self):

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_ferba_dashboard" model="ir.actions.client">
+        <field name="name">Panel de Asistencia</field>
+        <field name="tag">ferba_asistencia_dashboard</field>
+    </record>
+
+    <!-- sequence 1 = primer hijo: el modulo abre AQUI (pagina de inicio). -->
+    <menuitem id="menu_ferba_asistencia_dashboard" name="Panel"
+              parent="menu_ferba_asistencia_root"
+              action="action_ferba_dashboard" sequence="1"/>
+
+</odoo>
