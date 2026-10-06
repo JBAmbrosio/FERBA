@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Grupo de RH/Nomina: corrige y valida asistencias. Hereda "Officer:
+         Manage all attendances" del modulo nativo, para poder editar la marca
+         de cualquier empleado. -->
+    <record id="group_ferba_asistencia" model="res.groups">
+        <field name="name">FERBA / Control de Asistencia</field>
+        <field name="comment">Corrige y valida las asistencias para la nomina.
+            Incluye gestionar todas las asistencias.</field>
+        <field name="implied_ids" eval="[(4, ref('hr_attendance.group_hr_attendance_user'))]"/>
+    </record>
+</odoo>
