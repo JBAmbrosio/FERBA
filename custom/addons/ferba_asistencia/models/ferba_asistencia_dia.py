@@ -229,3 +229,56 @@ class FerbaAsistenciaDia(models.Model):
                     self.create(vals)
                 total += 1
         return total
+
+    # ------------------------------------------------------------------
+    # Tareas automaticas (cron)
+    # ------------------------------------------------------------------
+    @api.model
+    def cron_generar_vigente(self):
+        """Regenera el mes en curso cada noche. En los primeros dias del mes,
+        tambien el mes anterior (para capturar marcas tardias)."""
+        hoy = fields.Date.context_today(self)
+        ini_mes = hoy.replace(day=1)
+        self.generar_periodo(ini_mes, hoy)
+        if hoy.day <= 5:
+            prev_fin = ini_mes - timedelta(days=1)
+            self.generar_periodo(prev_fin.replace(day=1), prev_fin)
+        return True
+
+    @api.model
+    def cron_recordatorios(self):
+        """Crea un recordatorio (actividad) por cada marca que quedo SIN SALIDA
+        en un dia anterior, asignado al responsable de asistencia del empleado
+        (o al responsable configurado). Evita duplicados."""
+        hoy = fields.Date.context_today(self)
+        abiertas = self.env['hr.attendance'].search([('check_out', '=', False)])
+        abiertas = abiertas.filtered(lambda a: a.check_in and a.check_in.date() < hoy)
+        if not abiertas:
+            return True
+        tipo = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        resp = self.env['ir.config_parameter'].sudo().get_param(
+            'ferba_asistencia.responsable_uid')
+        resp_default = int(resp) if resp else False
+        modelo_emp = self.env['ir.model']._get_id('hr.employee')
+        Activity = self.env['mail.activity']
+        for att in abiertas:
+            emp = att.employee_id
+            uid = emp.attendance_manager_id.id if emp.attendance_manager_id else resp_default
+            if not uid:
+                continue
+            resumen = 'Asistencia sin salida del %s' % att.check_in.date()
+            if Activity.search_count([('res_model', '=', 'hr.employee'),
+                                      ('res_id', '=', emp.id),
+                                      ('summary', '=', resumen)]):
+                continue
+            Activity.create({
+                'activity_type_id': tipo.id if tipo else False,
+                'res_model_id': modelo_emp,
+                'res_id': emp.id,
+                'user_id': uid,
+                'summary': resumen,
+                'note': 'Marco entrada el %s y no registro salida. Corrige o '
+                        'cierra la marca.' % fields.Datetime.to_string(att.check_in),
+                'date_deadline': hoy,
+            })
+        return True

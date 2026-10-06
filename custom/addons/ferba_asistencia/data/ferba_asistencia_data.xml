@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Cada noche reconstruye la lista del mes en curso (y al inicio del
+             mes, tambien el anterior) para que el panel y la lista esten frescos. -->
+        <record id="cron_generar_vigente" model="ir.cron">
+            <field name="name">Asistencia: generar lista del periodo vigente</field>
+            <field name="model_id" ref="model_ferba_asistencia_dia"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_generar_vigente()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+            <field name="nextcall"
+                   eval="(datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d 11:00:00')"/>
+        </record>
+
+        <!-- Cada manana crea un recordatorio por las marcas que quedaron sin
+             salida en dias anteriores. -->
+        <record id="cron_recordatorios" model="ir.cron">
+            <field name="name">Asistencia: recordatorios de marcas sin salida</field>
+            <field name="model_id" ref="model_ferba_asistencia_dia"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_recordatorios()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+            <field name="nextcall"
+                   eval="(datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%m-%d 15:00:00')"/>
+        </record>
+
+    </data>
+</odoo>
