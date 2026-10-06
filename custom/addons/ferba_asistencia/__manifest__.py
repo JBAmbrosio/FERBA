@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Control de Asistencia',
-    'version': '19.0.2.0.0',
+    'version': '19.0.2.1.0',
     'summary': 'Centro de control de asistencia: detecta marcas incompletas y '
                'ausencias, permite corregirlas y validarlas para la nomina, sin Excel.',
     'description': """
@@ -28,6 +28,7 @@ Se apoya en el modulo nativo de Asistencias; no cambia la nomina.
         'security/ir.model.access.csv',
         'views/ferba_asistencia_views.xml',
         'views/ferba_asistencia_dia_views.xml',
+        'views/hr_employee_views.xml',
     ],
     'application': False,
     'installable': True,

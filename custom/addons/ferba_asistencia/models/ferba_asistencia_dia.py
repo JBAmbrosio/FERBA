@@ -103,7 +103,8 @@ class FerbaAsistenciaDia(models.Model):
             fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
 
         empleados = self.env['hr.employee'].browse(employee_ids) if employee_ids \
-            else self.env['hr.employee'].search([('active', '=', True)])
+            else self.env['hr.employee'].search([
+                ('active', '=', True), ('ferba_controla_asistencia', '=', True)])
         empleados = empleados.filtered('resource_calendar_id')
         if not empleados:
             return 0
