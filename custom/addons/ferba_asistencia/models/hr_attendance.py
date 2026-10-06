@@ -8,6 +8,7 @@ calidad del dato encima del modulo nativo de Asistencias.
 """
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 # Jornada mas larga que esto = casi seguro falto una marca (no un turno real).
 UMBRAL_HORAS = 12.0
@@ -67,3 +68,46 @@ class HrAttendance(models.Model):
 
     def action_desvalidar(self):
         self.write({'validada': False, 'validada_por': False, 'validada_el': False})
+
+    # ------------------------------------------------------------------
+    # Candado de periodo cerrado: no tocar marcas de un periodo ya cerrado.
+    # ------------------------------------------------------------------
+    def _bloqueadas_por_periodo(self):
+        if self.env.context.get('bypass_periodo_lock') or self.env.su:
+            return self.browse()
+        Periodo = self.env.get('ferba.periodo')
+        if Periodo is None or not Periodo.search_count([('estado', '=', 'cerrado')]):
+            return self.browse()
+        bloqueadas = self.browse()
+        for att in self:
+            if not att.check_in:
+                continue
+            if Periodo.periodos_que_cubren(att.check_in.date(),
+                                           att.employee_id.company_id):
+                bloqueadas |= att
+        return bloqueadas
+
+    def _avisa_periodo_cerrado(self):
+        bloq = self._bloqueadas_por_periodo()
+        if bloq:
+            raise UserError(
+                'No se puede modificar la asistencia: cae en un periodo de '
+                'nomina CERRADO. Reabre el periodo para corregirla.')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        registros = super().create(vals_list)
+        registros._avisa_periodo_cerrado()
+        return registros
+
+    def write(self, vals):
+        self._avisa_periodo_cerrado()
+        res = super().write(vals)
+        # Si cambia la fecha hacia un periodo cerrado, tambien se frena.
+        if 'check_in' in vals:
+            self._avisa_periodo_cerrado()
+        return res
+
+    def unlink(self):
+        self._avisa_periodo_cerrado()
+        return super().unlink()
