@@ -27,6 +27,96 @@ class FerbaPeriodo(models.Model):
     cerrado_el = fields.Datetime(string='Cerrado el', readonly=True)
     nota = fields.Text(string='Nota')
 
+    # Resumen del periodo (se calcula de ferba.asistencia.dia, sin almacenar).
+    resumen_laborables = fields.Integer(string='Dias laborables',
+                                        compute='_compute_resumen')
+    resumen_ausencias = fields.Integer(string='Ausencias', compute='_compute_resumen')
+    resumen_incompletos = fields.Integer(string='Incompletos', compute='_compute_resumen')
+    resumen_cumplimiento = fields.Float(string='Cumplimiento %',
+                                        compute='_compute_resumen')
+
+    def _dias_del_periodo(self):
+        self.ensure_one()
+        return self.env['ferba.asistencia.dia'].search([
+            ('fecha', '>=', self.fecha_inicio), ('fecha', '<=', self.fecha_fin)])
+
+    def _compute_resumen(self):
+        for p in self:
+            dias = p._dias_del_periodo() if (p.fecha_inicio and p.fecha_fin) \
+                else self.env['ferba.asistencia.dia']
+            lab = aus = inc = 0
+            trab = esp = 0.0
+            for d in dias:
+                if d.estado not in ('descanso', 'festivo'):
+                    lab += 1
+                if d.estado == 'ausente':
+                    aus += 1
+                elif d.estado == 'incompleto':
+                    inc += 1
+                trab += d.horas_trabajadas or 0.0
+                esp += d.horas_esperadas or 0.0
+            p.resumen_laborables = lab
+            p.resumen_ausencias = aus
+            p.resumen_incompletos = inc
+            p.resumen_cumplimiento = round((trab / esp) * 100, 1) if esp else 0.0
+
+    def _resumen_empleados(self):
+        """Filas del reporte de cierre: un renglon por empleado con sus totales."""
+        self.ensure_one()
+        por_emp = {}
+        for d in self._dias_del_periodo():
+            v = por_emp.setdefault(d.employee_id.id, {
+                'empleado': d.employee_id, 'laborables': 0, 'trabajados': 0,
+                'ausentes': 0, 'incompletos': 0, 'cortas': 0, 'permisos': 0,
+                'h_trab': 0.0, 'h_esp': 0.0})
+            if d.estado not in ('descanso', 'festivo'):
+                v['laborables'] += 1
+            if d.estado == 'presente':
+                v['trabajados'] += 1
+            elif d.estado == 'corta':
+                v['trabajados'] += 1
+                v['cortas'] += 1
+            elif d.estado == 'ausente':
+                v['ausentes'] += 1
+            elif d.estado == 'incompleto':
+                v['incompletos'] += 1
+            elif d.estado == 'permiso':
+                v['permisos'] += 1
+            v['h_trab'] += d.horas_trabajadas or 0.0
+            v['h_esp'] += d.horas_esperadas or 0.0
+        filas = list(por_emp.values())
+        for v in filas:
+            v['extra'] = max(0.0, v['h_trab'] - v['h_esp'])
+        filas.sort(key=lambda r: (r['empleado'].name or '').lower())
+        return filas
+
+    def action_generar_asistencia(self):
+        """Reconstruye la lista de asistencia del rango del periodo."""
+        self.ensure_one()
+        self.env['ferba.asistencia.dia'].generar_periodo(
+            self.fecha_inicio, self.fecha_fin)
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Asistencia generada',
+                'message': 'Se reconstruyo la lista del periodo.',
+                'type': 'success',
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    def action_ver_work_entries(self):
+        """Puente a nomina: entradas de trabajo nativas del rango del periodo."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Entradas de trabajo del periodo',
+            'res_model': 'hr.work.entry',
+            'view_mode': 'list,form',
+            'domain': [('date', '>=', self.fecha_inicio), ('date', '<=', self.fecha_fin)],
+        }
+
     @api.constrains('fecha_inicio', 'fecha_fin')
     def _check_rango(self):
         for p in self:

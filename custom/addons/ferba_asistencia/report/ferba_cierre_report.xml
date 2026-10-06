@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_cierre_periodo" model="ir.actions.report">
+        <field name="name">Cierre de asistencia</field>
+        <field name="model">ferba.periodo</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ferba_asistencia.report_cierre_periodo</field>
+        <field name="report_file">ferba_asistencia.report_cierre_periodo</field>
+        <field name="binding_model_id" ref="model_ferba_periodo"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_cierre_periodo">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 class="mb-0">Cierre de asistencia</h2>
+                        <h4 class="text-muted mt-0" t-esc="doc.name"/>
+                        <p class="mb-2">
+                            Periodo del <strong t-field="doc.fecha_inicio"/>
+                            al <strong t-field="doc.fecha_fin"/>
+                            <t t-if="doc.company_id"> · <span t-field="doc.company_id.name"/></t>
+                            <span t-if="doc.estado == 'cerrado'" class="badge text-bg-success ms-2">Cerrado</span>
+                        </p>
+
+                        <div class="row mb-3">
+                            <div class="col-3"><strong>Dias laborables:</strong> <span t-esc="doc.resumen_laborables"/></div>
+                            <div class="col-3"><strong>Ausencias:</strong> <span t-esc="doc.resumen_ausencias"/></div>
+                            <div class="col-3"><strong>Incompletos:</strong> <span t-esc="doc.resumen_incompletos"/></div>
+                            <div class="col-3"><strong>Cumplimiento:</strong> <span t-esc="doc.resumen_cumplimiento"/>%</div>
+                        </div>
+
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Empleado</th>
+                                    <th class="text-end">Laborables</th>
+                                    <th class="text-end">Trabajados</th>
+                                    <th class="text-end">Ausencias</th>
+                                    <th class="text-end">Incompletos</th>
+                                    <th class="text-end">Permisos</th>
+                                    <th class="text-end">H. trab.</th>
+                                    <th class="text-end">H. esp.</th>
+                                    <th class="text-end">Extra</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="doc._resumen_empleados()" t-as="r">
+                                    <td t-esc="r['empleado'].name"/>
+                                    <td class="text-end" t-esc="r['laborables']"/>
+                                    <td class="text-end" t-esc="r['trabajados']"/>
+                                    <td class="text-end" t-esc="r['ausentes']"/>
+                                    <td class="text-end" t-esc="r['incompletos']"/>
+                                    <td class="text-end" t-esc="r['permisos']"/>
+                                    <td class="text-end" t-esc="'%.1f' % r['h_trab']"/>
+                                    <td class="text-end" t-esc="'%.1f' % r['h_esp']"/>
+                                    <td class="text-end" t-esc="'%.1f' % r['extra']"/>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row mt-5">
+                            <div class="col-6 offset-6 text-center">
+                                <div style="border-top:1px solid #000; padding-top:4px;">
+                                    Reviso y autorizo (RH / Contabilidad)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>
