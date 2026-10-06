@@ -83,7 +83,7 @@
     </record>
 
     <menuitem id="menu_ferba_asistencia_root" name="Control de Asistencia"
-              web_icon="hr_attendance,static/description/icon.png" sequence="55"
+              web_icon="ferba_asistencia,static/description/icon.png" sequence="55"
               groups="ferba_asistencia.group_ferba_asistencia"/>
 
     <menuitem id="menu_ferba_asistencia_control" name="Por corregir / validar"
