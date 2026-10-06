@@ -12,6 +12,7 @@
                   decoration-warning="necesita_revision"
                   decoration-success="validada and not necesita_revision">
                 <field name="necesita_revision" column_invisible="1"/>
+                <field name="tipo_revision" column_invisible="1"/>
                 <field name="employee_id" readonly="1"/>
                 <field name="department_id" optional="show" readonly="1"/>
                 <field name="check_in"/>
@@ -39,7 +40,9 @@
                 <filter name="por_corregir" string="Por corregir"
                         domain="[('necesita_revision', '=', True)]"/>
                 <filter name="sin_salida" string="Sin salida"
-                        domain="[('check_out', '=', False)]"/>
+                        domain="[('tipo_revision', '=', 'sin_salida')]"/>
+                <filter name="jornada_larga" string="Jornada muy larga"
+                        domain="[('tipo_revision', '=', 'jornada_larga')]"/>
                 <filter name="por_validar" string="Por validar"
                         domain="[('validada', '=', False)]"/>
                 <filter name="validadas" string="Validadas"
@@ -49,6 +52,7 @@
                         domain="[('check_in', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
                 <!-- group_by SUELTOS: Odoo 19 rechaza envolverlos en &lt;group expand&gt;. -->
                 <separator/>
+                <filter name="g_tipo" string="Tipo de revision" context="{'group_by': 'tipo_revision'}"/>
                 <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
                 <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
                 <filter name="g_dia" string="Dia" context="{'group_by': 'check_in:day'}"/>
@@ -74,7 +78,7 @@
         <field name="view_mode">list,pivot,form</field>
         <field name="view_id" ref="view_ferba_asistencia_list"/>
         <field name="search_view_id" ref="view_ferba_asistencia_search"/>
-        <field name="context">{'search_default_por_corregir': 1}</field>
+        <field name="context">{'search_default_por_corregir': 1, 'search_default_g_tipo': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Ninguna asistencia por corregir</p>
             <p>Aqui aparecen las marcas incompletas o con horas imposibles. Corrige
