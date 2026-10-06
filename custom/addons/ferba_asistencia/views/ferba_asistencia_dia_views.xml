@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Lista del periodo: rojo = ausente (no marco), naranja = incompleto/corta,
+         verde = presente, gris = no laborable / permiso. -->
+    <record id="view_ferba_asistencia_dia_list" model="ir.ui.view">
+        <field name="name">ferba.asistencia.dia.list</field>
+        <field name="model">ferba.asistencia.dia</field>
+        <field name="arch" type="xml">
+            <list string="Lista de asistencia" create="false"
+                  default_order="fecha desc, employee_id"
+                  decoration-danger="estado == 'ausente'"
+                  decoration-warning="estado in ('incompleto', 'corta')"
+                  decoration-success="estado == 'presente'"
+                  decoration-muted="estado in ('descanso', 'festivo', 'permiso')">
+                <field name="fecha"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="estado" widget="badge"
+                       decoration-danger="estado == 'ausente'"
+                       decoration-warning="estado in ('incompleto', 'corta')"
+                       decoration-success="estado == 'presente'"
+                       decoration-info="estado == 'permiso'"/>
+                <field name="horas_esperadas" widget="float_time" sum="Esperadas"/>
+                <field name="horas_trabajadas" widget="float_time" sum="Trabajadas"/>
+                <field name="horas_permiso" widget="float_time" optional="hide" sum="Permiso"/>
+                <field name="diferencia" widget="float_time" optional="show" sum="Diferencia"/>
+                <field name="num_marcas" optional="hide"/>
+                <button name="action_ver_marcas" type="object" string="Ver marcas"
+                        icon="fa-search" invisible="num_marcas == 0"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_asistencia_dia_search" model="ir.ui.view">
+        <field name="name">ferba.asistencia.dia.search</field>
+        <field name="model">ferba.asistencia.dia</field>
+        <field name="arch" type="xml">
+            <search string="Lista de asistencia">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <filter name="con_problema" string="Con problema"
+                        domain="[('estado', 'in', ('ausente', 'incompleto', 'corta'))]"/>
+                <filter name="ausente" string="Ausente"
+                        domain="[('estado', '=', 'ausente')]"/>
+                <filter name="incompleto" string="Incompleto"
+                        domain="[('estado', '=', 'incompleto')]"/>
+                <filter name="corta" string="Jornada corta"
+                        domain="[('estado', '=', 'corta')]"/>
+                <filter name="presente" string="Presente"
+                        domain="[('estado', '=', 'presente')]"/>
+                <filter name="permiso" string="Permiso"
+                        domain="[('estado', '=', 'permiso')]"/>
+                <separator/>
+                <filter name="laborable" string="Dia laborable"
+                        domain="[('estado', 'not in', ('descanso', 'festivo'))]"/>
+                <separator/>
+                <filter name="g_estado" string="Estado" context="{'group_by': 'estado'}"/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_fecha" string="Dia" context="{'group_by': 'fecha'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ferba_asistencia_dia_pivot" model="ir.ui.view">
+        <field name="name">ferba.asistencia.dia.pivot</field>
+        <field name="model">ferba.asistencia.dia</field>
+        <field name="arch" type="xml">
+            <pivot string="Horas por empleado">
+                <field name="employee_id" type="row"/>
+                <field name="fecha" interval="week" type="col"/>
+                <field name="horas_trabajadas" type="measure" widget="float_time"/>
+                <field name="horas_esperadas" type="measure" widget="float_time"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_ferba_asistencia_dia" model="ir.actions.act_window">
+        <field name="name">Lista de asistencia (periodo)</field>
+        <field name="res_model">ferba.asistencia.dia</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="search_view_id" ref="view_ferba_asistencia_dia_search"/>
+        <field name="context">{'search_default_con_problema': 1, 'search_default_g_estado': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay periodo generado</p>
+            <p>Usa <b>Generar periodo</b> para reconstruir la lista completa de un
+               rango de fechas: cada empleado y cada dia, con quien no marco
+               (ausente), quien marco a medias (incompleto) y las horas.</p>
+        </field>
+    </record>
+
+    <!-- Asistente Generar periodo -->
+    <record id="view_ferba_asistencia_generar_form" model="ir.ui.view">
+        <field name="name">ferba.asistencia.generar.form</field>
+        <field name="model">ferba.asistencia.generar</field>
+        <field name="arch" type="xml">
+            <form string="Generar periodo">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Reconstruir la lista de asistencia</h2>
+                        <p>Cruza el horario de cada empleado con sus marcas del
+                           checador para marcar ausencias, incompletos y horas.
+                           Regenerar el mismo rango no duplica: lo reescribe.</p>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fecha_inicio"/>
+                            <field name="fecha_fin"/>
+                        </group>
+                        <group>
+                            <field name="todos"/>
+                            <field name="employee_ids" widget="many2many_tags"
+                                   invisible="todos" required="not todos"
+                                   options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_generar" type="object" string="Generar"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_asistencia_generar" model="ir.actions.act_window">
+        <field name="name">Generar periodo</field>
+        <field name="res_model">ferba.asistencia.generar</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menus bajo "Control de Asistencia" -->
+    <menuitem id="menu_ferba_asistencia_lista" name="Lista por periodo"
+              parent="menu_ferba_asistencia_root"
+              action="action_ferba_asistencia_dia" sequence="20"/>
+
+    <menuitem id="menu_ferba_asistencia_generar" name="Generar periodo"
+              parent="menu_ferba_asistencia_root"
+              action="action_ferba_asistencia_generar" sequence="30"/>
+
+</odoo>
