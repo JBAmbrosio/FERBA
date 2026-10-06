@@ -745,6 +745,27 @@ class FocoController(http.Controller):
         saved = dev.sudo().registrar_visitas(visitas)
         return request.make_json_response({'ok': True, 'stored': True, 'saved': saved})
 
+    @http.route('/foco/mobile/visita_audio', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_visita_audio(self, **kw):
+        """Sube el audio de una visita (cuerpo binario crudo). La visita se ubica
+        por su uuid en la cabecera. Queda pendiente para que la IA lo analice."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        h = request.httprequest.headers
+        uuid = h.get('X-Visita-Uuid') or ''
+        name = h.get('X-Audio-Name') or 'visita.m4a'
+        try:
+            dur = int(h.get('X-Duracion') or '0')
+        except (TypeError, ValueError):
+            dur = 0
+        data = request.httprequest.get_data(cache=False, as_text=False) or b''
+        if not uuid or not data:
+            return request.make_json_response({'error': 'bad_request'}, status=400)
+        res = dev.sudo().guardar_audio_visita(uuid, data, dur, name)
+        return request.make_json_response(res)
+
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_beacon(self, **kw):

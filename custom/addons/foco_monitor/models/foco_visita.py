@@ -11,9 +11,42 @@ error y un prospecto nuevo todavia no tiene pin (su check-in ES el que lo crea).
 Se marca la distancia y ya; dirección decide que hacer con las que salen lejos.
 """
 
+import base64
+import json
 from math import radians, sin, cos, asin, sqrt
 
 from odoo import api, fields, models
+
+# Rubrica del "gerente senior": evalua al VENDEDOR con venta consultiva (el
+# playbook de FERBA: preparacion, descubrimiento de cultivo/barreras/estatus,
+# propuesta de valor, manejo de objeciones y cierre con proximo paso).
+SISTEMA_VISITA = (
+    "Eres un GERENTE DE VENTAS SENIOR de FERBA, empresa del noroeste de Mexico "
+    "que vende insumos y material de empaque a empresas agricolas. Recibes la "
+    "TRANSCRIPCION de una visita de uno de tus vendedores a un cliente. Evalua el "
+    "desempeno del VENDEDOR con criterios de venta consultiva: preparacion, "
+    "descubrimiento de necesidades (cultivo, volumen, barreras de compra, estatus), "
+    "propuesta de valor, manejo de objeciones y cierre con un proximo paso claro. "
+    "Da fortalezas, debilidades y mejoras CONCRETAS y accionables (nada generico: "
+    "cita lo que paso en la conversacion), y un puntaje de 0 a 100. Habla directo y "
+    "util, como un coach que quiere que el vendedor venda mas. No incluyas datos "
+    "personales sensibles ni nombres de personas en los textos."
+)
+
+ESQUEMA_VISITA = {
+    'name': 'analisis_visita', 'strict': True,
+    'schema': {
+        'type': 'object', 'additionalProperties': False,
+        'properties': {
+            'resumen': {'type': 'string'},
+            'fortalezas': {'type': 'array', 'items': {'type': 'string'}},
+            'debilidades': {'type': 'array', 'items': {'type': 'string'}},
+            'mejoras': {'type': 'array', 'items': {'type': 'string'}},
+            'puntaje': {'type': 'integer'},
+        },
+        'required': ['resumen', 'fortalezas', 'debilidades', 'mejoras', 'puntaje'],
+    },
+}
 
 # Dentro de este radio la visita se da por "en sitio".
 RADIO_EN_SITIO_M = 300.0
@@ -78,6 +111,84 @@ class FocoVisita(models.Model):
     ], string='Resultado', tracking=True)
     nota = fields.Text(string='Nota')
     proxima_fecha = fields.Date(string='Proximo seguimiento')
+
+    # El vendedor le leyo el aviso al cliente y este acepto que se grabe. Sin
+    # esto, el telefono NO graba: la grabacion es transparente y consentida.
+    grabacion_consentida = fields.Boolean(string='Grabacion consentida por el cliente')
+
+    # --- Grabacion de la visita + coaching de IA (Fase 4) ---
+    audio = fields.Binary(string='Audio de la visita', attachment=True)
+    audio_name = fields.Char(string='Archivo de audio')
+    audio_duracion_s = fields.Integer(string='Duracion del audio (s)')
+    audio_estado = fields.Selection([
+        ('sin_audio', 'Sin audio'),
+        ('pendiente', 'Pendiente de analizar'),
+        ('procesando', 'Analizando'),
+        ('listo', 'Analizada'),
+        ('error', 'Error'),
+    ], string='Audio', default='sin_audio', index=True)
+    transcripcion = fields.Text(string='Transcripcion')
+    analisis_resumen = fields.Text(string='Resumen de la IA')
+    analisis_fortalezas = fields.Text(string='Fortalezas')
+    analisis_debilidades = fields.Text(string='Debilidades')
+    analisis_mejoras = fields.Text(string='Mejoras')
+    analisis_puntaje = fields.Integer(string='Puntaje (0-100)')
+    analizado_el = fields.Datetime(string='Analizada el')
+
+    def action_analizar(self):
+        self._analizar_audio()
+
+    def _analizar_audio(self):
+        """Transcribe el audio de la visita y lo evalua como gerente senior.
+        Guarda fortalezas/debilidades/mejoras y un puntaje. Blindado por visita:
+        si una truena, las demas siguen."""
+        OpenAI = self.env['foco.openai']
+        if not OpenAI.configurado():
+            return
+        estatus_lbl = dict(self.env['res.partner']._fields['foco_estatus'].selection)
+        for v in self:
+            if not v.audio:
+                continue
+            v.audio_estado = 'procesando'
+            try:
+                raw = base64.b64decode(v.audio)
+                texto = OpenAI.transcribir(
+                    raw, nombre=v.audio_name or 'visita.m4a', idioma='es', mime='audio/mp4')
+                v.transcripcion = texto or ''
+                if not (texto or '').strip():
+                    v.audio_estado = 'listo'
+                    v.analizado_el = fields.Datetime.now()
+                    continue
+                p = v.partner_id
+                ctx = ('Cliente: %s. Cultivo: %s. Zona: %s. Estatus: %s.'
+                       % (p.display_name, p.foco_cultivo or '-', p.foco_zona or '-',
+                          estatus_lbl.get(p.foco_estatus, '-')))
+                resp = OpenAI.chat(
+                    [{'role': 'system', 'content': SISTEMA_VISITA},
+                     {'role': 'user', 'content': ctx + '\n\nTRANSCRIPCION DE LA VISITA:\n' + texto[:12000]}],
+                    response_format={'type': 'json_schema', 'json_schema': ESQUEMA_VISITA},
+                    max_tokens=1300)
+                data = json.loads(resp['message'].get('content') or '{}')
+                v.analisis_resumen = (data.get('resumen') or '').strip()
+                v.analisis_fortalezas = '\n'.join('- ' + x for x in (data.get('fortalezas') or []))
+                v.analisis_debilidades = '\n'.join('- ' + x for x in (data.get('debilidades') or []))
+                v.analisis_mejoras = '\n'.join('- ' + x for x in (data.get('mejoras') or []))
+                v.analisis_puntaje = int(data.get('puntaje') or 0)
+                v.analizado_el = fields.Datetime.now()
+                v.audio_estado = 'listo'
+            except Exception as e:
+                v.audio_estado = 'error'
+                try:
+                    v.message_post(body='No se pudo analizar la visita: %s' % e)
+                except Exception:
+                    pass
+
+    @api.model
+    def _cron_analizar_visitas(self):
+        """Procesa las visitas con audio pendiente (lo encola el telefono)."""
+        pend = self.search([('audio_estado', '=', 'pendiente'), ('audio', '!=', False)], limit=10)
+        for v in pend:
+            v._analizar_audio()
 
     @api.depends('partner_id', 'check_in')
     def _compute_name(self):
