@@ -19,6 +19,15 @@ class HrAttendance(models.Model):
     necesita_revision = fields.Boolean(
         string='Necesita revision', compute='_compute_revision', store=True, index=True,
         help='La marca esta incompleta o con horas imposibles: hay que corregirla.')
+    # tipo = categoria limpia para AGRUPAR y FILTRAR (sin el numero de horas).
+    tipo_revision = fields.Selection(
+        selection=[
+            ('sin_salida', 'Sin salida'),
+            ('jornada_larga', 'Jornada muy larga'),
+            ('sin_horas', 'Sin horas'),
+        ],
+        string='Tipo de revision', compute='_compute_revision', store=True, index=True)
+    # motivo = texto para leer en la fila, con el numero de horas cuando aplica.
     motivo_revision = fields.Char(
         string='Motivo de revision', compute='_compute_revision', store=True)
     validada = fields.Boolean(
@@ -31,17 +40,20 @@ class HrAttendance(models.Model):
     @api.depends('check_in', 'check_out', 'worked_hours')
     def _compute_revision(self):
         for a in self:
-            motivos = []
+            tipo = False
+            motivo = ''
             if a.check_in and not a.check_out:
-                motivos.append('Sin salida')
+                tipo, motivo = 'sin_salida', 'Sin salida'
             elif a.check_out:
                 wh = a.worked_hours or 0.0
                 if wh > UMBRAL_HORAS:
-                    motivos.append('Jornada muy larga (%.1f h)' % wh)
+                    tipo = 'jornada_larga'
+                    motivo = 'Jornada muy larga (%.1f h)' % wh
                 elif wh <= 0.0:
-                    motivos.append('Sin horas')
-            a.motivo_revision = ' / '.join(motivos)
-            a.necesita_revision = bool(motivos)
+                    tipo, motivo = 'sin_horas', 'Sin horas'
+            a.tipo_revision = tipo
+            a.motivo_revision = motivo
+            a.necesita_revision = bool(tipo)
 
     def action_validar(self):
         """Marca como validadas las asistencias que YA estan bien. Las que aun
