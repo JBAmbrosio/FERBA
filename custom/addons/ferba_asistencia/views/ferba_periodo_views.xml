@@ -27,13 +27,19 @@
         <field name="arch" type="xml">
             <form string="Periodo de nomina">
                 <header>
+                    <button name="action_generar_asistencia" type="object"
+                            string="Generar / actualizar asistencia" class="btn-primary"/>
                     <button name="action_cerrar" type="object" string="Cerrar periodo"
-                            class="btn-primary" invisible="estado == 'cerrado'"
+                            invisible="estado == 'cerrado'"
                             confirm="Al cerrar, las marcas de este rango quedan congeladas. Continuar?"/>
                     <button name="action_reabrir" type="object" string="Reabrir"
                             invisible="estado == 'abierto'"/>
                     <button name="action_ver_asistencia" type="object"
-                            string="Ver asistencia del periodo" class="btn-secondary"/>
+                            string="Ver asistencia" class="btn-secondary"/>
+                    <button name="%(action_report_cierre_periodo)d" type="action"
+                            string="Imprimir cierre" class="btn-secondary"/>
+                    <button name="action_ver_work_entries" type="object"
+                            string="Entradas de nomina" class="btn-secondary"/>
                     <field name="estado" widget="statusbar" statusbar_visible="abierto,cerrado"/>
                 </header>
                 <sheet>
@@ -51,6 +57,12 @@
                             <field name="cerrado_por" readonly="1"/>
                             <field name="cerrado_el" readonly="1"/>
                         </group>
+                    </group>
+                    <group string="Resumen del periodo" col="4">
+                        <field name="resumen_laborables"/>
+                        <field name="resumen_ausencias"/>
+                        <field name="resumen_incompletos"/>
+                        <field name="resumen_cumplimiento"/>
                     </group>
                     <field name="nota" placeholder="Notas del cierre..."/>
                 </sheet>
