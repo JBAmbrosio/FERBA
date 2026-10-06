@@ -409,6 +409,19 @@
                         <field name="mobile_collect_calls"
                                invisible="not mobile_enabled"/>
                     </group>
+                    <group string="Grabacion de la visita (coaching con IA) - lo mas sensible">
+                        <field name="visita_grabar"/>
+                        <field name="visita_grabar_radio_m"
+                               invisible="not visita_grabar"/>
+                        <field name="visita_grabar_max_min"
+                               invisible="not visita_grabar"/>
+                        <div class="text-muted" colspan="2" invisible="not visita_grabar">
+                            Enciende la grabacion de la conversacion de la visita para
+                            que la IA la analice como gerente senior. Arranca con el
+                            check-in y se corta sola al alejarse del cliente. Requiere
+                            tener cubierta la responsabilidad legal.
+                        </div>
+                    </group>
                     <group string="Proteccion contra desinstalacion (equipos que no son Device Owner)">
                         <field name="mobile_uninstall_pin" password="True"
                                placeholder="4 a 8 digitos"/>

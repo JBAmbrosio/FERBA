@@ -485,6 +485,7 @@ class FocoMobileDevice(models.Model):
                 'precision_m': v.get('accuracy') or 0.0,
                 'origen': 'gps',
                 'nota': (v.get('nota') or '').strip() or False,
+                'grabacion_consentida': bool(v.get('grabacion_consentida')),
             }
             res = (v.get('resultado') or '').strip()
             if res in dict(Visita._fields['resultado'].selection):
@@ -504,6 +505,25 @@ class FocoMobileDevice(models.Model):
                     pass
             guardados.append(uuid)
         return guardados
+
+    def guardar_audio_visita(self, uuid, data, duracion=0, name='visita.m4a'):
+        """Recibe el audio de una visita (lo sube el telefono tras cortar la
+        grabacion) y lo deja PENDIENTE para que la IA lo analice. Solo si el
+        interruptor del servidor esta encendido; dedup por visita."""
+        self.ensure_one()
+        if not self.env['foco.settings'].sudo().get_settings().visita_grabar:
+            return {'ok': False, 'error': 'off'}
+        visita = self.env['foco.visita'].sudo().search(
+            [('device_uuid', '=', uuid), ('device_id', '=', self.id)], limit=1)
+        if not visita:
+            return {'ok': False, 'error': 'no_visita'}
+        if visita.audio:
+            return {'ok': True}          # ya estaba: reenvio
+        visita.write({
+            'audio': base64.b64encode(data or b''), 'audio_name': name or 'visita.m4a',
+            'audio_duracion_s': int(duracion or 0), 'audio_estado': 'pendiente',
+        })
+        return {'ok': True}
 
 
 class FocoLocation(models.Model):

@@ -109,9 +109,9 @@ class FocoOpenAI(models.AbstractModel):
         return bool(self.api_key())
 
     @api.model
-    def transcribir(self, wav_bytes, nombre='pista.wav', idioma='es'):
-        """Texto de un WAV (16 kHz mono es suficiente). Levanta UserError si la
-        API falla: quien llama decide si reintenta."""
+    def transcribir(self, wav_bytes, nombre='pista.wav', idioma='es', mime='audio/wav'):
+        """Texto de un audio (WAV 16 kHz mono basta; tambien m4a/mp3). Levanta
+        UserError si la API falla: quien llama decide si reintenta."""
         key = self.api_key()
         if not key:
             raise UserError('Falta la API key de OpenAI (Foco > Configuracion > Analisis de llamadas).')
@@ -119,9 +119,9 @@ class FocoOpenAI(models.AbstractModel):
         try:
             r = requests.post(
                 API + '/audio/transcriptions', headers={'Authorization': 'Bearer ' + key},
-                files={'file': (nombre, wav_bytes, 'audio/wav')},
+                files={'file': (nombre, wav_bytes, mime)},
                 data={'model': modelo, 'language': idioma, 'response_format': 'json'},
-                timeout=90)
+                timeout=180)
         except requests.RequestException as e:
             raise UserError('OpenAI transcripcion: sin respuesta (%s)' % e)
         if r.status_code != 200:

@@ -136,6 +136,13 @@
         <field name="model">foco.visita</field>
         <field name="arch" type="xml">
             <form string="Visita">
+                <header>
+                    <button name="action_analizar" type="object" string="Analizar con IA"
+                            class="btn-primary" icon="fa-magic"
+                            invisible="audio_estado not in ('pendiente', 'error', 'listo')"/>
+                    <field name="audio_estado" widget="statusbar"
+                           statusbar_visible="sin_audio,pendiente,listo"/>
+                </header>
                 <sheet>
                     <group>
                         <group>
@@ -158,8 +165,37 @@
                     <group>
                         <field name="resultado"/>
                         <field name="proxima_fecha"/>
+                        <field name="grabacion_consentida"/>
                         <field name="nota" placeholder="Que paso en la visita..."/>
                     </group>
+                    <notebook invisible="audio_estado == 'sin_audio'">
+                        <page string="Coaching de la IA" name="coaching">
+                            <group>
+                                <field name="analisis_puntaje" widget="integer"/>
+                                <field name="analizado_el"/>
+                                <field name="audio" filename="audio_name" widget="binary"/>
+                                <field name="audio_name" invisible="1"/>
+                                <field name="audio_duracion_s"/>
+                            </group>
+                            <group string="Resumen">
+                                <field name="analisis_resumen" nolabel="1"/>
+                            </group>
+                            <group>
+                                <group string="Fortalezas">
+                                    <field name="analisis_fortalezas" nolabel="1"/>
+                                </group>
+                                <group string="Debilidades">
+                                    <field name="analisis_debilidades" nolabel="1"/>
+                                </group>
+                            </group>
+                            <group string="Mejoras sugeridas">
+                                <field name="analisis_mejoras" nolabel="1"/>
+                            </group>
+                        </page>
+                        <page string="Transcripcion" name="transcripcion">
+                            <field name="transcripcion" nolabel="1"/>
+                        </page>
+                    </notebook>
                 </sheet>
                 <chatter/>
             </form>

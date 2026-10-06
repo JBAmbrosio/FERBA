@@ -158,6 +158,23 @@ class FocoSettings(models.Model):
     mobile_collect_apps = fields.Boolean(
         string='Registrar uso de apps', default=True,
         help='Segundos en primer plano por aplicacion y dia.')
+    # --- Grabacion de la visita (coaching con IA) ---
+    # APAGADO de fabrica. Es lo mas sensible del lado movil: graba la
+    # conversacion de la visita (micro) para que la IA la analice como gerente
+    # senior. Enciendelo solo con la responsabilidad legal cubierta.
+    visita_grabar = fields.Boolean(
+        string='Grabar la visita para analisis de IA', default=False,
+        help='Interruptor general. Apagado, NINGUN telefono graba la visita, y '
+             'el audio que llegara se rechaza. La grabacion arranca con el '
+             'check-in y se corta sola al alejarse del cliente.')
+    visita_grabar_radio_m = fields.Integer(
+        string='Radio de la visita (m)', default=200,
+        help='Al alejarse mas de este radio del punto de llegada, la grabacion '
+             'se detiene sola (se dio por terminada la visita).')
+    visita_grabar_max_min = fields.Integer(
+        string='Duracion maxima de grabacion (min)', default=90,
+        help='Tope de seguridad: la grabacion se corta a los N minutos aunque '
+             'el telefono siga en el sitio.')
     # PIN de proteccion (anti-desinstalacion) para equipos que NO se pueden
     # aprovisionar como Device Owner (telefonos ya en uso). El telefono lo pide
     # antes de dejar desinstalar Foco, forzar su detencion o desactivar su
@@ -233,6 +250,9 @@ class FocoSettings(models.Model):
             'collect_calls': self.mobile_collect_calls,
             'collect_apps': self.mobile_collect_apps,
             'uninstall_pin': (self.mobile_uninstall_pin or '').strip(),
+            'visita_grabar': self.visita_grabar,
+            'visita_radio_m': self.visita_grabar_radio_m or 200,
+            'visita_max_min': self.visita_grabar_max_min or 90,
         }
 
     # ---- analisis de llamadas de WhatsApp (laptop) -----------------------
