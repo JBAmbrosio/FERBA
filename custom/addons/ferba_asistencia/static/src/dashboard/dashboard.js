@@ -63,9 +63,10 @@ export class FerbaAsistenciaDashboard extends Component {
             this.orm.searchCount("hr.employee", [["active", "=", true], ["ferba_controla_asistencia", "=", true]]),
         ]);
 
-        const grupos = await this.orm.readGroup(
-            "ferba.asistencia.dia", this.domMes,
-            ["horas_trabajadas:sum", "horas_esperadas:sum"], ["estado"]
+        const grupos = await this.orm.call(
+            "ferba.asistencia.dia", "read_group",
+            [this.domMes, ["horas_trabajadas:sum", "horas_esperadas:sum"], ["estado"]],
+            { lazy: false }
         );
 
         let trabTot = 0, espTot = 0, ausencias = 0, maxCount = 1;
@@ -90,10 +91,11 @@ export class FerbaAsistenciaDashboard extends Component {
             ["employee_id", "check_in"], { limit: 8, order: "check_in asc" }
         );
 
-        const gruposDep = await this.orm.readGroup(
-            "ferba.asistencia.dia",
-            this.domMes.concat([["estado", "not in", ["descanso", "festivo"]]]),
-            ["horas_trabajadas:sum", "horas_esperadas:sum"], ["department_id"]
+        const gruposDep = await this.orm.call(
+            "ferba.asistencia.dia", "read_group",
+            [this.domMes.concat([["estado", "not in", ["descanso", "festivo"]]]),
+                ["horas_trabajadas:sum", "horas_esperadas:sum"], ["department_id"]],
+            { lazy: false }
         );
         const deptos = gruposDep.map((g) => {
             const esp = g.horas_esperadas || 0;
