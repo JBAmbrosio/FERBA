@@ -19,6 +19,7 @@ APAGADO DE FABRICA
     tiene que cubrir ubicacion y llamadas antes de encenderlo.
 """
 
+import base64
 import secrets
 from datetime import datetime, timedelta
 
@@ -474,7 +475,7 @@ class FocoMobileDevice(models.Model):
                 })
             if partner is None:
                 continue
-            Visita.create({
+            vals = {
                 'device_uuid': uuid, 'device_id': self.id,
                 'employee_id': emp.id if emp else False,
                 'user_id': user.id if user else False,
@@ -484,7 +485,23 @@ class FocoMobileDevice(models.Model):
                 'precision_m': v.get('accuracy') or 0.0,
                 'origen': 'gps',
                 'nota': (v.get('nota') or '').strip() or False,
-            })
+            }
+            res = (v.get('resultado') or '').strip()
+            if res in dict(Visita._fields['resultado'].selection):
+                vals['resultado'] = res
+            pf = (v.get('proxima_fecha') or '').strip()
+            if pf:
+                vals['proxima_fecha'] = pf[:10]
+            visita = Visita.create(vals)
+            # Foto de la visita (opcional): queda en el chatter y como adjunto.
+            foto = v.get('foto')
+            if foto:
+                try:
+                    visita.message_post(
+                        body='Foto de la visita',
+                        attachments=[('visita_%s.jpg' % uuid[:8], base64.b64decode(foto))])
+                except Exception:
+                    pass
             guardados.append(uuid)
         return guardados
 
