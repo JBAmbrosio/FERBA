@@ -111,6 +111,19 @@ class FocoVisita(models.Model):
     ], string='Resultado', tracking=True)
     nota = fields.Text(string='Nota')
     proxima_fecha = fields.Date(string='Proximo seguimiento')
+    # La visita tiene DOS momentos: la LLEGADA (check_in, crea la visita y arranca
+    # la grabacion) y el CIERRE (check_out, cuando el vendedor termina y captura el
+    # resultado). En curso = llego pero aun no cierra.
+    check_out = fields.Datetime(string='Hora de salida', tracking=True)
+    estado = fields.Selection([
+        ('en_curso', 'En curso'),
+        ('cerrada', 'Cerrada'),
+    ], string='Estado', compute='_compute_estado', store=True)
+
+    @api.depends('check_out', 'resultado')
+    def _compute_estado(self):
+        for v in self:
+            v.estado = 'cerrada' if (v.check_out or v.resultado) else 'en_curso'
 
     # El vendedor le leyo el aviso al cliente y este acepto que se grabe. Sin
     # esto, el telefono NO graba: la grabacion es transparente y consentida.

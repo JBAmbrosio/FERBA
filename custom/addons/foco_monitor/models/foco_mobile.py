@@ -451,12 +451,43 @@ class FocoMobileDevice(models.Model):
         emp = self.employee_id
         user = emp.user_id if emp else self.env['res.users']
         guardados = []
+        sel = dict(Visita._fields['resultado'].selection)
         for v in (visitas or []):
             uuid = (v.get('uuid') or '').strip()
             if not uuid:
                 continue
-            if Visita.search_count([('device_uuid', '=', uuid)]):
-                guardados.append(uuid)          # ya estaba: idempotente
+            fase = (v.get('fase') or 'llegada').strip()
+            existing = Visita.search([('device_uuid', '=', uuid)], limit=1)
+            # CIERRE: la visita ya la creo la 'llegada' (al llegar); aqui, al
+            # TERMINAR, se le pega el resultado/nota/proximo y la hora de salida.
+            if fase == 'cierre':
+                if existing:
+                    upd = {'check_out': fields.Datetime.now()}
+                    res = (v.get('resultado') or '').strip()
+                    if res in sel:
+                        upd['resultado'] = res
+                    nota = (v.get('nota') or '').strip()
+                    if nota:
+                        upd['nota'] = nota
+                    pf = (v.get('proxima_fecha') or '').strip()
+                    if pf:
+                        upd['proxima_fecha'] = pf[:10]
+                    existing.write(upd)
+                    foto = v.get('foto')
+                    if foto:
+                        try:
+                            existing.message_post(
+                                body='Foto de la visita',
+                                attachments=[('visita_%s.jpg' % uuid[:8], base64.b64decode(foto))])
+                        except Exception:
+                            pass
+                if uuid not in guardados:
+                    guardados.append(uuid)
+                continue
+            # LLEGADA: crear la visita (idempotente si ya estaba).
+            if existing:
+                if uuid not in guardados:
+                    guardados.append(uuid)
                 continue
             lat = v.get('lat') or 0.0
             lon = v.get('lon') or 0.0
