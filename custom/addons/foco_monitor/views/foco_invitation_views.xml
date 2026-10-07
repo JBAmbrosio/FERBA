@@ -48,6 +48,16 @@
                             <field name="enrolled_at"/>
                         </group>
                     </group>
+                    <group string="Enrolar el celular (escanea en la app Foco)">
+                        <field name="qr_image" widget="image" nolabel="1"
+                               options="{'size': [260, 260]}"/>
+                        <div class="text-muted" colspan="2">
+                            El celular se instala y queda como equipo de la empresa por
+                            cable (la estación). Después, en el teléfono abre <b>Foco</b>,
+                            toca <b>«Escanear código»</b> y apunta a este QR: se conecta
+                            solo a <b>este empleado</b> con el código de arriba.
+                        </div>
+                    </group>
                 </sheet>
             </form>
         </field>

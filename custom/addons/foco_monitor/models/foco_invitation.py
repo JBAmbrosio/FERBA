@@ -1,5 +1,7 @@
+import base64
 import secrets
 from datetime import timedelta
+from urllib.parse import quote
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
@@ -36,6 +38,32 @@ class FocoInvitation(models.Model):
     mobile_id = fields.Many2one('foco.mobile.device', string='Movil', readonly=True)
     sent_at = fields.Datetime(readonly=True)
     enrolled_at = fields.Datetime(readonly=True)
+
+    # QR para enrolar el CELULAR: una vez que Foco esta instalado (por cable) y es
+    # dueno del equipo, la persona abre Foco, toca "Escanear codigo" y apunta a
+    # este QR; la app se conecta sola a este empleado. El QR codifica el enlace
+    # foco://enroll?u=<odoo>&c=<codigo>. No se guarda: se dibuja al abrir la ficha.
+    qr_image = fields.Binary(string='QR para la app', compute='_compute_qr_image')
+
+    def _enroll_uri(self):
+        self.ensure_one()
+        base = (self.env['ir.config_parameter'].sudo()
+                .get_param('web.base.url') or '').rstrip('/')
+        return 'foco://enroll?u=%s&c=%s' % (quote(base, safe=''), self.token or '')
+
+    @api.depends('token')
+    def _compute_qr_image(self):
+        from reportlab.graphics.barcode import createBarcodeDrawing
+        for inv in self:
+            if not inv.token:
+                inv.qr_image = False
+                continue
+            try:
+                dibujo = createBarcodeDrawing(
+                    'QR', value=inv._enroll_uri(), format='png', width=320, height=320)
+                inv.qr_image = base64.b64encode(dibujo.asString('png'))
+            except Exception:
+                inv.qr_image = False
 
     def action_send(self):
         template = self.env.ref('foco_monitor.mail_tpl_invite', raise_if_not_found=False)
