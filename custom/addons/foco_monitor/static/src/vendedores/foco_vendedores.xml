@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Vendedores">
+        <div class="foco_vend">
+
+            <!-- Encabezado: titulo + resumen + acciones (el cluster crece con mas botones) -->
+            <div class="fv_head">
+                <div>
+                    <h2 class="fv_title">Vendedores</h2>
+                    <div class="fv_sub" t-if="!state.loading">
+                        <span><t t-esc="state.kpis.total || 0"/> clientes</span>
+                        <span t-if="state.kpis.sin_geo" class="fv_warn">
+                            <i class="fa fa-map-marker me-1"/><t t-esc="state.kpis.sin_geo"/> sin ubicación
+                        </span>
+                        <span t-if="state.ultimo">· actualizado <t t-esc="horaUltimo()"/></span>
+                    </div>
+                </div>
+                <div class="fv_actions">
+                    <button class="btn btn-light btn-sm" t-on-click="() => this.refrescar()" title="Actualizar">
+                        <i class="fa fa-refresh me-1"/>Actualizar
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="fv_kpis">
+                <div class="fv_kpi">
+                    <div class="fv_kpi_ico"><i class="fa fa-users"/></div>
+                    <div class="fv_kpi_txt">
+                        <div class="fv_kpi_label">Clientes</div>
+                        <div class="fv_kpi_v"><t t-esc="state.kpis.total || 0"/></div>
+                    </div>
+                </div>
+                <div class="fv_kpi">
+                    <div class="fv_kpi_ico"><i class="fa fa-bolt"/></div>
+                    <div class="fv_kpi_txt">
+                        <div class="fv_kpi_label">Oportunidades</div>
+                        <div class="fv_kpi_v"><t t-esc="state.kpis.oportunidades || 0"/></div>
+                    </div>
+                </div>
+                <div class="fv_kpi">
+                    <div class="fv_kpi_ico"><i class="fa fa-map-marker"/></div>
+                    <div class="fv_kpi_txt">
+                        <div class="fv_kpi_label">Visitas del mes</div>
+                        <div class="fv_kpi_v"><t t-esc="state.kpis.visitas_mes || 0"/></div>
+                    </div>
+                </div>
+                <div class="fv_kpi is-warn">
+                    <div class="fv_kpi_ico"><i class="fa fa-clock-o"/></div>
+                    <div class="fv_kpi_txt">
+                        <div class="fv_kpi_label">Sin visita (30 d)</div>
+                        <div class="fv_kpi_v"><t t-esc="state.kpis.sin_visita_30 || 0"/></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de filtros compacta -->
+            <div class="fv_filters">
+                <div class="fv_fi">
+                    <i class="fa fa-user-o"/>
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('vendedor', ev)">
+                        <option value="">Todos los vendedores</option>
+                        <t t-foreach="state.cat.vendedores" t-as="v" t-key="v.id">
+                            <option t-att-value="v.id" t-att-selected="String(state.f.vendedor) === String(v.id)" t-esc="v.name"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="fv_fi">
+                    <i class="fa fa-map-o"/>
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('zona', ev)">
+                        <option value="">Todas las zonas</option>
+                        <t t-foreach="state.cat.zonas" t-as="z" t-key="z">
+                            <option t-att-value="z" t-att-selected="state.f.zona === z" t-esc="z"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="fv_fi">
+                    <i class="fa fa-leaf"/>
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('cultivo', ev)">
+                        <option value="">Todos los cultivos</option>
+                        <t t-foreach="state.cat.cultivos" t-as="cu" t-key="cu">
+                            <option t-att-value="cu" t-att-selected="state.f.cultivo === cu" t-esc="cu"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="fv_fi">
+                    <i class="fa fa-flag-o"/>
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('estatus', ev)">
+                        <option value="">Todos los estatus</option>
+                        <t t-foreach="state.cat.estatus" t-as="e" t-key="e.k">
+                            <option t-att-value="e.k" t-att-selected="state.f.estatus === e.k" t-esc="e.v"/>
+                        </t>
+                    </select>
+                </div>
+                <div class="fv_spacer"/>
+                <button class="btn btn-link btn-sm text-muted" t-if="hayFiltros" t-on-click="() => this.limpiar()">
+                    <i class="fa fa-times me-1"/>Limpiar
+                </button>
+            </div>
+
+            <!-- Mapa + panel -->
+            <div class="fv_main">
+                <div class="fv_card fv_map_card">
+                    <div class="fv_map" t-ref="map"/>
+                    <div class="fv_legend">
+                        <t t-foreach="state.cat.estatus" t-as="e" t-key="e.k">
+                            <span class="fv_leg">
+                                <span class="fv_dot" t-attf-style="background: {{ estColor(e.k) }}"/>
+                                <t t-esc="e.v"/> <b><t t-esc="kpiEstatus(e.k)"/></b>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="fv_card fv_side">
+                    <!-- Ficha del cliente seleccionado -->
+                    <div class="fv_ficha" t-if="state.sel">
+                        <div class="fv_ficha_head">
+                            <div class="fv_ficha_title">
+                                <span class="fv_dot" t-attf-style="background: {{ state.sel.color }}"/>
+                                <b t-esc="state.sel.name"/>
+                            </div>
+                            <button class="btn btn-sm btn-light" t-on-click="() => this.cerrarFicha()" title="Cerrar">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
+                        <span class="fv_badge"
+                              t-attf-style="color: {{ estColor(state.sel.estatus) }}; border-color: {{ estColor(state.sel.estatus) }}66; background: {{ estColor(state.sel.estatus) }}14;">
+                            <t t-esc="estLabel(state.sel.estatus)"/>
+                        </span>
+
+                        <div class="fv_meta">
+                            <div t-if="state.sel.empaque"><i class="fa fa-industry"/><span t-esc="state.sel.empaque"/></div>
+                            <div t-if="state.sel.contacto"><i class="fa fa-user"/><span t-esc="state.sel.contacto"/></div>
+                            <div t-if="state.sel.phone"><i class="fa fa-phone"/><span t-esc="state.sel.phone"/></div>
+                            <div t-if="state.sel.zona"><i class="fa fa-map-o"/><span t-esc="state.sel.zona"/></div>
+                            <div t-if="state.sel.cultivo"><i class="fa fa-leaf"/><span t-esc="state.sel.cultivo"/></div>
+                            <div t-if="state.sel.vendedor"><i class="fa fa-briefcase"/><span t-esc="state.sel.vendedor"/></div>
+                            <div t-if="state.sel.ubicacion_fisica"><i class="fa fa-map-signs"/><span t-esc="state.sel.ubicacion_fisica"/></div>
+                        </div>
+
+                        <div class="fv_acts">
+                            <a t-if="state.sel.phone" class="btn btn-primary btn-sm" t-att-href="telLink(state.sel.phone)">
+                                <i class="fa fa-phone me-1"/>Llamar
+                            </a>
+                            <a t-if="state.sel.phone" class="btn btn-success btn-sm" t-att-href="waLink(state.sel.phone)" target="_blank">
+                                <i class="fa fa-whatsapp me-1"/>WhatsApp
+                            </a>
+                            <a t-if="state.sel.lat || state.sel.lng" class="btn btn-secondary btn-sm" t-att-href="comoLlegar(state.sel)" target="_blank">
+                                <i class="fa fa-location-arrow me-1"/>Cómo llegar
+                            </a>
+                            <a t-if="state.sel.expediente" class="btn btn-light btn-sm" t-att-href="state.sel.expediente" target="_blank">
+                                <i class="fa fa-folder-open me-1"/>Expediente
+                            </a>
+                            <button class="btn btn-light btn-sm" t-on-click="() => this.abrirCliente(state.sel)">
+                                <i class="fa fa-external-link me-1"/>Abrir
+                            </button>
+                        </div>
+
+                        <div class="fv_sec" t-if="state.sel.oportunidades.length">
+                            <div class="fv_sec_h">Oportunidades</div>
+                            <t t-foreach="state.sel.oportunidades" t-as="op" t-key="op.id">
+                                <div class="fv_op" t-on-click="() => this.abrirOportunidad(op)">
+                                    <div class="fv_op_n" t-esc="op.name"/>
+                                    <div class="fv_op_m">
+                                        <span t-if="op.stage" class="badge text-bg-light" t-esc="op.stage"/>
+                                        <span t-if="op.revenue" class="fv_op_rev" t-esc="dinero(op.revenue)"/>
+                                        <span t-if="op.deadline"><i class="fa fa-clock-o me-1"/><t t-esc="op.deadline"/></span>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+
+                        <div class="fv_visinfo">
+                            <t t-if="state.sel.ultima_visita">
+                                <i class="fa fa-check-circle text-success"/>
+                                <span>Última visita <t t-esc="fechaCorta(state.sel.ultima_visita)"/> · <t t-esc="state.sel.n_visitas"/> en total</span>
+                            </t>
+                            <t t-else="">
+                                <i class="fa fa-circle-o"/>
+                                <span>Sin visitas registradas</span>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- Lista de clientes (cuando no hay ficha abierta) -->
+                    <t t-else="">
+                        <div class="fv_side_head">
+                            <span>Clientes</span>
+                            <span class="fv_count" t-esc="state.clientes.length"/>
+                        </div>
+                        <div class="fv_scroll">
+                            <t t-foreach="state.clientes" t-as="c" t-key="c.id">
+                                <div class="fv_row" t-on-click="() => this.seleccionar(c)">
+                                    <span class="fv_dot" t-attf-style="background: {{ c.color }}"/>
+                                    <div class="fv_row_txt">
+                                        <div class="fv_row_n" t-esc="c.name"/>
+                                        <div class="fv_row_m">
+                                            <t t-if="c.zona"><t t-esc="c.zona"/></t>
+                                            <t t-if="c.cultivo"><t t-if="c.zona"> · </t><t t-esc="c.cultivo"/></t>
+                                            <t t-if="!c.lat and !c.lng"><t t-if="c.zona or c.cultivo"> · </t><span class="text-warning">sin ubicación</span></t>
+                                        </div>
+                                    </div>
+                                    <span class="badge text-bg-light" t-if="c.oportunidades.length"
+                                          t-attf-title="{{ c.oportunidades.length }} oportunidad(es)">
+                                        <i class="fa fa-bolt me-1"/><t t-esc="c.oportunidades.length"/>
+                                    </span>
+                                </div>
+                            </t>
+                            <div class="fv_empty" t-if="!state.loading and !state.clientes.length">
+                                No hay clientes con estos filtros.
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <div class="fv_loading" t-if="state.loading">
+                <i class="fa fa-circle-o-notch fa-spin me-2"/>Cargando…
+            </div>
+        </div>
+    </t>
+</templates>

@@ -22,23 +22,11 @@ class FocoSettings(models.Model):
     _description = 'Configuracion de Foco'
 
     name = fields.Char(default="Configuracion", readonly=True)
-    sched_enabled = fields.Boolean(
-        string="Aplicar horario", default=True,
-        help="Si esta activo, los agentes SOLO miden dentro del horario. "
-             "Si se apaga, miden todo el tiempo (24/7).")
-    sched_from = fields.Float(
-        string="Desde", default=9.0,
-        help="Hora de inicio en formato 24h (9.0 = 09:00, 9.5 = 09:30).")
-    sched_to = fields.Float(
-        string="Hasta", default=20.0,
-        help="Hora de fin en formato 24h (20.0 = 20:00).")
-    day_mon = fields.Boolean("Lunes", default=True)
-    day_tue = fields.Boolean("Martes", default=True)
-    day_wed = fields.Boolean("Miercoles", default=True)
-    day_thu = fields.Boolean("Jueves", default=True)
-    day_fri = fields.Boolean("Viernes", default=True)
-    day_sat = fields.Boolean("Sabado", default=False)
-    day_sun = fields.Boolean("Domingo", default=False)
+
+    # El horario global (sched_*, day_*) se retiro el 28-sep-2026: desde que
+    # RRHH asigna calendarios laborales no gobernaba a nadie, y la jornada la
+    # dice el CHECADOR para quien lo usa (ver `jornada_de`). Las columnas
+    # viejas quedan en la base sin uso; Odoo no las borra y nada las lee.
 
     # ---- bloqueo de navegacion ------------------------------------------
     # APAGADO de fabrica. Una funcion que puede dejar a alguien sin poder abrir
@@ -53,6 +41,60 @@ class FocoSettings(models.Model):
         'foco.policy', string='Perfil por omision',
         help='El que toma un equipo que no tenga uno propio. Vacio = ese equipo '
              'no bloquea nada.')
+
+    # ---- ventana de inactividad (justificacion bloqueante) --------------
+    # El umbral (estos minutos) es GLOBAL para todos; a QUE EQUIPO le sale la
+    # ventana es POR EQUIPO (foco.computer.foco_ventana_inactividad), APAGADO
+    # para todos de fabrica. Se administra en Foco > Configuracion > Ventana de
+    # inactividad. Se elige por EQUIPO -no por empleado- porque la ventana la
+    # muestra el agente de esa maquina y solo los equipos tienen Foco: un
+    # empleado sin equipo no la podria recibir.
+    gap_min_minutes = fields.Integer(
+        string='Minutos de inactividad para pedir justificacion', default=15,
+        help='Un hueco sin actividad mas largo que estos minutos abre un periodo '
+             'por justificar; al equipo que tenga la ventana encendida, ademas se '
+             'la muestra. 15 min de fabrica. Entre 1 y 60. Viaja a los equipos en '
+             'su siguiente envio (cinco minutos), sin reinstalar nada.')
+    ventana_computer_ids = fields.Many2many(
+        'foco.computer', string='Equipos con la ventana de inactividad',
+        compute='_compute_ventana_equipos', inverse='_inverse_ventana_equipos',
+        help='En estos equipos aparece la ventana bloqueante para justificar '
+             'los periodos largos sin actividad. Vacio = en ninguno (de fabrica). '
+             'Son equipos con Foco instalado; el umbral de minutos de arriba es '
+             'el mismo para todos.')
+
+    @api.constrains('gap_min_minutes')
+    def _check_gap_min_minutes(self):
+        for r in self:
+            if r.gap_min_minutes and not (1 <= r.gap_min_minutes <= 60):
+                raise ValidationError('Los minutos de inactividad van de 1 a 60.')
+
+    @api.depends_context('uid')
+    def _compute_ventana_equipos(self):
+        eqs = self.env['foco.computer'].sudo().search([('foco_ventana_inactividad', '=', True)])
+        for rec in self:
+            rec.ventana_computer_ids = eqs
+
+    def _inverse_ventana_equipos(self):
+        Comp = self.env['foco.computer'].sudo()
+        for rec in self:
+            actuales = Comp.search([('foco_ventana_inactividad', '=', True)])
+            (actuales - rec.ventana_computer_ids).write({'foco_ventana_inactividad': False})
+            rec.ventana_computer_ids.sudo().write({'foco_ventana_inactividad': True})
+
+    @api.model
+    def action_ventana(self):
+        """Abre la pantalla de la ventana de inactividad sobre el registro unico."""
+        ajustes = self.get_settings()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Ventana de inactividad',
+            'res_model': 'foco.settings',
+            'view_mode': 'form',
+            'res_id': ajustes.id,
+            'target': 'current',
+            'views': [(self.env.ref('foco_monitor.foco_settings_view_form_ventana').id, 'form')],
+        }
 
     # ---- el archivo abierto ---------------------------------------------
     # APAGADO de fabrica, y es la compuerta de TODO lo demas: mientras este
@@ -116,6 +158,23 @@ class FocoSettings(models.Model):
     mobile_collect_apps = fields.Boolean(
         string='Registrar uso de apps', default=True,
         help='Segundos en primer plano por aplicacion y dia.')
+    # --- Grabacion de la visita (coaching con IA) ---
+    # APAGADO de fabrica. Es lo mas sensible del lado movil: graba la
+    # conversacion de la visita (micro) para que la IA la analice como gerente
+    # senior. Enciendelo solo con la responsabilidad legal cubierta.
+    visita_grabar = fields.Boolean(
+        string='Grabar la visita para analisis de IA', default=False,
+        help='Interruptor general. Apagado, NINGUN telefono graba la visita, y '
+             'el audio que llegara se rechaza. La grabacion arranca con el '
+             'check-in y se corta sola al alejarse del cliente.')
+    visita_grabar_radio_m = fields.Integer(
+        string='Radio de la visita (m)', default=200,
+        help='Al alejarse mas de este radio del punto de llegada, la grabacion '
+             'se detiene sola (se dio por terminada la visita).')
+    visita_grabar_max_min = fields.Integer(
+        string='Duracion maxima de grabacion (min)', default=90,
+        help='Tope de seguridad: la grabacion se corta a los N minutos aunque '
+             'el telefono siga en el sitio.')
     # PIN de proteccion (anti-desinstalacion) para equipos que NO se pueden
     # aprovisionar como Device Owner (telefonos ya en uso). El telefono lo pide
     # antes de dejar desinstalar Foco, forzar su detencion o desactivar su
@@ -191,7 +250,114 @@ class FocoSettings(models.Model):
             'collect_calls': self.mobile_collect_calls,
             'collect_apps': self.mobile_collect_apps,
             'uninstall_pin': (self.mobile_uninstall_pin or '').strip(),
+            'visita_grabar': self.visita_grabar,
+            'visita_radio_m': self.visita_grabar_radio_m or 200,
+            'visita_max_min': self.visita_grabar_max_min or 90,
         }
+
+    # ---- analisis de llamadas de WhatsApp (laptop) -----------------------
+    #
+    # APAGADO de fabrica y con DOS candados: este interruptor general y la
+    # marca por equipo (foco.computer.call_review), que solo se pone con el
+    # consentimiento firmado de esa persona. Es lo mas invasivo del sistema:
+    # el agente graba microfono y bocinas mientras WhatsApp tenga el
+    # microfono. Lo que se guarda es el VEREDICTO (trabajo / personal), no la
+    # llamada: el audio se transcribe al llegar y se descarta, y la
+    # transcripcion se borra en cuanto el modelo decide.
+    call_review_enabled = fields.Boolean(
+        string='Analizar llamadas de WhatsApp (laptop)', default=False,
+        help='Interruptor general. Apagado, NINGUN equipo graba aunque tenga '
+             'la marca puesta, y los trozos que llegaran se rechazan. '
+             'Enciendelo solo con el aviso de privacidad firmado que contemple '
+             'el analisis de llamadas.')
+    call_review_apps = fields.Text(
+        string='Apps cuyas llamadas se analizan (una por linea)',
+        default='5319275A.WhatsAppDesktop\nWhatsApp.Root.exe\nWhatsApp.exe',
+        help='Nombre con el que Windows registra a la app que toma el microfono '
+             '(el que aparece en los eventos «Entro a una llamada»). WhatsApp '
+             'de escritorio es 5319275A.WhatsAppDesktop. Una llamada de '
+             'WhatsApp Web dentro de Chrome NO se distingue de otra llamada del '
+             'navegador y no se analiza.')
+    call_review_notice = fields.Text(
+        string='Aviso en pantalla al empezar',
+        default='Foco esta analizando esta llamada de WhatsApp para clasificarla como '
+                'trabajo o personal. Nadie la escucha y el audio se borra al terminar.',
+        help='Se muestra 8 segundos al detectar la llamada. Vacio = sin aviso '
+             '(no recomendable).')
+    call_review_context = fields.Text(
+        string='Contexto del negocio para el clasificador',
+        default='FERBA (Industrias Tecnologicas EMP, Culiacan): fabricacion y venta de '
+                'maquinaria agricola e industrial, refacciones, servicio y proyectos.',
+        help='«Trabajo» se juzga respecto a lo que hace ESTA empresa. Una linea.')
+    call_review_keep_reason = fields.Boolean(
+        string='Guardar el motivo (maximo 12 palabras)', default=True,
+        help='Apagado, solo queda el veredicto. En las llamadas personales el '
+             'motivo es siempre «asunto personal», sin detalle.')
+    call_review_keep_transcript = fields.Boolean(
+        string='Guardar la transcripcion de la llamada', default=False,
+        help='Apagado (de fabrica), la transcripcion se BORRA en cuanto el modelo '
+             'da su veredicto y solo queda la etiqueta. Encendido, la transcripcion '
+             'se conserva para poder validar si la IA clasifica bien. Es lo que se '
+             'dijo en la llamada: enciendelo SOLO con el aviso de privacidad firmado '
+             'que contemple guardar la transcripcion. La ven unicamente quienes '
+             'administran Foco.')
+    call_review_max_minutes = fields.Integer(
+        string='Maximo de minutos por llamada', default=120,
+        help='Pasado este tiempo el agente deja de grabar esa llamada.')
+    call_review_chunk_minutes = fields.Integer(
+        string='Subir el audio en trozos de (min)', default=3,
+        help='Cada trozo se transcribe al llegar y se descarta. Trozos cortos '
+             'suben mas seguido; largos cargan mas cada peticion. 1 a 10.')
+    openai_api_key = fields.Char(
+        string='API key de OpenAI', compute='_compute_openai_api_key',
+        inverse='_inverse_openai_api_key',
+        help='Vive en un parametro del sistema (foco.openai_api_key). Nunca '
+             'viaja a los equipos: la usa Odoo para transcribir y clasificar.')
+
+    def _compute_openai_api_key(self):
+        key = self.env['ir.config_parameter'].sudo().get_param('foco.openai_api_key') or ''
+        for rec in self:
+            rec.openai_api_key = key
+
+    def _inverse_openai_api_key(self):
+        for rec in self:
+            self.env['ir.config_parameter'].sudo().set_param(
+                'foco.openai_api_key', (rec.openai_api_key or '').strip())
+
+    @api.constrains('call_review_chunk_minutes', 'call_review_max_minutes')
+    def _check_call_review(self):
+        for r in self:
+            if not (1 <= (r.call_review_chunk_minutes or 0) <= 10):
+                raise ValidationError('Los trozos de audio van de 1 a 10 minutos.')
+            if (r.call_review_max_minutes or 0) < 1:
+                raise ValidationError('El maximo por llamada tiene que ser al menos 1 minuto.')
+
+    def call_review_apps_list(self):
+        self.ensure_one()
+        vistos = []
+        for linea in (self.call_review_apps or '').replace(',', '\n').splitlines():
+            linea = linea.strip()
+            if linea and linea not in vistos:
+                vistos.append(linea)
+        return vistos
+
+    def call_review_config(self, computer):
+        """Lo que el agente de ESE equipo necesita saber. Viaja en cada envio
+        para que apagarlo -en general o por equipo- surta efecto en el
+        siguiente ciclo, sin reinstalar nada."""
+        self.ensure_one()
+        activo = bool(self.call_review_enabled and computer and computer.call_review
+                      and self.env['foco.openai'].configurado())
+        return {
+            'enabled': activo,
+            'apps': self.call_review_apps_list(),
+            'aviso': (self.call_review_notice or '').strip(),
+            'max_min': self.call_review_max_minutes or 120,
+            'chunk_min': self.call_review_chunk_minutes or 3,
+        }
+
+    def call_review_allowed(self, computer):
+        return bool(self.call_review_enabled and computer and computer.call_review)
 
     # ---- cuanto tiempo se guarda el dato --------------------------------
     # APAGADA de fabrica (0). Una purga encendida por omision borraria datos
@@ -308,6 +474,28 @@ class FocoSettings(models.Model):
         self.ensure_one()
         return bool(self.mobile_apk)
 
+    # ---- APK "stub" de ALTA (pasa Play Protect en el QR) ----------------
+    # Google Play Protect BLOQUEA el Foco completo al instalarlo por QR (micro,
+    # registro de llamadas, accesibilidad, uso de apps = firma de "app de
+    # vigilancia"). El stub es una app MINIMA, con la MISMA firma y el mismo
+    # paquete, que si pasa Play Protect: queda de dueño del equipo, apaga Play
+    # Protect y baja/instala el Foco completo en silencio (que ya no se bloquea).
+    # El QR apunta su descarga al stub; el Foco completo lo baja el stub de
+    # `/foco/app/full`.
+    mobile_stub_apk = fields.Binary(
+        string='APK de alta (stub)',
+        help='El .apk MINIMO de alta que el QR instala primero para esquivar '
+             'Play Protect. Debe ir firmado con la MISMA llave que el Foco '
+             'completo y con un versionCode MENOR.')
+    mobile_stub_apk_name = fields.Char(string='Nombre del APK de alta', default='foco-alta.apk')
+    mobile_stub_apk_version_code = fields.Integer(
+        string='Codigo de version del stub')
+
+    def mobile_stub_ready(self):
+        """True si hay stub de alta publicado (y el Foco completo que baja)."""
+        self.ensure_one()
+        return bool(self.mobile_stub_apk) and bool(self.mobile_apk)
+
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
     # responsable de Foco no necesite permisos generales de administracion de
@@ -407,13 +595,151 @@ class FocoSettings(models.Model):
     def get_settings(self):
         return self.search([], limit=1) or self.create({})
 
-    def schedule_dict(self):
-        self.ensure_one()
-        flags = [self.day_mon, self.day_tue, self.day_wed, self.day_thu,
-                 self.day_fri, self.day_sat, self.day_sun]
-        days = [i + 1 for i, on in enumerate(flags) if on]
-        return {"enabled": self.sched_enabled, "from": self.sched_from,
-                "to": self.sched_to, "days": days}
+    # ---- la jornada: checador primero, calendario despues -----------------
+    #
+    # Cuando una persona "usa el checador": tiene un registro de asistencia
+    # ese dia o en los 30 anteriores. Es una definicion declarada, no un
+    # umbral afinado: la misma que aplica el agente al etiquetar en vivo
+    # (`asistencia_para`) y la que aplica la jornada al recalcularse
+    # (`jornada_de`), para que los dos digan lo mismo de un mismo dia se mire
+    # cuando se mire. Quien no lo usa se rige por su calendario laboral; quien
+    # no tiene ninguno, no tiene jornada contra que contrastar.
+    CHECADOR_VENTANA_DIAS = 30
+
+    @api.model
+    def _a_utc(self, dt_local):
+        return dt_local.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    @api.model
+    def _usa_checador(self, employee, dia, zona):
+        if not employee or 'hr.attendance' not in self.env:
+            return False
+        desde = zona.localize(datetime.combine(
+            dia - timedelta(days=self.CHECADOR_VENTANA_DIAS), time.min))
+        hasta = zona.localize(datetime.combine(dia, time.max))
+        try:
+            return bool(self.env['hr.attendance'].sudo().search_count(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '>=', self._a_utc(desde)),
+                 ('check_in', '<=', self._a_utc(hasta))], limit=1))
+        except Exception:
+            return False
+
+    @api.model
+    def _tramos_checados(self, employee, dia, zona):
+        """[(h_ini, h_fin, abierta)] de lo checado ese dia, en horas locales.
+
+        Una asistencia sin salida se cierra en "ahora" si es hoy (sigue
+        checada) y en el fin del dia si es un dia pasado (se le olvido checar
+        salida): lo checado sin actividad se vera, que es lo correcto.
+        """
+        if not employee or 'hr.attendance' not in self.env:
+            return []
+        base = zona.localize(datetime.combine(dia, time.min))
+        fin_dia = zona.localize(datetime.combine(dia, time.max))
+        ahora = datetime.now(zona)
+        tope = min(fin_dia, ahora) if dia == ahora.date() else fin_dia
+        if dia > ahora.date() or tope <= base:
+            return []
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '<=', self._a_utc(tope)),
+                 '|', ('check_out', '=', False), ('check_out', '>=', self._a_utc(base))],
+                ['check_in', 'check_out'], order='check_in')
+        except Exception:
+            return []
+
+        def hora(d):
+            return d.hour + d.minute / 60.0 + d.second / 3600.0
+
+        out = []
+        for r in regs:
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(zona)
+            abierta = not r['check_out']
+            co = tope if abierta else pytz.UTC.localize(
+                fields.Datetime.to_datetime(r['check_out'])).astimezone(zona)
+            a, b = max(ci, base), min(co, tope)
+            if b <= a:
+                continue
+            h_a = 0.0 if a <= base else hora(a)
+            h_b = 24.0 if b >= fin_dia else hora(b)
+            out.append((round(h_a, 4), round(h_b, 4), abierta))
+        return sorted(out)
+
+    @api.model
+    def jornada_de(self, employee, dia, zona):
+        """La jornada de esa persona ese dia: fuente, tramos y duracion."""
+        if employee and self._usa_checador(employee, dia, zona):
+            tramos = [(a, b) for a, b, _ in self._tramos_checados(employee, dia, zona)]
+            return {'fuente': 'checador', 'tramos': tramos,
+                    'horas': round(sum(b - a for a, b in tramos), 3)}
+        intervals = self.calendar_intervals(employee.resource_calendar_id if employee else None)
+        if intervals:
+            tramos = list(intervals.get(dia.isoweekday(), []))
+            return {'fuente': 'calendario', 'tramos': tramos,
+                    'horas': round(sum(b - a for a, b in tramos), 3)}
+        return {'fuente': 'ninguno', 'tramos': [], 'horas': 0.0}
+
+    @api.model
+    def asistencia_para(self, employee, computer=None):
+        """Lo que el agente necesita para etiquetar EN VIVO "en jornada":
+        si esta persona usa el checador y si ahora mismo esta checada."""
+        salida = {'usa': False, 'checado': False, 'desde': None, 'fuente': 'ninguno'}
+        if not employee:
+            return salida
+        zona = self._tzinfo_for(employee, computer)
+        ahora = datetime.now(zona)
+        if self._usa_checador(employee, ahora.date(), zona):
+            salida['usa'] = True
+            salida['fuente'] = 'checador'
+            abierta = self.env['hr.attendance'].sudo().search(
+                [('employee_id', '=', employee.id), ('check_out', '=', False)],
+                order='check_in desc', limit=1)
+            if abierta:
+                salida['checado'] = True
+                salida['desde'] = pytz.UTC.localize(abierta.check_in).astimezone(zona).strftime('%H:%M')
+        elif self.calendar_intervals(employee.resource_calendar_id):
+            salida['fuente'] = 'calendario'
+        return salida
+
+    @api.model
+    def jornada_fuentes(self):
+        """De donde sale la jornada de cada persona monitoreada, HOY.
+
+        Es lo que ensena Configuracion > Jornada, y no se edita ahi: el
+        checador es de Asistencias y el calendario de RRHH. Duplicarlos en
+        Foco seria tener dos verdades sobre la jornada de una persona.
+        """
+        salida = []
+        empleados = self.env['foco.computer'].search(
+            [('employee_id', '!=', False)]).mapped('employee_id')
+        for emp in empleados:
+            zona = self._tzinfo_for(emp)
+            hoy = datetime.now(zona).date()
+            usa = self._usa_checador(emp, hoy, zona)
+            cal = emp.resource_calendar_id
+            con_cal = bool(self.calendar_intervals(cal))
+            ultima = ''
+            if 'hr.attendance' in self.env:
+                reg = self.env['hr.attendance'].sudo().search(
+                    [('employee_id', '=', emp.id)], order='check_in desc', limit=1)
+                if reg:
+                    ultima = fields.Date.to_string(
+                        pytz.UTC.localize(reg.check_in).astimezone(zona).date())
+            salida.append({
+                'id': emp.id, 'nombre': emp.name,
+                'fuente': 'checador' if usa else ('calendario' if con_cal else 'ninguno'),
+                'calendario': cal.name or '', 'calendario_id': cal.id or 0,
+                'calendario_valido': con_cal, 'ultima_checada': ultima,
+            })
+        orden = {'checador': 0, 'calendario': 1, 'ninguno': 2}
+        salida.sort(key=lambda p: (orden[p['fuente']], p['nombre']))
+        conteo = {'checador': 0, 'calendario': 0, 'ninguno': 0}
+        for p in salida:
+            conteo[p['fuente']] += 1
+        return {'personas': salida, 'conteo': conteo,
+                'ventana_dias': self.CHECADOR_VENTANA_DIAS}
 
     @api.model
     def calendar_intervals(self, calendar):
@@ -505,13 +831,14 @@ class FocoSettings(models.Model):
         return self.env.company.resource_calendar_id.tz or 'UTC'
 
     def schedule_for(self, employee=None):
-        """Jornada que se le manda al agente de ese equipo.
+        """El calendario laboral que se le manda al agente de ese equipo.
 
-        Preferencia: calendario del empleado > horario global > apagado.
+        Es el respaldo del agente: etiqueta con el checador si la persona lo
+        usa (bloque `asistencia`) y con esto si no. Sin calendario no hay
+        jornada: `enabled` False y el agente etiqueta todo "en jornada", que
+        es lo conservador (no acusa a nadie de trabajar fuera de nada).
         """
         self.ensure_one()
-        if not self.sched_enabled:
-            return {"enabled": False, "intervals": {}, "source": "off", "tz": ""}
         calendar = employee.resource_calendar_id if employee else None
         intervals = self.calendar_intervals(calendar)
         if intervals:
@@ -519,10 +846,8 @@ class FocoSettings(models.Model):
                     "tz": calendar.tz or self._tz_for(employee),
                     "source": "employee_calendar",
                     "intervals": {str(k): v for k, v in intervals.items()}}
-        data = self.schedule_dict()
-        data["source"] = "global"
-        data["tz"] = self._tz_for(employee)
-        return data
+        return {"enabled": False, "intervals": {}, "source": "sin_calendario",
+                "tz": self._tz_for(employee)}
 
     # ---- purga ----------------------------------------------------------
     def _purgar_modelo(self, modelo, dominio, cupo):
@@ -632,49 +957,50 @@ class FocoSettings(models.Model):
         return borrados
 
     @api.model
-    def cobertura_horario(self):
-        """A quien gobierna DE VERDAD este horario.
+    def _presencia_por_dia(self, employee, ini, fin, tz):
+        """Lo que dice el CHECADOR (hr.attendance): por dia local, los tramos
+        en que la persona estuvo checada dentro de [ini, fin].
 
-        schedule_for() da preferencia al calendario laboral del empleado sobre
-        este horario global. Es lo correcto -la jornada la define RRHH, no una
-        pantalla de Foco- pero deja un ajuste que para parte de la plantilla no
-        surte ningun efecto, sin decirlo. Un control que no aplica y no lo
-        avisa es peor que no tenerlo: se configura, se cree aplicado, y los
-        numeros salen distintos por una razon invisible.
-
-        Devuelve el reparto real sobre las personas MONITOREADAS (las que
-        tienen equipo), no sobre toda la plantilla.
+        Devuelve {fecha: [(desde, hasta), ...]} en la zona `tz`. Una asistencia
+        sin salida (se le olvido checar) se toma como abierta hasta el fin del
+        rango: ahi no hay con que afirmar que ya se fue. Un dia SIN ninguna
+        asistencia no aparece en el dict: para ese dia manda el calendario,
+        porque "no checo" no es lo mismo que "no estaba".
         """
-        empleados = self.env['foco.computer'].search(
-            [('employee_id', '!=', False)]).mapped('employee_id')
-        sin_cal = empleados.filtered(lambda e: not e.resource_calendar_id)
-        con_cal = empleados - sin_cal
-
-        por_calendario = {}
-        for emp in con_cal:
-            cal = emp.resource_calendar_id
-            grupo = por_calendario.setdefault(
-                cal.id, {'id': cal.id, 'nombre': cal.name or 'Sin nombre', 'quienes': []})
-            grupo['quienes'].append(emp.name)
-        calendarios = sorted(por_calendario.values(),
-                             key=lambda g: (-len(g['quienes']), g['nombre']))
-        for g in calendarios:
-            g['personas'] = len(g['quienes'])
-
-        return {
-            'total': len(empleados),
-            'global': len(sin_cal),
-            'con_calendario': len(con_cal),
-            'nombres_global': sin_cal.mapped('name')[:10],
-            'calendarios': calendarios,
-        }
+        if not employee or 'hr.attendance' not in self.env:
+            return {}
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', '=', employee.id),
+                 ('check_in', '<=', fin.astimezone(pytz.UTC).replace(tzinfo=None)),
+                 '|', ('check_out', '=', False),
+                 ('check_out', '>=', ini.astimezone(pytz.UTC).replace(tzinfo=None))],
+                ['check_in', 'check_out'], order='check_in')
+        except Exception:
+            return {}
+        por_dia = {}
+        for r in regs:
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(tz)
+            co = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_out'])).astimezone(tz) \
+                if r['check_out'] else fin
+            por_dia.setdefault(ci.date(), []).append((ci, co))
+        return por_dia
 
     @api.model
-    def expected_seconds(self, employee, start_utc, stop_utc):
+    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False):
         """Segundos de JORNADA ESPERADA dentro de [start_utc, stop_utc].
 
         Es lo que permite no molestar al empleado por huecos que caen fuera de
         su jornada (o en su comida): ahi el esperado es 0.
+
+        `con_asistencia=True` (lo usa la ingesta de huecos, no el tablero):
+        ademas del calendario, cuenta el checador. Un dia en que la persona
+        checo, solo es esperado lo que cae ENTRE su entrada y su salida; asi,
+        lo que pasa despues de checar salida (la computadora que se quedo
+        prendida toda la noche) o antes de checar entrada no se pide justificar.
+        Acordado con Francesco el 25-sep-2026: "cuando chequen salida, ya no
+        hay que justificar". Un dia sin asistencia se sigue rigiendo por el
+        calendario: no checar no prueba que no estuviera.
         """
         if stop_utc <= start_utc:
             return 0.0
@@ -687,16 +1013,26 @@ class FocoSettings(models.Model):
         tz = self._tzinfo_for(employee)
         ini = pytz.UTC.localize(start_utc).astimezone(tz)
         fin = pytz.UTC.localize(stop_utc).astimezone(tz)
+        presencia = self._presencia_por_dia(employee, ini, fin, tz) if con_asistencia else {}
         total = 0.0
         day = ini.date()
         while day <= fin.date():
             base = tz.localize(datetime.combine(day, time(0, 0)))
+            tramos = presencia.get(day)
             for h_from, h_to in intervals.get(day.isoweekday(), []):
                 span_a = base + timedelta(hours=h_from)
                 span_b = base + timedelta(hours=h_to)
                 lo = max(ini, span_a)
                 hi = min(fin, span_b)
-                if hi > lo:
+                if hi <= lo:
+                    continue
+                if not tramos:
                     total += (hi - lo).total_seconds()
+                    continue
+                for ci, co in tramos:
+                    a = max(lo, ci)
+                    b = min(hi, co)
+                    if b > a:
+                        total += (b - a).total_seconds()
             day += timedelta(days=1)
         return total

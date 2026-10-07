@@ -13,45 +13,29 @@
                 <button name="action_enviar_revision" type="object" string="Enviar a revision"
                         class="btn-primary" data-hotkey="r"
                         invisible="not requiere_aprobacion or aprobacion_state not in ('sin', 'rechazada')"/>
+                <!-- El aprobador aprueba desde cualquier estado: no tiene que mandarse
+                     la cotizacion a revision a si mismo (19.0.1.2.0). -->
                 <button name="action_aprobar" type="object" string="Aprobar"
                         class="btn-primary" data-hotkey="a"
                         groups="ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones"
-                        invisible="not requiere_aprobacion or aprobacion_state != 'revision'"/>
+                        invisible="not requiere_aprobacion or aprobacion_state == 'aprobada'"/>
                 <button name="action_rechazar" type="object" string="Rechazar"
                         class="btn-secondary"
                         groups="ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones"
-                        invisible="not requiere_aprobacion or aprobacion_state != 'revision'"/>
+                        invisible="not requiere_aprobacion or aprobacion_state not in ('sin', 'revision')"/>
                 <field name="aprobacion_state" widget="statusbar" statusbar_visible="sin,revision,aprobada"
                        invisible="not requiere_aprobacion and aprobacion_state == 'sin'"/>
             </xpath>
 
-            <!-- Enviar y Confirmar solo con la aprobacion puesta. La misma regla
-                 vive en Python (action_quotation_send / action_confirm): esto es
-                 para que no se vea lo que no se puede hacer, no la guarda. -->
-            <xpath expr="//button[@id='quotation_send_primary']" position="attributes">
-                <attribute name="invisible">state != 'draft' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='quotation_send']" position="attributes">
-                <attribute name="invisible">state not in ('sent', 'sale') or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='action_confirm']" position="attributes">
-                <attribute name="invisible">state != 'sent' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//header/button[@name='action_confirm'][not(@id)]" position="attributes">
-                <attribute name="invisible">state != 'draft' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='send_proforma_primary']" position="attributes">
-                <attribute name="invisible">state != 'draft' or invoice_count >= 1 or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <xpath expr="//button[@id='send_proforma']" position="attributes">
-                <attribute name="invisible">state == 'draft' or invoice_count >= 1 or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
-            <!-- Imprimir tampoco se ve hasta que este aprobada: no se manda al cliente
-                 ni un PDF de una cotizacion que la direccion no libero. Se conserva la
-                 condicion de Odoo (se oculta ya confirmada, state == 'sale'). -->
-            <xpath expr="//button[@name='sale.action_report_saleorder']" position="attributes">
-                <attribute name="invisible">state == 'sale' or (requiere_aprobacion and aprobacion_state != 'aprobada')</attribute>
-            </xpath>
+            <!-- Mientras no este aprobada, del encabezado solo se ven «Enviar a
+                 revision» y «Cancelar» (mas «Aprobar» y «Rechazar» para los
+                 aprobadores). Enviar, Confirmar, Vista previa, Imprimir, PROFORMA y
+                 los botones de Studio aparecen al aprobarse. Eso ya no va aqui con un
+                 xpath por boton: lo hace sale.order._get_view sobre la vista ya
+                 combinada (19.0.1.4.0), asi cubre tambien los botones que agregue
+                 Studio u otro modulo. Las compuertas de enviar y confirmar siguen en
+                 Python (action_quotation_send / action_confirm). -->
+
 
             <!-- Lo que le pasa a la cotizacion se dice arriba, no hay que buscarlo -->
             <xpath expr="//sheet" position="before">
@@ -67,6 +51,14 @@
                     <field name="aprobacion_motivo" readonly="1" class="fw-bold"/>
                     Corrigela y vuelve a mandarla a revision.
                 </div>
+                <!-- La aprobacion se retiro por un cambio: antes solo quedaba en el
+                     chatter y el vendedor no entendia por que Enviar se detenia. -->
+                <div class="alert alert-warning mb-0" role="alert"
+                     invisible="not requiere_aprobacion or aprobacion_state != 'sin' or not aprobacion_retirada">
+                    <strong>La aprobacion se retiro:</strong>
+                    <field name="aprobacion_retirada" readonly="1" class="fw-bold"/>.
+                    Hay que mandarla a revision otra vez (o que un aprobador la apruebe).
+                </div>
             </xpath>
 
             <!-- Trazabilidad en "Otra informacion" -->
@@ -77,6 +69,7 @@
                     <field name="aprobacion_user_id"/>
                     <field name="aprobacion_fecha"/>
                     <field name="aprobacion_motivo" invisible="not aprobacion_motivo"/>
+                    <field name="aprobacion_retirada" invisible="not aprobacion_retirada"/>
                 </group>
             </xpath>
         </field>
@@ -88,6 +81,10 @@
         <field name="inherit_id" ref="sale.view_quotation_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//list" position="inside">
+                <!-- `requiere_aprobacion` (oculto) viaja para que el engrane de la
+                     lista sepa, por fila seleccionada, si la cotizacion esta
+                     liberada; `aprobacion_state` tambien lo usa el badge. -->
+                <field name="requiere_aprobacion" column_invisible="1"/>
                 <field name="aprobacion_state" string="Aprobacion" optional="show" widget="badge"
                        decoration-info="aprobacion_state == 'revision'"
                        decoration-success="aprobacion_state == 'aprobada'"

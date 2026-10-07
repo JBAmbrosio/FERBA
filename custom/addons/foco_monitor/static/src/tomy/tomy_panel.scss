@@ -1,0 +1,189 @@
+// Tomy: boton flotante y panel de conversacion. Hereda las variables del
+// tablero (--card, --ink, --line, --accent...) porque vive dentro de .foco_dash;
+// los fallbacks son los del tema claro por si algun dia se monta fuera.
+
+.tomy {
+    // El tablero le pone max-width y margen a sus hijos directos; este es un
+    // contenedor sin caja propia y todo lo suyo es `fixed`.
+    max-width: none !important; margin: 0 !important; height: 0;
+
+    * { box-sizing: border-box; }
+
+    @keyframes tomy_flota {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    @keyframes tomy_pop {
+        from { opacity: 0; transform: scale(.94); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes tomy_entra {
+        from { opacity: 0; transform: translateX(18px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes tomy_msg {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes tomy_punto {
+        0%, 80%, 100% { opacity: .25; transform: translateY(0); }
+        40% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    // ------------------------------------------------------------ boton
+    .tomy_fab {
+        position: fixed; right: 22px; bottom: 22px; z-index: 1070;
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 14px 6px 6px; border-radius: 999px;
+        border: 1px solid var(--line, #e7eaf0);
+        background: var(--card, #fff); color: var(--ink, #0f1520);
+        box-shadow: 0 6px 22px rgba(16, 21, 31, .16);
+        cursor: pointer; font-family: inherit; font-size: 13px;
+        transition: transform 160ms cubic-bezier(.23, 1, .32, 1), box-shadow 160ms ease;
+        &:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(16, 21, 31, .2); }
+        &:active { transform: scale(.97); }
+        .tomy_fab_img { width: 44px; height: 44px; object-fit: contain; animation: tomy_flota 3.2s ease-in-out infinite; }
+        .tomy_fab_txt b { font-weight: 700; }
+    }
+
+    // ------------------------------------------------------------ panel
+    .tomy_scrim { position: fixed; inset: 0; z-index: 1078; background: rgba(9, 12, 18, .18); }
+    .tomy_panel {
+        position: fixed; top: 0; right: 0; z-index: 1079;
+        height: 100vh; width: 460px; max-width: 96vw;
+        display: flex; flex-direction: column;
+        background: var(--card, #fff); color: var(--ink, #0f1520);
+        border-left: 1px solid var(--line, #e7eaf0);
+        box-shadow: -18px 0 48px rgba(9, 12, 18, .18);
+        animation: tomy_entra 320ms cubic-bezier(.32, .72, 0, 1);
+        font-size: 13.5px; line-height: 1.45;
+    }
+
+    .tomy_head {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 14px 10px; border-bottom: 1px solid var(--line, #e7eaf0);
+        .tomy_mascota_wrap { width: 58px; height: 58px; flex: none; display: grid; place-items: center; }
+        .tomy_mascota {
+            width: 58px; height: 58px; object-fit: contain;
+            animation: tomy_pop 180ms cubic-bezier(.23, 1, .32, 1), tomy_flota 3.2s ease-in-out .2s infinite;
+            &.pensando { animation-duration: 180ms, 1.4s; }
+        }
+        .tomy_titulo { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25;
+            b { font-size: 15px; color: var(--ink, #0f1520); }
+            span { font-size: 11.5px; color: var(--ink3, #8b95a6); } }
+        .tomy_acts { display: flex; gap: 4px; }
+    }
+
+    .tomy_icono {
+        width: 30px; height: 30px; border-radius: 8px; border: 1px solid transparent;
+        background: transparent; color: var(--ink2, #5a6577); cursor: pointer; font-family: inherit;
+        display: inline-grid; place-items: center;
+        transition: background 120ms ease, transform 120ms ease;
+        &:hover { background: var(--track, #eef1f6); }
+        &:active { transform: scale(.94); }
+        &:disabled { opacity: .45; cursor: default; }
+        &.sm { width: 26px; height: 26px; font-size: 12px; }
+        &.on { color: var(--accent, #2f6fed); background: var(--track, #eef1f6); }
+    }
+
+    // ------------------------------------------------------------ mensajes
+    .tomy_lista {
+        flex: 1; overflow-y: auto; padding: 14px 14px 6px;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    .tomy_nota, .tomy_bienvenida { color: var(--ink2, #5a6577); font-size: 13px;
+        p { margin: 0; } }
+    .tomy_bienvenida { padding: 10px 12px; border-radius: 12px; background: var(--track, #eef1f6); }
+
+    .tomy_msg {
+        display: flex; flex-direction: column; max-width: 100%;
+        animation: tomy_msg 180ms cubic-bezier(.23, 1, .32, 1);
+        &.user { align-items: flex-end;
+            .tomy_burbuja { background: var(--accent, #2f6fed); color: #fff; border-bottom-right-radius: 4px; max-width: 88%; } }
+        &.assistant { align-items: flex-start;
+            .tomy_burbuja { background: var(--track, #eef1f6); border-bottom-left-radius: 4px; max-width: 100%; width: 100%; } }
+        &.fuera .tomy_burbuja { border: 1px dashed var(--mid-fill, #f59e0b); }
+        &.error .tomy_burbuja { border: 1px solid var(--low-fill, #dc3545); }
+    }
+    .tomy_burbuja {
+        padding: 9px 12px; border-radius: 14px; overflow-wrap: anywhere;
+        .tomy_texto {
+            p { margin: 0 0 6px; &:last-child { margin-bottom: 0; } }
+            ul { margin: 2px 0 6px; padding-left: 18px; li { margin: 2px 0; } }
+            h4 { font-size: 13px; margin: 8px 0 4px; color: var(--ink, #0f1520); }
+            b { font-weight: 700; }
+        }
+    }
+    .tomy_pensando { display: inline-flex; gap: 5px; padding: 12px 14px; width: auto !important;
+        span { width: 7px; height: 7px; border-radius: 50%; background: var(--ink3, #8b95a6);
+            animation: tomy_punto 1.2s ease-in-out infinite;
+            &:nth-child(2) { animation-delay: .15s; }
+            &:nth-child(3) { animation-delay: .3s; } } }
+
+    .tomy_art { margin-top: 8px; background: var(--card, #fff); border: 1px solid var(--line, #e7eaf0);
+        border-radius: 10px; padding: 8px 10px;
+        .tomy_art_t { font-size: 11.5px; font-weight: 600; color: var(--ink2, #5a6577); margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: .02em; } }
+    .tomy_tabla_wrap { overflow-x: auto; }
+    .tomy_tabla { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums;
+        th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line, #e7eaf0); white-space: nowrap; }
+        th { font-weight: 600; color: var(--ink2, #5a6577); font-size: 11.5px; }
+        tr:last-child td { border-bottom: 0; } }
+    .tomy_lienzo { position: relative; height: 200px; }
+
+    .tomy_liga {
+        display: inline-flex; align-items: center; gap: 6px; margin: 8px 6px 0 0;
+        padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line, #e7eaf0);
+        background: var(--card, #fff); color: var(--accent, #2f6fed); cursor: pointer; font-family: inherit; font-size: 12.5px;
+        transition: transform 120ms ease, background 120ms ease;
+        &:hover { background: var(--track, #eef1f6); }
+        &:active { transform: scale(.97); }
+    }
+
+    .tomy_pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 4px 0; width: 100%; }
+    .tomy_link { background: none; border: 0; padding: 2px 0; color: var(--ink3, #8b95a6); cursor: pointer;
+        font-family: inherit; font-size: 11.5px; text-decoration: underline dotted;
+        &:hover { color: var(--accent, #2f6fed); } }
+    .tomy_fb { display: inline-flex; gap: 2px; }
+    .tomy_fuentes { margin: 2px 0 0; padding: 6px 10px 6px 24px; font-size: 11.5px; color: var(--ink2, #5a6577);
+        background: var(--track, #eef1f6); border-radius: 8px; width: 100%;
+        li { margin: 2px 0; overflow-wrap: anywhere; } b { color: var(--ink, #0f1520); } }
+
+    // ------------------------------------------------------------ chips e input
+    .tomy_chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 14px 8px; }
+    .tomy_chip {
+        padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line, #e7eaf0);
+        background: var(--card, #fff); color: var(--ink2, #5a6577); cursor: pointer; font-family: inherit; font-size: 12px;
+        transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+        &:hover { background: var(--track, #eef1f6); color: var(--ink, #0f1520); }
+        &:active { transform: scale(.97); }
+    }
+    .tomy_input {
+        display: flex; align-items: flex-end; gap: 8px; padding: 10px 14px 14px;
+        border-top: 1px solid var(--line, #e7eaf0); background: var(--card, #fff);
+        textarea {
+            flex: 1; resize: none; min-height: 40px; max-height: 120px; padding: 9px 12px;
+            border-radius: 12px; border: 1px solid var(--line, #e7eaf0);
+            background: var(--track, #eef1f6); color: var(--ink, #0f1520); font-family: inherit; font-size: 13.5px; line-height: 1.4;
+            outline: none; transition: border-color 120ms ease, box-shadow 120ms ease;
+            &:focus { border-color: var(--accent, #2f6fed); box-shadow: 0 0 0 3px rgba(47, 111, 237, .15); }
+            &::placeholder { color: var(--ink3, #8b95a6); }
+        }
+        .tomy_enviar {
+            width: 40px; height: 40px; border-radius: 12px; border: 0; flex: none;
+            background: var(--accent, #2f6fed); color: #fff; cursor: pointer; font-size: 14px;
+            transition: transform 140ms cubic-bezier(.23, 1, .32, 1), opacity 140ms ease;
+            &:hover { opacity: .92; }
+            &:active { transform: scale(.94); }
+            &:disabled { opacity: .35; cursor: default; transform: none; }
+        }
+    }
+
+    @media (max-width: 640px) {
+        .tomy_fab { right: 12px; bottom: 12px; .tomy_fab_txt { display: none; } padding: 6px; }
+        .tomy_panel { width: 100vw; max-width: 100vw; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .tomy_fab_img, .tomy_mascota, .tomy_panel, .tomy_msg { animation: none !important; }
+    }
+}

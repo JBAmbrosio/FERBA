@@ -72,8 +72,14 @@
                         </t>
                         <t t-if="resumen.fuera > 0.008">
                             <span class="sep">·</span>
-                            <span class="fj_fuera" title="Tiempo activo medido fuera del horario. No es una falta ni un mérito: es tiempo que antes no se registraba.">
+                            <span class="fj_fuera" title="Tiempo activo fuera de su jornada: sin checar (antes de la entrada, después de la salida o un día sin registro), o fuera del calendario si no usa el checador. No es una falta ni un mérito: es tiempo que antes no se registraba.">
                                 <b t-esc="resumen.fuera_txt"/> fuera de jornada
+                            </span>
+                        </t>
+                        <t t-if="resumen.gap > 0.008">
+                            <span class="sep">·</span>
+                            <span class="fj_hueco" title="Checado (o en su horario) sin que el equipo diera señal alguna, ni teclado ni una ventana al frente: una junta lejos de él o una salida sin checar. No es una falta: es lo que hay que mirar.">
+                                <b t-esc="resumen.gap_txt"/> de jornada sin señal
                             </span>
                         </t>
                         <t t-if="resumen.sin_explicar">
@@ -183,7 +189,10 @@
                             <span class="fj_leg" title="Ámbar es lo único que pide una acción: relleno cuando nada explica el tiempo, contorno cuando el hueco sigue sin justificar.">
                                 <i class="sw sin_explicar"/>Por justificar
                             </span>
-                            <span class="fj_leg"><i class="sw franja"/>Su jornada</span>
+                            <span class="fj_leg"><i class="sw franja"/>Su jornada<t t-if="fuenteLabel"> · <t t-esc="fuenteLabel"/></t></span>
+                            <t t-if="fuenteLabel.includes('checador')">
+                                <span class="fj_leg"><i class="sw checada"/>Entrada y salida checadas</span>
+                            </t>
                             <span class="fj_leg sep">Los huecos de menos de 10 minutos no se dibujan.</span>
                         </div>
                     </section>
@@ -247,9 +256,19 @@
                     </p>
 
                     <div class="fj_reparto">
-                        <span class="dentro">Dentro de jornada <b t-esc="dur(state.detalle.in_shift)"/></span>
-                        <span class="fuera">Fuera de jornada <b t-esc="dur(state.detalle.off_shift)"/></span>
+                        <span class="dentro">En su jornada <b t-esc="dur(state.detalle.in_shift)"/></span>
+                        <span class="fuera">Fuera <b t-esc="dur(state.detalle.off_shift)"/></span>
+                        <span class="hueco" title="Checado (o en su horario) sin señal alguna del equipo.">Jornada sin señal <b t-esc="dur(state.detalle.shift_gap || 0)"/></span>
                     </div>
+                    <p class="fj_ficha_nota" t-if="state.detalle.fuente === 'checador'">
+                        jornada según el checador: de la entrada a la salida checadas
+                    </p>
+                    <p class="fj_ficha_nota" t-elif="state.detalle.fuente === 'calendario'">
+                        jornada según el calendario laboral de RRHH
+                    </p>
+                    <p class="fj_ficha_nota" t-else="">
+                        sin jornada definida: ni checador ni calendario laboral
+                    </p>
 
                     <!-- EN QUE se fue el dia. La ficha contaba lo que le paso
                          al EQUIPO -encendido, bloqueo, apagon- y no lo que hizo

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_ferba_periodo_list" model="ir.ui.view">
+        <field name="name">ferba.periodo.list</field>
+        <field name="model">ferba.periodo</field>
+        <field name="arch" type="xml">
+            <list string="Periodos de nomina"
+                  decoration-success="estado == 'cerrado'"
+                  decoration-info="estado == 'abierto'">
+                <field name="name"/>
+                <field name="fecha_inicio"/>
+                <field name="fecha_fin"/>
+                <field name="company_id" optional="show"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'cerrado'"
+                       decoration-info="estado == 'abierto'"/>
+                <field name="cerrado_por" optional="hide"/>
+                <field name="cerrado_el" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_periodo_form" model="ir.ui.view">
+        <field name="name">ferba.periodo.form</field>
+        <field name="model">ferba.periodo</field>
+        <field name="arch" type="xml">
+            <form string="Periodo de nomina">
+                <header>
+                    <button name="action_generar_asistencia" type="object"
+                            string="Generar / actualizar asistencia" class="btn-primary"/>
+                    <button name="action_cerrar" type="object" string="Cerrar periodo"
+                            invisible="estado == 'cerrado'"
+                            confirm="Al cerrar, las marcas de este rango quedan congeladas. Continuar?"/>
+                    <button name="action_reabrir" type="object" string="Reabrir"
+                            invisible="estado == 'abierto'"/>
+                    <button name="action_ver_asistencia" type="object"
+                            string="Ver asistencia" class="btn-secondary"/>
+                    <button name="%(action_report_cierre_periodo)d" type="action"
+                            string="Imprimir cierre" class="btn-secondary"/>
+                    <button name="action_ver_work_entries" type="object"
+                            string="Entradas de nomina" class="btn-secondary"/>
+                    <field name="estado" widget="statusbar" statusbar_visible="abierto,cerrado"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="p.ej. Septiembre 2026 - Q2"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fecha_inicio"/>
+                            <field name="fecha_fin"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group>
+                            <field name="cerrado_por" readonly="1"/>
+                            <field name="cerrado_el" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Resumen del periodo" col="4">
+                        <field name="resumen_laborables"/>
+                        <field name="resumen_ausencias"/>
+                        <field name="resumen_incompletos"/>
+                        <field name="resumen_cumplimiento"/>
+                    </group>
+                    <field name="nota" placeholder="Notas del cierre..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_periodo" model="ir.actions.act_window">
+        <field name="name">Periodos de nomina</field>
+        <field name="res_model">ferba.periodo</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Crea tu primer periodo</p>
+            <p>Define el rango de un periodo de nomina y <b>cierralo</b> cuando lo
+               hayas revisado: las marcas de esas fechas quedaran congeladas para
+               que lo que se llevo a nomina no se altere despues.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_ferba_asistencia_periodos" name="Periodos de nomina"
+              parent="menu_ferba_asistencia_root"
+              action="action_ferba_periodo" sequence="40"/>
+
+</odoo>

@@ -69,6 +69,14 @@
                             <code>music.youtube.com</code>. Para abrir una excepción,
                             agrégalo con acción <b>Permitir</b> — permitir gana sobre
                             bloquear.
+                            <br/>
+                            <b>Horario y cuota.</b> Una regla con Desde y Hasta aplica solo en
+                            esa ventana (hora del equipo) y en los días que diga. Con cuota,
+                            <b>Permitir</b> vale hasta esos minutos al día y <b>Bloquear</b>
+                            entra al superarlos. Ejemplo: bloquear <code>youtube.com</code>
+                            todo el día y permitirlo de 14:00 a 15:00, o permitirlo hasta
+                            30 min. La cuota se vence con hasta diez minutos de retraso
+                            (lo que tarda el equipo en reportar y volver a preguntar).
                         </div>
                         <field name="rule_ids" nolabel="1" colspan="2">
                             <list editable="bottom">
@@ -76,6 +84,11 @@
                                 <field name="pattern"
                                        placeholder="youtube.com   ·   music.youtube.com   ·   ejemplo.com/foro"/>
                                 <field name="action"/>
+                                <field name="days" placeholder="1,2,3,4,5" optional="show"/>
+                                <field name="hour_from" widget="float_time" optional="show"/>
+                                <field name="hour_to" widget="float_time" optional="show"/>
+                                <field name="quota_minutes" optional="show"/>
+                                <field name="condicionada" column_invisible="1"/>
                                 <!-- Contra que sitios REALES pega el patron.
                                      Va junto al patron, no en un tooltip: el
                                      dedazo se caza mirando, no buscando. -->
@@ -84,6 +97,71 @@
                                 <field name="active" widget="boolean_toggle" optional="hide"/>
                             </list>
                         </field>
+                    </group>
+
+                    <!-- 3. LOS QUE NO OBEDECEN. Medido (17-sep-2026): Opera
+                         ignora la politica que Chrome, Edge, Brave y Firefox si
+                         cumplen, y trae VPN integrada. No se puede hacer que
+                         bloquee; se puede hacer que no corra. -->
+                    <group string="3 · Navegadores que se saltan el bloqueo">
+                        <field name="close_unmanaged" widget="boolean_toggle"/>
+                        <field name="kill_exes" invisible="not close_unmanaged"
+                               placeholder="opera.exe&#10;opera_gx.exe"/>
+                        <field name="kill_products" invisible="not close_unmanaged"
+                               placeholder="Opera"/>
+                        <div class="text-muted" colspan="2">
+                            Opera <b>no obedece</b> la política de empresa que sí cumplen
+                            Chrome, Edge, Brave y Firefox, y además trae una VPN integrada que
+                            brinca cualquier bloqueo. El servicio del equipo cierra estos
+                            programas en cuanto abren, avisa en pantalla («no está permitido
+                            en este equipo, usa Chrome o Edge») y lo registra en
+                            <b>Actividad</b> como «Navegador no permitido cerrado».
+                            Solo aplica con el bloqueo de sitios encendido.
+                            La lista de <b>productos</b> mira lo que el programa declara ser
+                            (Propiedades › Detalles del .exe): un <code>opera.exe</code> renombrado
+                            sigue diciendo «Opera Internet Browser» y se cierra igual.
+                        </div>
+                    </group>
+
+                    <!-- 4. COMO MIDE. Hasta el 27-sep esto vivia en el foco.ini de
+                         cada laptop; cambiarlo era tocar tres maquinas. -->
+                    <group string="4 · Cómo mide el agente en estos equipos">
+                        <group>
+                            <field name="idle_secs"/>
+                            <field name="measure_off_shift" widget="boolean_toggle"/>
+                            <field name="integrity_enabled" widget="boolean_toggle"/>
+                            <field name="calls_enabled" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="ask_cooldown_secs"/>
+                            <field name="ask_max_idle_secs"/>
+                            <field name="screen_change_secs"/>
+                        </group>
+                        <field name="managed_browsers" colspan="2"
+                               placeholder="Chrome&#10;Edge&#10;Firefox&#10;Brave"/>
+                        <div class="text-muted" colspan="2">
+                            El equipo adopta estos valores en su siguiente envío (cinco minutos)
+                            y los conserva aunque se quede sin red. No dependen del bloqueo de
+                            sitios: cómo se mide no es lo mismo que qué se bloquea.
+                            <br/>La <b>ventana de justificación</b> (a quién le sale y a partir de
+                            cuántos minutos de inactividad) ya <b>no se decide por perfil</b>:
+                            está apagada para todos y se enciende por persona en
+                            <b>Configuración › Ventana de inactividad</b>. Los tiempos de arriba
+                            (cada cuánto reabre, idle máximo) solo aplican a quien la tenga encendida.
+                        </div>
+                    </group>
+
+                    <!-- El perfil del PUESTO para la IA que clasifica las
+                         pestañas abiertas. Lo que no encaja aparece en
+                         Actividad › Pestañas por revisar para aprobar o bloquear. -->
+                    <group string="Perfil del puesto (para clasificar pestañas con IA)">
+                        <field name="rol_prompt" nolabel="1" colspan="2"
+                               placeholder="Describe qué hace este puesto. Ej.: Un diseñador trabaja con CAD, catálogos de proveedores de piezas, correo y el ERP. No es parte de su trabajo ver deportes, redes sociales ni streaming."/>
+                        <div class="text-muted" colspan="2">
+                            La IA usa esta descripción para decidir si una pestaña abierta encaja
+                            con el puesto. Las que no, aparecen en
+                            <b>Actividad › Pestañas por revisar</b> para aprobarlas o bloquearlas.
+                        </div>
                     </group>
 
                     <group>
@@ -96,7 +174,7 @@
                     <!-- 3. LO QUE SE ESCAPA. Solo aparece si hay algo que
                          decir: una pestana vacia permanente ensena a ignorarla. -->
                     <div invisible="not sitios_sin_cubrir_ids">
-                        <group string="3 · Se ha visto y no lo alcanza ninguna regla">
+                        <group string="5 · Se ha visto y no lo alcanza ninguna regla">
                             <div colspan="2" class="alert alert-warning" role="alert">
                                 <field name="cobertura_nota" nolabel="1" readonly="1"/>
                                 <div class="mt8">

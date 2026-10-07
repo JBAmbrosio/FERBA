@@ -16,6 +16,23 @@ HEALTH_OK_MINUTES = 15
 # inventado, es multiplo de la cadencia real.
 POLICY_STALE_MINUTES = 15
 
+# Cada cuanto se REAVISA de un bloqueo sin confirmar que sigue sin resolverse:
+# avisar en cada ciclo seria ruido; callar para siempre, olvido. Una vez al dia.
+REALERT_HOURS = 24
+
+# `service_state` (lo que el watchdog reporta de su ultimo ciclo) que significa
+# "el watchdog CORRE pero su verificacion fallo", con el motivo. No es un
+# servicio caido: es error de servidor/credencial/red. Todo lo que no sea esto
+# ni un exito ('verificado'/'aplicado') se trata como watchdog sin ciclo.
+_SERVICE_ERROR_STATES = {
+    'http_500', 'http_502', 'http_503', 'http_504', 'http_400', 'http_401',
+    'http_403', 'http_404', 'sin_conexion', 'sin_llave', 'ssl', 'timeout',
+}
+
+# Un `servicio_error` transitorio (un http_500 suelto) se resuelve en minutos y
+# NO debe paginar. Solo se avisa si la verificacion lleva fallando este tiempo.
+SERVICIO_ERROR_HORAS = 2
+
 
 class FocoComputer(models.Model):
     _name = 'foco.computer'
@@ -33,6 +50,68 @@ class FocoComputer(models.Model):
     employee_id = fields.Many2one('hr.employee', string='Empleado')
     department_id = fields.Many2one(
         related='employee_id.department_id', store=True, string='Departamento')
+    user_is_admin = fields.Boolean(
+        string='Usuario con privilegios de administrador', readonly=True,
+        help='El agente reporta si el usuario de la sesion pertenece al grupo '
+             'Administradores del equipo. Si es asi, puede detener el servicio '
+             'de Foco y quitar el bloqueo de navegacion: nada de lo que se '
+             'mida en este equipo esta garantizado. Es una condicion de TI, no '
+             'del software; se resuelve quitandole el privilegio.')
+    # De donde sale la jornada de esta persona HOY: el checador si lo usa, el
+    # calendario laboral si no, y "sin jornada" cuando no hay ni uno ni otro
+    # (entonces nada puede decir si trabajo dentro o fuera de ella).
+    jornada_fuente = fields.Char(
+        string='Jornada según', compute='_compute_jornada_fuente',
+        help='Checador: tiene registros de asistencia ese día o en los 30 días '
+             'anteriores; su jornada es de la entrada a la salida checadas. '
+             'Calendario: no usa el checador y RRHH le asignó un calendario '
+             'laboral. Sin jornada: ni checador ni calendario; su actividad se '
+             'mide igual, pero no hay contra qué contrastarla.')
+    jornada_sin = fields.Boolean(compute='_compute_jornada_fuente')
+
+    def _compute_jornada_fuente(self):
+        Ajustes = self.env['foco.settings'].sudo()
+        for rec in self:
+            emp = rec.employee_id
+            if not emp:
+                rec.jornada_fuente = ''
+                rec.jornada_sin = False
+                continue
+            a = Ajustes.asistencia_para(emp, rec)
+            if a['fuente'] == 'checador':
+                rec.jornada_fuente = 'Checador'
+            elif a['fuente'] == 'calendario':
+                rec.jornada_fuente = 'Calendario · %s' % (emp.resource_calendar_id.name or '')
+            else:
+                rec.jornada_fuente = 'Sin jornada'
+            rec.jornada_sin = a['fuente'] == 'ninguno'
+
+    # La persona NO ve su consumo ni un resumen: Foco es del administrador y de
+    # quien esta dado de alta en la configuracion. Este interruptor existe para
+    # el caso en que la persona lo SOLICITE; apagado de fabrica. Viaja al agente
+    # en el bloque `conducta` (pone o quita el acceso del menu Inicio) y el
+    # servidor rechaza /foco/agent/mi_dia mientras este apagado.
+    mi_dia_enabled = fields.Boolean(
+        string='Puede ver «Mi día»', default=False,
+        help='Solo si la persona lo solicitó. Encendido, en este equipo aparece '
+             'el acceso «Foco - Mi día» en el menú Inicio y la ventana le enseña '
+             'sus horas de hoy, qué cuenta y qué no, sus sitios sin clasificar, '
+             'las reglas del equipo y sus periodos por justificar. Apagado (lo '
+             'de fábrica), el servidor no entrega ese resumen y el agente quita '
+             'el acceso.')
+    # A QUE EQUIPO le sale la ventana BLOQUEANTE de justificacion de inactividad.
+    # Vive en el EQUIPO (no en el empleado) porque la ventana la muestra el
+    # agente de ESTA maquina y solo los equipos tienen Foco: un empleado sin
+    # equipo no la puede recibir. APAGADO de fabrica para TODOS. Se enciende en
+    # Foco > Configuracion > Ventana de inactividad y viaja en el bloque
+    # `conducta` (foco.policy.conducta_para -> `ventana`); el umbral en minutos
+    # es global (foco.settings.gap_min_minutes).
+    foco_ventana_inactividad = fields.Boolean(
+        string='Le sale la ventana de inactividad', default=False,
+        help='Encendido, en ESTE equipo aparece la ventana bloqueante para '
+             'justificar los periodos largos sin actividad. Apagado (de fabrica '
+             'para todos), no aparece. Se administra desde Foco > Configuracion > '
+             'Ventana de inactividad. El umbral en minutos es global.')
     agent_db_id = fields.Char(
         string='Huella de la base del agente', readonly=True,
         help='Identificador que el agente crea dentro de su base local. Si '
@@ -108,6 +187,20 @@ class FocoComputer(models.Model):
         string='Servicio: recibido', readonly=True,
         help='Ultimo envio del agente que trajo el estado del servicio. Vacio = '
              'el agente es anterior a este reporte.')
+
+    # ------------------------------------------------- llamadas de WhatsApp
+    # POR EQUIPO y apagado de fabrica, ademas del interruptor general: grabar
+    # una llamada es lo mas invasivo que hace el sistema y solo procede con el
+    # consentimiento firmado de ESA persona. La fecha deja constancia.
+    call_review = fields.Boolean(
+        string='Analizar sus llamadas de WhatsApp', default=False,
+        help='Solo con el consentimiento firmado de esta persona. Mientras '
+             'WhatsApp tenga el microfono, el agente graba y sube el audio por '
+             'trozos; Odoo lo transcribe, decide trabajo/personal y borra la '
+             'transcripcion. Nadie escucha la llamada.')
+    call_review_consent_date = fields.Date(
+        string='Consentimiento firmado el',
+        help='Cuando firmo el aviso que contempla el analisis de llamadas.')
 
     # Version instalada, reportada por cada pieza: el agente en su envio y el
     # servicio al pedir la politica. Durante una actualizacion pueden diferir
@@ -234,7 +327,8 @@ class FocoComputer(models.Model):
         if hay_fallo and not destinatarios:
             grupo = self.env.ref('foco_monitor.group_foco_manager',
                                  raise_if_not_found=False)
-            destinatarios = grupo.users.partner_id if grupo else destinatarios
+            # `user_ids`: en Odoo 19 el campo se llama asi (antes `users`).
+            destinatarios = grupo.user_ids.partner_id if grupo else destinatarios
         if not destinatarios:
             return
 
@@ -256,6 +350,151 @@ class FocoComputer(models.Model):
             })
         self.message_post(body=cuerpo, subject=titulo,
                           message_type='comment', subtype_xmlid='mail.mt_note')
+
+    # --- Verificacion del bloqueo: de estado pasivo a AVISO activo -----------
+    # `policy_sync` dice si el bloqueo esta al dia. Pero 'sin_verificar' mezcla
+    # dos fallas opuestas que piden respuestas distintas, y hoy ninguna avisa
+    # sola: alguien tiene que ir a mirar. `block_attention` las separa usando la
+    # salud del agente, y `_cron_revisar_bloqueo` las convierte en un aviso.
+    block_attention = fields.Selection(
+        [('ok', 'Sin pendientes'),
+         ('servicio_error', 'Verificacion falla (watchdog vivo)'),
+         ('servicio_caido', 'Watchdog sin ciclo reciente'),
+         ('alterado', 'Bloqueo alterado'),
+         ('equipo_ausente', 'Equipo sin reportar'),
+         ('pendiente', 'Cambio pendiente'),
+         ('nunca', 'Nunca aplicada')],
+        string='Atencion del bloqueo', compute='_compute_block_attention',
+        help='Refina "Estado del bloqueo" para saber QUE hacer, con el motivo que '
+             'reporta el propio watchdog (`service_state`):\n'
+             '- servicio_error: el watchdog CORRE pero su verificacion falla '
+             '(http_500 = servidor; http_401/sin_llave = credencial; sin_conexion '
+             '= red). NO es el servicio del equipo: no se reinicia.\n'
+             '- servicio_caido: el watchdog dejo de dejar un ciclo reciente '
+             '(revisar FocoWatchdog en el equipo).\n'
+             '- equipo_ausente: el equipo no reporta (apagado o sin red).')
+    block_alert_state = fields.Char(
+        string='Ultimo aviso de bloqueo', readonly=True, copy=False,
+        help='Estado por el que se aviso por ultima vez. Evita repetir el mismo '
+             'aviso en cada ciclo; se limpia al recuperarse.')
+    block_alert_at = fields.Datetime(string='Bloqueo avisado el', readonly=True, copy=False)
+
+    @api.depends('policy_sync', 'health', 'minutes_since_seen', 'service_state')
+    def _compute_block_attention(self):
+        for c in self:
+            s = c.policy_sync
+            if s == 'drift':
+                c.block_attention = 'alterado'
+            elif s == 'sin_verificar':
+                if c.health != 'ok':
+                    # El equipo no reporta: apagado o sin red (lo cubre la
+                    # vigilancia de salud del agente), no un servicio en uso.
+                    c.block_attention = 'equipo_ausente'
+                elif (c.service_state or '').strip().lower() in _SERVICE_ERROR_STATES:
+                    # El watchdog CORRE y reporto su ultimo ciclo, pero la
+                    # verificacion fallo con ESE motivo (http_500 = servidor;
+                    # http_401/sin_llave = credencial; sin_conexion = red). NO es
+                    # "el servicio del equipo se cayo": no se reinicia la maquina.
+                    c.block_attention = 'servicio_error'
+                else:
+                    # Agente vivo, sin motivo de error reportado: el watchdog no
+                    # esta dejando un ciclo reciente (sin_archivo / detenido).
+                    c.block_attention = 'servicio_caido'
+            elif s == 'pendiente':
+                c.block_attention = 'pendiente'
+            elif s == 'nunca':
+                c.block_attention = 'nunca'
+            else:  # off, sin_perfil, al_dia
+                c.block_attention = 'ok'
+
+    def _alerta_bloqueo(self, estado):
+        """Avisa (toast por el bus + constancia en el chatter) que un equipo
+        necesita atencion en su bloqueo. A los administradores de Foco y a quien
+        edito el perfil por ultimo, igual que `notificar_politica`."""
+        self.ensure_one()
+        perfil = self.policy_id
+        grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
+        destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
+        if perfil and perfil.write_uid.partner_id:
+            destinatarios |= perfil.write_uid.partner_id
+        if not destinatarios:
+            return
+        nombre = perfil.name if perfil else 'sin perfil'
+        desde = fields.Datetime.to_string(self.policy_verified_at) or 'nunca'
+        if estado == 'servicio_error':
+            motivo = (self.service_state or '?').strip()
+            detalle = (' (%s)' % self.service_detail) if self.service_detail else ''
+            titulo = 'Foco · verificacion del bloqueo FALLA'
+            cuerpo = ('%s: su watchdog esta CORRIENDO, pero su verificacion del '
+                      'bloqueo (%s) falla con "%s"%s desde %s UTC. http_5xx = error '
+                      'del SERVIDOR (revisar logs; suele ser transitorio); '
+                      'http_401/sin_llave = credencial; sin_conexion = red del '
+                      'equipo. El servicio del equipo NO necesita reinicio.'
+                      % (self.display_name, nombre, motivo, detalle, desde))
+        elif estado == 'servicio_caido':
+            titulo = 'Foco · watchdog SIN CICLO'
+            cuerpo = ('%s sigue reportando, pero su watchdog no deja un ciclo '
+                      'reciente (sin confirmar desde %s UTC). El bloqueo (%s) '
+                      'podria no estar imponiendose: revisar que FocoWatchdog '
+                      'corra en el equipo.' % (self.display_name, desde, nombre))
+        elif estado == 'alterado':
+            titulo = 'Foco · bloqueo ALTERADO'
+            cuerpo = ('%s reporto que le quitaron el bloqueo (%s). Se reconcilia '
+                      'solo, pero mientras tanto NO esta puesto.'
+                      % (self.display_name, nombre))
+        else:
+            return
+        for p in destinatarios:
+            p._bus_send('simple_notification', {
+                'type': 'warning', 'title': titulo, 'message': cuerpo, 'sticky': False})
+        self.message_post(body=cuerpo, subject=titulo,
+                          message_type='comment', subtype_xmlid='mail.mt_note')
+
+    @api.model
+    def _cron_revisar_bloqueo(self):
+        """Vuelve ACTIVO lo que hoy es un estado pasivo: avisa de los equipos con
+        el bloqueo alterado, con el watchdog sin ciclo reciente (servicio_caido),
+        o con la verificacion fallando (servicio_error: watchdog vivo pero
+        http_500/credencial/red; solo si persiste > SERVICIO_ERROR_HORAS, para no
+        paginar por un error transitorio). Avisa al aparecer y reavisa cada
+        REALERT_HOURS; limpia el marcador al recuperarse. La ausencia (equipo sin
+        reportar) la cubre la vigilancia de salud del agente."""
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        if not ajustes.block_enabled:
+            return
+        ahora = fields.Datetime.now()
+        umbral = ahora - timedelta(minutes=POLICY_STALE_MINUTES)
+        # Prefiltro barato con campos ALMACENADOS; la clasificacion fina va en
+        # Python porque block_attention depende de la hora y no se almacena.
+        candidatos = self.sudo().search([
+            ('active', '=', True),
+            ('policy_id', '!=', False),
+            '|', ('policy_drift', '=', True),
+                 '|', ('policy_verified_at', '=', False),
+                      ('policy_verified_at', '<', umbral),
+        ])
+        for c in candidatos:
+            estado = c.block_attention
+            # `servicio_error` solo pagina si PERSISTE: un http_500 transitorio se
+            # resuelve en minutos y no debe despertar a nadie (medido: un equipo
+            # con http_500 que se recupero solo). `servicio_caido`/`alterado` si
+            # son accionables de inmediato.
+            alertable = estado in ('servicio_caido', 'alterado')
+            if estado == 'servicio_error':
+                alertable = bool(c.policy_verified_at) and (
+                    ahora - c.policy_verified_at) >= timedelta(hours=SERVICIO_ERROR_HORAS)
+            if alertable:
+                reavisar = bool(c.block_alert_at) and (
+                    ahora - c.block_alert_at) >= timedelta(hours=REALERT_HOURS)
+                if estado != c.block_alert_state or not c.block_alert_at or reavisar:
+                    try:
+                        c._alerta_bloqueo(estado)
+                    except Exception:
+                        _logger.exception(
+                            'Foco: no se pudo avisar del bloqueo de %s', c.id)
+                    c.sudo().write({'block_alert_state': estado, 'block_alert_at': ahora})
+            elif c.block_alert_state:
+                c.sudo().write({'block_alert_state': False, 'block_alert_at': False})
 
     @api.model
     def note_integrity(self, computer, motivo):

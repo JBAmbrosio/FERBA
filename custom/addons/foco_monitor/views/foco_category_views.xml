@@ -9,6 +9,7 @@
                 <field name="code"/>
                 <field name="weight"/>
                 <field name="is_system"/>
+                <field name="is_container" optional="show"/>
                 <field name="app_count"/>
                 <field name="color" widget="color_picker"/>
             </list>

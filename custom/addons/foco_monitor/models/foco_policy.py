@@ -15,6 +15,7 @@ import hashlib
 import json
 import logging
 import re
+from datetime import datetime
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
@@ -45,8 +46,183 @@ class FocoPolicy(models.Model):
         string='Para que es',
         help='Quien usa este perfil y por que. Se lee el dia que alguien '
              'pregunte por que no puede abrir un sitio.')
+    # El perfil del PUESTO, en lenguaje natural: la IA lo usa para decidir si una
+    # pestaña abierta encaja con el trabajo del grupo (camino de clasificacion de
+    # pestañas). Es aparte de `note` -documentacion para humanos- a proposito:
+    # mezclar una instruccion para el modelo con una nota para personas empeora
+    # las dos.
+    rol_prompt = fields.Text(
+        string='Perfil del puesto',
+        help='Que hace este puesto, en tus palabras. La IA lo usa para decidir '
+             'si una pestaña abierta encaja con el trabajo del grupo. Ej.: "Un '
+             'disenador trabaja con CAD, catalogos de proveedores de piezas, '
+             'correo y el ERP; no es parte de su trabajo ver deportes, redes '
+             'sociales ni streaming."')
     rule_ids = fields.One2many('foco.policy.rule', 'policy_id', string='Reglas')
     computer_ids = fields.One2many('foco.computer', 'policy_id', string='Equipos')
+
+    # Navegadores que se saltan el bloqueo. Medido (17-sep-2026): Opera ignora
+    # la politica de empresa que Chrome, Edge, Brave y Firefox si obedecen, y
+    # ademas trae una VPN integrada que brinca cualquier bloqueo por DNS. No hay
+    # forma de que Opera bloquee; lo que hay es que Opera no corra. El servicio
+    # del equipo (SYSTEM) cierra estos ejecutables en cuanto aparecen, avisa en
+    # pantalla y lo reporta como evento. La lista es dato, no codigo: si aparece
+    # otro navegador que tampoco obedece, se agrega aqui. Daniel lo destapo el
+    # 25-sep: YouTube bloqueado en Chrome, 29 minutos de YouTube en Opera.
+    close_unmanaged = fields.Boolean(
+        string='Cerrar navegadores que se saltan el bloqueo', default=True,
+        help='El servicio del equipo cierra en cuanto abren los programas de la '
+             'lista y lo registra en Actividad. Sin esto, basta instalar Opera '
+             'para ver cualquier sitio bloqueado.')
+    kill_exes = fields.Text(
+        string='Programas que se cierran (uno por linea)',
+        default='opera.exe\nopera_gx.exe',
+        help='Nombres de programa tal como los ve Windows (opera.exe), uno por '
+             'linea. Aplica con el interruptor de arriba encendido y con el '
+             'bloqueo de sitios encendido en Ajustes.')
+    # Por PRODUCTO (27-sep-2026): lo que el binario declara ser, no como se
+    # llame el archivo. Un opera.exe renombrado a chrome.exe se salta la lista
+    # de arriba; su recurso de version sigue diciendo "Opera Internet Browser".
+    # Coincidencia por palabra completa: "Opera" no cierra "Operaciones".
+    kill_products = fields.Text(
+        string='Productos que se cierran (uno por linea)', default='Opera',
+        help='Nombre de producto o descripcion que declara el propio programa '
+             '(Propiedades > Detalles del .exe), uno por linea. Se compara por '
+             'palabra completa: "Opera" cierra "Opera Internet Browser" y '
+             '"Opera GX", no "Sistema de Operaciones". Cubre el ejecutable '
+             'renombrado, que la lista de arriba no cubre.')
+
+    # ---- conducta del agente: COMO se mide, decidido aqui y no en cada laptop
+    #
+    # Hasta el 27-sep estos valores vivian en el foco.ini de cada equipo:
+    # cambiar el umbral de inactividad era tocar tres maquinas. Ahora viajan en
+    # cada respuesta al agente, por perfil, y el equipo los adopta al momento.
+    idle_secs = fields.Integer(
+        string='Segundos sin input para contar inactivo', default=60,
+        help='Sin teclado ni mouse durante este tiempo, la app al frente pasa '
+             'de "activa" a "sin input". 60 s de fabrica. Entre 10 y 3600.')
+    measure_off_shift = fields.Boolean(
+        string='Medir el uso fuera de turno', default=True,
+        help='Encendido: el tiempo fuera de la jornada se mide y se marca como '
+             'fuera de jornada (se ve, no cuenta distinto). Apagado: fuera de '
+             'turno solo quedan eventos del equipo, presencia y ausencias; el '
+             'uso de apps y sitios no se registra.')
+    integrity_enabled = fields.Boolean(
+        string='Vigilar input sintetico', default=True,
+        help='Cuenta eventos de teclado y mouse y lee la marca de Windows de '
+             'input generado por software. Nunca registra que se teclea.')
+    calls_enabled = fields.Boolean(
+        string='Contar llamadas como trabajo', default=True,
+        help='Estar en una junta sin teclear es trabajo. Apagado, ese tiempo '
+             'cae como sin input y puede abrir una ausencia.')
+    ask_enabled = fields.Boolean(
+        string='Ventana de justificacion de ausencias', default=True)
+    ask_cooldown_secs = fields.Integer(
+        string='Volver a abrir la ventana cada (s)', default=120,
+        help='Si sigue habiendo ausencias pendientes. Minimo 30.')
+    ask_max_idle_secs = fields.Integer(
+        string='No abrirla si lleva mas de (s) sin input', default=120,
+        help='Nadie la veria. Minimo 10.')
+    screen_change_secs = fields.Integer(
+        string='Huella de pantalla cada (s)', default=30,
+        help='Cada tantos segundos el agente resume la pantalla en 1,024 bytes '
+             '(32x32 en gris) y la compara con la anterior. El tiempo activo con '
+             'la pantalla identica se reporta como "activo con pantalla sin '
+             'cambio": hubo input y nada cambio. La huella no se guarda ni '
+             'viaja. 0 = apagado.')
+    managed_browsers = fields.Text(
+        string='Navegadores gestionados (uno por linea)',
+        default='Chrome\nEdge\nFirefox\nBrave\nVivaldi\nOpera\nChromium',
+        help='A estos programas el agente les lee la barra de direcciones para '
+             'saber el sitio. Se reconocen por lo que el binario declara '
+             '(descripcion o producto) o por el nombre base del ejecutable. Un '
+             'navegador que entregue URLs sin estar aqui se registra como '
+             '"navegador no gestionado". A lo que no es navegador no se le '
+             'leen sus cajas de texto: por ahi entraban las cotas de '
+             'SolidWorks al catalogo como sitios.')
+
+    def _kill_products(self):
+        self.ensure_one()
+        if not self.close_unmanaged:
+            return []
+        return self._patrones(self.kill_products)
+
+    @api.model
+    def _patrones(self, texto):
+        """'Opera\\nOpera GX' -> ['opera', 'opera gx'], sin vacios ni repetidos."""
+        vistos = []
+        for linea in (texto or '').replace(',', '\n').splitlines():
+            p = linea.strip().lower()
+            if p and p not in vistos:
+                vistos.append(p)
+        return vistos
+
+    _CONDUCTA_FABRICA = {
+        'idle_secs': 60, 'medir_fuera_turno': True, 'integridad': True,
+        'llamadas': True, 'ventana': True, 'ventana_cooldown': 120,
+        'ventana_max_idle': 120, 'pantalla_cada': 30,
+        'navegadores': ['chrome', 'edge', 'firefox', 'brave', 'vivaldi', 'opera', 'chromium'],
+    }
+
+    @api.model
+    def conducta_para(self, computer):
+        """El bloque `conducta` que viaja al agente en CADA respuesta.
+
+        Sale del perfil vigente del equipo; sin perfil, los valores de fabrica
+        (los mismos que el agente trae de origen). NO depende del interruptor
+        de bloqueo de sitios: como se mide no es lo mismo que que se bloquea.
+        Solo `sitios_bloqueados` respeta ese interruptor, porque cuenta intentos
+        contra las reglas que DE VERDAD estan puestas en el equipo.
+        """
+        perfil = self._perfil_vigente(computer)
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        if perfil:
+            bloque = {
+                'idle_secs': max(10, min(3600, perfil.idle_secs or 60)),
+                'medir_fuera_turno': bool(perfil.measure_off_shift),
+                'integridad': bool(perfil.integrity_enabled),
+                'llamadas': bool(perfil.calls_enabled),
+                'ventana': bool(perfil.ask_enabled),
+                'ventana_cooldown': max(30, perfil.ask_cooldown_secs or 120),
+                'ventana_max_idle': max(10, perfil.ask_max_idle_secs or 120),
+                'pantalla_cada': max(0, min(3600, perfil.screen_change_secs or 0)),
+                'navegadores': self._patrones(perfil.managed_browsers),
+            }
+        else:
+            bloque = dict(self._CONDUCTA_FABRICA)
+        bloque['sitios_bloqueados'] = (perfil._patrones_bloqueo()
+                                       if perfil and ajustes.block_enabled else [])
+        # «Mi dia» solo para quien lo pidio: la persona no ve su consumo por
+        # defecto (vision de Foco). Va en el bloque para que el agente ponga o
+        # quite el acceso del menu Inicio, y dentro del hash para que se aplique.
+        bloque['mi_dia'] = bool(computer.mi_dia_enabled)
+        # Umbral GLOBAL de inactividad (configurable en Foco > Ventana de
+        # inactividad): el hueco a partir del cual se abre un periodo por
+        # justificar. En segundos para el agente; 15 min de fabrica.
+        bloque['gap_min'] = max(60, min(3600, (ajustes.gap_min_minutes or 15) * 60))
+        # La ventana BLOQUEANTE es POR EQUIPO y APAGADA para todos de fabrica:
+        # solo sale en el equipo que el encargado haya encendido, sin importar el
+        # perfil (por eso pisa el `ventana` que venia del perfil). Se decide por
+        # EQUIPO -no por empleado- porque solo los equipos tienen Foco.
+        bloque['ventana'] = bool(computer.foco_ventana_inactividad)
+        bloque['version'] = self._hash(bloque)
+        return bloque
+
+    def _kill_list(self):
+        """Los ejecutables a cerrar, limpios: minusculas, con .exe, sin repetir."""
+        self.ensure_one()
+        if not self.close_unmanaged:
+            return []
+        vistos = []
+        for linea in (self.kill_exes or '').replace(',', '\n').splitlines():
+            exe = linea.strip().lower()
+            if not exe or any(c in exe for c in ' \\/"'):
+                continue
+            if not exe.endswith('.exe'):
+                exe += '.exe'
+            if exe not in vistos:
+                vistos.append(exe)
+        return vistos
 
     # El mismo conjunto de equipos, pero ESCRIBIBLE desde aqui.
     #
@@ -130,21 +306,73 @@ class FocoPolicy(models.Model):
             p.computer_count = len(p.computer_ids)
             p.rule_count = len(p.rule_ids)
 
-    @api.depends('rule_ids.pattern', 'rule_ids.action', 'rule_ids.active')
+    @api.depends('rule_ids.pattern', 'rule_ids.action', 'rule_ids.active',
+                 'rule_ids.days', 'rule_ids.hour_from', 'rule_ids.hour_to',
+                 'rule_ids.quota_minutes')
     def _compute_version(self):
         for p in self:
-            p.version = p._hash(p._listas())
+            # Sobre las reglas COMPLETAS: un cambio de horario o de cuota es un
+            # cambio de politica aunque las listas planas queden iguales.
+            p.version = p._hash(p._reglas())
 
     # ------------------------------------------------------------ publicacion
     def _listas(self):
-        """(bloquear, permitir) ya normalizadas y sin repetidos."""
+        """(bloquear, permitir) SIN condiciones, ya normalizadas y sin repetidos.
+
+        Es lo que lee un servicio anterior a 2026.09.29, que no sabe de horario
+        ni cuota: una regla condicionada no le viaja, y eso es fallar cerrado
+        para Permitir (sigue bloqueado) y abierto para Bloquear (no se bloquea).
+        Los equipos actualizados usan `_reglas()`.
+        """
         self.ensure_one()
         bloquear, permitir = [], []
         for r in self.rule_ids.sorted('sequence'):
-            if not r.active or not r.pattern:
+            if not r.active or not r.pattern or r.condicionada:
                 continue
             (permitir if r.action == 'allow' else bloquear).append(r.pattern)
         return sorted(set(bloquear)), sorted(set(permitir))
+
+    def _reglas(self):
+        """Las reglas completas, con horario y cuota, en orden. Incluye el
+        salvavidas (el propio Odoo siempre permitido)."""
+        self.ensure_one()
+        reglas = [r._como_regla() for r in self.rule_ids.sorted('sequence')
+                  if r.active and r.pattern]
+        for host in self._salvavidas():
+            reglas.append({'pattern': host, 'action': 'allow', 'days': [1, 2, 3, 4, 5, 6, 7],
+                           'from': 0.0, 'to': 0.0, 'quota_min': 0})
+        return reglas
+
+    def _patrones_bloqueo(self):
+        """TODOS los patrones de bloqueo, condicionados o no: la pagina de
+        bloqueo al frente prueba que en ese momento aplicaba."""
+        self.ensure_one()
+        return sorted({r['pattern'] for r in self._reglas() if r['action'] == 'block'})
+
+    def _usado_min(self, computer, patron):
+        """Minutos ACTIVOS de hoy de este equipo en los sitios que cubre el
+        patron, con lo que el agente ya reporto. Hoy = el dia de la persona."""
+        zona = self.env['foco.settings'].sudo()._tzinfo_for(computer.employee_id, computer)
+        import pytz
+        hoy = datetime.now(zona or pytz.UTC).date()
+        Usage = self.env['foco.usage'].sudo()
+        total = 0.0
+        for host, horas in Usage._read_group(
+                [('computer_id', '=', computer.id), ('date', '=', hoy), ('host', '!=', '')],
+                ['host'], ['fg_active:sum']):
+            if self._cubre(patron, host):
+                total += horas or 0.0
+        return int(round(total * 60.0))
+
+    def _reglas_con_uso(self, computer):
+        """Las reglas mas `used_min` en las que tienen cuota. Va en cada consulta
+        del servicio, que es quien decide si la cuota ya se agoto."""
+        salida = []
+        for r in self._reglas():
+            if r['quota_min']:
+                r = dict(r, used_min=self._usado_min(computer, r['pattern']))
+            salida.append(r)
+        return salida
 
     @api.model
     def _hash(self, listas):
@@ -203,14 +431,21 @@ class FocoPolicy(models.Model):
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.
-            return {'version': 'off', 'block': [], 'allow': []}
+            # `kill` vacio por lo mismo: sin bloqueo no se cierra ningun navegador.
+            return {'version': 'off', 'block': [], 'allow': [], 'kill': []}
         perfil = self._perfil_vigente(computer)
         if not perfil:
-            return {'version': 'vacio', 'block': [], 'allow': []}
+            return {'version': 'vacio', 'block': [], 'allow': [], 'kill': []}
         bloquear, permitir = perfil._listas()
         permitir = sorted(set(permitir) | set(self._salvavidas()))
-        return {'version': perfil._hash((bloquear, permitir)),
+        return {'version': perfil.version or perfil._hash(perfil._reglas()),
+                # Listas planas SIN condiciones, para servicios anteriores.
                 'block': bloquear, 'allow': permitir,
+                # Reglas completas con horario, cuota y uso del dia, para los
+                # servicios que saben recalcular la lista efectiva.
+                'rules': perfil._reglas_con_uso(computer),
+                'kill': perfil._kill_list(),
+                'kill_productos': perfil._kill_products(),
                 'policy': perfil.name}
 
     def action_ver_equipos(self):
@@ -349,6 +584,81 @@ class FocoPolicyRule(models.Model):
         string='Por que',
         help='La razon de la regla. Cuesta diez segundos escribirla y ahorra la '
              'discusion de por que este sitio esta cerrado.')
+
+    # ---- CUANDO aplica (27-sep-2026): horario y cuota ------------------------
+    #
+    # Una regla sin horario ni cuota aplica siempre, como hasta hoy. Con
+    # horario aplica SOLO dentro de esa ventana, en la hora local del equipo.
+    # Con cuota: Permitir vale hasta N minutos al dia (la excepcion se agota);
+    # Bloquear entra al superar N (se bloquea cuando ya se uso lo acordado).
+    #
+    # Quien recalcula la lista efectiva es el servicio del equipo, cada minuto.
+    # El uso del dia se lo manda Odoo en cada consulta de politica (cada 5 min)
+    # y NO lo lee de la base local del agente: esa base vive en una carpeta que
+    # la persona puede escribir, y una cuota que se reinicia borrando un archivo
+    # no es una cuota. El costo es que la cuota se vence con hasta ~10 min de
+    # retraso (envio del agente + consulta del servicio). Se dice, no se oculta.
+    days = fields.Char(
+        string='Dias', default='1,2,3,4,5,6,7',
+        help='Numeros de dia separados por coma: 1 = lunes ... 7 = domingo. '
+             'Vacio = todos los dias.')
+    hour_from = fields.Float(
+        string='Desde', default=0.0,
+        help='Hora local del equipo, de 0 a 24. Con Desde y Hasta en 0 la regla '
+             'aplica todo el dia.')
+    hour_to = fields.Float(string='Hasta', default=0.0)
+    quota_minutes = fields.Integer(
+        string='Cuota (min/dia)', default=0,
+        help='0 = sin cuota. En una regla Permitir: la excepcion vale hasta estos '
+             'minutos al dia. En una regla Bloquear: se bloquea al superar estos '
+             'minutos. El uso lo cuenta Odoo con lo que el agente reporta.')
+    condicionada = fields.Boolean(
+        string='Con horario o cuota', compute='_compute_condicionada',
+        help='Una regla condicionada solo la aplican los equipos con servicio '
+             '2026.09.29 o posterior; los anteriores la ignoran.')
+
+    @api.depends('days', 'hour_from', 'hour_to', 'quota_minutes')
+    def _compute_condicionada(self):
+        for r in self:
+            r.condicionada = bool(r.quota_minutes) or bool(r.hour_from or r.hour_to) \
+                or (len(r._dias()) < 7)
+
+    def _dias(self):
+        """[1..7] tal como se escribio; vacio o invalido = todos."""
+        self.ensure_one()
+        vistos = []
+        for parte in (self.days or '').replace(';', ',').split(','):
+            parte = parte.strip()
+            if parte.isdigit() and 1 <= int(parte) <= 7 and int(parte) not in vistos:
+                vistos.append(int(parte))
+        return sorted(vistos) or [1, 2, 3, 4, 5, 6, 7]
+
+    @api.constrains('days', 'hour_from', 'hour_to', 'quota_minutes')
+    def _check_condiciones(self):
+        for r in self:
+            if r.quota_minutes < 0:
+                raise ValidationError('La cuota no puede ser negativa.')
+            if not (0.0 <= (r.hour_from or 0.0) <= 24.0 and 0.0 <= (r.hour_to or 0.0) <= 24.0):
+                raise ValidationError('Las horas van de 0 a 24.')
+            if (r.hour_from or r.hour_to) and (r.hour_to or 0.0) <= (r.hour_from or 0.0):
+                raise ValidationError('"Hasta" tiene que ser mayor que "Desde" (%s).' % r.pattern)
+            for parte in (r.days or '').replace(';', ',').split(','):
+                parte = parte.strip()
+                if parte and not (parte.isdigit() and 1 <= int(parte) <= 7):
+                    raise ValidationError('Dias: solo numeros del 1 (lunes) al 7 (domingo), '
+                                          'separados por coma. Llego "%s".' % parte)
+
+    def _como_regla(self):
+        """La regla tal como viaja al servicio del equipo."""
+        self.ensure_one()
+        return {
+            'pattern': (self.pattern or '').strip(),
+            'action': self.action,
+            'days': self._dias(),
+            'from': round(self.hour_from or 0.0, 4),
+            'to': round(self.hour_to or 0.0, 4),
+            'quota_min': int(self.quota_minutes or 0),
+        }
 
     # A que alcanza el patron, contrastado contra lo que la empresa abre DE
     # VERDAD.

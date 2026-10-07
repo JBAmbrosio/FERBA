@@ -6,11 +6,60 @@ import logging
 from datetime import datetime, time as _time, timedelta
 
 import pytz
+from markupsafe import escape
 
 from odoo import fields, http
+from odoo.exceptions import UserError
 from odoo.http import content_disposition, request
 
 _logger = logging.getLogger(__name__)
+
+
+def _tomy_texto_a_html(texto):
+    """El texto plano de Tomy (parrafos, guiones, **negritas**) como HTML
+    escapado. Misma regla que el panel, para que impreso se vea igual."""
+    import re
+    html, parrafo, en_lista = [], [], False
+
+    def inline(s):
+        return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', str(escape(s)))
+
+    def cerrar_p():
+        if parrafo:
+            html.append('<p>%s</p>' % '<br/>'.join(parrafo))
+            parrafo.clear()
+
+    def cerrar_l():
+        nonlocal en_lista
+        if en_lista:
+            html.append('</ul>')
+            en_lista = False
+
+    for linea in (texto or '').splitlines():
+        t = linea.strip()
+        if not t:
+            cerrar_p()
+            cerrar_l()
+            continue
+        m = re.match(r'^(?:[-*•]|\d+[.)])\s+(.*)$', t)
+        if m:
+            cerrar_p()
+            if not en_lista:
+                html.append('<ul>')
+                en_lista = True
+            html.append('<li>%s</li>' % inline(m.group(1)))
+            continue
+        h = re.match(r'^#{1,4}\s+(.*)$', t)
+        if h:
+            cerrar_p()
+            cerrar_l()
+            html.append('<h3>%s</h3>' % inline(h.group(1)))
+            continue
+        cerrar_l()
+        parrafo.append(inline(t))
+    cerrar_p()
+    cerrar_l()
+    return ''.join(html)
 
 
 def _sec_to_h(v):
@@ -108,6 +157,7 @@ class FocoController(http.Controller):
         info = data.get('computer') or {}
         vals = {'last_seen': fields.Datetime.now()}
         Comp = request.env['foco.computer'].sudo()
+        Review = request.env['foco.call.review'].sudo()
 
         # Todas las anomalias de ESTE envio, en orden de CAUSA a consecuencia.
         # Escribirlas una por una hacia que la ultima pisara a las anteriores, y
@@ -160,6 +210,11 @@ class FocoController(http.Controller):
                 vals['agent_version_code'] = int(info['version_code'])
             except (TypeError, ValueError):
                 pass
+        # Si el usuario de la sesion es administrador local (desde 2026.09.28).
+        # Es la condicion de la que depende todo lo demas: puede parar el
+        # servicio y quitar la politica. Se muestra por equipo, no se actua.
+        if info.get('is_admin') is not None:
+            vals['user_is_admin'] = bool(info['is_admin'])
         # Estado del SERVICIO del equipo, que el agente lee de su archivo. Solo
         # diagnostico: no toca policy_version ni policy_verified_at (ver el
         # comentario de `service_state` en foco.computer).
@@ -196,9 +251,19 @@ class FocoController(http.Controller):
         # no una por renglon, para que veinte apps no generen veinte alertas.
         bajadas = []
         ACUMULADOS = ('fg_active', 'fg_idle', 'background', 'call_hours',
-                      'injected_hours', 'call_noinput_hours')
+                      'injected_hours', 'call_noinput_hours', 'injected_tool_hours',
+                      'nokey_hours', 'keys_count', 'mouse_events', 'positions_count',
+                      'static_hours')
+
+        def _entero(v):
+            try:
+                return max(0, int(v or 0))
+            except (TypeError, ValueError):
+                return 0
+
         for s in (data.get('samples') or []):
-            app = App._get_or_create(s.get('exe'), s.get('name'), s.get('product'))
+            app = App._get_or_create(s.get('exe'), s.get('name'), s.get('product'),
+                                     s.get('company'))
             if not app:
                 continue
             date = s.get('date') or fields.Date.context_today(Usage)
@@ -215,6 +280,9 @@ class FocoController(http.Controller):
             # solo se sabria el ultimo archivo del dia. Solo llega con algo si
             # el admin habilito esa app; para las demas el agente ni lo extrae.
             documento = (s.get('document') or '')[:200]
+            # El rato de una llamada de WhatsApp analizada, tambien en la llave:
+            # el veredicto de esa llamada pesa sobre ESE rato, no sobre el dia.
+            call_ref = (s.get('call_ref') or '')[:64]
             status = s.get('host_status')
             if status not in estados:
                 status = 'not_browser'
@@ -227,6 +295,11 @@ class FocoController(http.Controller):
             call_h = min(_sec_to_h(s.get('call_secs')), fga)
             iny_h = min(_sec_to_h(s.get('injected_secs')), fga)
             cni_h = min(_sec_to_h(s.get('call_noinput_secs')), call_h)
+            # Nivel de actividad (agente 2026.09.28): tambien subconjuntos del
+            # tiempo activo, y tambien acotados.
+            tool_h = min(_sec_to_h(s.get('injected_tool_secs')), fga)
+            nokey_h = min(_sec_to_h(s.get('nokey_secs')), fga)
+            static_h = min(_sec_to_h(s.get('static_secs')), fga)
             # El sitio se cataloga como entidad propia: es lo que permite
             # clasificarlo y que pese distinto que la app que lo muestra.
             site = Site._get_or_create(host) if host else Site.browse()
@@ -236,11 +309,24 @@ class FocoController(http.Controller):
                 ('date', '=', date),
                 ('host', '=', host),
                 ('shift', '=', turno),
-                ('document', '=', documento)], limit=1)
+                ('document', '=', documento),
+                ('call_ref', '=', call_ref)], limit=1)
             campos = {'fg_active': fga, 'fg_idle': fgi, 'background': bg,
                       'host_status': status, 'call_hours': call_h,
                       'injected_hours': iny_h, 'call_noinput_hours': cni_h,
+                      'injected_tool_hours': tool_h, 'nokey_hours': nokey_h,
+                      'static_hours': static_h,
+                      # Con que version se midio: el significado de las columnas
+                      # nuevas depende de ella (ver foco.usage.agent_code).
+                      'agent_code': _entero(info.get('version_code')),
+                      'keys_count': _entero(s.get('keys')),
+                      'mouse_events': _entero(s.get('mouse_events')),
+                      'positions_count': _entero(s.get('positions')),
                       'site_id': site.id or False}
+            if call_ref:
+                llamada = Review._buscar(computer, call_ref)
+                if llamada:
+                    campos['call_id'] = llamada.id
             if usage:
                 # Se conserva el valor MAYOR. El agente manda totales absolutos
                 # del dia, asi que el mas alto es el que de verdad se midio;
@@ -256,7 +342,7 @@ class FocoController(http.Controller):
             else:
                 campos.update({'computer_id': computer.id, 'app_id': app.id,
                                'date': date, 'host': host, 'shift': turno,
-                               'document': documento})
+                               'document': documento, 'call_ref': call_ref})
                 Usage.create(campos)
             fechas.add(date)
             stored += 1
@@ -285,6 +371,17 @@ class FocoController(http.Controller):
         Event = request.env['foco.event'].sudo()
         events_stored = Event.record_events(computer, data.get('events') or [])
 
+        # --- pestañas abiertas (camino 1) -----------------------------------
+        # Los TITULOS de todas las pestañas del navegador. Se guardan como filas
+        # por clasificar; la IA corre en un cron, no aqui. Nunca tumba el ingest:
+        # un fallo aqui haria que el agente reintentara el lote sin fin.
+        try:
+            tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
+                computer, data.get('tabs') or [], data.get('tab_hosts') or {})
+        except Exception:
+            _logger.exception('Foco: pestañas de %s', computer.id)
+            tabs_stored = 0
+
         # --- donde esta la persona AHORA ------------------------------------
         presencia = data.get('presence') or {}
         estados = dict(Comp._fields['presence_state'].selection)
@@ -309,8 +406,22 @@ class FocoController(http.Controller):
                     dias.add(d.date())
             if not dias:
                 dias = {fields.Date.context_today(Usage)}
-            request.env['foco.workday'].sudo().rebuild(
-                computer.employee_id, sorted(d for d in dias if d))
+            # La jornada es una VISTA derivada del dato ya guardado: si su
+            # calculo falla, el envio tiene que responder ok igual. Un 500
+            # aqui haria que el agente reintentara el mismo lote sin fin y el
+            # equipo dejara de reportar (paso con el NUL del 24-sep).
+            try:
+                request.env['foco.workday'].sudo().rebuild(
+                    computer.employee_id, sorted(d for d in dias if d))
+            except Exception:
+                _logger.exception('Foco: jornada de %s', computer.id)
+            # Y los hechos de integridad de esos mismos dias: barato (una
+            # persona, uno o dos dias) y asi se ven al momento, no de noche.
+            try:
+                request.env['foco.integrity.fact'].sudo().rebuild(
+                    computer.employee_id, sorted(d for d in dias if d))
+            except Exception:
+                _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
         Command = request.env['foco.command'].sudo()
         cmds = Command.search([('computer_id', '=', computer.id),
@@ -328,8 +439,20 @@ class FocoController(http.Controller):
             'stored': stored,
             'gaps_stored': gaps_stored,
             'events_stored': events_stored,
+            'tabs_stored': tabs_stored,
             'commands': out,
             'config': config,
+            # El CHECADOR, en vivo: si esta persona lo usa y si ahora mismo
+            # esta checada. Con eso el agente etiqueta "en jornada" por lo
+            # checado y no por el calendario. Viaja tambien en el sondeo de
+            # 25 s (/foco/commands), que es donde importa la puntualidad.
+            'asistencia': settings.asistencia_para(computer.employee_id, computer),
+            # COMO se mide, por perfil: umbral de inactividad, medir fuera de
+            # turno, integridad, llamadas, ventana, navegadores gestionados y
+            # las reglas de bloqueo vigentes (para contar intentos). En CADA
+            # respuesta, por la misma razon que las capturas: cambiarlo en Odoo
+            # tiene que surtir efecto en el siguiente envio.
+            'conducta': request.env['foco.policy'].sudo().conducta_para(computer),
             # Que apps pueden reportar el archivo abierto. Va en CADA respuesta
             # porque apagarlo tiene que surtir efecto igual de rapido que
             # encenderlo: si viajara solo al cambiar, revocar el permiso
@@ -358,7 +481,138 @@ class FocoController(http.Controller):
                                   .monitor_sitios_para(computer.employee_id),
             },
             'absences': pendientes.payload(),
+            # Analisis de llamadas de WhatsApp de ESTE equipo. Viaja en cada
+            # respuesta, interruptor incluido, por la misma razon que las
+            # capturas: apagarlo tiene que surtir efecto en el siguiente envio.
+            'call_review': settings.call_review_config(computer),
         })
+
+    # ------------------------------------------------ llamadas de WhatsApp
+    #
+    # Tres pasos por llamada, todos con la llave del equipo: inicio (crea el
+    # registro), trozos de audio (cada uno se transcribe EN ESTA PETICION y el
+    # audio se descarta: nunca se guarda) y fin (se clasifica y la
+    # transcripcion se borra). Si el analisis esta apagado -en general o para
+    # ese equipo- se contesta `disabled` y el agente tira lo que tenga.
+
+    def _call_review_ok(self, computer):
+        settings = request.env['foco.settings'].sudo().get_settings()
+        return settings.call_review_allowed(computer)
+
+    @http.route('/foco/call/start', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_start(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        data = self._body() or {}
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        Event = request.env['foco.event'].sudo()
+        rec = request.env['foco.call.review'].sudo()._start(
+            computer, ref, data.get('app') or '',
+            Event._parse_utc(data.get('started_at')) or fields.Datetime.now())
+        return request.make_json_response({'ok': True, 'id': rec.id})
+
+    @http.route('/foco/call/chunk', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_chunk(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        h = request.httprequest.headers
+        ref = (h.get('X-Foco-Call') or '').strip()[:64]
+        track = 'otro' if (h.get('X-Foco-Track') or '') == 'otro' else 'empleado'
+        try:
+            seq = int(h.get('X-Foco-Seq') or 0)
+            secs = int(h.get('X-Foco-Secs') or 0)
+        except ValueError:
+            seq, secs = 0, 0
+        wav = request.httprequest.get_data()
+        if not ref or not wav:
+            return request.make_json_response({'ok': False, 'error': 'sin_datos'}, status=400)
+        if len(wav) > 40 * 1024 * 1024:
+            return request.make_json_response({'ok': False, 'error': 'demasiado_grande'}, status=413)
+        try:
+            rec, chars = request.env['foco.call.review'].sudo()._chunk(
+                computer, ref, track, seq, secs, wav)
+        except Exception as e:
+            # El trozo NO se guarda en ningun lado: el agente lo conserva y lo
+            # reintenta mas tarde. 503 = "vuelve luego", no "mal pedido".
+            _logger.warning('foco: trozo %s/%s/%s sin transcribir: %s', ref, track, seq, e)
+            request.env.cr.rollback()
+            return request.make_json_response(
+                {'ok': False, 'error': 'transcripcion', 'detail': str(e)[:200]}, status=503)
+        return request.make_json_response({'ok': True, 'id': rec.id, 'chars': chars})
+
+    @http.route('/foco/call/end', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def call_end(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        if not self._call_review_ok(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        data = self._body() or {}
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        Event = request.env['foco.event'].sudo()
+        rec = request.env['foco.call.review'].sudo()._finish(
+            computer, ref, Event._parse_utc(data.get('ended_at')) or fields.Datetime.now(),
+            data.get('duration') or 0, data.get('chunks'))
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'state': rec.state,
+            'clasificacion': rec.clasificacion or '', 'motivo': rec.motivo or ''})
+
+    # ------------------------------------------------------------- Tomy
+    @http.route('/foco/tomy/version', type='http', auth='public', methods=['GET'])
+    def tomy_version(self, **kw):
+        """Version del modulo. Publica y diminuta: sirve para saber que un
+        despliegue ya esta en vivo sin sesion."""
+        mod = request.env['ir.module.module'].sudo().search([('name', '=', 'foco_monitor')], limit=1)
+        return request.make_json_response({'ok': True, 'modulo': mod.installed_version or ''})
+
+    @http.route('/foco/tomy/imprimir/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def tomy_imprimir(self, message_id, **kw):
+        """Una respuesta de Tomy como pagina limpia para imprimir o guardar en
+        PDF desde el navegador. Corre con el usuario: las reglas de registro
+        deciden si puede ver ese mensaje."""
+        msg = request.env['foco.tomy.message'].browse(message_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        datos = msg._para_panel()
+        cuerpo = _tomy_texto_a_html(datos['content'])
+        for a in datos['artefactos']:
+            if a.get('tipo') != 'tabla':
+                continue
+            cuerpo += '<h3>%s</h3><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table>' % (
+                escape(a.get('titulo') or ''),
+                ''.join('<th>%s</th>' % escape(str(c)) for c in a.get('columnas') or []),
+                ''.join('<tr>%s</tr>' % ''.join('<td>%s</td>' % escape(str(v)) for v in f)
+                        for f in a.get('filas') or []))
+        pregunta = request.env['foco.tomy.message'].search(
+            [('thread_id', '=', msg.thread_id.id), ('role', '=', 'user'), ('id', '<', msg.id)],
+            order='id desc', limit=1)
+        html = (
+            '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tomy - Foco</title>'
+            '<style>body{font:14px/1.5 system-ui,Segoe UI,sans-serif;color:#0f1520;margin:40px auto;max-width:820px;padding:0 24px}'
+            'h1{font-size:20px;margin:0 0 4px}h3{font-size:14px;margin:18px 0 6px}.meta{color:#5a6577;font-size:12px;margin-bottom:18px}'
+            '.pregunta{background:#f3f5f9;border-left:3px solid #2f6fed;padding:10px 14px;margin:0 0 18px;border-radius:6px}'
+            'table{border-collapse:collapse;width:100%%;font-size:13px}th,td{border:1px solid #e7eaf0;padding:6px 8px;text-align:left}'
+            'th{background:#f3f5f9}ul{padding-left:20px}.btn{position:fixed;top:14px;right:14px;padding:8px 14px;border:1px solid #cfd6e2;'
+            'border-radius:8px;background:#fff;cursor:pointer;font:inherit}@media print{.btn{display:none}body{margin:0}}</style></head><body>'
+            '<button class="btn" onclick="window.print()">Imprimir / guardar PDF</button>'
+            '<h1>Tomy · asistente de Foco</h1><div class="meta">%s · %s</div>%s%s</body></html>'
+        ) % (escape(request.env.user.name), escape(fields.Datetime.context_timestamp(
+                msg, msg.create_date).strftime('%d/%m/%Y %H:%M') if msg.create_date else ''),
+             ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '', cuerpo)
+        return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
 
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -400,6 +654,33 @@ class FocoController(http.Controller):
         key = request.httprequest.headers.get('X-Foco-Key')
         return request.env['foco.mobile.device']._authenticate(key)
 
+    @http.route('/foco/mobile/avatar', type='http', auth='public',
+                methods=['GET', 'POST'], csrf=False)
+    def mobile_avatar(self, **kw):
+        """La foto del empleado para el saludo de la pantalla de Inicio. Devuelve
+        la imagen tal cual (PNG/JPEG); 204 si el empleado no tiene foto, y ahi el
+        telefono muestra su inicial en un circulo coral. Autentica con la llave
+        del equipo, como el resto de los endpoints moviles."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        emp = dev.sudo().employee_id
+        img = None
+        if emp:
+            img = emp.image_256 or emp.image_512 or emp.image_128
+            if not img and emp.user_id:
+                img = emp.user_id.image_256
+        if not img:
+            return request.make_response(b'', status=204)
+        try:
+            raw = base64.b64decode(img)
+        except Exception:
+            return request.make_response(b'', status=204)
+        return request.make_response(raw, headers=[
+            ('Content-Type', 'image/png'),
+            ('Content-Length', str(len(raw))),
+            ('Cache-Control', 'no-store')])
+
     @http.route('/foco/mobile/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_enroll(self, **kw):
@@ -431,7 +712,59 @@ class FocoController(http.Controller):
         s = request.env['foco.settings'].sudo().get_settings()
         return request.make_json_response({
             'ok': True, 'api_key': dev.api_key,
-            'employee': inv.employee_id.name, 'config': s.mobile_config()})
+            'employee': inv.employee_id.name, 'config': s.mobile_config(),
+            'politica': dev.sudo()._politica_agente()})
+
+    @http.route('/foco/mobile/clientes', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_clientes(self, **kw):
+        """Cartera de clientes de ventas para la pantalla de Visita del telefono
+        (la del boton 'Llegue'). El telefono la cachea y la ordena por cercania
+        al GPS actual. Autentica con la llave del equipo."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        return request.make_json_response(
+            {'ok': True, 'clientes': dev.sudo().clientes_para()})
+
+    @http.route('/foco/mobile/visita', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_visita(self, **kw):
+        """Check-in de visita desde el telefono. Acepta una o varias (la cola
+        offline reenvia en lote). Deduplica por `uuid`. Devuelve los uuid
+        guardados para que el telefono los saque de su cola."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        visitas = data.get('visitas')
+        if visitas is None:
+            visitas = [data] if data.get('uuid') else []
+        saved = dev.sudo().registrar_visitas(visitas)
+        return request.make_json_response({'ok': True, 'stored': True, 'saved': saved})
+
+    @http.route('/foco/mobile/visita_audio', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_visita_audio(self, **kw):
+        """Sube el audio de una visita (cuerpo binario crudo). La visita se ubica
+        por su uuid en la cabecera. Queda pendiente para que la IA lo analice."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        h = request.httprequest.headers
+        uuid = h.get('X-Visita-Uuid') or ''
+        name = h.get('X-Audio-Name') or 'visita.m4a'
+        try:
+            dur = int(h.get('X-Duracion') or '0')
+        except (TypeError, ValueError):
+            dur = 0
+        data = request.httprequest.get_data(cache=False, as_text=False) or b''
+        if not uuid or not data:
+            return request.make_json_response({'error': 'bad_request'}, status=400)
+        res = dev.sudo().guardar_audio_visita(uuid, data, dur, name)
+        return request.make_json_response(res)
 
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -470,7 +803,7 @@ class FocoController(http.Controller):
             'minutos': settings.screenshot_unclassified_minutes or 0,
             # NUNCA se captura: la propia Foco + las apps marcadas como garantia
             # de privacidad en el catalogo (banca, gestor de contrasenas...).
-            'nunca': ['net.ferba.foco'] + (App.no_captura_apps() if enabled else []),
+            'nunca': ['net.ferba.campo', 'net.ferba.foco'] + (App.no_captura_apps() if enabled else []),
             'capturadas': Cap.paquetes_capturados(dev) if enabled else [],
             # Apps a fotografiar PERIODICAMENTE mientras esten al frente (WhatsApp
             # y las que sume el admin). Su cadencia propia; 0 = usar `minutos`.
@@ -535,13 +868,49 @@ class FocoController(http.Controller):
         # -es telemetria del equipo, no del empleado-. Se mezcla en dvals para
         # escribirse en una sola operacion en cualquiera de las dos ramas.
         dvals.update(dev._health_vals(data.get('health')))
+        # Ultimo resultado de la ventana nocturna de actualizacion de apps (solo
+        # se escribe cuando cambia; el telefono lo repite en cada envio).
+        dvals.update(dev.sudo()._play_update_vals(data.get('play_update')))
+        # Lo que el telefono necesita saber para comportarse, mas la hora local
+        # de su ventana de actualizacion de apps (viene del perfil del equipo).
+        config = dict(s.mobile_config())
+        config['update_hour'] = dev.sudo()._update_hour()
+
+        # Resultados de las instalaciones por Play que reporta el agente
+        # (instalada / fallo / sin_cuenta / sin_accesibilidad). Se aplican ANTES
+        # de armar solicitudes y politica, para que una recien instalada se cierre
+        # y deje de pedirse en este mismo ciclo.
+        request.env['foco.mobile.app.request'].sudo().aplicar_play_hechos(
+            data.get('play_hechos') or [])
+
+        # Las solicitudes de apps y su respuesta viajan en CADA envio, con o
+        # sin monitoreo: pedir una app no es un dato medido de la persona, es
+        # un tramite suyo, y la respuesta le tiene que llegar.
+        solicitudes = request.env['foco.mobile.app.request'].sudo().para_telefono(dev)
+
+        # La politica del equipo gestionado (Foco como administrador del
+        # telefono): que se bloquea, que apps se ocultan, que sitios. Viaja
+        # SIEMPRE, con o sin monitoreo: restringir el equipo no es medir a la
+        # persona. El telefono solo la aplica si es Device Owner.
+        politica = dev.sudo()._politica_agente()
+
+        # Ordenes a distancia (bloquear pantalla, reiniciar, restablecer de
+        # fabrica, dar de baja) que Foco ejecuta como DUEÑO del equipo, sin
+        # Google. Viajan SIEMPRE, con o sin monitoreo: mandar un equipo de la
+        # empresa no es medir a la persona. El telefono confirma las ejecutadas
+        # con `comandos_hechos` en su siguiente envio; aqui se cierran.
+        Cmd = request.env['foco.mobile.command'].sudo()
+        Cmd.marcar_hechas(data.get('comandos_hechos') or [])
+        comandos = Cmd.para_telefono(dev)
 
         # El interruptor general MANDA del lado del servidor.
         if not s.mobile_enabled:
             dev.sudo().write(dvals)
             return request.make_json_response(
-                {'ok': True, 'stored': False, 'config': s.mobile_config(),
-                 'screenshot': self._mobile_screenshot_block(dev, s)})
+                {'ok': True, 'stored': False, 'config': config,
+                 'screenshot': self._mobile_screenshot_block(dev, s),
+                 'solicitudes': solicitudes, 'politica': politica,
+                 'comandos': comandos})
 
         Ev = request.env['foco.event']
         Loc = request.env['foco.location'].sudo()
@@ -632,8 +1001,71 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True, 'stored': True,
             'counts': {'locations': n_loc, 'usage': n_usg, 'calls': n_call},
-            'config': s.mobile_config(),
-            'screenshot': self._mobile_screenshot_block(dev, s)})
+            'config': config,
+            'screenshot': self._mobile_screenshot_block(dev, s),
+            'solicitudes': solicitudes, 'politica': politica,
+            'comandos': comandos})
+
+    # ------------------------------------------------ solicitudes de apps
+    #
+    # La persona pide una app desde Foco en su telefono. En un telefono
+    # gestionado con Android Enterprise la Play Store solo muestra lo aprobado,
+    # asi que pedir es la unica via de tener algo mas.
+    @http.route('/foco/mobile/app_request', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_app_request(self, **kw):
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        Req = request.env['foco.mobile.app.request'].sudo()
+        rec, error = Req.desde_telefono(dev, data)
+        if error:
+            return request.make_json_response({'ok': False, 'error': error}, status=400)
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'solicitudes': Req.para_telefono(dev)})
+
+    # ------------------------------------------------ cerebro del agente de Play
+    #
+    # El agente que instala desde la Play (el "robot") consulta aqui cuando no
+    # reconoce la pantalla con sus textos de siempre: manda los nodos clickeables
+    # y el servidor (IA) decide que tocar. Asi, si la Play cambia la interfaz, se
+    # ajusta en Odoo sin recompilar el APK. Respuesta: {action, x?, y?}.
+    @http.route('/foco/mobile/play_action', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_play_action(self, **kw):
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        accion = request.env['foco.mobile.app.request'].sudo().play_accion_ia(
+            data.get('package') or '', data.get('nodos') or [])
+        return request.make_json_response(accion)
+
+    # ------------------------------------------------ Android Enterprise
+    #
+    # Google vuelve aqui al terminar el alta de la empresa, con el token de la
+    # empresa en la URL. Solo un administrador de Foco con sesion lo completa.
+    @http.route('/foco/amapi/callback', type='http', auth='user')
+    def amapi_callback(self, enterpriseToken=None, **kw):
+        if not request.env.user.has_group('foco_monitor.group_foco_manager'):
+            return request.not_found()
+        s = request.env['foco.settings'].sudo().get_settings()
+        destino = '/odoo/action-foco_monitor.foco_settings_movil_action'
+        if not enterpriseToken or not s.amapi_signup_name:
+            return request.redirect(destino)
+        try:
+            res = request.env['foco.amapi'].sudo().registrar(
+                s.amapi_signup_name, enterpriseToken, s.amapi_enterprise_display)
+            s.write({'amapi_enterprise': res.get('name'), 'amapi_signup_name': False,
+                     'amapi_ultimo_error': False})
+        except UserError as e:
+            s.write({'amapi_ultimo_error': str(e)[:500]})
+        return request.redirect(destino)
 
     @http.route('/foco/download', type='http', auth='public', methods=['GET'])
     def download(self, **kw):
@@ -676,6 +1108,24 @@ class FocoController(http.Controller):
             ('Content-Length', str(len(content))),
             ('X-Foco-Sha256', s.installer_sha256),
             ('Content-Disposition', 'attachment; filename="%s"' % fn)])
+
+    # ------------------------------------------------ «mi dia» para la persona
+    #
+    # Lo que Foco midio HOY de la persona de este equipo, para que lo vea ELLA
+    # (foco-agent.exe --mi-dia). Solo lo suyo: el equipo autenticado decide de
+    # quien es la pregunta, no hay parametro de empleado.
+    @http.route('/foco/agent/mi_dia', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_mi_dia(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        try:
+            datos = request.env['foco.usage'].sudo().mi_dia(computer.sudo())
+        except Exception:
+            _logger.exception('Foco: no se pudo armar "mi dia" del equipo %s', computer.id)
+            return request.make_json_response({'ok': False, 'error': 'server'}, status=500)
+        return request.make_json_response(datos)
 
     @http.route('/foco/absence_answer', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -838,6 +1288,10 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True,
             'commands': salida,
+            # El estado del checador va en el sondeo ligero a proposito: una
+            # entrada o salida checada tiene que cambiar la etiqueta "en
+            # jornada" en segundos, no en cinco minutos.
+            'asistencia': ajustes.asistencia_para(computer.employee_id, computer),
             'screenshot': {
                 'enabled': ajustes.screenshot_enabled,
                 'minutos_sin_clasificar': ajustes.screenshot_unclassified_minutes,
@@ -1000,6 +1454,26 @@ class FocoController(http.Controller):
         # Version del servicio, si la reporta (desde 2026.09.25).
         if data.get('version_agente'):
             computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
+
+        # Navegadores no permitidos que el servicio cerro desde su ultimo
+        # reporte (desde 2026.09.26). Van a Actividad como eventos con la hora
+        # del cierre y el programa; el servicio reintenta si esto falla, y
+        # record_events no duplica.
+        cerrados = data.get('cerrados')
+        if isinstance(cerrados, list) and cerrados:
+            eventos = []
+            for c in cerrados[:200]:
+                if not isinstance(c, dict) or not c.get('exe'):
+                    continue
+                eventos.append({
+                    'kind': 'navegador_cerrado', 'at': c.get('at'), 'source': 'servicio',
+                    'detail': json.dumps({'process': str(c['exe'])[:120]}),
+                })
+            if eventos:
+                try:
+                    request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
+                except Exception:
+                    _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
 
         aplicada = (data.get('applied') or '').strip()[:64]
         if aplicada:

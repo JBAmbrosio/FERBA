@@ -4,98 +4,56 @@
         <div class="fs_wrap" t-att-class="{ 'fd-dark': state.dark }" t-ref="root">
             <div class="fs_card" t-if="!state.loading">
                 <header class="fs_head">
-                    <h1>Horario de medición</h1>
-                    <p>Define cuándo los agentes registran actividad.</p>
+                    <h1>De dónde sale la jornada</h1>
+                    <p>
+                        Foco no define horarios. La jornada de cada persona es lo que
+                        checa en Asistencias; si no usa el checador, el calendario
+                        laboral que le asignó RRHH. Con eso se decide qué actividad
+                        cayó dentro de la jornada y cuál fuera.
+                    </p>
                 </header>
 
-                <div class="fs_switch_row">
-                    <div class="fs_switch_txt">
-                        <span class="t">Aplicar horario</span>
-                        <span class="s">Si se apaga, los agentes miden 24/7.</span>
-                    </div>
-                    <button t-attf-class="fs_switch {{ state.enabled ? 'on' : '' }}"
-                            t-on-click="() => this.setEnabled(!state.enabled)"
-                            t-att-aria-pressed="state.enabled">
-                        <span class="knob"/>
-                    </button>
-                </div>
+                <p class="fs_summary" t-if="resumen" t-esc="resumen"/>
 
-                <div class="fs_body" t-att-class="{ 'off': !state.enabled }">
-                    <div class="fs_times">
-                        <label class="fs_field">
-                            <span class="fs_label">Desde</span>
-                            <input type="time" step="1800" class="fs_time"
-                                   t-att-value="state.from"
-                                   t-on-change="(ev) => this.setTime('from', ev.target.value)"/>
-                        </label>
-                        <span class="fs_dash">→</span>
-                        <label class="fs_field">
-                            <span class="fs_label">Hasta</span>
-                            <input type="time" step="1800" class="fs_time"
-                                   t-att-value="state.to"
-                                   t-on-change="(ev) => this.setTime('to', ev.target.value)"/>
-                        </label>
-                    </div>
-
-                    <div class="fs_field">
-                        <span class="fs_label">Días activos</span>
-                        <div class="fs_days">
-                            <t t-foreach="DAYS" t-as="d" t-key="d[0]">
-                                <button t-attf-class="fs_day {{ state.days[d[0]] ? 'on' : '' }}"
-                                        t-on-click="() => this.toggleDay(d[0])"
-                                        t-att-aria-pressed="state.days[d[0]]">
-                                    <t t-esc="d[1]"/>
+                <section class="fs_cobertura">
+                    <t t-if="!state.personas.length">
+                        <p class="fs_cob_nota">
+                            Ningún equipo está ligado a un empleado todavía.
+                        </p>
+                    </t>
+                    <t t-foreach="state.personas" t-as="p" t-key="p.id">
+                        <div class="fs_cal">
+                            <span class="n">
+                                <b t-esc="p.nombre"/>
+                                <small t-esc="detalle(p)"/>
+                            </span>
+                            <span t-attf-class="c {{ p.fuente }}" t-esc="FUENTE[p.fuente]"/>
+                            <t t-if="p.fuente === 'checador'">
+                                <button class="fs_btn ghost sm" t-on-click="() => this.abrirAsistencias(p)">
+                                    Asistencias
+                                </button>
+                            </t>
+                            <t t-elif="p.fuente === 'calendario'">
+                                <button class="fs_btn ghost sm" t-on-click="() => this.abrirCalendario(p)">
+                                    Calendario
+                                </button>
+                            </t>
+                            <t t-else="">
+                                <button class="fs_btn ghost sm" t-on-click="() => this.abrirEmpleado(p)">
+                                    Empleado
                                 </button>
                             </t>
                         </div>
-                    </div>
-                </div>
-
-                <p class="fs_summary" t-esc="summary"/>
-
-                <!-- A quien gobierna de verdad esta pantalla. El calendario del
-                     empleado tiene preferencia (ver schedule_for), asi que sin
-                     esto el ajuste puede no aplicar a nadie y no decirlo. -->
-                <section class="fs_cobertura" t-if="state.cobertura and state.cobertura.total">
-                    <div class="fs_cob_head">
-                        <span class="fs_label">A quién aplica</span>
-                        <span class="fs_cob_resumen" t-esc="gobierna"/>
-                    </div>
-
-                    <p class="fs_cob_nota" t-if="state.cobertura.global">
-                        Sin calendario laboral asignado:
-                        <t t-esc="state.cobertura.nombres_global.join(', ')"/><t t-if="state.cobertura.global > state.cobertura.nombres_global.length">…</t>
-                    </p>
-
-                    <t t-if="state.cobertura.con_calendario">
-                        <p class="fs_cob_aviso">
-                            Estas personas tienen calendario laboral, que tiene preferencia:
-                            este horario <b>no les surte efecto</b>. Se cambia en su calendario.
-                        </p>
-                        <t t-foreach="state.cobertura.calendarios" t-as="cal" t-key="cal.id">
-                            <div class="fs_cal">
-                                <span class="n">
-                                    <b t-esc="cal.nombre"/>
-                                    <small t-esc="cal.quienes.join(', ')"/>
-                                </span>
-                                <span class="c"><t t-esc="cal.personas"/></span>
-                                <button class="fs_btn ghost sm"
-                                        t-on-click="() => this.abrirCalendario(cal.id, cal.nombre)">
-                                    Modificar
-                                </button>
-                            </div>
-                        </t>
                     </t>
                 </section>
 
-                <footer class="fs_foot">
-                    <button class="fs_btn ghost" t-on-click="() => this.discard()"
-                            t-att-disabled="!state.dirty">Descartar</button>
-                    <button class="fs_btn primary" t-on-click="() => this.save()"
-                            t-att-disabled="!state.dirty || state.saving">
-                        <t t-esc="state.saving ? 'Guardando…' : 'Guardar'"/>
-                    </button>
-                </footer>
+                <p class="fs_cob_nota fs_pie">
+                    Checador: tiene un registro de asistencia hoy o en los
+                    <t t-esc="state.ventana"/> días anteriores; su jornada va de la
+                    entrada a la salida checadas y una entrada sin salida sigue abierta.
+                    Sin jornada: su actividad se mide igual, pero no hay contra qué
+                    contrastarla y se cuenta toda como dentro.
+                </p>
             </div>
         </div>
     </t>

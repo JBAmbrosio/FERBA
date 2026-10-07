@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ferba_asistencia_dia,ferba.asistencia.dia,model_ferba_asistencia_dia,ferba_asistencia.group_ferba_asistencia,1,1,1,1
+access_ferba_asistencia_generar,ferba.asistencia.generar,model_ferba_asistencia_generar,ferba_asistencia.group_ferba_asistencia,1,1,1,1
+access_ferba_periodo,ferba.periodo,model_ferba_periodo,ferba_asistencia.group_ferba_asistencia,1,1,1,1

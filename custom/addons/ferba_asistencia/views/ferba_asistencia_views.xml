@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Lista EDITABLE: RH corrige entrada/salida en linea; el motivo y las
+         horas se recalculan solos. Amarillo = por corregir; verde = validada. -->
+    <record id="view_ferba_asistencia_list" model="ir.ui.view">
+        <field name="name">ferba.asistencia.list</field>
+        <field name="model">hr.attendance</field>
+        <field name="arch" type="xml">
+            <list string="Control de asistencia" editable="bottom"
+                  default_order="check_in desc"
+                  decoration-warning="necesita_revision"
+                  decoration-success="validada and not necesita_revision">
+                <field name="necesita_revision" column_invisible="1"/>
+                <field name="tipo_revision" column_invisible="1"/>
+                <field name="employee_id" readonly="1"/>
+                <field name="department_id" optional="show" readonly="1"/>
+                <field name="check_in"/>
+                <field name="check_out"/>
+                <field name="worked_hours" readonly="1" widget="float_time"/>
+                <field name="expected_hours" optional="show" readonly="1" widget="float_time"/>
+                <field name="motivo_revision" readonly="1"/>
+                <field name="validada" readonly="1" optional="show"/>
+                <field name="validada_por" readonly="1" optional="hide"/>
+                <button name="action_validar" type="object" string="Validar"
+                        icon="fa-check" invisible="validada or necesita_revision"/>
+                <button name="action_desvalidar" type="object" string="Quitar validacion"
+                        icon="fa-undo" invisible="not validada"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_asistencia_search" model="ir.ui.view">
+        <field name="name">ferba.asistencia.search</field>
+        <field name="model">hr.attendance</field>
+        <field name="arch" type="xml">
+            <search string="Asistencias">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <filter name="por_corregir" string="Por corregir"
+                        domain="[('necesita_revision', '=', True)]"/>
+                <filter name="sin_salida" string="Sin salida"
+                        domain="[('tipo_revision', '=', 'sin_salida')]"/>
+                <filter name="jornada_larga" string="Jornada muy larga"
+                        domain="[('tipo_revision', '=', 'jornada_larga')]"/>
+                <filter name="por_validar" string="Por validar"
+                        domain="[('validada', '=', False)]"/>
+                <filter name="validadas" string="Validadas"
+                        domain="[('validada', '=', True)]"/>
+                <separator/>
+                <filter name="hoy" string="Hoy"
+                        domain="[('check_in', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <!-- group_by SUELTOS: Odoo 19 rechaza envolverlos en &lt;group expand&gt;. -->
+                <separator/>
+                <filter name="g_tipo" string="Tipo de revision" context="{'group_by': 'tipo_revision'}"/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'check_in:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ferba_asistencia_pivot" model="ir.ui.view">
+        <field name="name">ferba.asistencia.pivot</field>
+        <field name="model">hr.attendance</field>
+        <field name="arch" type="xml">
+            <pivot string="Horas por empleado">
+                <field name="employee_id" type="row"/>
+                <field name="check_in" interval="day" type="col"/>
+                <field name="worked_hours" type="measure" widget="float_time"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_ferba_control_asistencia" model="ir.actions.act_window">
+        <field name="name">Control de asistencia</field>
+        <field name="res_model">hr.attendance</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="view_id" ref="view_ferba_asistencia_list"/>
+        <field name="search_view_id" ref="view_ferba_asistencia_search"/>
+        <field name="context">{'search_default_por_corregir': 1, 'search_default_g_tipo': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Ninguna asistencia por corregir</p>
+            <p>Aqui aparecen las marcas incompletas o con horas imposibles. Corrige
+               la entrada/salida en linea y valida cuando queden bien.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_ferba_asistencia_root" name="Control de Asistencia"
+              web_icon="ferba_asistencia,static/description/icon.png" sequence="55"
+              groups="ferba_asistencia.group_ferba_asistencia"/>
+
+    <menuitem id="menu_ferba_asistencia_control" name="Por corregir / validar"
+              parent="menu_ferba_asistencia_root"
+              action="action_ferba_control_asistencia" sequence="10"/>
+
+</odoo>

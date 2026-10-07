@@ -19,6 +19,7 @@ APAGADO DE FABRICA
     tiene que cubrir ubicacion y llamadas antes de encenderlo.
 """
 
+import base64
 import secrets
 from datetime import datetime, timedelta
 
@@ -146,6 +147,68 @@ class FocoMobileDevice(models.Model):
             'health_uptime_s': int(health.get('uptime_s') or 0),
             'health_buffered': int(health.get('buffered') or 0),
         }
+
+    # --- Ventana nocturna de actualizacion de apps -----------------------------
+    # Con la Play Store oculta, Foco la abre una vez al dia (hora del perfil,
+    # `mobile_update_hour`) tapada por el aviso, pulsa "Actualizar todo" y la
+    # vuelve a ocultar. El telefono reporta el ULTIMO resultado en cada envio
+    # (`play_update`); aqui solo se escribe cuando cambia, asi `play_update_at`
+    # es cuando TERMINO esa ventana (al minuto del siguiente envio), no cada envio.
+    play_update_at = fields.Datetime(string='Última actualización de apps', readonly=True)
+    play_update_date = fields.Date(string='Día de la ventana', readonly=True)
+    play_update_mode = fields.Selection([
+        ('activo', 'Activa (pulsó "Actualizar todo")'),
+        ('pasivo', 'Pasiva (bloqueado con PIN: tienda en 2º plano)'),
+        ('ninguno', 'No corrió'),
+    ], string='Modo', readonly=True)
+    play_update_result = fields.Char(
+        string='Resultado', readonly=True,
+        help='ok = terminó de actualizar · sin_pendientes = no había nada que actualizar · '
+             'tope = se agotó el tiempo con actualizaciones en curso · pasivo / '
+             'pasivo_interrumpido = teléfono bloqueado con PIN, la tienda quedó disponible '
+             'en 2º plano (hasta que alguien lo desbloqueó) · sin_wifi · sin_cuenta (la '
+             'tienda pide iniciar sesión) · sin_accesibilidad · fallo_abrir / fallo_pantalla '
+             '(no reconoció la pantalla de la tienda) · fallo.')
+    play_update_secs = fields.Integer(string='Duración (s)', readonly=True)
+
+    def _play_update_vals(self, bloque):
+        """Traduce el bloque `play_update` del telefono a valores del modelo.
+        {} si no vino (agente viejo) o si es el MISMO resultado ya guardado."""
+        if not isinstance(bloque, dict) or not bloque:
+            return {}
+        self.ensure_one()
+        modo = bloque.get('modo') or 'ninguno'
+        if modo not in ('activo', 'pasivo', 'ninguno'):
+            modo = 'ninguno'
+        try:
+            dia = fields.Date.to_date(str(bloque.get('fecha') or '')[:10])
+        except Exception:
+            dia = False
+        resultado = str(bloque.get('resultado') or '')[:64]
+        try:
+            segundos = int(bloque.get('segundos') or 0)
+        except (TypeError, ValueError):
+            segundos = 0
+        if (self.play_update_date == dia and self.play_update_mode == modo
+                and (self.play_update_result or '') == resultado
+                and (self.play_update_secs or 0) == segundos):
+            return {}
+        return {
+            'play_update_at': fields.Datetime.now(),
+            'play_update_date': dia,
+            'play_update_mode': modo,
+            'play_update_result': resultado,
+            'play_update_secs': segundos,
+        }
+
+    def _update_hour(self):
+        """Hora local (0-23) de la ventana de actualizacion: la del perfil del
+        equipo; sin perfil, las 3 de la manana."""
+        self.ensure_one()
+        p = self.policy_id
+        if p and 0 <= (p.mobile_update_hour or 0) <= 23:
+            return p.mobile_update_hour or 0
+        return 3
 
     active = fields.Boolean(default=True)
 
@@ -352,6 +415,116 @@ class FocoMobileDevice(models.Model):
             'apps': apps,
         }
 
+    # ------------------------------------------------------- visitas de campo
+    def clientes_para(self):
+        """Cartera de clientes de ventas para la pantalla de Visita del telefono.
+        Si el vendedor (usuario del empleado del equipo) tiene cartera asignada,
+        devuelve la suya; si no (aun no se asignan), devuelve todos. Campos
+        minimos para ubicar y elegir en el telefono."""
+        self.ensure_one()
+        Partner = self.env['res.partner'].sudo()
+        base = [('foco_cliente_ventas', '=', True)]
+        emp = self.employee_id
+        user = emp.user_id if emp else Partner.env['res.users']
+        dom = base
+        if user and Partner.search_count(base + [('user_id', '=', user.id)]):
+            dom = base + [('user_id', '=', user.id)]
+        filas = []
+        for c in Partner.search(dom, limit=3000):
+            filas.append({
+                'id': c.id, 'name': c.display_name,
+                'lat': c.partner_latitude, 'lon': c.partner_longitude,
+                'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
+                'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
+            })
+        return filas
+
+    def registrar_visitas(self, visitas):
+        """Crea foco.visita desde el telefono (check-in del boton 'Llegue').
+        Deduplica por `uuid` (el telefono reenvia sin internet y no debe
+        duplicar). Un prospecto nuevo -sin partner_id pero con nombre- se crea
+        con las coordenadas del check-in como su pin. Devuelve los uuid
+        guardados, para que el telefono los saque de su cola."""
+        self.ensure_one()
+        Visita = self.env['foco.visita'].sudo()
+        Partner = self.env['res.partner'].sudo()
+        emp = self.employee_id
+        user = emp.user_id if emp else self.env['res.users']
+        guardados = []
+        for v in (visitas or []):
+            uuid = (v.get('uuid') or '').strip()
+            if not uuid:
+                continue
+            if Visita.search_count([('device_uuid', '=', uuid)]):
+                guardados.append(uuid)          # ya estaba: idempotente
+                continue
+            lat = v.get('lat') or 0.0
+            lon = v.get('lon') or 0.0
+            partner = None
+            if v.get('partner_id'):
+                partner = Partner.browse(int(v['partner_id']))
+                if not partner.exists():
+                    partner = None
+            if partner is None and (v.get('nuevo_nombre') or '').strip():
+                partner = Partner.create({
+                    'name': v['nuevo_nombre'].strip()[:120],
+                    'company_type': 'company',
+                    'foco_cliente_ventas': True, 'foco_estatus': 'prospecto',
+                    'user_id': user.id if user else False,
+                    'partner_latitude': lat, 'partner_longitude': lon,
+                })
+            if partner is None:
+                continue
+            vals = {
+                'device_uuid': uuid, 'device_id': self.id,
+                'employee_id': emp.id if emp else False,
+                'user_id': user.id if user else False,
+                'partner_id': partner.id,
+                'check_in': v.get('at') or fields.Datetime.now(),
+                'latitude': lat, 'longitude': lon,
+                'precision_m': v.get('accuracy') or 0.0,
+                'origen': 'gps',
+                'nota': (v.get('nota') or '').strip() or False,
+                'grabacion_consentida': bool(v.get('grabacion_consentida')),
+            }
+            res = (v.get('resultado') or '').strip()
+            if res in dict(Visita._fields['resultado'].selection):
+                vals['resultado'] = res
+            pf = (v.get('proxima_fecha') or '').strip()
+            if pf:
+                vals['proxima_fecha'] = pf[:10]
+            visita = Visita.create(vals)
+            # Foto de la visita (opcional): queda en el chatter y como adjunto.
+            foto = v.get('foto')
+            if foto:
+                try:
+                    visita.message_post(
+                        body='Foto de la visita',
+                        attachments=[('visita_%s.jpg' % uuid[:8], base64.b64decode(foto))])
+                except Exception:
+                    pass
+            guardados.append(uuid)
+        return guardados
+
+    def guardar_audio_visita(self, uuid, data, duracion=0, name='visita.m4a'):
+        """Recibe el audio de una visita (lo sube el telefono tras cortar la
+        grabacion) y lo deja PENDIENTE para que la IA lo analice. Solo si el
+        interruptor del servidor esta encendido; dedup por visita."""
+        self.ensure_one()
+        if not self.env['foco.settings'].sudo().get_settings().visita_grabar:
+            return {'ok': False, 'error': 'off'}
+        visita = self.env['foco.visita'].sudo().search(
+            [('device_uuid', '=', uuid), ('device_id', '=', self.id)], limit=1)
+        if not visita:
+            return {'ok': False, 'error': 'no_visita'}
+        if visita.audio:
+            return {'ok': True}          # ya estaba: reenvio
+        visita.write({
+            'audio': base64.b64encode(data or b''), 'audio_name': name or 'visita.m4a',
+            'audio_duracion_s': int(duracion or 0), 'audio_estado': 'pendiente',
+        })
+        return {'ok': True}
+
 
 class FocoLocation(models.Model):
     _name = 'foco.location'
@@ -436,6 +609,56 @@ class FocoMobileApp(models.Model):
              'privacidad, no una clasificacion.')
     first_seen = fields.Datetime(string='Vista por primera vez', readonly=True)
     last_seen = fields.Datetime(string='Vista por ultima vez', readonly=True, index=True)
+    # Icono de la app (PNG 192 px) tomado UNA vez de su ficha publica en la Play
+    # (og:image). El telefono lo pinta en la escena "app en camino" mientras la
+    # instala: la app todavia no esta en el equipo, asi que no puede leerlo de ahi.
+    icon = fields.Binary(string='Icono', attachment=True)
+    icon_intentos = fields.Integer(default=0)
+
+    def _asegurar_icono(self):
+        """Baja el icono (y el nombre oficial, si falta) de la ficha publica de la
+        Play Store. Hasta 3 intentos; nunca falla hacia afuera: sin icono el
+        telefono pinta la inicial del nombre."""
+        import base64
+        import logging
+        import re
+        import requests
+        from odoo.tools.image import image_process
+        log = logging.getLogger(__name__)
+        for app in self:
+            if app.icon or (app.icon_intentos or 0) >= 3 or not app.package:
+                continue
+            vals = {'icon_intentos': (app.icon_intentos or 0) + 1}
+            try:
+                r = requests.get('https://play.google.com/store/apps/details',
+                                 params={'id': app.package, 'hl': 'es'}, timeout=6,
+                                 headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
+                                                        'AppleWebKit/537.36 Chrome/124 Safari/537.36'})
+                if r.ok:
+                    m = re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', r.text)
+                    if m:
+                        # La imagen de la Play acepta el tamano en la URL (=s192 → PNG 192 px).
+                        url = m.group(1).split('=')[0] + '=s192'
+                        ri = requests.get(url, timeout=6)
+                        if ri.ok and ri.content:
+                            png = image_process(ri.content, size=(192, 192), output_format='PNG')
+                            vals['icon'] = base64.b64encode(png)
+                    if not app.app_label:
+                        t = re.search(r'<meta\s+property="og:title"\s+content="([^"]+)"', r.text)
+                        if t:
+                            nombre = re.sub(r'\s*[-–|].*?Google Play.*$', '', t.group(1)).strip()
+                            if nombre:
+                                vals['app_label'] = nombre[:120]
+            except Exception as e:  # red, HTML distinto, imagen rara: no pasa nada
+                log.info('foco: sin icono de la Play para %s: %s', app.package, e)
+            app.sudo().write(vals)
+
+    def _icono_b64(self):
+        """El icono como texto base64 para el telefono ('' si no hay)."""
+        self.ensure_one()
+        if not self.icon:
+            return ''
+        return self.icon.decode('ascii') if isinstance(self.icon, bytes) else str(self.icon)
 
     @api.model
     def descubrir(self, pares):

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_vendedores_client" model="ir.actions.client">
+        <field name="name">Mapa de clientes</field>
+        <field name="tag">foco_vendedores</field>
+    </record>
+</odoo>

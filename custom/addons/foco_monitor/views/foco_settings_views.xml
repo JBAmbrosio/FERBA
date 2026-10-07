@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Antes "Horario": desde el 28-sep-2026 la pantalla solo dice de donde
+         sale la jornada de cada persona (checador o calendario). -->
     <record id="foco_settings_client" model="ir.actions.client">
-        <field name="name">Horario</field>
+        <field name="name">Jornada</field>
         <field name="tag">foco_settings</field>
     </record>
 
@@ -57,5 +59,47 @@
         <field name="model_id" ref="model_foco_settings"/>
         <field name="state">code</field>
         <field name="code">action = model.action_accesos()</field>
+    </record>
+
+    <!-- Ventana de inactividad: umbral GLOBAL (minutos) + a QUIEN le sale
+         (por empleado, apagada para todos de fabrica). -->
+    <record id="foco_settings_view_form_ventana" model="ir.ui.view">
+        <field name="name">foco.settings.ventana</field>
+        <field name="model">foco.settings</field>
+        <field name="arch" type="xml">
+            <form string="Ventana de inactividad">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Ventana de inactividad</h1>
+                        <p class="text-muted">
+                            La ventana bloqueante que pide justificar los periodos largos sin
+                            actividad. Está <b>apagada para todos</b>: solo aparece en los
+                            equipos que elijas aquí. El umbral en minutos es el mismo para todos.
+                        </p>
+                    </div>
+                    <group>
+                        <field name="gap_min_minutes"/>
+                    </group>
+                    <group>
+                        <field name="ventana_computer_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Selecciona los equipos..."/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        El equipo que no esté en la lista NO muestra la ventana. La lista son
+                        los equipos con Foco instalado (los mismos de <b>Equipos ▸ Computadoras</b>),
+                        por su nombre. El cambio llega a cada equipo en su siguiente envío
+                        (unos minutos), sin reinstalar nada.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_ventana_action" model="ir.actions.server">
+        <field name="name">Ventana de inactividad</field>
+        <field name="model_id" ref="model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_ventana()</field>
     </record>
 </odoo>

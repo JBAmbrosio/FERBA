@@ -90,6 +90,28 @@ class FocoWorkday(models.Model):
              'que se pueda reconocer a quien devuelve horas o se queda de mas.')
     expected_hours = fields.Float(string='Jornada esperada (h)', readonly=True)
 
+    # De donde sale la jornada de ESE dia (28-sep-2026). Manda el CHECADOR
+    # (hr.attendance) para quien lo usa: un registro ese dia o en los 30 dias
+    # anteriores, definicion declarada en foco.settings y la misma que aplica
+    # el agente al etiquetar en vivo. Sin checador, el calendario laboral de
+    # RRHH; sin ninguno de los dos, no hay jornada que contrastar.
+    shift_source = fields.Selection(
+        [('checador', 'Checador'), ('calendario', 'Calendario laboral'),
+         ('ninguno', 'Sin jornada')],
+        string='Jornada segun', readonly=True, index=True)
+    shift_hours = fields.Float(
+        string='Jornada (h)', readonly=True,
+        help='Cuanto duro la jornada de ese dia segun su fuente: de la entrada '
+             'a la salida checadas, o las franjas del calendario laboral.')
+    shift_gap_hours = fields.Float(
+        string='Jornada sin senal (h)', readonly=True,
+        help='La jornada menos el tiempo con SENAL del equipo dentro de ella '
+             '(activo o con una ventana al frente sin input): estuvo checado '
+             '(o era su horario) y el equipo no dio senal alguna. Una junta '
+             'lejos del equipo o una salida sin checar se ven igual aqui: es '
+             'lo que hay que mirar, no un veredicto. Un dia en que el equipo '
+             'no reporto nada queda en 0: eso es "sin dato", no "sin senal".')
+
     gap_count = fields.Integer(string='Huecos', readonly=True)
     unexplained_minutes = fields.Integer(
         string='Sin explicar (min)', readonly=True,
@@ -186,6 +208,22 @@ class FocoWorkday(models.Model):
                         h.duration for h in huecos if h.state == 'pendiente') * 60)),
                     'power_events': len(eventos),
                 }
+                # La jornada del dia y su fuente. Las etiquetas in/off ya vienen
+                # del agente con la MISMA regla (checador si lo usa, calendario
+                # si no), asi que la resta es honesta. Lo que se resta es la
+                # SENAL del equipo dentro de la jornada: activo Y con ventana al
+                # frente sin input. Leer o pensar frente a la pantalla no es un
+                # hueco; una sesion bloqueada, un equipo apagado o una salida
+                # sin checar, si. Y un dia sin dato alguno del equipo no es
+                # "sin senal": es sin dato, y queda en 0.
+                jor = ajustes.jornada_de(emp, dia, zona)
+                vals['shift_source'] = jor['fuente']
+                vals['shift_hours'] = jor['horas']
+                senal_dentro = vals['in_shift_hours'] + sum(
+                    u.fg_idle for u in usos if u.shift != 'off')
+                con_senal = bool(usos) or any(e.kind in CON_PERSONA for e in eventos)
+                vals['shift_gap_hours'] = (round(max(jor['horas'] - senal_dentro, 0.0), 3)
+                                           if con_senal else 0.0)
 
                 primero, primero_k, primero_p = self._primera_senal(
                     eventos, huecos, ini_utc, fin_utc)
@@ -330,37 +368,50 @@ class FocoWorkday(models.Model):
     # ------------------------------------------------- dentro o fuera del horario
     @api.model
     def jornada_serie(self, desde, hasta):
-        """Horas DENTRO y FUERA del horario, por dia y para todo el equipo.
+        """Horas EN la jornada, FUERA de ella y jornada SIN actividad, por dia
+        y para todo el equipo; y de donde salio la jornada de cada quien.
 
         Es la pregunta que ningun tablero generico contesta y que a un
         administrador le importa mas que el total: no cuanto se trabajo, sino
-        si cayo donde debia. Un equipo que rinde de noche y descansa de dia
-        suma las mismas horas que uno en horario, y los dos casos piden
-        conversaciones opuestas.
+        si cayo donde debia. Desde el 28-sep-2026 "donde debia" lo dice el
+        CHECADOR para quien lo usa (entrada a salida) y el calendario de RRHH
+        para quien no; antes solo el calendario, y a quien checaba salida a
+        las 18:30 se le pintaba una hora "fuera" todos los dias.
 
-        No lleva juicio: devuelve las dos cantidades y deja la lectura a quien
-        mira. Trabajar fuera de horario puede ser una urgencia atendida o una
-        carga mal repartida, y el sistema no puede distinguirlas.
+        Tres cantidades, sin juicio: activo en la jornada, activo fuera de
+        ella, y jornada sin actividad (checado o en horario, sin senal del
+        equipo). Las dos ultimas piden conversaciones distintas y el sistema
+        no puede tenerlas: solo dice donde cayo.
         """
         desde = fields.Date.to_date(desde)
         hasta = fields.Date.to_date(hasta)
         if not desde or not hasta or hasta < desde:
-            return []
+            return {'dias': [], 'fuentes': {}}
+        dominio = [('date', '>=', desde), ('date', '<=', hasta)]
         por_dia = {}
         # `date:day` y no `date`: Odoo 19 exige la granularidad al agrupar por
         # una fecha.
-        for dia, dentro, fuera in self._read_group(
-                [('date', '>=', desde), ('date', '<=', hasta)],
-                ['date:day'], ['in_shift_hours:sum', 'off_shift_hours:sum']):
-            por_dia[dia] = (round(dentro or 0.0, 3), round(fuera or 0.0, 3))
+        for dia, dentro, fuera, hueco in self._read_group(
+                dominio, ['date:day'],
+                ['in_shift_hours:sum', 'off_shift_hours:sum', 'shift_gap_hours:sum']):
+            por_dia[dia] = (round(dentro or 0.0, 3), round(fuera or 0.0, 3),
+                            round(hueco or 0.0, 3))
+        # Cuantas personas se rigen por cada fuente en el periodo. Se cuenta
+        # gente, no dias: es lo que hay que decir al pie de la grafica.
+        fuentes = {}
+        for fuente, emp in self._read_group(
+                dominio + [('shift_source', '!=', False)],
+                ['shift_source', 'employee_id'], []):
+            if emp:
+                fuentes.setdefault(fuente, set()).add(emp.id)
         salida = []
         d = desde
         while d <= hasta:
-            dentro, fuera = por_dia.get(d, (0.0, 0.0))
+            dentro, fuera, hueco = por_dia.get(d, (0.0, 0.0, 0.0))
             salida.append({'date': fields.Date.to_string(d),
-                           'dentro': dentro, 'fuera': fuera})
+                           'dentro': dentro, 'fuera': fuera, 'sin_actividad': hueco})
             d += timedelta(days=1)
-        return salida
+        return {'dias': salida, 'fuentes': {k: len(v) for k, v in fuentes.items()}}
 
     # -------------------------------------------------------------- la cinta
     @api.model
@@ -436,7 +487,7 @@ class FocoWorkday(models.Model):
             franjas = self._franjas_jornada(ajustes, emp)
             for dia in fechas:
                 jornada = por_clave.get((emp.id, dia))
-                fila = self._una_cinta(emp, dia, zona, jornada, evs, hcs, franjas)
+                fila = self._una_cinta(emp, dia, zona, jornada, evs, hcs, franjas, ajustes)
                 dias.append(fila)
                 for seg in fila['segments']:
                     lo = min(lo, seg['a'])
@@ -478,10 +529,20 @@ class FocoWorkday(models.Model):
         return {int(d): [(a, b)] for d in (conf.get('days') or [])}
 
     @api.model
-    def _una_cinta(self, emp, dia, zona, jornada, eventos, huecos, franjas):
+    def _una_cinta(self, emp, dia, zona, jornada, eventos, huecos, franjas, ajustes=None):
         ini_utc, fin_utc = self._limites_utc(dia, zona)
         evs = eventos.filtered(lambda e: ini_utc <= e.at <= fin_utc)
         hcs = huecos.filtered(lambda h: h.start <= fin_utc and h.stop >= ini_utc)
+
+        # La jornada de fondo: lo CHECADO si la persona usa el checador (con
+        # sus entradas y salidas como marcas), el calendario si no.
+        ajustes = ajustes or self.env['foco.settings'].sudo().get_settings()
+        fuente = (jornada.shift_source if jornada else '') or ''
+        if not fuente and ajustes._usa_checador(emp, dia, zona):
+            fuente = 'checador'
+        tramos_checados = ajustes._tramos_checados(emp, dia, zona) if fuente == 'checador' else []
+        if not fuente:
+            fuente = 'calendario' if franjas else 'ninguno'
 
         primero = jornada.first_signal if jornada else False
         ultimo = jornada.last_signal if jornada else False
@@ -524,15 +585,34 @@ class FocoWorkday(models.Model):
             'fuente': e.source,
             'texto': self._texto_marca(e, zona),
         } for e in evs if e.kind not in ('llamada_inicio', 'llamada_fin')]
+        # Entradas y salidas checadas, como marcas: son hechos del checador y
+        # se leen junto a los del equipo. Una asistencia abierta (sin salida)
+        # no inventa una marca de salida.
+        for a, b, abierta in tramos_checados:
+            marcas.append({'h': round(a, 3), 'k': 'checada_entrada', 'fuente': 'checador',
+                           'texto': '%s Checó entrada - Checador' % self._hhmm(a)})
+            if not abierta:
+                marcas.append({'h': round(b, 3), 'k': 'checada_salida', 'fuente': 'checador',
+                               'texto': '%s Checó salida - Checador' % self._hhmm(b)})
+        marcas.sort(key=lambda m: m['h'])
+
+        if fuente == 'checador':
+            franjas_dia = [(a, b) for a, b, _ in tramos_checados]
+            laborable = bool(franjas_dia) or bool(franjas.get(dia.isoweekday()))
+        else:
+            franjas_dia = franjas.get(dia.isoweekday(), [])
+            laborable = bool(franjas_dia) if franjas else True
 
         return {
             'employee_id': emp.id,
             'employee': emp.name,
             'date': fields.Date.to_string(dia),
             'dow': dia.isoweekday(),
-            'laborable': bool(franjas.get(dia.isoweekday())) if franjas else True,
-            'shift': [[round(a, 3), round(b, 3)]
-                      for a, b in franjas.get(dia.isoweekday(), [])],
+            'laborable': laborable,
+            'shift': [[round(a, 3), round(b, 3)] for a, b in franjas_dia],
+            'shift_source': fuente,
+            'shift_hours': round(jornada.shift_hours, 3) if jornada else 0.0,
+            'shift_gap': round(jornada.shift_gap_hours, 3) if jornada else 0.0,
             'first': round(h_ini, 3) if h_ini is not None else None,
             'last': round(h_fin, 3) if h_fin is not None else None,
             'first_kind': (jornada.first_kind if jornada else '') or '',
@@ -586,6 +666,12 @@ class FocoWorkday(models.Model):
             tramos.append((abierto, h_fin))
         return [(max(h_ini, a), min(h_fin, b)) for a, b in tramos
                 if min(h_fin, b) > max(h_ini, a)]
+
+    @api.model
+    def _hhmm(self, h):
+        """7.53 -> '07:32'."""
+        m = int(round(float(h or 0.0) * 60))
+        return '%02d:%02d' % (min(m // 60, 24), m % 60)
 
     @api.model
     def _texto_marca(self, evento, zona):

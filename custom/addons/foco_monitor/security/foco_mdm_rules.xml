@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Solicitudes de apps e inventario de los celulares: mismo alcance que
+         los dispositivos. El administrador de Foco ve todo; quien tiene
+         departamentos asignados, solo los suyos. -->
+    <record id="rule_foco_mobile_request_admin" model="ir.rule">
+        <field name="name">Foco: solicitudes de apps, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_mobile_app_request"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_mobile_request_alcance" model="ir.rule">
+        <field name="name">Foco: solicitudes de apps del alcance asignado</field>
+        <field name="model_id" ref="model_foco_mobile_app_request"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
+    <record id="rule_foco_mobile_installed_admin" model="ir.rule">
+        <field name="name">Foco: inventario movil, los administradores ven todo</field>
+        <field name="model_id" ref="model_foco_mobile_installed"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_mobile_installed_alcance" model="ir.rule">
+        <field name="name">Foco: inventario movil del alcance asignado</field>
+        <field name="model_id" ref="model_foco_mobile_installed"/>
+        <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+</odoo>

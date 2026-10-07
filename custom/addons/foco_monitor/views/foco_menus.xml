@@ -39,6 +39,17 @@
 
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
+    <!-- Hechos de integridad: lo medido que puede leerse como intento de
+         saltarse la medicion, con evidencia y significado; nunca veredicto. -->
+    <menuitem id="menu_foco_integridad" name="Integridad"
+              parent="menu_foco_sec_actividad" action="foco_integrity_fact_action" sequence="45"/>
+
+    <!-- Llamadas de WhatsApp desde la laptop, ya clasificadas por el modelo.
+         Solo administradores: aunque no haya contenido, "llamada personal de
+         20 min" es un dato sensible de la persona. -->
+    <menuitem id="menu_foco_call_review" name="Llamadas de WhatsApp"
+              parent="menu_foco_sec_actividad" action="foco_call_review_action" sequence="50"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- =================================================== EQUIPOS (acciones) -->
     <menuitem id="menu_foco_sec_equipos" name="Equipos"
@@ -101,6 +112,31 @@
               parent="menu_foco_sec_movil" action="foco_mobile_capture_action" sequence="50"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- ================================================= VENTAS EN CAMPO -->
+    <!-- El flujo de vendedores: el mapa de clientes (reemplaza el Google My Maps
+         a mano), la cartera de clientes, las visitas y el importador de la Hoja
+         Maestra. De administrador: es la cartera comercial y la ubicacion de los
+         clientes y vendedores. -->
+    <menuitem id="menu_foco_sec_ventas" name="Ventas en campo"
+              parent="menu_foco_root" sequence="36"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_mapa" name="Mapa de clientes"
+              parent="menu_foco_sec_ventas" action="foco_vendedores_client" sequence="5"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_clientes" name="Clientes"
+              parent="menu_foco_sec_ventas" action="foco_cliente_ventas_action" sequence="10"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_visitas" name="Visitas"
+              parent="menu_foco_sec_ventas" action="foco_visita_action" sequence="20"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <menuitem id="menu_foco_vendedores_import" name="Importar Hoja Maestra"
+              parent="menu_foco_sec_ventas" action="foco_vendedor_import_action" sequence="30"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- ================================================= CATALOGO (clasificar) -->
     <menuitem id="menu_foco_sec_catalogo" name="Catalogo"
               parent="menu_foco_root" sequence="40"/>
@@ -123,8 +159,17 @@
               parent="menu_foco_root" sequence="90"
               groups="foco_monitor.group_foco_manager"/>
 
-    <menuitem id="menu_foco_horario" name="Horario"
+    <!-- Antes "Horario": un horario global editable que, desde que RRHH
+         asigna calendarios, no gobernaba a nadie. Ahora dice de donde sale la
+         jornada de cada persona (checador o calendario) y no se edita aqui. -->
+    <menuitem id="menu_foco_horario" name="Jornada"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
+
+    <!-- La ventana bloqueante de justificacion de inactividad: umbral GLOBAL en
+         minutos y a QUIEN le sale (por empleado, apagada para todos de fabrica). -->
+    <menuitem id="menu_foco_ventana" name="Ventana de inactividad"
+              parent="menu_foco_config" action="foco_ventana_action" sequence="6"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- Monitoreo periodico de pantalla POR EMPLEADO: que apps, cada cuanto, y
          cuanto viven las capturas. Vive en Configuracion porque es una politica
@@ -139,6 +184,12 @@
 
     <menuitem id="menu_foco_accesos" name="Accesos"
               parent="menu_foco_config" action="foco_access_action" sequence="10"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <!-- Lo que se le pregunto a Tomy y lo que contesto: Tomy habla de
+         personas, asi que cada conversacion queda a la vista del administrador. -->
+    <menuitem id="menu_foco_tomy" name="Conversaciones con Tomy"
+              parent="menu_foco_config" action="foco_tomy_thread_action" sequence="12"
               groups="foco_monitor.group_foco_manager"/>
 
     <!-- La tabla generica sigue accesible, pero deja de ser la puerta: abrir

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Grupo de RH/Nomina: corrige y valida asistencias de TODA la empresa.
+         Hereda "Officer: Manage all attendances" (ACL de lectura/escritura/
+         creacion sobre hr.attendance y los menus de Asistencias). -->
+    <record id="group_ferba_asistencia" model="res.groups">
+        <field name="name">FERBA / Control de Asistencia</field>
+        <field name="comment">Corrige y valida las asistencias para la nomina.
+            Ve y edita las marcas de TODOS los empleados de las empresas del grupo.</field>
+        <field name="implied_ids" eval="[(4, ref('hr_attendance.group_hr_attendance_user'))]"/>
+    </record>
+
+    <!-- Odoo 19: el grupo "Officer" nativo esta RESTRINGIDO por regla de registro
+         a los empleados que el usuario gestiona (employee_id.attendance_manager_id
+         = user). RH/la contadora necesitan ver y corregir a TODOS. Esta regla,
+         ligada a nuestro grupo, se une por OR con las demas reglas de grupo y
+         levanta esa restriccion. La regla global multiempresa (309) sigue
+         aplicando por AND, asi que el alcance sigue acotado a las empresas
+         permitidas del usuario. -->
+    <record id="rule_ferba_asistencia_todas" model="ir.rule">
+        <field name="name">FERBA Control de Asistencia: ver y corregir todas</field>
+        <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+        <field name="groups" eval="[(4, ref('group_ferba_asistencia'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>

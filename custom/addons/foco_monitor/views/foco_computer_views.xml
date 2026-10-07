@@ -7,8 +7,14 @@
             <list>
                 <field name="name"/>
                 <field name="windows_user"/>
+                <field name="user_is_admin" string="Admin local" optional="show"
+                       decoration-danger="user_is_admin"/>
+                <field name="mi_dia_enabled" string="Ve «Mi día»" optional="show"/>
                 <field name="employee_id"/>
                 <field name="department_id"/>
+                <field name="jornada_sin" column_invisible="1"/>
+                <field name="jornada_fuente" string="Jornada" optional="show"
+                       decoration-warning="jornada_sin"/>
                 <field name="last_seen"/>
                 <field name="health" decoration-warning="health in ('stale','never')"
                        decoration-muted="health == 'resting'"/>
@@ -22,6 +28,10 @@
                        decoration-warning="policy_sync in ('pendiente','nunca','sin_verificar')"
                        decoration-muted="policy_sync in ('off','sin_perfil')"
                        optional="show"/>
+                <field name="block_attention" string="Atencion bloqueo" optional="show"
+                       decoration-danger="block_attention in ('servicio_error','servicio_caido','alterado')"
+                       decoration-warning="block_attention in ('pendiente','equipo_ausente','nunca')"
+                       decoration-muted="block_attention == 'ok'"/>
                 <field name="pending_command_count" string="Ordenes pend."/>
             </list>
         </field>
@@ -45,6 +55,11 @@
                         <group>
                             <field name="employee_id"/>
                             <field name="windows_user"/>
+                            <field name="user_is_admin"/>
+                            <!-- Solo si la persona lo pidio: Foco es del
+                                 administrador; apagado de fabrica. -->
+                            <field name="mi_dia_enabled"/>
+                            <field name="jornada_fuente"/>
                             <field name="last_seen"/>
                             <field name="active"/>
                         </group>
@@ -57,6 +72,9 @@
                                  le mando. Sin esta fila, "lo bloquee" y "esta
                                  bloqueado" se leen igual. -->
                             <field name="policy_sync"/>
+                            <!-- Separa "servicio caido con el equipo en uso" de
+                                 "equipo sin reportar": el cron avisa del primero. -->
+                            <field name="block_attention"/>
                             <field name="policy_applied_at"/>
                             <field name="policy_verified_at"/>
                             <field name="policy_drift"/>
@@ -68,6 +86,13 @@
                             <field name="agent_version"/>
                             <field name="service_version"/>
                             <field name="agent_outdated"/>
+                        </group>
+                        <!-- Consentimiento POR PERSONA: sin esta marca el equipo no
+                             graba aunque el interruptor general este encendido. -->
+                        <group string="Llamadas de WhatsApp (solo con consentimiento firmado)">
+                            <field name="call_review"/>
+                            <field name="call_review_consent_date"
+                                   required="call_review"/>
                         </group>
                         <group string="Servicio del equipo (diagnostico)">
                             <field name="service_state"/>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Convierte el estado pasivo "bloqueo sin confirmar" en un AVISO: barre
+             cada 30 min (igual que la vigilancia del agente) los equipos cuyo
+             servicio de bloqueo dejo de confirmar o reporto que lo alteraron, y
+             avisa a los administradores de Foco. -->
+        <record id="cron_foco_bloqueo" model="ir.cron">
+            <field name="name">Foco: avisar bloqueo sin confirmar</field>
+            <field name="model_id" ref="foco_monitor.model_foco_computer"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_revisar_bloqueo()</field>
+            <field name="interval_number">30</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

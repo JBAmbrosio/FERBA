@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Lo que el administrador ve de una llamada: cuando, cuanto, con que
+         rol y el veredicto. Nunca el contenido: la transcripcion se borra al
+         decidir y el audio no se guarda en ningun momento. -->
+    <record id="foco_call_review_view_list" model="ir.ui.view">
+        <field name="name">foco.call.review.list</field>
+        <field name="model">foco.call.review</field>
+        <field name="arch" type="xml">
+            <list decoration-success="clasificacion == 'trabajo'"
+                  decoration-danger="clasificacion == 'personal'"
+                  decoration-warning="clasificacion == 'mixta'"
+                  decoration-muted="state in ('grabando', 'transcribiendo', 'por_clasificar', 'error')">
+                <field name="started_at"/>
+                <field name="employee_id"/>
+                <field name="computer_id" optional="hide"/>
+                <field name="duration_text"/>
+                <field name="clasificacion" widget="badge"
+                       decoration-success="clasificacion == 'trabajo'"
+                       decoration-danger="clasificacion == 'personal'"
+                       decoration-warning="clasificacion == 'mixta'"/>
+                <field name="con_quien"/>
+                <field name="motivo"/>
+                <field name="confianza" widget="percentage" optional="show"/>
+                <field name="state" optional="show"/>
+                <field name="app" optional="hide"/>
+                <field name="audio_seconds" optional="hide"/>
+                <field name="transcript_cleared" optional="hide"/>
+                <field name="error_detail" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_call_review_view_form" model="ir.ui.view">
+        <field name="name">foco.call.review.form</field>
+        <field name="model">foco.call.review</field>
+        <field name="arch" type="xml">
+            <form string="Llamada analizada" create="false" edit="false">
+                <sheet>
+                    <div class="alert alert-info" role="alert" invisible="not transcript_cleared">
+                        Aqui no hay audio ni transcripcion: el audio se transcribio al
+                        llegar y se descarto, y la transcripcion se borro en cuanto el
+                        modelo decidio. Queda el veredicto, no lo que se dijo.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="transcript_cleared"
+                         groups="foco_monitor.group_foco_manager">
+                        La transcripcion se esta CONSERVANDO por configuracion (aviso de
+                        privacidad firmado). Es lo que se dijo en la llamada: trata este
+                        dato con ese cuidado. El audio nunca se guarda.
+                    </div>
+                    <group>
+                        <group string="Llamada">
+                            <field name="employee_id"/>
+                            <field name="computer_id"/>
+                            <field name="app"/>
+                            <field name="started_at"/>
+                            <field name="ended_at"/>
+                            <field name="duration_text"/>
+                            <field name="state"/>
+                        </group>
+                        <group string="Veredicto">
+                            <field name="clasificacion"/>
+                            <field name="confianza" widget="percentage"/>
+                            <field name="con_quien"/>
+                            <field name="motivo"/>
+                            <field name="decided_at"/>
+                            <field name="modelo"/>
+                        </group>
+                        <group string="Rastro tecnico">
+                            <field name="ref"/>
+                            <field name="chunks_received"/>
+                            <field name="audio_seconds"/>
+                            <field name="transcript_chars"/>
+                            <field name="transcript_cleared"/>
+                            <field name="tokens"/>
+                            <field name="retries"/>
+                            <field name="error_detail"/>
+                        </group>
+                    </group>
+                    <group string="Transcripcion (conservada)"
+                           invisible="transcript_cleared"
+                           groups="foco_monitor.group_foco_manager">
+                        <field name="transcript_empleado" nolabel="0"/>
+                        <field name="transcript_otro"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_call_review_view_search" model="ir.ui.view">
+        <field name="name">foco.call.review.search</field>
+        <field name="model">foco.call.review</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="computer_id"/>
+                <field name="motivo"/>
+                <filter name="trabajo" string="Trabajo" domain="[('clasificacion', '=', 'trabajo')]"/>
+                <filter name="personal" string="Personal" domain="[('clasificacion', '=', 'personal')]"/>
+                <filter name="mixta" string="Mixta" domain="[('clasificacion', '=', 'mixta')]"/>
+                <filter name="indeterminada" string="Indeterminada" domain="[('clasificacion', '=', 'indeterminada')]"/>
+                <separator/>
+                <filter name="pendientes" string="Sin veredicto todavia"
+                        domain="[('state', 'in', ('grabando', 'transcribiendo', 'por_clasificar', 'error'))]"/>
+                <filter name="con_error" string="Con error" domain="[('state', '=', 'error')]"/>
+                <separator/>
+                <!-- Los filtros de agrupacion van sueltos tras un separador, sin
+                     envolverlos en <group expand="0">: es el patron de las demas
+                     vistas del modulo, y el envoltorio hace que Odoo 19 rechace la
+                     vista entera (build de Production 27-sep 01:09). Tampoco lleva
+                     filtro de fecha (date=...): «today» como periodo por omision
+                     ya tumbo el build de las 00:49. -->
+                <filter name="g_empleado" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_veredicto" string="Veredicto" context="{'group_by': 'clasificacion'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'started_at:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_call_review_action" model="ir.actions.act_window">
+        <field name="name">Llamadas de WhatsApp (laptop)</field>
+        <field name="res_model">foco.call.review</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_g_empleado': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavia no hay llamadas analizadas</p>
+            <p>Aparecen cuando un equipo con el analisis encendido (Configuracion y la marca
+               del equipo) detecta una llamada de WhatsApp. Se guarda el veredicto, nunca la
+               llamada.</p>
+        </field>
+    </record>
+</odoo>

@@ -9,8 +9,8 @@ class FocoUsage(models.Model):
     _order = 'date desc, fg_active desc'
 
     _uniq_day = models.Constraint(
-        'unique(computer_id, app_id, date, host, shift, document)',
-        'Ya existe un renglon de uso para ese equipo/app/dia/sitio/turno/archivo.')
+        'unique(computer_id, app_id, date, host, shift, document, call_ref)',
+        'Ya existe un renglon de uso para ese equipo/app/dia/sitio/turno/archivo/llamada.')
 
     computer_id = fields.Many2one(
         'foco.computer', string='Equipo', required=True, ondelete='cascade', index=True)
@@ -82,11 +82,49 @@ class FocoUsage(models.Model):
     background = fields.Float(string='2do plano (h)',
                               help='Abierta pero sin foco. No es trabajo.')
     injected_hours = fields.Float(
-        string='Con input sintetico (h)',
-        help='Horas "activas" acompanadas de input generado por software '
-             '(jiggler). Es un HECHO verificable: Windows marca el input '
-             'inyectado. No se descuenta del total: se deja a la vista con su '
-             'evidencia para que una persona lo juzgue.')
+        string='Sintetico sin input real (h)',
+        help='Horas "activas" con input generado por software y NADA real en '
+             'los ultimos tres minutos: la firma de un jiggler. Es un HECHO '
+             'verificable: Windows marca el input inyectado. No se descuenta '
+             'del total: se deja a la vista con su evidencia para que una '
+             'persona lo juzgue. Hasta el agente 2026.09.27 aqui caia tambien '
+             'el inyectado CON input real (drivers, macros, soporte remoto), '
+             'que ahora va aparte.')
+    injected_tool_hours = fields.Float(
+        string='Inyectado con input real (h)',
+        help='Horas activas en las que hubo input inyectado por software Y '
+             'tambien input real de la persona: un raton 3D, un software de '
+             'mouse con macros, soporte remoto. No es una persona ausente; se '
+             'muestra para poder ponerle nombre a la herramienta.')
+    nokey_hours = fields.Float(
+        string='Activo sin teclear (h)',
+        help='Horas "activas" sin una sola tecla en tres minutos: solo mouse. '
+             'Es la evidencia contra un jiggler de HARDWARE, que Windows ve '
+             'como input real. Un numero para interpretar, no un veredicto: '
+             'revisar planos o leer con el mouse tambien cae aqui.')
+    agent_code = fields.Integer(
+        string='Version del agente (codigo)', index=True,
+        help='El codigo de version del agente que reporto este renglon por ultima '
+             'vez. Existe porque el SIGNIFICADO de algunas columnas cambio con la '
+             'version: "sintetico" antes del 2026.09.28 (202609280) mezclaba '
+             'jigglers y herramientas que inyectan; desde esa version es solo '
+             'sin input real. Los hechos de integridad solo se calculan sobre '
+             'renglones de agentes que saben medirlos. 0 = anterior al sello.')
+    static_hours = fields.Float(
+        string='Activo con pantalla sin cambio (h)',
+        help='Horas "activas" en las que la pantalla quedo identica a la huella '
+             'anterior (32x32 en gris, cada tantos segundos segun el perfil): '
+             'hubo teclado o mouse y nada cambio en pantalla. El trabajo real '
+             'cambia la pantalla; un mouse que se mueve sin hacer nada, no. '
+             'Evidencia, no veredicto: se muestra con la app.')
+    keys_count = fields.Integer(
+        string='Teclas', help='CUANTAS teclas se pulsaron con esta app al frente; '
+                              'nunca cuales.')
+    mouse_events = fields.Integer(string='Eventos de mouse')
+    positions_count = fields.Integer(
+        string='Posiciones del cursor',
+        help='Cuantos puntos distintos (en cuadros de 8 px) toco el cursor, '
+             'sumando ventanas de 2 s. Un jiggler de hardware da muy pocos.')
     call_noinput_hours = fields.Float(
         string='En llamada sin tocar nada (h)',
         help='Tiempo acreditado por estar en llamada pero sin teclado ni mouse. '
@@ -119,8 +157,22 @@ class FocoUsage(models.Model):
                 rec.category_id = False
                 rec.category_source = 'none'
 
+    # El rato de una llamada de WhatsApp analizada. Va EN LA LLAVE, como el
+    # sitio y el archivo: asi "Excel durante la llamada #12" es su propio
+    # renglon y el veredicto de esa llamada le pone el peso a ESE rato y no al
+    # dia entero. Vacio = ese rato no fue de una llamada analizada.
+    call_ref = fields.Char(
+        string='Llamada (ref)', default='', index=True,
+        help='Referencia de la llamada de WhatsApp analizada durante la que se '
+             'midio este rato. Vacio = no fue durante una llamada analizada.')
+    call_id = fields.Many2one(
+        'foco.call.review', string='Llamada analizada', ondelete='set null', index=True,
+        help='El veredicto de esta llamada manda sobre el peso de la app: '
+             'trabajo = productivo, personal = no productivo.')
+
     @api.depends('fg_active', 'category_id',
-                 'category_id.weight', 'category_id.is_system')
+                 'category_id.weight', 'category_id.is_system',
+                 'call_id', 'call_id.clasificacion')
     def _compute_metrics(self):
         for rec in self:
             cat = rec.category_id
@@ -129,7 +181,15 @@ class FocoUsage(models.Model):
                 rec.productive_hours = 0.0
             else:
                 rec.active_hours = rec.fg_active
-                rec.productive_hours = rec.fg_active * (cat.weight if cat else 0.0)
+                peso = cat.weight if cat else 0.0
+                # Una llamada de trabajo es trabajo aunque al frente estuviera
+                # WhatsApp (peso 0); una personal no lo es aunque al frente
+                # estuviera Excel. El veredicto manda; sin veredicto, la app.
+                if rec.call_id:
+                    peso_llamada = rec.call_id.weight()
+                    if peso_llamada is not None:
+                        peso = peso_llamada
+                rec.productive_hours = rec.fg_active * peso
 
     # ------------------------------------------------------------ analitica
     #
@@ -251,6 +311,25 @@ class FocoUsage(models.Model):
                 e[k] = round(e[k], 3)
             empleados.append(e)
         empleados.sort(key=lambda x: -x['activo'])
+
+        # --- hechos de integridad del periodo, por persona --------------------
+        # Van con el resto de la analitica para que la fila del tablero los
+        # muestre sin otra consulta. Con el env del usuario: su alcance manda.
+        try:
+            hechos = self.env['foco.integrity.fact'].resumen(
+                desde, hasta, [e['id'] for e in empleados])
+        except Exception:
+            hechos = {}
+        for e in empleados:
+            lista = hechos.get(e['id']) or []
+            # `mantenimiento_dias` y no solo el "si" agregado: un solo dia con
+            # mantenimiento tapaba a los limpios en la etiqueta del tablero.
+            e['hechos'] = [{'etiqueta': h['etiqueta'], 'texto': h['texto'], 'dias': h['dias'],
+                            'mantenimiento': h['mantenimiento'],
+                            'mantenimiento_dias': h.get('mantenimiento_dias', 0),
+                            'kind': h['kind']}
+                           for h in lista[:6]]
+            e['hechos_n'] = len(lista)
 
         total_activo = sum(e['activo'] for e in empleados)
         total_prod = sum(e['productivo'] for e in empleados)

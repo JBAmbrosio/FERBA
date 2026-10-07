@@ -1,0 +1,195 @@
+// Tablero de Vendedores. Se apega al sistema de diseno de Odoo: hereda los
+// tokens de Bootstrap/Odoo (--bs-*) para color y superficie, usa componentes
+// nativos (.btn, .form-select, .badge, .card) e iconos Font Awesome 4.7. Asi se
+// ve como una pantalla mas del backend y respeta el modo oscuro de Odoo sin JS.
+.foco_vend {
+    --fv-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --fv-border: var(--bs-border-color, #dee2e6);
+    --fv-muted: var(--bs-secondary-color, #6c757d);
+    --fv-faint: var(--bs-tertiary-color, #9aa4af);
+    --fv-surface: var(--bs-body-bg, #fff);
+    --fv-sunken: var(--bs-tertiary-bg, #f6f7f9);
+    --fv-ink: var(--bs-body-color, #212529);
+    --fv-primary: var(--bs-primary, #714B67);
+
+    padding: 16px;
+    color: var(--fv-ink);
+    font-size: 13px;
+    min-height: 100%;
+
+    * { box-sizing: border-box; }
+
+    // ---------------------------------------------------------------- header
+    .fv_head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .fv_title { margin: 0; font-size: 1.4rem; font-weight: 600; line-height: 1.2; }
+    .fv_sub {
+        margin: 4px 0 0; color: var(--fv-muted); font-size: 12.5px;
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .fv_sub .fv_warn { color: var(--bs-warning-text-emphasis, #997404); font-weight: 500; }
+    .fv_actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    // ------------------------------------------------------------------ kpis
+    .fv_kpis {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px; margin-bottom: 14px;
+    }
+    .fv_kpi {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 10px; padding: 12px 14px;
+    }
+    .fv_kpi_ico {
+        flex: 0 0 auto; width: 38px; height: 38px; border-radius: 9px;
+        display: grid; place-items: center; font-size: 15px;
+        color: var(--fv-primary);
+        background: color-mix(in srgb, var(--fv-primary) 12%, transparent);
+    }
+    .fv_kpi.is-warn .fv_kpi_ico {
+        color: var(--bs-warning, #f59e0b);
+        background: color-mix(in srgb, var(--bs-warning, #f59e0b) 16%, transparent);
+    }
+    .fv_kpi_txt { min-width: 0; }
+    .fv_kpi_label {
+        color: var(--fv-muted); font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .3px;
+    }
+    .fv_kpi_v { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
+
+    // --------------------------------------------------------------- filtros
+    .fv_filters {
+        display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+        padding: 9px 12px; margin-bottom: 14px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 10px;
+    }
+    .fv_fi { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .fv_fi > i { color: var(--fv-faint); font-size: 12px; width: 13px; text-align: center; flex: 0 0 auto; }
+    // cap: una opcion larga (cultivos) no debe inflar el select ni desbordar en movil
+    .fv_filters .form-select { width: auto; min-width: 150px; max-width: 230px; }
+    .fv_spacer { flex: 1 1 auto; }
+
+    // ----------------------------------------------------------- grid principal
+    .fv_main {
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+        gap: 16px; align-items: start;
+    }
+    .fv_card {
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 12px; overflow: hidden;
+    }
+    .fv_map_card { position: relative; height: 600px; }
+    .fv_side { display: flex; flex-direction: column; height: 600px; }
+    @media (max-width: 1100px) {
+        .fv_main { grid-template-columns: 1fr; }
+        .fv_map_card { height: 420px; }
+        .fv_side { height: auto; max-height: 560px; }
+    }
+
+    // ------------------------------------------------------------------ mapa
+    .fv_map { position: absolute; inset: 0; }
+    .leaflet-container { background: var(--fv-sunken); font: inherit; }
+    .fv_legend {
+        position: absolute; left: 12px; bottom: 12px; z-index: 500;
+        display: flex; flex-wrap: wrap; gap: 4px 14px;
+        background: var(--fv-surface); border: 1px solid var(--fv-border);
+        border-radius: 8px; padding: 8px 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+    }
+    .fv_leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fv-muted); }
+    .fv_leg b { color: var(--fv-ink); font-weight: 600; }
+    .fv_dot {
+        width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+        box-shadow: 0 0 0 2px var(--fv-surface);
+    }
+
+    // ------------------------------------------------------------ panel lateral
+    .fv_side_head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 11px 14px; border-bottom: 1px solid var(--fv-border);
+        font-weight: 600; flex: 0 0 auto;
+    }
+    .fv_side_head .fv_count { color: var(--fv-faint); font-weight: 500; }
+    .fv_scroll { overflow-y: auto; flex: 1 1 auto; }
+
+    // lista de clientes
+    .fv_row {
+        display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+        border-bottom: 1px solid var(--fv-border); cursor: pointer;
+        transition: background-color 120ms ease;
+    }
+    .fv_row:last-child { border-bottom: 0; }
+    @media (hover: hover) {
+        .fv_row:hover { background: color-mix(in srgb, var(--fv-primary) 6%, transparent); }
+    }
+    .fv_row_txt { flex: 1 1 auto; min-width: 0; }
+    .fv_row_n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fv_row_m {
+        color: var(--fv-faint); font-size: 11.5px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .fv_row .badge { flex: 0 0 auto; }
+
+    // ficha del cliente
+    .fv_ficha {
+        display: flex; flex-direction: column; overflow-y: auto; padding: 14px;
+        animation: fvFicha 200ms var(--fv-ease);
+    }
+    @keyframes fvFicha {
+        from { opacity: 0; transform: translateX(10px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    .fv_ficha_head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .fv_ficha_title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .fv_ficha_title b { font-size: 15px; line-height: 1.25; }
+    .fv_badge {
+        align-self: flex-start; display: inline-flex; align-items: center;
+        margin-top: 8px; font-size: 11.5px; font-weight: 600;
+        padding: 2px 10px; border-radius: 20px; border: 1px solid;
+    }
+    .fv_meta { margin: 12px 0 4px; display: grid; gap: 7px; }
+    .fv_meta > div { display: flex; align-items: center; gap: 9px; color: var(--fv-muted); font-size: 12.5px; }
+    .fv_meta i { width: 15px; text-align: center; color: var(--fv-faint); flex: 0 0 auto; }
+    .fv_acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+
+    .fv_sec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fv-border); }
+    .fv_sec_h {
+        margin: 0 0 8px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .4px; color: var(--fv-faint);
+    }
+    .fv_op {
+        border: 1px solid var(--fv-border); border-radius: 9px; padding: 9px 11px;
+        margin-bottom: 7px; cursor: pointer; transition: border-color 120ms ease;
+    }
+    @media (hover: hover) { .fv_op:hover { border-color: var(--fv-primary); } }
+    .fv_op_n { font-weight: 600; }
+    .fv_op_m { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 5px; font-size: 11.5px; color: var(--fv-faint); }
+    .fv_op_rev { color: var(--bs-success-text-emphasis, #0f5132); font-weight: 700; }
+
+    .fv_visinfo {
+        margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fv-border);
+        color: var(--fv-muted); font-size: 12.5px; display: flex; align-items: center; gap: 8px;
+    }
+
+    // feedback de presion en botones (sin pelear con los estilos de Odoo)
+    .btn {
+        transition: transform 140ms var(--fv-ease), background-color .15s ease,
+                    border-color .15s ease, color .15s ease, box-shadow .15s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .fv_empty { padding: 28px 16px; text-align: center; color: var(--fv-faint); }
+    .fv_loading {
+        display: flex; align-items: center; justify-content: center;
+        padding: 40px; color: var(--fv-muted);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fv_ficha { animation: none; }
+        .btn:active { transform: none; }
+        .fv_row, .fv_op, .btn { transition: none; }
+    }
+}

@@ -151,16 +151,20 @@
 
                     <section class="fd_card fd_grafica">
                         <div class="fd_card_head">
-                            <h2>¿Cayó dentro del horario?</h2>
-                            <span class="fd_card_hint">no cuánto se trabajó, sino cuándo</span>
+                            <h2>¿Trabajó dentro de su jornada?</h2>
+                            <span class="fd_card_hint">jornada = entrada y salida checadas</span>
                         </div>
                         <div class="fd_lienzo">
                             <canvas t-ref="cJornada"/>
                         </div>
                         <p class="fd_pie">
-                            Trabajar fuera de horario puede ser una urgencia
-                            atendida o una carga mal repartida. El sistema no
-                            distingue: solo dice dónde cayó.
+                            <t t-if="fuentesTexto"><t t-esc="fuentesTexto"/> </t>
+                            Fuera de su jornada es activo sin checar: antes de la
+                            entrada, después de la salida o un día sin registro.
+                            Jornada sin señal es checado sin que el equipo diera
+                            señal alguna, ni teclado ni una ventana al frente: una
+                            junta lejos de él o una salida sin checar. El sistema
+                            no distingue: solo dice dónde cayó.
                         </p>
                     </section>
                 </div>
@@ -239,6 +243,14 @@
                                                         <span class="fd_tag cobertura"
                                                               t-attf-title="Reportó {{ e.cobDias }} de {{ e.cobEsperados }} días {{ e.cobFuente === 'calendario' ? 'laborables de su calendario' : 'del periodo (no tiene calendario asignado)' }}. Sus números salen de menos días que los del resto.">
                                                             <t t-esc="e.cobDias"/>/<t t-esc="e.cobEsperados"/> d
+                                                        </span>
+                                                    </t>
+                                                    <!-- Hechos de integridad: cuántos y cuáles, en el
+                                                         título. Es evidencia con medida, no una alarma:
+                                                         el color es neutro a propósito. -->
+                                                    <t t-if="e.hechosN">
+                                                        <span class="fd_tag integridad" t-att-title="e.hechosTitulo">
+                                                            <t t-esc="e.hechosN"/> <t t-esc="e.hechosN === 1 ? 'hecho' : 'hechos'"/>
                                                         </span>
                                                     </t>
                                                 </span>
@@ -516,6 +528,10 @@
                     </t>
                 </aside>
             </t>
+
+            <!-- Tomy sabe que periodo esta viendo el usuario: si pregunta
+                 "y esta semana?" con el tablero en 7 dias, se lo pasa. -->
+            <TomyPanel dark="state.dark" rango="state.rango" days="state.days"/>
         </div>
     </t>
 

@@ -7,6 +7,10 @@ from odoo import api, fields, models
 class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 
+    # La ventana de inactividad se decide POR EQUIPO (foco.computer.
+    # foco_ventana_inactividad), no por persona: solo los equipos tienen Foco.
+    # Ver foco.settings.ventana_computer_ids y foco.policy.conducta_para.
+
     foco_token = fields.Char(
         string='Token de justificacion', copy=False, readonly=True,
         help='Token de la liga con la que el empleado justifica sus periodos '
