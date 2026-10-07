@@ -1483,9 +1483,10 @@ class FocoMobileAltaWizard(models.TransientModel):
         exigir_admin(self.env)
         self.ensure_one()
         ajustes = self.env['foco.settings'].sudo().get_settings()
-        if not ajustes.mobile_apk_ready():
-            raise UserError('Todavía no hay APK de Foco publicado. En Configuración > '
-                            'Movil, sube el APK antes de generar el QR.')
+        if not ajustes.mobile_stub_ready():
+            raise UserError('Falta publicar el APK de alta (stub) y/o el Foco completo. '
+                            'En Configuración > Movil sube los dos: el QR instala el '
+                            'stub (pasa Play Protect) y este baja el Foco completo.')
         base = ajustes._base_url()
         if not base.startswith('https://'):
             raise UserError('La dirección de Odoo (web.base.url) tiene que ser https para el alta por QR. '
@@ -1508,16 +1509,21 @@ class FocoMobileAltaWizard(models.TransientModel):
         inv = self.env['foco.invitation'].sudo().create({
             'employee_id': self.employee_id.id, 'mobile_id': dev.id,
             'expiry': fields.Datetime.now() + timedelta(days=max(1, min(90, self.dias or 7)))})
-        # Enlace efimero para bajar el APK durante el aprovisionamiento.
-        tok = self.env['foco.app.token'].sudo().emitir(max(1, min(90, self.dias or 7)) * 24 * 60)
+        # Dos enlaces efimeros: el QR instala el STUB de alta (esquiva Play
+        # Protect); el stub, ya de dueño del equipo, baja el Foco COMPLETO de
+        # full_url. Mismo keystore => el checksum de firma del QR no cambia.
+        minutos = max(1, min(90, self.dias or 7)) * 24 * 60
+        tok_stub = self.env['foco.app.token'].sudo().emitir(minutos)
+        tok_full = self.env['foco.app.token'].sudo().emitir(minutos)
 
         carga = {
             'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME': FOCO_ADMIN,
             'android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM': self._checksum_firma(),
             'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION':
-                '%s/foco/app/apk?t=%s' % (base, tok.token),
+                '%s/foco/app/stub?t=%s' % (base, tok_stub.token),
             'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
-                'odoo_url': base, 'enroll_code': inv.token},
+                'odoo_url': base, 'enroll_code': inv.token,
+                'full_url': '%s/foco/app/full?t=%s' % (base, tok_full.token)},
             'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': bool(self.conservar_sistema),
             'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': False,
             # Android 13+ con Google: antes de bajar Foco, el telefono intenta
@@ -1538,7 +1544,7 @@ class FocoMobileAltaWizard(models.TransientModel):
         from reportlab.graphics.barcode import createBarcodeDrawing
         dibujo = createBarcodeDrawing('QR', value=json.dumps(carga, ensure_ascii=False),
                                       format='png', width=460, height=460)
-        expira = min(tok.expires_at, inv.expiry)
+        expira = min(tok_stub.expires_at, tok_full.expires_at, inv.expiry)
         self.write({
             'estado': 'qr', 'telefono_id': dev.id,
             'qr': base64.b64encode(dibujo.asString('png')),

