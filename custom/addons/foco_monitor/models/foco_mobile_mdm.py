@@ -1520,6 +1520,14 @@ class FocoMobileAltaWizard(models.TransientModel):
                 'odoo_url': base, 'enroll_code': inv.token},
             'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': bool(self.conservar_sistema),
             'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': False,
+            # Android 13+ con Google: antes de bajar Foco, el telefono intenta
+            # actualizar su "role holder" (Android Device Policy) desde la Play
+            # Store. Si eso falla (sin cuenta, Play a medias, red caida) y esta
+            # llave no va en true, el alta aborta con "comuniquese con su
+            # administrador de IT" sin haber tocado el APK del QR (medido en el
+            # emulador: "Update failed and offline provisioning is not allowed").
+            # En true cae al aprovisionamiento de la plataforma y sigue con Foco.
+            'android.app.extra.PROVISIONING_ALLOW_OFFLINE': True,
         }
         if self.wifi_ssid:
             carga['android.app.extra.PROVISIONING_WIFI_SSID'] = self.wifi_ssid
