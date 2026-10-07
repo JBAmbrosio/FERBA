@@ -51,6 +51,44 @@ class FocoDistribucion(http.Controller):
             ('Content-Disposition', 'attachment; filename="%s"' % fn),
         ])
 
+    @http.route('/foco/app/stub', type='http', auth='public', methods=['GET'])
+    def app_stub(self, t=None, **kw):
+        """Sirve el APK MINIMO de alta (stub) si el token es valido. Es lo que el
+        QR instala primero para esquivar Play Protect; ya de dueño del equipo, el
+        stub baja el Foco completo de /foco/app/full."""
+        tok = request.env['foco.app.token'].sudo().consumir(t)
+        if not tok:
+            return request.render('foco_monitor.instalar_caducado', {})
+        s = request.env['foco.settings'].sudo().get_settings()
+        if not s.mobile_stub_apk:
+            return request.not_found()
+        content = base64.b64decode(s.mobile_stub_apk)
+        fn = s.mobile_stub_apk_name or 'foco-alta.apk'
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/vnd.android.package-archive'),
+            ('Content-Length', str(len(content))),
+            ('Content-Disposition', 'attachment; filename="%s"' % fn),
+        ])
+
+    @http.route('/foco/app/full', type='http', auth='public', methods=['GET'])
+    def app_full(self, t=None, **kw):
+        """Sirve el Foco COMPLETO al stub durante el aprovisionamiento. El stub
+        aun no tiene llave de equipo (no se ha enrolado), por eso se autentica
+        con el token efimero que viaja en el bundle del QR (full_url)."""
+        tok = request.env['foco.app.token'].sudo().consumir(t)
+        if not tok:
+            return request.not_found()
+        s = request.env['foco.settings'].sudo().get_settings()
+        if not s.mobile_apk:
+            return request.not_found()
+        content = base64.b64decode(s.mobile_apk)
+        fn = s.mobile_apk_name or 'foco.apk'
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/vnd.android.package-archive'),
+            ('Content-Length', str(len(content))),
+            ('Content-Disposition', 'attachment; filename="%s"' % fn),
+        ])
+
     def _qr_png(self, value):
         """QR como PNG en base64, con reportlab (dependencia de Odoo), el mismo
         motor del widget de codigo de barras."""
