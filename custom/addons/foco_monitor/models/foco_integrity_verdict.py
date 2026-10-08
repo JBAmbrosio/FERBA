@@ -129,16 +129,23 @@ SISTEMA_VISION = (
     "contenido); 'simulacion' (las capturas son identicas o solo se mueve el cursor sobre algo que "
     "no requiere atencion, con senales de input que no producen ningun cambio: patron de "
     "jiggler); 'indeterminado' (no se puede saber con lo que hay).\n"
-    "3. Los programas de CAD e ingenieria (SOLIDWORKS, AutoCAD, EPLAN, Inventor), las hojas de "
-    "calculo, los planos, los PDF y los renders pueden quedar quietos MUCHOS minutos mientras la "
-    "persona piensa, mide o revisa: eso NO es simulacion. Ante una app de trabajo al frente "
-    "prefiere 'revision_pasiva' o 'trabajo_real' salvo que las capturas muestren otra cosa.\n"
-    "4. 'simulacion' exige evidencia POSITIVA en las imagenes: pantalla sin contenido de trabajo, "
-    "capturas identicas y senales de solo mouse o input inyectado. La duda se resuelve hacia "
-    "'indeterminado', nunca hacia 'simulacion'.\n"
-    "5. 'capturas_cambian' dice si las capturas son identicas, con cambios menores (cursor, "
+    "3. 'contenido_de_trabajo' es true si las capturas muestran contenido de trabajo: un modelo o "
+    "plano en CAD, una hoja de calculo, un documento, un PDF tecnico, correo, el ERP, un chat o "
+    "una pagina de trabajo, un render o calculo en curso.\n"
+    "4. REGLA DURA: si 'contenido_de_trabajo' es true, el veredicto NO puede ser 'simulacion' "
+    "aunque las capturas sean identicas y aunque las senales digan solo mouse o pantalla sin "
+    "cambio. Los programas de CAD e ingenieria (SOLIDWORKS, AutoCAD, EPLAN, Inventor), las hojas, "
+    "los planos, los PDF y los renders quedan quietos MUCHOS minutos mientras la persona piensa, "
+    "mide o revisa, y ese rato produce exactamente esas senales: es 'revision_pasiva' (o "
+    "'trabajo_real' si hay cambios). El patron que disparo el episodio ya lo sabemos; tu "
+    "aportas lo que esta EN la pantalla.\n"
+    "5. 'simulacion' se reserva para cuando NO hay contenido de trabajo en pantalla (escritorio "
+    "vacio, ventana sin contenido, protector, una pagina estatica sin relacion con el trabajo) y "
+    "aun asi hubo input que no cambio nada. La duda se resuelve hacia 'indeterminado', nunca "
+    "hacia 'simulacion'.\n"
+    "6. 'capturas_cambian' dice si las capturas son identicas, con cambios menores (cursor, "
     "reloj, scroll) o con cambios claros de contenido; 'una_sola' si solo hay una.\n"
-    "6. 'confianza' va de 0 a 1. 'motivo' tiene maximo 20 palabras. Responde en espanol."
+    "7. 'confianza' va de 0 a 1. 'motivo' tiene maximo 20 palabras. Responde en espanol."
 )
 
 ESQUEMA_VISION = {
@@ -148,12 +155,14 @@ ESQUEMA_VISION = {
         'type': 'object', 'additionalProperties': False,
         'properties': {
             'que_se_ve': {'type': 'string'},
+            'contenido_de_trabajo': {'type': 'boolean'},
             'veredicto': {'type': 'string', 'enum': [v for v, _ in VEREDICTOS]},
             'confianza': {'type': 'number'},
             'motivo': {'type': 'string'},
             'capturas_cambian': {'type': 'string', 'enum': [v for v, _ in CAMBIO]},
         },
-        'required': ['que_se_ve', 'veredicto', 'confianza', 'motivo', 'capturas_cambian'],
+        'required': ['que_se_ve', 'contenido_de_trabajo', 'veredicto', 'confianza', 'motivo',
+                     'capturas_cambian'],
     },
 }
 
@@ -258,6 +267,16 @@ class FocoIntegrityVerdict(models.Model):
     motivo = fields.Char(string='Motivo', help='Maximo 20 palabras, lo dice el modelo.')
     que_se_ve = fields.Text(string='Que se ve')
     capturas_cambian = fields.Selection(CAMBIO, string='Las capturas')
+    contenido_de_trabajo = fields.Boolean(
+        string='Hay contenido de trabajo en pantalla',
+        help='Lo dice el modelo mirando las capturas. Con esto en si, el veredicto '
+             'nunca es «simulacion»: una pantalla de trabajo quieta es revision, no '
+             'un jiggler. La regla se aplica ademas en el servidor.')
+    ajustado = fields.Boolean(
+        string='Veredicto ajustado por regla', readonly=True,
+        help='El modelo dijo «simulacion» con contenido de trabajo en pantalla (o '
+             'en una app que el catalogo marca productiva) y el servidor lo bajo a '
+             '«revision pasiva». Queda a la vista para auditar al modelo.')
     sospechoso = fields.Boolean(string='No parece trabajo', compute='_compute_sospechoso',
                                 store=True, index=True)
     modelo = fields.Char(string='Modelo')
@@ -408,10 +427,18 @@ class FocoIntegrityVerdict(models.Model):
         senales = (self.senales or '').strip() or '(no se mandaron senales)'
         if len(senales) > 1500:
             senales = senales[:1500] + '...'
+        cat = self.app_id.category_id
+        if cat:
+            catalogo = '%s (peso de productividad %.1f)' % (cat.name, cat.weight or 0.0)
+        elif self.app_id:
+            catalogo = 'sin clasificar todavia'
+        else:
+            catalogo = 'no esta en el catalogo'
         return (
             'PUESTO DE LA PERSONA: %s (%s)\n'
             'PATRON DETECTADO: %s\n'
             'APLICACION AL FRENTE: %s%s%s\n'
+            'COMO LA CLASIFICA EL CATALOGO DE LA EMPRESA: %s\n'
             'DURACION: %.0f min, de %s a %s (hora local)\n'
             'SENALES DEL AGENTE: %s\n'
             'CAPTURAS: %d, tomadas a las %s, en el orden en que te las doy.'
@@ -419,8 +446,16 @@ class FocoIntegrityVerdict(models.Model):
              self.app_name or self.app_id.display_name or self.exe or 'desconocida',
              (' (%s)' % self.exe) if self.exe and self.exe != self.app_name else '',
              (' — titulo de la ventana: %s' % self.title) if self.title else '',
-             duracion or 0, local(self.started_at), local(self.ended_at),
+             catalogo, duracion or 0, local(self.started_at), local(self.ended_at),
              senales, len(caps), horas or '?')
+
+    def _app_productiva(self):
+        """La app del episodio esta en el catalogo con peso de productividad
+        alto (1.0 = productiva). Es el juicio del administrador sobre la app,
+        y vale como contenido de trabajo aunque el modelo no lo reconozca."""
+        self.ensure_one()
+        cat = self.app_id.category_id
+        return bool(cat and not cat.is_system and (cat.weight or 0.0) >= 0.9)
 
     def _analizar(self, forzar=False):
         settings = self.env['foco.settings'].sudo().get_settings()
@@ -463,9 +498,23 @@ class FocoIntegrityVerdict(models.Model):
                 confianza = min(max(float(j.get('confianza') or 0.0), 0.0), 1.0)
             except (TypeError, ValueError):
                 confianza = 0.0
+            motivo = (j.get('motivo') or '').strip()
+            contenido = bool(j.get('contenido_de_trabajo'))
+            # REGLA EN EL SERVIDOR, no solo en el prompt (medido el 7-oct: con la
+            # regla solo en el prompt, gpt-4o dio «simulacion 0.9» a dos capturas
+            # identicas de SOLIDWORKS con un ensamble abierto). Una pantalla con
+            # contenido de trabajo, o una app que el catalogo marca productiva,
+            # quieta durante T minutos es revision, no un jiggler. El ajuste
+            # queda a la vista para auditar al modelo.
+            ajustado = False
+            if veredicto == 'simulacion' and (contenido or rec._app_productiva()):
+                veredicto, ajustado = 'revision_pasiva', True
+                motivo = ('Ajustado: hay contenido de trabajo en pantalla; quieta no es simulada. '
+                          + motivo)
             rec.write({
                 'state': 'analizado', 'veredicto': veredicto, 'confianza': confianza,
-                'motivo': (j.get('motivo') or '').strip()[:160] or False,
+                'motivo': motivo[:160] or False, 'contenido_de_trabajo': contenido,
+                'ajustado': ajustado,
                 'que_se_ve': (j.get('que_se_ve') or '').strip()[:2000] or False,
                 'capturas_cambian': cambian, 'modelo': res.get('modelo') or False,
                 'tokens': int(res.get('tokens') or 0), 'decided_at': fields.Datetime.now(),
