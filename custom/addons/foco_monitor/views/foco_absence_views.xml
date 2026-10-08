@@ -14,8 +14,35 @@
                 <field name="state"/>
                 <field name="reason"/>
                 <field name="note" optional="show"/>
+                <field name="ai_veredicto" optional="hide"/>
+                <field name="ai_motivo" optional="hide"/>
+                <field name="ai_requiere_revision" optional="hide"/>
                 <field name="answered_via" optional="hide"/>
                 <field name="computer_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Lista dedicada de "Periodos a revisar": lo que la IA vio y quien ya lo
+         reviso van al frente; aqui lo que importa es la nota y el veredicto. -->
+    <record id="foco_absence_review_list" model="ir.ui.view">
+        <field name="name">foco.absence.review.list</field>
+        <field name="model">foco.absence</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="review_visto" default_order="start desc">
+                <field name="start"/>
+                <field name="employee_id"/>
+                <field name="duration" widget="float_time" sum="Total"/>
+                <field name="reason"/>
+                <field name="note"/>
+                <field name="ai_veredicto" widget="badge"
+                       decoration-warning="ai_veredicto == 'vaga'"
+                       decoration-danger="ai_veredicto == 'sin_relacion'"/>
+                <field name="ai_motivo"/>
+                <field name="ai_confianza" widget="percentage" optional="show"/>
+                <field name="review_visto" string="Revisado"/>
+                <field name="review_por" optional="hide"/>
+                <field name="ai_requiere_revision" column_invisible="1"/>
             </list>
         </field>
     </record>
@@ -25,9 +52,22 @@
         <field name="model">foco.absence</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button name="action_marcar_revisado" type="object" string="Marcar revisado"
+                            class="btn-primary" icon="fa-check"
+                            invisible="review_visto or not ai_requiere_revision"/>
+                    <button name="action_reabrir_revision" type="object" string="Reabrir"
+                            invisible="not review_visto"/>
+                </header>
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="employee_id" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not ai_requiere_revision or review_visto">
+                        La IA marco esta justificacion como <field name="ai_veredicto" readonly="1" nolabel="1"/>:
+                        <field name="ai_motivo" readonly="1" nolabel="1"/>. Revisala con la persona y
+                        marca "Revisado". Es evidencia del modelo, no un veredicto final.
                     </div>
                     <group>
                         <group string="Periodo">
@@ -43,6 +83,23 @@
                             <field name="note"/>
                             <field name="answered_at" readonly="1"/>
                             <field name="answered_via" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Revision por IA">
+                            <field name="ai_estado" readonly="1"/>
+                            <field name="ai_veredicto" readonly="1"/>
+                            <field name="ai_requiere_revision" readonly="1"/>
+                            <field name="ai_motivo" readonly="1"/>
+                            <field name="ai_confianza" widget="percentage" readonly="1"/>
+                            <field name="ai_at" readonly="1"/>
+                            <field name="ai_modelo" readonly="1" optional="hide"/>
+                        </group>
+                        <group string="Revision humana">
+                            <field name="review_visto"/>
+                            <field name="review_por" readonly="1"/>
+                            <field name="review_at" readonly="1"/>
+                            <field name="review_nota"/>
                         </group>
                     </group>
                     <group string="Diagnostico">
@@ -68,6 +125,13 @@
                 <filter name="auto" string="Explicadas por calendario"
                         domain="[('state', '=', 'auto')]"/>
                 <separator/>
+                <filter name="a_revisar" string="La IA marcó a revisar"
+                        domain="[('ai_requiere_revision', '=', True)]"/>
+                <filter name="sin_revisar" string="Sin revisar"
+                        domain="[('ai_requiere_revision', '=', True), ('review_visto', '=', False)]"/>
+                <filter name="revisadas" string="Ya revisadas"
+                        domain="[('review_visto', '=', True)]"/>
+                <separator/>
                 <filter name="semana" string="Ultimos 7 dias"
                         domain="[('start', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
@@ -75,7 +139,28 @@
                 <filter name="g_state" string="Estado" context="{'group_by': 'state'}"/>
                 <filter name="g_reason" string="Motivo" context="{'group_by': 'reason'}"/>
                 <filter name="g_kind" string="Tipo" context="{'group_by': 'kind'}"/>
+                <filter name="g_veredicto" string="Veredicto IA" context="{'group_by': 'ai_veredicto'}"/>
             </search>
+        </field>
+    </record>
+
+    <!-- Periodos a revisar: lo que la IA marco como justificacion vaga o sin
+         relacion con el trabajo y nadie ha revisado todavia. -->
+    <record id="foco_absence_review_action" model="ir.actions.act_window">
+        <field name="name">Periodos a revisar</field>
+        <field name="res_model">foco.absence</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="foco_absence_review_list"/>
+        <field name="search_view_id" ref="foco_absence_view_search"/>
+        <field name="domain">[('ai_requiere_revision', '=', True)]</field>
+        <field name="context">{'search_default_sin_revisar': 1, 'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nada por revisar</p>
+            <p>Aqui llegan las justificaciones que la IA leyó y marcó como vagas
+               o sin relación con el trabajo (por ejemplo «Otro» con una nota de
+               «.»). La IA las analiza sola; tú las revisas con la persona y
+               marcas «Revisado». Es evidencia del modelo, nunca un veredicto
+               final.</p>
         </field>
     </record>
 

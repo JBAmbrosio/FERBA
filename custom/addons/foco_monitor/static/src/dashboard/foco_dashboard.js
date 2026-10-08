@@ -57,6 +57,8 @@ export class FocoDashboard extends Component {
             attention: 0, sinSenal: 0, cobertura: {},
             detail: null, open: false,
             refrescando: false, ultimo: null,
+            // justificaciones que la IA marco a revisar (pendiente global)
+            revisar: 0,
             // analitica
             serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
             expEmpleado: "", expGrano: "dia",
@@ -633,12 +635,16 @@ export class FocoDashboard extends Component {
 
         // La analitica se pide agregada, no cruda: el servidor devuelve
         // decenas de filas donde antes viajaban cientos de miles.
-        const [analitica, jornada] = await Promise.all([
+        const [analitica, jornada, revisar] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
                 [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
                 [this.ymd(curStart), this.ymd(anchor)]),
+            // Justificaciones que la IA marco a revisar y nadie ha visto. Es un
+            // pendiente global (no del periodo): un KPI que lleva a su ventana.
+            this.orm.call("foco.absence", "revisar_pendientes", []),
         ]);
+        this.state.revisar = revisar || 0;
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
         // Veredictos de la IA: solo quien puede ver los episodios (administradores)
@@ -1068,6 +1074,13 @@ export class FocoDashboard extends Component {
                 foco_employee_id: e.id,
                 foco_desde: this.state.rango ? this.state.rango[1] : undefined,
             },
+        });
+    }
+
+    /** Las justificaciones que la IA marco como vagas y nadie ha revisado. */
+    abrirRevisar() {
+        this.action.doAction("foco_monitor.foco_absence_review_action", {
+            additionalContext: { search_default_sin_revisar: 1 },
         });
     }
 
