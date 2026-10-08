@@ -15,6 +15,8 @@ import base64
 import json
 from math import radians, sin, cos, asin, sqrt
 
+from markupsafe import Markup, escape
+
 from odoo import api, fields, models
 
 # Rubrica del "gerente senior": evalua al VENDEDOR con venta consultiva (el
@@ -45,6 +47,42 @@ ESQUEMA_VISITA = {
             'puntaje': {'type': 'integer'},
         },
         'required': ['resumen', 'fortalezas', 'debilidades', 'mejoras', 'puntaje'],
+    },
+}
+
+# Separa la transcripcion en TURNOS y etiqueta cada uno vendedor/cliente. La
+# grabacion es mono (no hay separacion por voz), asi que la IA lo infiere del
+# contenido: el VENDEDOR presenta/pregunta/propone FERBA; el CLIENTE responde,
+# pregunta precio u objeta. Es una inferencia, no diarizacion por audio.
+SISTEMA_DIALOGO = (
+    "Recibes la TRANSCRIPCION corrida de una visita de un VENDEDOR de FERBA "
+    "(insumos y material de empaque para empresas agricolas) a un CLIENTE "
+    "(empresa agricola). Separala en TURNOS de conversacion y etiqueta cada turno "
+    "como 'vendedor' (quien representa a FERBA: presenta, pregunta por el cultivo, "
+    "propone, maneja objeciones, cierra) o 'cliente' (quien compra: responde, "
+    "pregunta precio/condiciones, objeta). NO inventes ni cambies palabras: usa el "
+    "texto tal cual, solo repartido por turnos. Si un fragmento es ambiguo, decide "
+    "por el contenido. Devuelve los turnos en orden."
+)
+
+ESQUEMA_DIALOGO = {
+    'name': 'dialogo_visita', 'strict': True,
+    'schema': {
+        'type': 'object', 'additionalProperties': False,
+        'properties': {
+            'turnos': {
+                'type': 'array',
+                'items': {
+                    'type': 'object', 'additionalProperties': False,
+                    'properties': {
+                        'rol': {'type': 'string', 'enum': ['vendedor', 'cliente']},
+                        'texto': {'type': 'string'},
+                    },
+                    'required': ['rol', 'texto'],
+                },
+            },
+        },
+        'required': ['turnos'],
     },
 }
 
@@ -125,6 +163,39 @@ class FocoVisita(models.Model):
         for v in self:
             v.estado = 'cerrada' if (v.check_out or v.resultado) else 'en_curso'
 
+    @api.depends('transcripcion_dialogo')
+    def _compute_dialogo_html(self):
+        """Pinta la conversacion en burbujas tipo chat: el VENDEDOR a la derecha
+        (verde), el CLIENTE a la izquierda (blanco)."""
+        for v in self:
+            try:
+                turnos = json.loads(v.transcripcion_dialogo or '[]')
+            except Exception:
+                turnos = []
+            if not turnos:
+                v.dialogo_html = False
+                continue
+            filas = []
+            for t in turnos:
+                texto = (t.get('texto') or '').strip()
+                if not texto:
+                    continue
+                es_vend = (t.get('rol') == 'vendedor')
+                align = 'flex-end' if es_vend else 'flex-start'
+                bg = '#d9fdd3' if es_vend else '#ffffff'
+                etq_color = '#1a8a5a' if es_vend else '#8a6d1a'
+                quien = 'Vendedor' if es_vend else 'Cliente'
+                filas.append(
+                    '<div style="display:flex;justify-content:%s;margin:3px 0;">'
+                    '<div style="max-width:80%%;background:%s;border:1px solid #e4e4e4;'
+                    'border-radius:12px;padding:7px 11px;box-shadow:0 1px 1px rgba(0,0,0,.08);">'
+                    '<div style="font-size:11px;font-weight:600;color:%s;margin-bottom:2px;">%s</div>'
+                    '<div style="white-space:pre-wrap;color:#111;line-height:1.35;">%s</div>'
+                    '</div></div>' % (align, bg, etq_color, quien, escape(texto)))
+            v.dialogo_html = Markup(
+                '<div style="background:#efeae2;padding:12px;border-radius:10px;'
+                'max-height:540px;overflow:auto;">%s</div>' % ''.join(filas))
+
     # El vendedor le leyo el aviso al cliente y este acepto que se grabe. Sin
     # esto, el telefono NO graba: la grabacion es transparente y consentida.
     grabacion_consentida = fields.Boolean(string='Grabacion consentida por el cliente')
@@ -141,6 +212,11 @@ class FocoVisita(models.Model):
         ('error', 'Error'),
     ], string='Audio', default='sin_audio', index=True)
     transcripcion = fields.Text(string='Transcripcion')
+    # Transcripcion repartida en turnos vendedor/cliente (JSON [{rol, texto}]) y
+    # su render en burbujas tipo chat para la ficha.
+    transcripcion_dialogo = fields.Text(string='Dialogo (JSON)')
+    dialogo_html = fields.Html(string='Conversacion', compute='_compute_dialogo_html',
+                               sanitize=False)
     analisis_resumen = fields.Text(string='Resumen de la IA')
     analisis_fortalezas = fields.Text(string='Fortalezas')
     analisis_debilidades = fields.Text(string='Debilidades')
@@ -172,6 +248,18 @@ class FocoVisita(models.Model):
                     v.audio_estado = 'listo'
                     v.analizado_el = fields.Datetime.now()
                     continue
+                # Diarizacion (burbujas vendedor/cliente): best-effort, su fallo
+                # NO tumba el coaching.
+                try:
+                    rd = OpenAI.chat(
+                        [{'role': 'system', 'content': SISTEMA_DIALOGO},
+                         {'role': 'user', 'content': texto[:12000]}],
+                        response_format={'type': 'json_schema', 'json_schema': ESQUEMA_DIALOGO},
+                        max_tokens=2500)
+                    turnos = json.loads(rd['message'].get('content') or '{}').get('turnos') or []
+                    v.transcripcion_dialogo = json.dumps(turnos, ensure_ascii=False)
+                except Exception:
+                    pass
                 p = v.partner_id
                 ctx = ('Cliente: %s. Cultivo: %s. Zona: %s. Estatus: %s.'
                        % (p.display_name, p.foco_cultivo or '-', p.foco_zona or '-',

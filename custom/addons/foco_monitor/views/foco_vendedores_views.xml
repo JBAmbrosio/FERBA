@@ -192,6 +192,9 @@
                                 <field name="analisis_mejoras" nolabel="1"/>
                             </group>
                         </page>
+                        <page string="Conversación" name="dialogo">
+                            <field name="dialogo_html" nolabel="1" readonly="1"/>
+                        </page>
                         <page string="Transcripcion" name="transcripcion">
                             <field name="transcripcion" nolabel="1"/>
                         </page>
