@@ -16,19 +16,26 @@ _logger = logging.getLogger(__name__)
 # "Otro exige texto" (que solo mira que NO este vacio).
 SISTEMA_JUST = (
     "Eres quien revisa las justificaciones de ausencia de los empleados de {contexto} "
-    "Un empleado explica por que su computadora estuvo un rato sin actividad (se fue a "
-    "comer, a una junta, al bano, una cita medica, un tramite). Te doy el motivo que "
-    "eligio, el texto que escribio, cuanto duro y a que hora. Decide si la justificacion "
-    "EXPLICA la ausencia o si es vaga y hay que revisarla con la persona. Reglas: "
-    "(1) 'adecuada' si da una razon entendible, aunque sea breve ('bano', 'junta', 'fui al "
-    "banco'); el motivo por si solo (Comida, Cita medica, Escuela, Permiso, Tramite) ya "
-    "explica salvo que el texto lo contradiga. (2) 'vaga' si el texto no explica nada: "
-    "vacio, un punto, 'x', 'asdf', 'otro', letras sueltas, o 'Otro' sin texto util. "
-    "(3) 'sin_relacion' si el texto no parece una razon de ausencia de trabajo. "
-    "(4) 'indeterminada' si no puedes decidir. 'requiere_revision' es true para 'vaga' y "
-    "'sin_relacion'. 'motivo' de maximo 12 palabras, sin nombres de personas. Se tolerante: "
-    "la meta es cazar las que no dicen nada, no castigar un texto corto pero real."
+    "El empleado eligio el motivo 'Otro' y escribio un TEXTO LIBRE para explicar por que su "
+    "computadora estuvo un rato sin actividad. Te doy ese texto, cuanto duro y a que hora. "
+    "LEE el texto completo y decide si EXPLICA la ausencia o si es vaga y hay que revisarla.\n"
+    "Reglas:\n"
+    "(1) 'adecuada' si el texto nombra una actividad, tarea, lugar o gestion concreta, AUNQUE "
+    "sea de una sola palabra ('almacen', 'limpieza', 'junta', 'bano'), este en mayusculas, sea "
+    "informal o sea largo. 'llegada a oficina y revision de actividades' o 'reunion con "
+    "proveedor' son ADECUADAS: dicen que hacia.\n"
+    "(2) 'vaga' SOLO cuando el texto no aporta NINGUNA razon: vacio, un punto, comas, 'x', "
+    "'asdf', letras o numeros sueltos, o repetir 'otro'/'na'/'nada'.\n"
+    "(3) 'sin_relacion' si el texto no es una razon de ausencia de trabajo (p.ej. 'fuera de "
+    "horario laboral', que niega la ausencia en vez de explicarla).\n"
+    "(4) 'indeterminada' si de verdad no puedes decidir.\n"
+    "'requiere_revision' es true para 'vaga' y 'sin_relacion'. 'motivo' RESUME lo que dice el "
+    "texto en maximo 12 palabras (no una frase generica), sin nombres de personas. Se tolerante: "
+    "la meta es cazar las que no dicen nada, nunca castigar un texto corto pero real."
 )
+# Motivos del catalogo que explican la ausencia por SI SOLOS: si el empleado
+# eligio uno de estos (no "Otro"), no hay nada que revisar ni se llama a la IA.
+MOTIVOS_EXPLICAN = {'comida', 'medico', 'escuela', 'permiso', 'tramite', 'personal'}
 VEREDICTOS_JUST = [
     ('adecuada', 'Justificacion adecuada'),
     ('vaga', 'Vaga o sin explicacion'),
@@ -473,6 +480,18 @@ class FocoAbsence(models.Model):
     def _clasificar_ia(self, contexto):
         """Una justificacion: le pide a la IA el veredicto y lo guarda."""
         self.ensure_one()
+        # Motivo del catalogo (Comida, Cita medica, Tramite, Permiso, Escuela,
+        # Asunto personal): el motivo elegido YA explica la ausencia, no se
+        # revisa ni se gasta una llamada a la IA. La IA solo juzga el "Otro".
+        if self.reason in MOTIVOS_EXPLICAN:
+            self.sudo().write({
+                'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
+                'ai_requiere_revision': False,
+                'ai_motivo': 'Motivo del catalogo: %s' % dict(REASONS).get(self.reason, ''),
+                'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
+                'ai_at': fields.Datetime.now(), 'ai_error': False,
+            })
+            return
         tz = self.env['foco.settings'].sudo()._tzinfo_for(self.employee_id)
         ini = pytz.UTC.localize(self.start).astimezone(tz) if self.start else None
         mins = int(round((self.duration or 0.0) * 60))
