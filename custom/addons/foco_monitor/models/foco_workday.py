@@ -111,6 +111,12 @@ class FocoWorkday(models.Model):
              'lejos del equipo o una salida sin checar se ven igual aqui: es '
              'lo que hay que mirar, no un veredicto. Un dia en que el equipo '
              'no reporto nada queda en 0: eso es "sin dato", no "sin senal".')
+    check_in_lag_minutes = fields.Integer(
+        string='Del checador a la PC (min)', readonly=True,
+        help='Minutos entre que la persona checo ENTRADA en el checador y su '
+             'primera senal en la computadora. Positivo: checo y tardo en '
+             'llegar al equipo (metrica pedida). Solo se calcula cuando usa el '
+             'checador; 0 si no checa o si uso la PC antes de checar.')
 
     gap_count = fields.Integer(string='Huecos', readonly=True)
     unexplained_minutes = fields.Integer(
@@ -235,6 +241,12 @@ class FocoWorkday(models.Model):
                     'span_hours': ((ultimo - primero).total_seconds() / 3600.0
                                    if primero and ultimo and ultimo > primero else 0.0),
                 })
+                # Cuanto tardo la persona en llegar a su equipo despues de
+                # checar entrada: checo a las 08:00 pero no toco la PC hasta
+                # las 08:40 = 40 min. Es una metrica pedida (8-oct-2026): el
+                # checador no prueba que ya este trabajando.
+                vals['check_in_lag_minutes'] = self._lag_checador(
+                    ajustes, emp, dia, zona, primero, jor['fuente'])
                 if primero and ultimo and (primero_p or ultimo_p or usos):
                     vals['state'] = 'completo'
                 elif primero and ultimo:
@@ -265,6 +277,27 @@ class FocoWorkday(models.Model):
                     jornada = self.create(vals)
                 salida |= jornada
         return salida
+
+    @api.model
+    def _lag_checador(self, ajustes, emp, dia, zona, primera_senal, fuente):
+        """Minutos entre la ENTRADA checada y la primera senal en la PC.
+
+        Positivo = checo y tardo en sentarse al equipo (el caso que interesa).
+        0 cuando no usa el checador, no checo o uso la PC antes de checar
+        (no es una espera que medir). Un valor absurdo (checada de otro dia,
+        senal fuera del rango) se descarta: vale mas 0 que un numero falso.
+        """
+        if fuente != 'checador' or not primera_senal:
+            return 0
+        tramos = ajustes._tramos_checados(emp, dia, zona)
+        if not tramos:
+            return 0
+        entrada_h = tramos[0][0]            # primera entrada del dia, hora local decimal
+        senal_h = self._hora_local(primera_senal, zona, dia)
+        lag = int(round((senal_h - entrada_h) * 60))
+        if lag < 0 or lag > 600:            # antes de checar, o ruido de borde
+            return 0
+        return lag
 
     @api.model
     def _momentos(self, eventos, huecos, ini_utc, fin_utc):

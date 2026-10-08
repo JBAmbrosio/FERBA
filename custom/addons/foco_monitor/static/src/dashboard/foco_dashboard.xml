@@ -7,6 +7,7 @@
                     <h1>Productividad del equipo</h1>
                     <p class="fd_sub">
                         <t t-if="!state.loading">
+                            <b class="fd_periodo" t-esc="periodoLabel"/> ·
                             <span t-esc="state.team.monitored"/> empleados ·
                             <span class="fd_on"><span class="fd_dot on"/><t t-esc="state.team.online"/> en línea</span>
                             <t t-if="state.ultimo">
@@ -41,10 +42,17 @@
                         <span class="txt"><t t-esc="state.refrescando ? 'Actualizando' : 'Actualizar'"/></span>
                     </button>
                     <div class="fd_seg" role="group">
-                        <button t-att-class="state.days === 1 ? 'on' : ''" t-on-click="() => this.setDays(1)">Hoy</button>
+                        <button t-att-class="esHoy ? 'on' : ''" t-on-click="() => this.verHoy()">Hoy</button>
                         <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
                         <button t-att-class="state.days === 30 ? 'on' : ''" t-on-click="() => this.setDays(30)">30 días</button>
                     </div>
+                    <!-- Selector de fecha: ancla el periodo en un dia pasado
+                         para ver el tablero de dias anteriores. Nunca futuro. -->
+                    <label class="fd_fecha" title="Ver el tablero de otro día">
+                        <i class="fa fa-calendar"/>
+                        <input type="date" t-att-value="state.fecha" t-att-max="hoyYmd"
+                               t-on-change="(ev) => this.setFecha(ev)"/>
+                    </label>
                 </div>
             </header>
 
@@ -62,6 +70,13 @@
                         </div>
                         <div class="fd_kpi_v"><t t-esc="state.team.index"/><span class="u">%</span></div>
                         <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (state.team.index) }}% 0 0)"/></div>
+                        <div class="fd_kpi_foot"
+                             title="De la jornada que el equipo debía cubrir (8:30 por persona), cuánto se cubrió con trabajo productivo más lo justificado.">
+                            cubierto <b t-esc="fmt(state.team.covered)"/> de <t t-esc="fmt(state.team.expected)"/>
+                        </div>
+                        <t t-if="esHoy">
+                            <div class="fd_kpi_foot muted">día en curso · el índice se completa al cerrar la jornada</div>
+                        </t>
                     </div>
 
                     <div class="fd_kpi">
@@ -140,9 +155,9 @@
                      renglon con nada. -->
                 <section class="fd_card fd_grafica">
                     <div class="fd_card_head">
-                        <h2 t-esc="state.days === 1 ? 'Hoy, cómo viene cada quien' : 'Cómo viene el equipo'"/>
+                        <h2 t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo viene el equipo'"/>
                         <span class="fd_card_hint"
-                              t-esc="state.days === 1 ? 'reparto del tiempo de cada persona, hoy' : 'índice de productividad, día por día'"/>
+                              t-esc="state.days === 1 ? 'reparto del tiempo de cada persona' : 'índice de productividad, día por día'"/>
                     </div>
                     <div class="fd_lienzo alto">
                         <canvas t-ref="cTendencia"/>
@@ -222,6 +237,7 @@
                                     <th class="c_tog"><span class="sr">Desplegar</span></th>
                                     <th class="c_emp">Empleado</th>
                                     <th class="c_idx">Índice</th>
+                                    <th class="c_jor" title="De su jornada (8:30) cuánto cubrió con trabajo productivo más lo justificado.">Jornada</th>
                                     <th class="c_num">Activo</th>
                                     <th class="c_num">Productivo</th>
                                     <th class="c_num">Distracción</th>
@@ -280,6 +296,14 @@
                                                             IA: <t t-esc="e.iaN"/><t t-if="e.iaSinRevisar"> · <t t-esc="e.iaSinRevisar"/> sin revisar</t>
                                                         </span>
                                                     </t>
+                                                    <!-- Tardó en sentarse al equipo tras checar entrada.
+                                                         Solo cuando es notable (≥ 10 min): dato, no alarma. -->
+                                                    <t t-if="e.lagMin >= 10">
+                                                        <span class="fd_tag lag"
+                                                              t-attf-title="Checó entrada y su primera señal en la computadora fue {{ fmtMinutos(e.lagMin) }} después.">
+                                                            <i class="fa fa-clock-o"/> +<t t-esc="fmtMinutos(e.lagMin)"/> al PC
+                                                        </span>
+                                                    </t>
                                                 </span>
                                             </span>
                                         </td>
@@ -288,6 +312,17 @@
                                                 <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
                                                 <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
                                             </div>
+                                        </td>
+                                        <td class="c_jor">
+                                            <t t-if="e.hasExpected">
+                                                <div class="fd_jor" t-attf-title="Cubierto {{ fmt(e.covered) }} de su jornada de {{ fmt(e.expected) }} (productivo + justificado).">
+                                                    <span class="fd_jor_v"><t t-esc="fmt(e.covered)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
+                                                    <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - e.coveredPct }}% 0 0)"/></div>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="fd_jor_na" title="Sin jornada esperada este día (fin de semana o sin calendario).">—</span>
+                                            </t>
                                         </td>
                                         <td class="c_num" t-esc="fmt(e.active)"/>
                                         <td class="c_num good" t-esc="fmt(e.prod)"/>
@@ -327,7 +362,7 @@
                                     </tr>
                                     <t t-if="state.abiertos[e.id]">
                                         <tr class="fd_exp">
-                                            <td colspan="9">
+                                            <td colspan="10">
                                                 <div class="fd_exp_in"><div>
                                                     <div class="fd_exp_box">
                                                         <t t-set="ar" t-value="arbolDe(e)"/>
@@ -359,7 +394,7 @@
                                     </t>
                                 </t>
                                 <t t-if="!state.employees.length">
-                                    <tr><td colspan="9" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
+                                    <tr><td colspan="10" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
                                 </t>
                             </tbody>
                         </table>
@@ -494,15 +529,35 @@
                         </h3>
                         <div class="fd_acct">
                             <div class="r head">
-                                <span class="l">Esperado <small>(su calendario)</small></span>
+                                <span class="l">Jornada que debía cubrir <small>(8:30)</small></span>
                                 <span class="v" t-esc="fmt(state.detail.expected)"/>
                             </div>
                             <div class="r">
-                                <span class="l"><span class="fd_dot productiva"/>Medido activo</span>
-                                <span class="v" t-esc="fmt(state.detail.active)"/>
+                                <span class="l"><span class="fd_dot productiva"/>Trabajo productivo</span>
+                                <span class="v good" t-esc="fmt(state.detail.prod)"/>
+                            </div>
+                            <div class="r">
+                                <span class="l"><span class="fd_dot neutral"/>Justificado <small>(cuenta como productivo)</small></span>
+                                <span class="v" t-esc="fmt(state.detail.justified)"/>
+                            </div>
+                            <!-- El índice vive AQUÍ: cubierto (productivo +
+                                 justificado) sobre la jornada de 8:30. -->
+                            <div class="r total">
+                                <span class="l">Cubierto de su jornada</span>
+                                <span t-attf-class="v idx {{ state.detail.meter }}">
+                                    <t t-esc="fmt(state.detail.covered)"/> · <t t-esc="state.detail.index"/>%
+                                </span>
+                            </div>
+                            <!-- Rezago del checador a la PC: checó entrada pero
+                                 tardó en sentarse al equipo. Métrica pedida. -->
+                            <div class="r sub" t-if="state.detail.lagMin !== null">
+                                <span class="l" title="Entre que checó entrada en el checador y su primera señal en la computadora. El checador marca la llegada a la empresa, no al equipo.">
+                                    <span class="fd_dot neutral"/>Del checador a la PC
+                                </span>
+                                <span class="v" t-esc="fmtMinutos(state.detail.lagMin)"/>
                             </div>
                             <div class="r sub" t-if="state.detail.hasCall">
-                                <span class="l"><span class="fd_dot navegador"/>de eso, en llamadas</span>
+                                <span class="l"><span class="fd_dot navegador"/>Activo, de eso en llamadas</span>
                                 <span class="v" t-esc="fmt(state.detail.call)"/>
                             </div>
                             <!-- Fuera de la resta a propósito: se traslapa con
@@ -510,17 +565,13 @@
                                  deja su ventana enfocada). Restarlo contaría dos
                                  veces el mismo rato. -->
                             <div class="r sub" t-if="state.detail.hasIdle">
-                                <span class="l" title="La aplicación tenía el foco pero no hubo teclado ni mouse. Leer, revisar o pensar cae aquí; también salir un momento. Se traslapa con las ausencias justificadas, por eso no se resta.">
+                                <span class="l" title="La aplicación tenía el foco pero no hubo teclado ni mouse. Leer, revisar o pensar cae aquí; también salir un momento.">
                                     <span class="fd_dot neutral"/>aparte: pantalla al frente sin teclear
                                 </span>
                                 <span class="v" t-esc="fmt(state.detail.idle)"/>
                             </div>
-                            <div class="r">
-                                <span class="l"><span class="fd_dot neutral"/>Ausencias justificadas</span>
-                                <span class="v" t-esc="fmt(state.detail.justified)"/>
-                            </div>
                             <div t-attf-class="r {{ state.detail.unexplained > 0.25 ? 'attn' : '' }}">
-                                <span class="l"><span class="fd_dot sin"/>Sin explicar</span>
+                                <span class="l"><span class="fd_dot sin"/>Sin explicar <small>(ni medido ni justificado)</small></span>
                                 <span class="v" t-esc="fmt(state.detail.unexplained)"/>
                             </div>
                         </div>

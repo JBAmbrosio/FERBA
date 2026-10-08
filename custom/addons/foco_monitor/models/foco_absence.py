@@ -241,8 +241,19 @@ class FocoAbsence(models.Model):
         # quedar acotada al alcance de quien pregunta.
         computers = self.env['foco.computer'].search(
             [('employee_id', '!=', False)])
+        empleados = computers.mapped('employee_id')
+        # Rezago checador -> PC del periodo, por persona: promedio de los dias
+        # en que checo entrada y hubo senal en la computadora. Una sola lectura
+        # para todos, agrupada en Python.
+        lags = {}
+        for w in self.env['foco.workday'].sudo().search([
+                ('employee_id', 'in', empleados.ids),
+                ('date', '>=', d_ini), ('date', '<=', d_fin),
+                ('shift_source', '=', 'checador'),
+                ('first_signal', '!=', False)]):
+            lags.setdefault(w.employee_id.id, []).append(w.check_in_lag_minutes)
         out = {}
-        for employee in computers.mapped('employee_id'):
+        for employee in empleados:
             tz = Settings._tzinfo_for(employee)
             ini = tz.localize(datetime.combine(d_ini, time(0, 0))) \
                     .astimezone(pytz.UTC).replace(tzinfo=None)
@@ -250,11 +261,16 @@ class FocoAbsence(models.Model):
                     .astimezone(pytz.UTC).replace(tzinfo=None)
             recs = self.search([('employee_id', '=', employee.id),
                                 ('start', '>=', ini), ('start', '<=', fin)])
+            v = lags.get(employee.id) or []
             out[str(employee.id)] = {
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
                 'justified': sum(recs.filtered(
                     lambda a: a.state == 'justificada').mapped('duration')),
                 'pending': len(recs.filtered(lambda a: a.state == 'pendiente')),
+                # Minutos del checador a la PC: promedio de los dias checados.
+                # None cuando no hay ningun dia con checada: el tablero no lo
+                # dibuja, en vez de pintar un 0 que afirmaria "llego al instante".
+                'lag_min': int(round(sum(v) / len(v))) if v else None,
             }
         return out
 
