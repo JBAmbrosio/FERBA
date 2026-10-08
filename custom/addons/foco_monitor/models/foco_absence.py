@@ -262,11 +262,24 @@ class FocoAbsence(models.Model):
             recs = self.search([('employee_id', '=', employee.id),
                                 ('start', '>=', ini), ('start', '<=', fin)])
             v = lags.get(employee.id) or []
+            # Lo JUSTIFICADO y lo SIN EXPLICAR cuentan solo la porcion que cae
+            # DENTRO de la jornada (expected_seconds), no la duracion cruda.
+            # Medido el 8-oct: una ausencia "bloqueado" de 8.45 h justificada de
+            # madrugada (00:22-08:49) tenia solo 0.48 h dentro de la jornada;
+            # sumar su duracion completa inflaba lo cubierto a 8h53 con 31 min
+            # activos y daba 100%. Una comida justificada (dentro de jornada) si
+            # cuenta entera; una noche bloqueada justificada, casi nada.
+            justi = recs.filtered(lambda a: a.state == 'justificada')
+            pend = recs.filtered(lambda a: a.state == 'pendiente')
             out[str(employee.id)] = {
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
-                'justified': sum(recs.filtered(
-                    lambda a: a.state == 'justificada').mapped('duration')),
-                'pending': len(recs.filtered(lambda a: a.state == 'pendiente')),
+                'justified': sum(justi.mapped('expected_seconds')) / 3600.0,
+                'pending': len(pend),
+                # "Sin explicar" en horas: porcion de la jornada que cubren los
+                # huecos SIN justificar. Antes el tablero lo derivaba restando
+                # (esperado - activo - justificado), que a media jornada daba un
+                # numero enorme porque el esperado es el dia completo.
+                'unexplained_h': sum(pend.mapped('expected_seconds')) / 3600.0,
                 # Minutos del checador a la PC: promedio de los dias checados.
                 # None cuando no hay ningun dia con checada: el tablero no lo
                 # dibuja, en vez de pintar un 0 que afirmaria "llego al instante".
