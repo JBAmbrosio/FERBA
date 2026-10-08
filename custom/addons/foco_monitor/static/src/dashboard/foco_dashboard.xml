@@ -112,6 +112,25 @@
                         <div class="fd_kpi_v"><t t-esc="state.team.online"/><span class="u">/<t t-esc="state.team.monitored"/></span></div>
                         <div class="fd_kpi_foot">equipos reportando en este momento</div>
                     </div>
+
+                    <!-- Veredictos de la IA: episodios sospechosos con captura en
+                         los que el modelo NO vio trabajo. Solo para quien puede ver
+                         los episodios. Es evidencia por revisar: ámbar, nunca rojo. -->
+                    <t t-if="state.iaVisible">
+                        <div class="fd_kpi fd_kpi_click" t-on-click="abrirVeredictos"
+                             title="Abrir Actividad › Veredictos de la IA con los que faltan por revisar">
+                            <div class="fd_kpi_top">
+                                <span class="fd_kpi_label">Veredictos de la IA</span>
+                                <t t-if="state.team.iaSinRevisar">
+                                    <span class="fd_pill down"><t t-esc="state.team.iaSinRevisar"/> sin revisar</span>
+                                </t>
+                            </div>
+                            <div t-attf-class="fd_kpi_v {{ state.team.iaSospechosos ? 'warn' : '' }}">
+                                <t t-esc="state.team.iaSospechosos"/><span class="u">/<t t-esc="state.team.iaAnalizados"/></span>
+                            </div>
+                            <div class="fd_kpi_foot">episodios donde la IA no vio trabajo, de los analizados</div>
+                        </div>
+                    </t>
                 </section>
 
                 <!-- ================================================ TENDENCIA
@@ -251,6 +270,14 @@
                                                     <t t-if="e.hechosN">
                                                         <span class="fd_tag integridad" t-att-title="e.hechosTitulo">
                                                             <t t-esc="e.hechosN"/> <t t-esc="e.hechosN === 1 ? 'hecho' : 'hechos'"/>
+                                                        </span>
+                                                    </t>
+                                                    <!-- Episodios que la IA no explicó como trabajo. Ámbar
+                                                         de "revisar": el detalle y las capturas están en
+                                                         Actividad › Veredictos de la IA. -->
+                                                    <t t-if="e.iaN">
+                                                        <span class="fd_tag ia" t-att-title="e.iaTitulo">
+                                                            IA: <t t-esc="e.iaN"/><t t-if="e.iaSinRevisar"> · <t t-esc="e.iaSinRevisar"/> sin revisar</t>
                                                         </span>
                                                     </t>
                                                 </span>

@@ -65,6 +65,7 @@ KINDS = [
     ('llamada_sin_input', 'En llamada sin tocar nada'),
     ('llamadas_indeterminadas', 'Llamadas sin veredicto'),
     ('contenedor', 'Tiempo dentro de un contenedor'),
+    ('veredicto_ia', 'La IA vio algo que no parece trabajo'),
 ]
 
 UNIDADES = [('h', 'horas'), ('n', 'veces'), ('min', 'minutos')]
@@ -102,6 +103,11 @@ SIGNIFICADO = {
                                'no pesan como trabajo ni como personal.',
     'contenedor': 'Horas activas dentro de un escritorio remoto, maquina virtual o emulador: lo que '
                   'pasa adentro no se ve.',
+    'veredicto_ia': 'Minutos de episodios sospechosos (pantalla quieta, solo mouse o input inyectado '
+                    'durante el umbral) en los que el modelo de vision, mirando las capturas, vio '
+                    'entretenimiento, asunto personal, pantalla inactiva o simulacion y ningun '
+                    'administrador lo ha descartado. Los episodios en que la IA vio trabajo o revision '
+                    'no cuentan. Evidencia para revisar en Actividad > Veredictos de la IA, no una sancion.',
 }
 
 # Lo que Foco NO puede saber, para que ningun lector lo infiera del silencio.
@@ -375,6 +381,36 @@ class FocoIntegrityFact(models.Model):
                  ('started_at', '>=', ini_utc), ('started_at', '<=', fin_utc)])
             if indet:
                 hecho('llamadas_indeterminadas', indet, 'n', {})
+
+        # --- veredictos de la IA sobre episodios sospechosos -------------------
+        # Solo los que NO parecen trabajo y que nadie descarto. La IA existe
+        # sobre todo para absolver (un CAD quieto, un PDF, un render) y una
+        # absolucion no es un hecho: no se cuenta.
+        if 'foco.integrity.verdict' in self.env:
+            Ver = self.env['foco.integrity.verdict'].sudo()
+            eps = Ver.search([('employee_id', '=', emp.id), ('state', '=', 'analizado'),
+                              ('started_at', '>=', ini_utc), ('started_at', '<=', fin_utc)])
+            malos = eps.filtered(lambda v: v.sospechoso and v.review_outcome != 'descartado')
+            if malos:
+                etiquetas = dict(Ver._fields['veredicto'].selection)
+                minutos = 0.0
+                detalle = []
+                for v in malos.sorted('started_at'):
+                    dur = v.duration_min or ((v.ended_at - v.started_at).total_seconds() / 60.0
+                                             if v.ended_at and v.started_at else 0.0)
+                    minutos += dur
+                    if len(detalle) < 4:
+                        detalle.append('%s %s · %s (%d min, %d%%)%s' % (
+                            self._local(v.started_at, zona)[-5:],
+                            etiquetas.get(v.veredicto, v.veredicto or '?').split(' (')[0],
+                            v.app_name or v.exe or '?', int(round(dur)),
+                            int(round((v.confianza or 0.0) * 100)),
+                            ' · confirmado' if v.review_outcome == 'confirmado' else ''))
+                hecho('veredicto_ia', minutos, 'min', {
+                    'episodios': len(malos), 'de_analizados': len(eps),
+                    'confirmados': len(malos.filtered(lambda v: v.review_outcome == 'confirmado')),
+                    'sin_revisar': len(malos.filtered(lambda v: v.review_outcome == 'pendiente')),
+                    'detalle': detalle})
 
         for h in salida:
             h['maintenance'] = mantenimiento

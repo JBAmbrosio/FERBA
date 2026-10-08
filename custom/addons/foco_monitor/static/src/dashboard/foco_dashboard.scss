@@ -325,7 +325,13 @@
         // titulo y en Actividad > Integridad.
         &.integridad { color: var(--ink2); text-transform: none; letter-spacing: 0;
             font-variant-numeric: tabular-nums; cursor: help; }
+        // Veredictos de la IA que no parecen trabajo: ambar de "revisar" (es lo
+        // unico de la fila que pide una accion de alguien), nunca el rojo de
+        // culpable. Las capturas estan a un clic en la tarjeta de arriba.
+        &.ia { color: var(--mid); text-transform: none; letter-spacing: 0;
+            font-variant-numeric: tabular-nums; cursor: help; }
     }
+    .fd_kpi_click { cursor: pointer; }
 
     // Presencia. Regla de color: lo explicado va en tinta secundaria -apagar el
     // equipo e irse a casa es normalidad, no una alerta- y solo lo que nadie
