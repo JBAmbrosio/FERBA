@@ -308,11 +308,29 @@ class FocoSettings(models.Model):
         string='Subir el audio en trozos de (min)', default=3,
         help='Cada trozo se transcribe al llegar y se descarta. Trozos cortos '
              'suben mas seguido; largos cargan mas cada peticion. 1 a 10.')
+    anthropic_api_key = fields.Char(
+        string='API key de Anthropic (Claude)', compute='_compute_anthropic_api_key',
+        inverse='_inverse_anthropic_api_key',
+        help='Vive en un parametro del sistema (foco.anthropic_api_key). Nunca '
+             'viaja a los equipos: la usa Odoo para el veredicto por vision, el '
+             'chat de Tomy y la clasificacion. Es la IA principal.')
     openai_api_key = fields.Char(
-        string='API key de OpenAI', compute='_compute_openai_api_key',
+        string='API key de OpenAI (solo transcripcion)', compute='_compute_openai_api_key',
         inverse='_inverse_openai_api_key',
         help='Vive en un parametro del sistema (foco.openai_api_key). Nunca '
-             'viaja a los equipos: la usa Odoo para transcribir y clasificar.')
+             'viaja a los equipos. Solo se usa para TRANSCRIBIR audio de llamadas '
+             '(Whisper): Claude no transcribe. Si no usas el analisis de llamadas, '
+             'puedes dejarla vacia.')
+
+    def _compute_anthropic_api_key(self):
+        key = self.env['ir.config_parameter'].sudo().get_param('foco.anthropic_api_key') or ''
+        for rec in self:
+            rec.anthropic_api_key = key
+
+    def _inverse_anthropic_api_key(self):
+        for rec in self:
+            self.env['ir.config_parameter'].sudo().set_param(
+                'foco.anthropic_api_key', (rec.anthropic_api_key or '').strip())
 
     def _compute_openai_api_key(self):
         key = self.env['ir.config_parameter'].sudo().get_param('foco.openai_api_key') or ''

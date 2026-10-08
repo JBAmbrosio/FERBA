@@ -460,10 +460,18 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
+                    <group string="Inteligencia artificial (Claude)">
+                        <field name="anthropic_api_key" password="True"/>
+                        <div class="text-muted" colspan="2">
+                            La IA principal de Foco. La usan el veredicto por vision,
+                            el chat de Tomy y la clasificacion de justificaciones y
+                            pestañas. Sin esta llave esas funciones no operan.
+                        </div>
+                    </group>
                     <group string="Analisis de llamadas de WhatsApp en la laptop (lo mas invasivo)">
                         <field name="call_review_enabled"/>
                         <field name="openai_api_key" password="True"
-                               invisible="not call_review_enabled and not vision_enabled"/>
+                               invisible="not call_review_enabled"/>
                         <field name="call_review_apps"
                                invisible="not call_review_enabled"/>
                         <field name="call_review_context"
