@@ -24,6 +24,7 @@
                 <field name="confianza" widget="percentage" optional="show"/>
                 <field name="motivo"/>
                 <field name="review_outcome" optional="show"/>
+                <field name="ajustado" optional="hide"/>
                 <field name="state" optional="hide"/>
                 <field name="computer_id" optional="hide"/>
                 <field name="department_id" optional="hide"/>
@@ -86,7 +87,9 @@
                             <field name="veredicto"/>
                             <field name="confianza" widget="percentage"/>
                             <field name="motivo"/>
+                            <field name="contenido_de_trabajo"/>
                             <field name="capturas_cambian"/>
+                            <field name="ajustado" invisible="not ajustado"/>
                             <field name="decided_at"/>
                             <field name="modelo"/>
                             <field name="sospechoso" invisible="1"/>
