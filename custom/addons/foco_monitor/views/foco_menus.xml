@@ -37,6 +37,12 @@
     <menuitem id="menu_foco_ausencias" name="Periodos sin actividad"
               parent="menu_foco_sec_actividad" action="foco_absence_action" sequence="30"/>
 
+    <!-- Justificaciones que la IA leyo y marco como vagas o sin relacion con el
+         trabajo. Solo administradores: es una herramienta de supervision. -->
+    <menuitem id="menu_foco_periodos_revisar" name="Periodos a revisar"
+              parent="menu_foco_sec_actividad" action="foco_absence_review_action" sequence="32"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
     <!-- Hechos de integridad: lo medido que puede leerse como intento de

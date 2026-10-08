@@ -1,11 +1,55 @@
+import json
 import logging
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import pytz
 
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
+
+# --------------------------------------------------- revision por IA
+# La IA lee la justificacion que escribio el empleado y decide si EXPLICA la
+# ausencia o si es vaga y hay que revisarla con la persona. Automatica (cron),
+# sin boton, con la llave de OpenAI que vive en Odoo. Nace de que la gente
+# justifica con "Otro" y una nota de "." o basura para saltarse la regla de
+# "Otro exige texto" (que solo mira que NO este vacio).
+SISTEMA_JUST = (
+    "Eres quien revisa las justificaciones de ausencia de los empleados de {contexto} "
+    "Un empleado explica por que su computadora estuvo un rato sin actividad (se fue a "
+    "comer, a una junta, al bano, una cita medica, un tramite). Te doy el motivo que "
+    "eligio, el texto que escribio, cuanto duro y a que hora. Decide si la justificacion "
+    "EXPLICA la ausencia o si es vaga y hay que revisarla con la persona. Reglas: "
+    "(1) 'adecuada' si da una razon entendible, aunque sea breve ('bano', 'junta', 'fui al "
+    "banco'); el motivo por si solo (Comida, Cita medica, Escuela, Permiso, Tramite) ya "
+    "explica salvo que el texto lo contradiga. (2) 'vaga' si el texto no explica nada: "
+    "vacio, un punto, 'x', 'asdf', 'otro', letras sueltas, o 'Otro' sin texto util. "
+    "(3) 'sin_relacion' si el texto no parece una razon de ausencia de trabajo. "
+    "(4) 'indeterminada' si no puedes decidir. 'requiere_revision' es true para 'vaga' y "
+    "'sin_relacion'. 'motivo' de maximo 12 palabras, sin nombres de personas. Se tolerante: "
+    "la meta es cazar las que no dicen nada, no castigar un texto corto pero real."
+)
+VEREDICTOS_JUST = [
+    ('adecuada', 'Justificacion adecuada'),
+    ('vaga', 'Vaga o sin explicacion'),
+    ('sin_relacion', 'No parece razon de trabajo'),
+    ('indeterminada', 'Indeterminada'),
+]
+ESQUEMA_JUST = {
+    'name': 'revision_justificacion', 'strict': True,
+    'schema': {
+        'type': 'object', 'additionalProperties': False,
+        'properties': {
+            'veredicto': {'type': 'string', 'enum': [v for v, _ in VEREDICTOS_JUST]},
+            'requiere_revision': {'type': 'boolean'},
+            'motivo': {'type': 'string'},
+            'confianza': {'type': 'number'},
+        },
+        'required': ['veredicto', 'requiere_revision', 'motivo', 'confianza'],
+    },
+}
+AI_MAX_INTENTOS = 4
+AI_DIAS_ATRAS = 45
 
 REASONS = [
     ('comida', 'Comida'),
@@ -79,6 +123,34 @@ class FocoAbsence(models.Model):
         [('agente', 'Ventana del agente'),
          ('web', 'Liga por correo'),
          ('backend', 'Odoo')], string='Contestado desde', readonly=True)
+
+    # ---- revision por IA de la justificacion (automatica, sin boton) --------
+    ai_estado = fields.Selection(
+        [('sin_analizar', 'Sin analizar'), ('analizado', 'Analizado'), ('error', 'Error')],
+        string='Analisis IA', index=True,
+        help='La IA lee la justificacion y decide si explica la ausencia o si es '
+             'vaga. Corre sola en un proceso periodico, no hay boton.')
+    ai_veredicto = fields.Selection(VEREDICTOS_JUST, string='Veredicto IA')
+    ai_requiere_revision = fields.Boolean(
+        string='A revisar', index=True,
+        help='La IA la marco como vaga o sin relacion con el trabajo: alguien '
+             'deberia revisarla con la persona.')
+    ai_motivo = fields.Char(string='Que vio la IA')
+    ai_confianza = fields.Float(string='Confianza IA', digits=(3, 2))
+    ai_modelo = fields.Char(string='Modelo IA')
+    ai_tokens = fields.Integer(string='Tokens IA')
+    ai_at = fields.Datetime(string='Analizada el', readonly=True)
+    ai_intentos = fields.Integer(string='Intentos IA', default=0)
+    ai_error = fields.Char(string='Ultimo error IA')
+
+    # ---- revision humana de lo que la IA marco ------------------------------
+    review_visto = fields.Boolean(
+        string='Revisado', index=True,
+        help='Un administrador ya reviso esta justificacion marcada por la IA. '
+             'Sale de la lista de "Periodos a revisar".')
+    review_por = fields.Many2one('res.users', string='Revisado por', readonly=True)
+    review_at = fields.Datetime(string='Revisado el', readonly=True)
+    review_nota = fields.Char(string='Nota de la revision')
 
     @api.depends('start', 'stop')
     def _compute_duration(self):
@@ -347,5 +419,113 @@ class FocoAbsence(models.Model):
             'state': 'justificada',
             'answered_at': fields.Datetime.now(),
             'answered_via': via,
+            # Recien justificada: la IA la analiza en su proximo ciclo. Nota de
+            # "." o basura con motivo "Otro" es justo lo que viene a cazar.
+            'ai_estado': 'sin_analizar', 'ai_intentos': 0,
         })
         return {'ok': True, 'reason_label': dict(REASONS).get(reason, '')}
+
+    def write(self, vals):
+        # Si cambia el texto o el motivo de una justificacion ya analizada,
+        # la IA la vuelve a mirar: un administrador pudo corregir la nota. Se
+        # evita la recursion saltando cuando el propio write es de campos IA.
+        reanaliza = (('note' in vals or 'reason' in vals)
+                     and 'ai_estado' not in vals and 'ai_veredicto' not in vals)
+        res = super().write(vals)
+        if reanaliza:
+            for rec in self:
+                if rec.state == 'justificada' and rec.ai_estado == 'analizado':
+                    super(FocoAbsence, rec).write({'ai_estado': 'sin_analizar', 'ai_intentos': 0})
+        return res
+
+    # ------------------------------------------------- revision por IA (cron)
+    @api.model
+    def _cron_revisar_ia(self, limit=40):
+        """Analiza las justificaciones que faltan: nuevas y las que fallaron.
+
+        Automatico, sin boton. Solo justificadas y recientes (ultimos dias):
+        las viejas no mueven ninguna decision. Cada una va en su savepoint para
+        que un fallo no tumbe al resto."""
+        OpenAI = self.env['foco.openai']
+        if not OpenAI.configurado():
+            return 0
+        settings = self.env['foco.settings'].sudo().get_settings()
+        desde = fields.Datetime.now() - timedelta(days=AI_DIAS_ATRAS)
+        recs = self.sudo().search([
+            ('state', '=', 'justificada'),
+            ('ai_estado', '!=', 'analizado'),
+            ('ai_intentos', '<', AI_MAX_INTENTOS),
+            ('start', '>=', desde),
+        ], order='start desc', limit=limit)
+        contexto = (settings.call_review_context or '').strip()
+        n = 0
+        for rec in recs:
+            try:
+                with self.env.cr.savepoint():
+                    rec._clasificar_ia(contexto)
+                    n += 1
+            except Exception as e:
+                rec.sudo().write({'ai_estado': 'error', 'ai_intentos': rec.ai_intentos + 1,
+                                  'ai_error': str(e)[:200]})
+                _logger.warning('foco.absence %s: no se pudo analizar (%s)', rec.id, e)
+        return n
+
+    def _clasificar_ia(self, contexto):
+        """Una justificacion: le pide a la IA el veredicto y lo guarda."""
+        self.ensure_one()
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(self.employee_id)
+        ini = pytz.UTC.localize(self.start).astimezone(tz) if self.start else None
+        mins = int(round((self.duration or 0.0) * 60))
+        dur = ('%d h %d min' % (mins // 60, mins % 60)) if mins >= 60 else ('%d min' % mins)
+        ctx = (contexto or '').strip()
+        if ctx and not ctx.endswith('.'):
+            ctx += '.'
+        sistema = SISTEMA_JUST.format(contexto=ctx or 'la empresa.')
+        usuario = (
+            'MOTIVO ELEGIDO: %s\nTEXTO QUE ESCRIBIO: %s\nDURACION: %s\nHORA LOCAL: %s\nTIPO: %s'
+            % (dict(REASONS).get(self.reason, self.reason or '(ninguno)'),
+               (self.note or '').strip() or '(vacio)', dur,
+               ini.strftime('%H:%M') if ini else '?',
+               dict(KINDS).get(self.kind, self.kind or '')))
+        resp = self.env['foco.openai'].chat(
+            [{'role': 'system', 'content': sistema},
+             {'role': 'user', 'content': usuario}],
+            response_format={'type': 'json_schema', 'json_schema': ESQUEMA_JUST},
+            max_tokens=200)
+        try:
+            j = json.loads(resp['message'].get('content') or '{}')
+        except (ValueError, TypeError):
+            j = {}
+        ver = j.get('veredicto') if j.get('veredicto') in dict(VEREDICTOS_JUST) else 'indeterminada'
+        # El flag se fija por el veredicto, no por el booleano suelto del modelo:
+        # 'vaga' y 'sin_relacion' SIEMPRE son a revisar, pase lo que pase.
+        requiere = ver in ('vaga', 'sin_relacion')
+        try:
+            conf = min(max(float(j.get('confianza') or 0.0), 0.0), 1.0)
+        except (TypeError, ValueError):
+            conf = 0.0
+        self.sudo().write({
+            'ai_estado': 'analizado', 'ai_veredicto': ver,
+            'ai_requiere_revision': requiere,
+            'ai_motivo': (j.get('motivo') or '').strip()[:150] or False,
+            'ai_confianza': conf, 'ai_modelo': resp.get('modelo') or False,
+            'ai_tokens': int((resp.get('usage') or {}).get('total_tokens') or 0),
+            'ai_at': fields.Datetime.now(), 'ai_error': False,
+        })
+
+    # ------------------------------------------------- revision humana
+    def action_marcar_revisado(self):
+        self.write({'review_visto': True, 'review_por': self.env.user.id,
+                    'review_at': fields.Datetime.now()})
+        return True
+
+    def action_reabrir_revision(self):
+        self.write({'review_visto': False, 'review_por': False, 'review_at': False})
+        return True
+
+    @api.model
+    def revisar_pendientes(self):
+        """Cuantas justificaciones marco la IA que siguen sin revisar. Para el
+        KPI del tablero; respeta el alcance de quien pregunta (sin sudo)."""
+        return self.search_count([('ai_requiere_revision', '=', True),
+                                  ('review_visto', '=', False)])

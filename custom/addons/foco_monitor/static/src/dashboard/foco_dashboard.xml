@@ -154,6 +154,18 @@
                             <div class="fd_kpi_foot">episodios donde la IA no vio trabajo, de los analizados</div>
                         </div>
                     </t>
+
+                    <!-- Justificaciones que la IA leyó y marcó como vagas o sin
+                         relación con el trabajo (p.ej. «Otro» con nota «.») y que
+                         nadie ha revisado. Lleva a su ventana. Ámbar de revisar. -->
+                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirRevisar"
+                         title="Abrir Actividad › Periodos a revisar: justificaciones vagas que la IA marcó.">
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Justificaciones a revisar</span>
+                        </div>
+                        <div t-attf-class="fd_kpi_v {{ state.revisar ? 'warn' : '' }}"><t t-esc="state.revisar"/></div>
+                        <div class="fd_kpi_foot">la IA las marcó como vagas · sin revisar</div>
+                    </div>
                 </section>
 
                 <!-- ================================================ TENDENCIA
