@@ -1,9 +1,45 @@
+import json
 import logging
 from datetime import timedelta
+
+from markupsafe import Markup, escape
 
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
+
+# Intercala las DOS pistas (empleado / interlocutor) en el orden natural de la
+# charla para leerla como conversacion. Aqui NO se infiere quien hablo (ya viene
+# separado por pista): solo se ORDENA en turnos.
+SISTEMA_LLAMADA_DIALOGO = (
+    "Recibes la transcripcion de una LLAMADA en DOS pistas ya separadas: lo que "
+    "dijo el EMPLEADO (su microfono) y lo que dijo el INTERLOCUTOR (la otra "
+    "persona). Reconstruye la CONVERSACION intercalando los turnos en el orden "
+    "natural en que ocurrieron (una pregunta y su respuesta van juntas). NO "
+    "inventes ni cambies palabras: usa SOLO el texto de cada pista, repartido en "
+    "turnos y atribuido a quien lo dijo. Si una pista viene vacia, usa solo la otra."
+)
+
+ESQUEMA_LLAMADA_DIALOGO = {
+    'name': 'dialogo_llamada', 'strict': True,
+    'schema': {
+        'type': 'object', 'additionalProperties': False,
+        'properties': {
+            'turnos': {
+                'type': 'array',
+                'items': {
+                    'type': 'object', 'additionalProperties': False,
+                    'properties': {
+                        'rol': {'type': 'string', 'enum': ['empleado', 'otro']},
+                        'texto': {'type': 'string'},
+                    },
+                    'required': ['rol', 'texto'],
+                },
+            },
+        },
+        'required': ['turnos'],
+    },
+}
 
 CLASIFICACIONES = [
     ('trabajo', 'Trabajo'),
@@ -88,6 +124,12 @@ class FocoCallReview(models.Model):
                                       groups='foco_monitor.group_foco_manager')
     transcript_otro = fields.Text(string='Transcripcion (interlocutor)',
                                   groups='foco_monitor.group_foco_manager')
+    # Conversacion intercalada (JSON [{rol, texto}]) y su render en burbujas, para
+    # leer la llamada como un chat. Solo existe si se conserva la transcripcion.
+    transcript_dialogo = fields.Text(string='Conversacion (JSON)',
+                                     groups='foco_monitor.group_foco_manager')
+    dialogo_html = fields.Html(string='Conversacion', compute='_compute_dialogo_html',
+                               sanitize=False, groups='foco_monitor.group_foco_manager')
     transcript_chars = fields.Integer(string='Caracteres transcritos')
     transcript_cleared = fields.Boolean(string='Transcripcion borrada', default=False)
     tokens = fields.Integer(string='Tokens del modelo')
@@ -100,6 +142,68 @@ class FocoCallReview(models.Model):
         for rec in self:
             s = rec.duration_seconds or 0
             rec.duration_text = '%d:%02d' % (s // 60, s % 60)
+
+    def action_rehacer_dialogo(self):
+        """Boton de la ficha: (re)arma la conversacion en burbujas desde las dos
+        pistas conservadas. Util para llamadas ya guardadas sin dialogo."""
+        for rec in self:
+            if rec.transcript_empleado or rec.transcript_otro:
+                try:
+                    rec._generar_dialogo()
+                except Exception as e:
+                    _logger.warning('foco.call.review %s: no se armo el dialogo (%s)', rec.ref, e)
+
+    def _generar_dialogo(self):
+        """Intercala las dos pistas (empleado/interlocutor) en turnos para leer la
+        llamada como conversacion. Solo con la transcripcion conservada; su fallo
+        no afecta la clasificacion."""
+        self.ensure_one()
+        emp = (self.transcript_empleado or '').strip()
+        otro = (self.transcript_otro or '').strip()
+        if not (emp or otro):
+            return
+        entrada = 'EMPLEADO:\n%s\n\nINTERLOCUTOR:\n%s' % (emp[:9000], otro[:9000])
+        resp = self.env['foco.openai'].chat(
+            [{'role': 'system', 'content': SISTEMA_LLAMADA_DIALOGO},
+             {'role': 'user', 'content': entrada}],
+            response_format={'type': 'json_schema', 'json_schema': ESQUEMA_LLAMADA_DIALOGO},
+            max_tokens=2500)
+        turnos = json.loads(resp['message'].get('content') or '{}').get('turnos') or []
+        self.transcript_dialogo = json.dumps(turnos, ensure_ascii=False)
+
+    @api.depends('transcript_dialogo')
+    def _compute_dialogo_html(self):
+        """Burbujas tipo chat: el EMPLEADO a la derecha (verde), el INTERLOCUTOR a
+        la izquierda (blanco)."""
+        for rec in self:
+            try:
+                turnos = json.loads(rec.transcript_dialogo or '[]')
+            except Exception:
+                turnos = []
+            if not turnos:
+                rec.dialogo_html = False
+                continue
+            quien_emp = rec.employee_id.name or 'Empleado'
+            filas = []
+            for t in turnos:
+                texto = (t.get('texto') or '').strip()
+                if not texto:
+                    continue
+                es_emp = (t.get('rol') == 'empleado')
+                align = 'flex-end' if es_emp else 'flex-start'
+                bg = '#d9fdd3' if es_emp else '#ffffff'
+                etq_color = '#1a8a5a' if es_emp else '#8a6d1a'
+                quien = quien_emp if es_emp else 'Interlocutor'
+                filas.append(
+                    '<div style="display:flex;justify-content:%s;margin:3px 0;">'
+                    '<div style="max-width:80%%;background:%s;border:1px solid #e4e4e4;'
+                    'border-radius:12px;padding:7px 11px;box-shadow:0 1px 1px rgba(0,0,0,.08);">'
+                    '<div style="font-size:11px;font-weight:600;color:%s;margin-bottom:2px;">%s</div>'
+                    '<div style="white-space:pre-wrap;color:#111;line-height:1.35;">%s</div>'
+                    '</div></div>' % (align, bg, etq_color, escape(quien), escape(texto)))
+            rec.dialogo_html = Markup(
+                '<div style="background:#efeae2;padding:12px;border-radius:10px;'
+                'max-height:540px;overflow:auto;">%s</div>' % ''.join(filas))
 
     # ------------------------------------------------------------ pesos
     def weight(self):
@@ -193,6 +297,13 @@ class FocoCallReview(models.Model):
                 motivo = 'asunto personal'
             elif not settings.call_review_keep_reason:
                 motivo = ''
+            # Si se conserva la transcripcion, arma la conversacion en burbujas
+            # ANTES de cerrar (en el cierre se borraria si no se conserva).
+            if settings.call_review_keep_transcript:
+                try:
+                    rec._generar_dialogo()
+                except Exception as e:
+                    _logger.warning('foco.call.review %s: no se armo el dialogo (%s)', rec.ref, e)
             rec._cerrar(res.get('clasificacion') or 'indeterminada',
                         float(res.get('confianza') or 0.0),
                         res.get('con_quien') or 'desconocido', motivo[:120], 'clasificada',
@@ -211,7 +322,7 @@ class FocoCallReview(models.Model):
         }
         if not guardar:
             vals.update({'transcript_empleado': False, 'transcript_otro': False,
-                         'transcript_cleared': True})
+                         'transcript_dialogo': False, 'transcript_cleared': True})
         self.write(vals)
 
     # ------------------------------------------------------------ cron
