@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Veredictos de la IA sobre episodios sospechosos: que vio el modelo en
+         las capturas que mando el agente y que decidio una persona despues.
+         Solo administradores: son capturas de la pantalla de alguien. -->
+    <record id="foco_integrity_verdict_view_list" model="ir.ui.view">
+        <field name="name">foco.integrity.verdict.list</field>
+        <field name="model">foco.integrity.verdict</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="sospechoso and review_outcome == 'pendiente'"
+                  decoration-success="veredicto in ('trabajo_real', 'revision_pasiva')"
+                  decoration-info="review_outcome == 'descartado'"
+                  decoration-muted="state in ('abierto', 'pendiente', 'error', 'sin_capturas')">
+                <field name="started_at"/>
+                <field name="employee_id"/>
+                <field name="pattern"/>
+                <field name="app_name"/>
+                <field name="duration_min" widget="float" digits="[8,0]"/>
+                <field name="capture_count"/>
+                <field name="veredicto" widget="badge"
+                       decoration-success="veredicto in ('trabajo_real', 'revision_pasiva')"
+                       decoration-danger="veredicto in ('entretenimiento', 'personal', 'inactiva', 'simulacion')"
+                       decoration-muted="veredicto == 'indeterminado'"/>
+                <field name="confianza" widget="percentage" optional="show"/>
+                <field name="motivo"/>
+                <field name="review_outcome" optional="show"/>
+                <field name="state" optional="hide"/>
+                <field name="computer_id" optional="hide"/>
+                <field name="department_id" optional="hide"/>
+                <field name="sospechoso" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_integrity_verdict_view_form" model="ir.ui.view">
+        <field name="name">foco.integrity.verdict.form</field>
+        <field name="model">foco.integrity.verdict</field>
+        <field name="arch" type="xml">
+            <form string="Episodio sospechoso">
+                <header>
+                    <button name="action_analizar" type="object" string="Analizar con IA"
+                            class="btn-primary" icon="fa-magic"/>
+                    <button name="action_confirmar" type="object" string="Confirmar"
+                            icon="fa-check" invisible="review_outcome == 'confirmado' or state != 'analizado'"/>
+                    <button name="action_descartar" type="object" string="Descartar (falso positivo)"
+                            icon="fa-times" invisible="review_outcome == 'descartado' or state != 'analizado'"/>
+                    <button name="action_reabrir_revision" type="object" string="Reabrir revision"
+                            invisible="review_outcome == 'pendiente'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="abierto,pendiente,analizado"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="not sospechoso or review_outcome != 'pendiente'">
+                        La IA vio algo que NO parece trabajo. Es evidencia para que una persona
+                        revise, no una sancion: abre las capturas, decide y deja constancia con
+                        «Confirmar» o «Descartar».
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="sospechoso or state != 'analizado' or veredicto == 'indeterminado'">
+                        La IA vio trabajo. El patron que disparo el episodio (pantalla quieta, solo
+                        mouse) tiene explicacion en lo que habia en pantalla.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'analizado' or veredicto != 'indeterminado'">
+                        La IA no pudo decidir con lo que hay. Mira las capturas tu.
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="state != 'abierto'">
+                        El episodio sigue en curso: el agente todavia puede mandar capturas. Se
+                        analiza al cerrarse o si pasa el doble del umbral sin noticias.
+                    </div>
+                    <group>
+                        <group string="Episodio">
+                            <field name="computer_id"/>
+                            <field name="employee_id"/>
+                            <field name="department_id"/>
+                            <field name="pattern"/>
+                            <field name="app_name"/>
+                            <field name="app_id"/>
+                            <field name="exe"/>
+                            <field name="title"/>
+                            <field name="started_at"/>
+                            <field name="ended_at"/>
+                            <field name="duration_min"/>
+                        </group>
+                        <group string="Veredicto de la IA">
+                            <field name="veredicto"/>
+                            <field name="confianza" widget="percentage"/>
+                            <field name="motivo"/>
+                            <field name="capturas_cambian"/>
+                            <field name="decided_at"/>
+                            <field name="modelo"/>
+                            <field name="sospechoso" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Que vio la IA" invisible="not que_se_ve">
+                        <field name="que_se_ve" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Revision humana">
+                        <group>
+                            <field name="review_outcome"/>
+                            <field name="reviewed_by"/>
+                            <field name="reviewed_at"/>
+                        </group>
+                        <group>
+                            <field name="review_note" placeholder="Que decidiste y por que..."/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Capturas" name="capturas">
+                            <field name="capture_ids" mode="kanban">
+                                <kanban>
+                                    <field name="seq"/>
+                                    <field name="taken_at"/>
+                                    <field name="title"/>
+                                    <templates>
+                                        <t t-name="card">
+                                            <div class="p-2" style="width: 340px;">
+                                                <field name="image" widget="image"
+                                                       options="{'size': [320, 180]}"/>
+                                                <div class="text-muted small mt-1">
+                                                    #<field name="seq"/> · <field name="taken_at"/>
+                                                </div>
+                                                <div class="small" t-if="record.title.raw_value">
+                                                    <field name="title"/>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                                <form string="Captura">
+                                    <group>
+                                        <group>
+                                            <field name="seq"/>
+                                            <field name="taken_at"/>
+                                            <field name="exe"/>
+                                            <field name="title"/>
+                                        </group>
+                                        <group>
+                                            <field name="bytes"/>
+                                            <field name="frame_hash"/>
+                                        </group>
+                                    </group>
+                                    <field name="image" widget="image" options="{'size': [1280, 0]}"/>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Senales del agente" name="senales">
+                            <field name="senales" nolabel="1" colspan="2"/>
+                        </page>
+                        <page string="Rastro tecnico" name="rastro">
+                            <group>
+                                <field name="ref"/>
+                                <field name="capture_count"/>
+                                <field name="tokens"/>
+                                <field name="retries"/>
+                                <field name="error_detail"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_integrity_verdict_view_search" model="ir.ui.view">
+        <field name="name">foco.integrity.verdict.search</field>
+        <field name="model">foco.integrity.verdict</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="computer_id"/>
+                <field name="app_name"/>
+                <field name="motivo"/>
+                <filter name="sospechosos" string="No parece trabajo"
+                        domain="[('sospechoso', '=', True)]"/>
+                <filter name="trabajo" string="Trabajo"
+                        domain="[('veredicto', 'in', ('trabajo_real', 'revision_pasiva'))]"/>
+                <filter name="indeterminados" string="Indeterminados"
+                        domain="[('veredicto', '=', 'indeterminado')]"/>
+                <separator/>
+                <filter name="sin_revisar" string="Sin revisar"
+                        domain="[('review_outcome', '=', 'pendiente'), ('state', '=', 'analizado')]"/>
+                <filter name="confirmados" string="Confirmados"
+                        domain="[('review_outcome', '=', 'confirmado')]"/>
+                <filter name="descartados" string="Descartados"
+                        domain="[('review_outcome', '=', 'descartado')]"/>
+                <separator/>
+                <filter name="pendientes" string="Sin veredicto todavia"
+                        domain="[('state', 'in', ('abierto', 'pendiente', 'error'))]"/>
+                <filter name="con_error" string="Con error" domain="[('state', '=', 'error')]"/>
+                <separator/>
+                <!-- Agrupar por: sueltos tras un separador, sin <group expand="0">
+                     (Odoo 19 rechaza la vista entera con el envoltorio; ver
+                     foco_call_review_views.xml). -->
+                <filter name="g_empleado" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_veredicto" string="Veredicto" context="{'group_by': 'veredicto'}"/>
+                <filter name="g_patron" string="Patron" context="{'group_by': 'pattern'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'started_at:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_integrity_verdict_action" model="ir.actions.act_window">
+        <field name="name">Veredictos de la IA</field>
+        <field name="res_model">foco.integrity.verdict</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_g_empleado': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavia no hay episodios analizados</p>
+            <p>Aparecen cuando un equipo lleva el umbral de minutos (Configuracion) en un
+               patron de actividad sospechosa: pantalla sin cambio con input, solo mouse,
+               clics a ritmo regular o input inyectado. El agente manda unas pocas capturas
+               y la IA, desde Odoo, dice que se ve. Para probar sin agente: crea uno a mano,
+               sube capturas y pulsa «Analizar con IA».</p>
+        </field>
+    </record>
+</odoo>

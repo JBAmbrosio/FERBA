@@ -359,6 +359,73 @@ class FocoSettings(models.Model):
     def call_review_allowed(self, computer):
         return bool(self.call_review_enabled and computer and computer.call_review)
 
+    # ---- veredicto por IA ante actividad sospechosa (vision) --------------
+    # La IA vive en Odoo. Cuando el agente mide un patron de actividad simulada
+    # (pantalla sin cambio con input, solo mouse, clics ritmicos, input
+    # inyectado) durante T minutos, toma unas pocas capturas y las sube; Odoo
+    # pide al modelo de vision que diga que se ve. Ordenado por la direccion y
+    # escrito en la politica de uso de equipos (7-oct-2026).
+    vision_enabled = fields.Boolean(
+        string='Veredicto por IA ante actividad sospechosa', default=False,
+        help='Interruptor general. Apagado, ningun equipo captura por este motivo y '
+             'lo que llegara se rechaza. Requiere la API key de OpenAI. Las '
+             'capturas y el veredicto los ven solo quienes administran Foco.')
+    vision_umbral_minutos = fields.Integer(
+        string='Minutos de patron sospechoso antes de capturar', default=15,
+        help='T. El agente abre un episodio cuando un patron (pantalla sin cambio '
+             'con input, solo mouse, clics ritmicos, input inyectado) lleva estos '
+             'minutos seguidos. 3 a 240.')
+    vision_max_capturas = fields.Integer(
+        string='Capturas por episodio (maximo)', default=4,
+        help='Cuantas capturas como mucho se toman en un episodio. Mas no mejora el '
+             'veredicto. 1 a 12.')
+    vision_capturas_cada_min = fields.Integer(
+        string='Minutos entre capturas del episodio', default=5,
+        help='Separacion entre capturas mientras el patron siga. Ver DOS pantallas '
+             'identicas con minutos de por medio es lo que distingue una simulacion '
+             'de una pausa. 1 a 60.')
+    vision_detalle = fields.Selection(
+        [('low', 'Baja: rapida y barata (basta para saber que hay en pantalla)'),
+         ('high', 'Alta: lee texto pequeno, cuesta varias veces mas')],
+        string='Resolucion con la que mira el modelo', default='low')
+    vision_notice = fields.Text(
+        string='Aviso en pantalla al capturar',
+        default='Foco detecto actividad sin cambios en pantalla durante varios minutos y '
+                'tomo una captura como evidencia, conforme a la politica de uso de equipos.',
+        help='Se muestra unos segundos al tomar la primera captura del episodio. '
+             'Vacio = sin aviso (no recomendable).')
+    vision_retention_days = fields.Integer(
+        string='Conservar las capturas (dias)', default=0,
+        help='0 = se conservan como evidencia, no se borran nunca (decision del '
+             '7-oct-2026). Con un numero, el proceso de cada 5 min borra las mas '
+             'antiguas; el veredicto se queda.')
+
+    @api.constrains('vision_umbral_minutos', 'vision_max_capturas', 'vision_capturas_cada_min')
+    def _check_vision(self):
+        for r in self:
+            if not (3 <= (r.vision_umbral_minutos or 0) <= 240):
+                raise ValidationError('El umbral de actividad sospechosa va de 3 a 240 minutos.')
+            if not (1 <= (r.vision_max_capturas or 0) <= 12):
+                raise ValidationError('Las capturas por episodio van de 1 a 12.')
+            if not (1 <= (r.vision_capturas_cada_min or 0) <= 60):
+                raise ValidationError('La separacion entre capturas va de 1 a 60 minutos.')
+
+    def vision_allowed(self, computer):
+        return bool(self.vision_enabled and computer and self.env['foco.openai'].configurado())
+
+    def vision_config(self, computer):
+        """Lo que el agente de ESE equipo necesita para abrir episodios. Viaja
+        en cada envio: apagarlo surte efecto en el siguiente ciclo."""
+        self.ensure_one()
+        return {
+            'enabled': self.vision_allowed(computer),
+            'umbral_min': self.vision_umbral_minutos or 15,
+            'max_capturas': self.vision_max_capturas or 4,
+            'cada_min': self.vision_capturas_cada_min or 5,
+            'aviso': (self.vision_notice or '').strip(),
+            'patrones': ['pantalla_sin_cambio', 'solo_mouse', 'clics_ritmicos', 'input_inyectado'],
+        }
+
     # ---- cuanto tiempo se guarda el dato --------------------------------
     # APAGADA de fabrica (0). Una purga encendida por omision borraria datos
     # que nadie decidio borrar, y ese borrado no se puede deshacer.

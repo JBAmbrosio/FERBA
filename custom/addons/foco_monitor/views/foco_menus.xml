@@ -43,6 +43,12 @@
          saltarse la medicion, con evidencia y significado; nunca veredicto. -->
     <menuitem id="menu_foco_integridad" name="Integridad"
               parent="menu_foco_sec_actividad" action="foco_integrity_fact_action" sequence="45"/>
+    <!-- Lo que la IA vio en las capturas de un episodio sospechoso y lo que
+         decidio una persona despues. Solo administradores: son capturas de la
+         pantalla de alguien. -->
+    <menuitem id="menu_foco_veredictos" name="Veredictos de la IA"
+              parent="menu_foco_sec_actividad" action="foco_integrity_verdict_action" sequence="46"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- Llamadas de WhatsApp desde la laptop, ya clasificadas por el modelo.
          Solo administradores: aunque no haya contenido, "llamada personal de
