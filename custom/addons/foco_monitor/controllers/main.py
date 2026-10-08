@@ -369,7 +369,15 @@ class FocoController(http.Controller):
         # Es lo que le pone causa a los huecos: sin esto, "apago y se fue" y
         # "el agente murio a media tarde" son el mismo renglon vacio.
         Event = request.env['foco.event'].sudo()
-        events_stored = Event.record_events(computer, data.get('events') or [])
+        # Mismo cuidado que en /foco/policy: un evento repetido dentro del lote
+        # no puede tumbar el envio del uso. Sin `events_stored` en la respuesta
+        # el agente reintenta los eventos mas tarde, que es lo correcto.
+        try:
+            with request.env.cr.savepoint():
+                events_stored = Event.record_events(computer, data.get('events') or [])
+        except Exception:
+            _logger.exception('Foco: eventos de %s', computer.id)
+            events_stored = None
 
         # --- pestañas abiertas (camino 1) -----------------------------------
         # Los TITULOS de todas las pestañas del navegador. Se guardan como filas
@@ -1517,8 +1525,15 @@ class FocoController(http.Controller):
                     'detail': json.dumps({'process': str(c['exe'])[:120]}),
                 })
             if eventos:
+                # Con SAVEPOINT: un error de base aqui (una llave repetida)
+                # abortaba la transaccion entera y, aunque se atrapara, todo lo
+                # que seguia -el latido, la politica- moria con "current
+                # transaction is aborted" y el servicio recibia 500 en cada
+                # ciclo (FBT308DDF, 7/8-oct-2026). Guardar los cierres nunca
+                # puede costar la verificacion del bloqueo.
                 try:
-                    request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
+                    with request.env.cr.savepoint():
+                        request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
                 except Exception:
                     _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
 
