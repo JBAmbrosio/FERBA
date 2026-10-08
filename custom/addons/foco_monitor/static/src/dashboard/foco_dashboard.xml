@@ -64,9 +64,15 @@
                     <div class="fd_kpi">
                         <div class="fd_kpi_top">
                             <span class="fd_kpi_label">Índice del equipo</span>
-                            <span t-attf-class="fd_pill {{ state.team.indexDelta >= 0 ? 'up' : 'down' }}">
-                                <t t-esc="state.team.indexDelta >= 0 ? '↑' : '↓'"/> <t t-esc="Math.abs(state.team.indexDelta)"/> pts
-                            </span>
+                            <!-- La flecha compara contra el periodo anterior. En
+                                 "Hoy" (dia en curso) seria un dia a medias contra
+                                 uno completo: una caida falsa cada manana. Se
+                                 oculta hasta que el dia cierre o se vea un rango. -->
+                            <t t-if="!esHoy">
+                                <span t-attf-class="fd_pill {{ state.team.indexDelta >= 0 ? 'up' : 'down' }}">
+                                    <t t-esc="state.team.indexDelta >= 0 ? '↑' : '↓'"/> <t t-esc="Math.abs(state.team.indexDelta)"/> pts
+                                </span>
+                            </t>
                         </div>
                         <div class="fd_kpi_v"><t t-esc="state.team.index"/><span class="u">%</span></div>
                         <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (state.team.index) }}% 0 0)"/></div>
@@ -82,9 +88,11 @@
                     <div class="fd_kpi">
                         <div class="fd_kpi_top">
                             <span class="fd_kpi_label">Horas productivas</span>
-                            <span t-attf-class="fd_pill {{ state.team.prodDelta >= 0 ? 'up' : 'down' }}">
-                                <t t-esc="state.team.prodDelta >= 0 ? '↑' : '↓'"/> <t t-esc="fmtDelta(state.team.prodDelta).replace('+','').replace('−','')"/>
-                            </span>
+                            <t t-if="!esHoy">
+                                <span t-attf-class="fd_pill {{ state.team.prodDelta >= 0 ? 'up' : 'down' }}">
+                                    <t t-esc="state.team.prodDelta >= 0 ? '↑' : '↓'"/> <t t-esc="fmtDelta(state.team.prodDelta).replace('+','').replace('−','')"/>
+                                </span>
+                            </t>
                         </div>
                         <div class="fd_kpi_v"><t t-esc="fmt(state.team.prod)"/></div>
                         <div class="fd_kpi_foot">de <t t-esc="fmt(state.team.active)"/> activas</div>
