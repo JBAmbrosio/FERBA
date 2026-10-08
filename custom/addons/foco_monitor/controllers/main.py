@@ -5,14 +5,45 @@ import json
 import logging
 from datetime import datetime, time as _time, timedelta
 
+import time
+
+import psycopg2
 import pytz
 from markupsafe import escape
+from psycopg2 import errorcodes
 
 from odoo import fields, http
 from odoo.exceptions import UserError
 from odoo.http import content_disposition, request
 
 _logger = logging.getLogger(__name__)
+
+# Lo mismo que Odoo reintenta en las llamadas RPC (service/model.py). Los
+# controladores `type='http'` NO lo traen de serie, y aqui dos procesos del
+# mismo equipo escriben la misma fila de foco_computer casi a la vez: el
+# agente en /foco/ingest (presencia, ultima senal) y el servicio en
+# /foco/policy (latido de verificacion). Medido el 8-oct-2026 en FbC208LGV:
+# "could not serialize access due to concurrent update" dos envios seguidos,
+# a la misma hora exacta que su /foco/policy; el tercero paso.
+_PG_REINTENTAR = (errorcodes.LOCK_NOT_AVAILABLE, errorcodes.SERIALIZATION_FAILURE,
+                  errorcodes.DEADLOCK_DETECTED)
+
+
+def _reintentando(fn, intentos=3):
+    """Corre `fn`; si la base rechaza la transaccion por concurrencia, la
+    deshace entera y la vuelve a correr desde cero. Las rutas que lo usan son
+    idempotentes (upsert del uso, eventos deduplicados, latidos)."""
+    for intento in range(intentos):
+        try:
+            return fn()
+        except psycopg2.OperationalError as e:
+            if e.pgcode not in _PG_REINTENTAR or intento == intentos - 1:
+                raise
+            request.env.cr.rollback()
+            if hasattr(request.env, 'reset'):
+                request.env.reset()
+            _logger.info('Foco: reintento %d por concurrencia (%s)', intento + 1, e.pgcode)
+            time.sleep(0.2 * (intento + 1))
 
 
 def _tomy_texto_a_html(texto):
@@ -143,6 +174,9 @@ class FocoController(http.Controller):
     @http.route('/foco/ingest', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def ingest(self, **kw):
+        return _reintentando(lambda: self._ingest(**kw))
+
+    def _ingest(self, **kw):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
@@ -384,8 +418,9 @@ class FocoController(http.Controller):
         # por clasificar; la IA corre en un cron, no aqui. Nunca tumba el ingest:
         # un fallo aqui haria que el agente reintentara el lote sin fin.
         try:
-            tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
-                computer, data.get('tabs') or [], data.get('tab_hosts') or {})
+            with request.env.cr.savepoint():
+                tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
+                    computer, data.get('tabs') or [], data.get('tab_hosts') or {})
         except Exception:
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
@@ -418,16 +453,24 @@ class FocoController(http.Controller):
             # calculo falla, el envio tiene que responder ok igual. Un 500
             # aqui haria que el agente reintentara el mismo lote sin fin y el
             # equipo dejara de reportar (paso con el NUL del 24-sep).
+            # Con SAVEPOINT cada uno: atrapar la excepcion sin deshacer hasta
+            # el savepoint dejaba la transaccion abortada y TODO lo que seguia
+            # (comandos, respuesta) moria con "current transaction is aborted",
+            # asi que el 500 llegaba igual y el agente reenviaba el lote
+            # (FbC208LGV, 8-oct-2026: una jornada rehecha a la vez por otro
+            # proceso tumbo dos envios seguidos).
             try:
-                request.env['foco.workday'].sudo().rebuild(
-                    computer.employee_id, sorted(d for d in dias if d))
+                with request.env.cr.savepoint():
+                    request.env['foco.workday'].sudo().rebuild(
+                        computer.employee_id, sorted(d for d in dias if d))
             except Exception:
                 _logger.exception('Foco: jornada de %s', computer.id)
             # Y los hechos de integridad de esos mismos dias: barato (una
             # persona, uno o dos dias) y asi se ven al momento, no de noche.
             try:
-                request.env['foco.integrity.fact'].sudo().rebuild(
-                    computer.employee_id, sorted(d for d in dias if d))
+                with request.env.cr.savepoint():
+                    request.env['foco.integrity.fact'].sudo().rebuild(
+                        computer.employee_id, sorted(d for d in dias if d))
             except Exception:
                 _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
@@ -1486,6 +1529,9 @@ class FocoController(http.Controller):
     @http.route('/foco/policy', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def policy(self, **kw):
+        return _reintentando(lambda: self._policy(**kw))
+
+    def _policy(self, **kw):
         """Que sitios puede abrir este equipo, y que dice el equipo tener puesto.
 
         Endpoint APARTE de /foco/ingest a proposito. Quien lo llama no es el
