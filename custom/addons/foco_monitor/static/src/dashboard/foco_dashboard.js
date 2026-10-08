@@ -48,7 +48,10 @@ export class FocoDashboard extends Component {
         this.action = useService("action");
         this.root = useRef("root");
         this.state = useState({
-            loading: true, days: 7, dark: false,
+            // "Hoy" es la primera vista (antes 7 dias). `fecha` es el dia ANCLA
+            // del periodo -el final del rango-: con el selector de fecha se
+            // puede anclar en un dia pasado y ver el tablero de ese dia.
+            loading: true, days: 1, fecha: this.ymd(new Date()), dark: false,
             team: {}, employees: [], composition: [], distractions: [],
             sites: [], pendingSites: [],
             attention: 0, sinSenal: 0, cobertura: {},
@@ -117,7 +120,7 @@ export class FocoDashboard extends Component {
         useEffect(
             () => { this.dibujar(); },
             () => [this.state.serie, this.state.porPersona, this.state.reparto,
-                   this.state.jornada, this.state.dark, this.state.days]
+                   this.state.jornada, this.state.dark, this.state.days, this.state.fecha]
         );
         useExternalListener(window, "keydown", (ev) => {
             if (ev.key === "Escape" && this.state.detail) this.closeDetail();
@@ -586,24 +589,33 @@ export class FocoDashboard extends Component {
         // recargar la pagina. Cuesta una lectura de estilo, nada.
         this.detectTheme();
         const days = this.state.days;
-        const today = new Date();
-        const curStart = new Date(today); curStart.setDate(today.getDate() - (days - 1));
+        // El periodo TERMINA en el dia ancla (hoy por defecto, o el que se
+        // elija en el selector de fecha) y se extiende `days` hacia atras.
+        const anchor = this.fechaAncla();
+        const curStart = new Date(anchor); curStart.setDate(anchor.getDate() - (days - 1));
         const prevEnd = new Date(curStart); prevEnd.setDate(curStart.getDate() - 1);
         const prevStart = new Date(prevEnd); prevStart.setDate(prevEnd.getDate() - (days - 1));
-        this.state.rango = [this.ymd(curStart), this.ymd(today)];
+        this.state.rango = [this.ymd(curStart), this.ymd(anchor)];
 
         const fields = ["employee_id", "app_id", "site_id", "category_id", "fg_active",
             "fg_idle", "background", "active_hours", "productive_hours", "call_hours",
             "injected_hours"];
-        const [cur, prev, comps, resumen, salud, pendientes, cobertura] = await Promise.all([
-            this.orm.searchRead("foco.usage", [["date", ">=", this.ymd(curStart)]], fields),
+        const [cur, prev, comps, resumen, resumenPrev, salud, pendientes, cobertura] = await Promise.all([
+            this.orm.searchRead("foco.usage",
+                [["date", ">=", this.ymd(curStart)], ["date", "<=", this.ymd(anchor)]], fields),
             this.orm.searchRead("foco.usage",
                 [["date", ">=", this.ymd(prevStart)], ["date", "<=", this.ymd(prevEnd)]], fields),
             this.orm.searchRead("foco.computer", [], ["employee_id", "last_seen", "name"]),
-            // jornada esperada y ausencias: sin esto el numero castiga a quien
-            // tuvo una cita medica igual que a quien no trabajo
+            // jornada esperada (las 8:30), justificado y rezago checador->PC:
+            // sin esto el indice no se puede medir contra la jornada ni perdonar
+            // a quien tuvo una cita medica.
             this.orm.call("foco.absence", "dashboard_summary",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
+            // El mismo resumen del periodo ANTERIOR, para que la flecha del
+            // indice del equipo compare manzanas con manzanas (cubierto/8:30
+            // contra cubierto/8:30), no el indice viejo.
+            this.orm.call("foco.absence", "dashboard_summary",
+                [this.ymd(prevStart), this.ymd(prevEnd)]),
             // salud del agente: un agente caido muestra 0h igual que alguien
             // que no hizo nada. Sin esto se leen datos rotos como flojera.
             this.orm.call("foco.computer", "health_summary", []),
@@ -616,16 +628,16 @@ export class FocoDashboard extends Component {
             // comparan cosas que no son comparables: un 62% sobre 22 dias
             // medidos y un 62% sobre 9 se ven identicos en la tabla.
             this.orm.call("foco.usage", "cobertura",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
         ]);
 
         // La analitica se pide agregada, no cruda: el servidor devuelve
         // decenas de filas donde antes viajaban cientos de miles.
         const [analitica, jornada] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
         ]);
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
@@ -724,11 +736,21 @@ export class FocoDashboard extends Component {
             for (const e of es) depts[e.id] = e.department_id ? e.department_id[1] : "";
         }
 
-        const idx = tActive > 0 ? (tProd / tActive) * 100 : 0;
-        const pIdx = pActive > 0 ? (pProd / pActive) * 100 : 0;
-
         const employees = Object.values(emp).map((e) => {
-            const index = e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0;
+            const res = (resumen || {})[String(e.id)] || {};
+            const expected = res.expected || 0;
+            const justified = res.justified || 0;
+            // EL CAMBIO CENTRAL (8-oct-2026): el indice se mide contra la
+            // JORNADA que la persona debe cubrir (8:30), no contra lo que
+            // estuvo activa. Antes `prod/activo` daba 100% a quien trabajaba
+            // una hora a tope y se iba; ahora la vara es su jornada completa.
+            // Lo JUSTIFICADO con la ventana cuenta como cubierto (decision del
+            // usuario: "de momento, productivo"). Sin calendario (fin de
+            // semana, sin horario) se cae al calculo viejo para no pintar 0.
+            const covered = e.prod + justified;
+            const index = expected > 0
+                ? Math.min(100, Math.round((covered / expected) * 100))
+                : (e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0);
             const appList = Object.values(e.apps).sort((a, b) => b.hours - a.hours);
             const appMax = Math.max(1, ...appList.map((a) => a.hours));
             appList.forEach((a) => { a.pct = Math.round(a.hours / appMax * 100); a.catLabel = CAT_LABEL[a.catKey]; });
@@ -743,13 +765,10 @@ export class FocoDashboard extends Component {
             const sal = (salud || {})[String(e.id)] || { health: "ok", minutes: 0 };
             const sinSenal = sal.health === "stale" || sal.health === "never";
             const cb = (cobertura || {})[String(e.id)] || null;
-            const res = (resumen || {})[String(e.id)] || {};
             // Hechos de integridad: vienen en la analitica por persona, no en
             // los renglones de uso con los que se arma esta fila.
             const hx = (this.state.porPersona || []).find((p) => p.id === e.id) || {};
             const hechos = hx.hechos || [];
-            const expected = res.expected || 0;
-            const justified = res.justified || 0;
             // Lo unico que amerita conversacion: ni medido, ni justificado.
             const unexplained = Math.max(0, expected - e.active - justified);
             const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
@@ -766,6 +785,11 @@ export class FocoDashboard extends Component {
                 cobFuente: cb ? cb.fuente : "",
                 cobParcial: !!cb && cb.dias_esperados > 0 && cb.dias_con_dato < cb.dias_esperados,
                 expected, justified, unexplained,
+                // Cubierto de su jornada = productivo + justificado. La columna
+                // "Jornada" lo muestra como «cubierto / 8:30» con barra.
+                covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
+                // Rezago del checador a la PC (min), null si no checo ese dia.
+                lagMin: (typeof res.lag_min === "number") ? res.lag_min : null,
                 pendingAbs: res.pending || 0,
                 hasExpected: expected > 0,
                 // Presencia REAL, no un punto verde o gris. Los estados
@@ -816,9 +840,14 @@ export class FocoDashboard extends Component {
                 meter: index >= 70 ? "good" : index >= 40 ? "mid" : "low",
                 online: !!ls && (Date.now() - ls) < 10 * 60 * 1000,
                 since: this.since(ls),
-                // Nunca acusar de baja productividad a quien el agente dejo de
-                // reportar: ese numero bajo es dato FALTANTE, no flojera.
-                attention: !sinSenal && e.active > 0.25 && index < 40,
+                // "Baja productividad" se mide sobre lo que SI hizo (productivo
+                // de lo activo), no sobre el indice de jornada: si usara el
+                // indice, a media manana -cuando nadie ha cubierto sus 8:30-
+                // saldria todo el equipo en rojo. Esa calidad no depende de la
+                // hora. Nunca se acusa a quien el agente dejo de reportar: ese
+                // numero bajo es dato FALTANTE, no flojera.
+                attention: !sinSenal && e.active > 0.25
+                    && (e.active > 0 ? (e.prod / e.active) * 100 : 0) < 40,
             };
         }).sort((a, b) => b.index - a.index || b.active - a.active);
 
@@ -859,12 +888,34 @@ export class FocoDashboard extends Component {
             }
         }
 
+        // Indice del EQUIPO contra la jornada: suma de lo cubierto
+        // (productivo + justificado) sobre la suma de las jornadas (8:30 de
+        // cada quien), por TODAS las personas monitoreadas -no solo las que
+        // tienen renglon-, para que el denominador sea la jornada completa. El
+        // periodo anterior se mide igual, para que la flecha compare lo mismo.
+        let teamCovered = 0, teamExp = 0;
+        for (const [eid, v] of Object.entries(resumen || {})) {
+            teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0);
+            teamExp += v.expected || 0;
+        }
+        let prevJust = 0, prevExp = 0;
+        for (const v of Object.values(resumenPrev || {})) {
+            prevJust += v.justified || 0; prevExp += v.expected || 0;
+        }
+        const idx = teamExp > 0 ? Math.min(100, (teamCovered / teamExp) * 100)
+            : (tActive > 0 ? (tProd / tActive) * 100 : 0);
+        const pIdx = prevExp > 0 ? Math.min(100, ((pProd + prevJust) / prevExp) * 100)
+            : (pActive > 0 ? (pProd / pActive) * 100 : 0);
+
         this.state.team = {
             cobDias, cobEsp, cobParciales,
             cobPct: cobEsp > 0 ? Math.round(cobDias / cobEsp * 100) : 0,
             cobMedible: cobEsp > 0,
             cobSinDato: sinDato.length,
             cobSinDatoNombres: sinDato.slice(0, 8).join(", "),
+            // Jornada del equipo: cubierto / esperado (8:30 x personas).
+            covered: teamCovered, expected: teamExp,
+            coveredPct: teamExp > 0 ? Math.min(100, Math.round(teamCovered / teamExp * 100)) : 0,
             index: Math.round(idx), indexDelta: Math.round(idx - pIdx),
             active: tActive, prod: tProd, prodDelta: tProd - pProd,
             distr: tDistr, distrPct: tActive > 0 ? Math.round(tDistr / tActive * 100) : 0,
@@ -1123,6 +1174,59 @@ export class FocoDashboard extends Component {
         return `hace ${Math.round(s / 86400)} d`;
     }
     setDays(n) { if (n === this.state.days) return; this.state.days = n; this.load(); }
+
+    // ------------------------------------------------ navegacion por fecha
+    //
+    // El periodo termina en un dia ANCLA. Por defecto es hoy; el selector de
+    // fecha lo mueve a un dia pasado para ver el tablero de ese dia (o la
+    // semana/mes que termina en el). "Hoy" lo regresa a hoy.
+
+    /** El dia ancla como Date LOCAL (mediodia, para no cruzar la frontera del
+     *  dia por la zona horaria al construirlo). */
+    fechaAncla() {
+        const [y, m, d] = (this.state.fecha || this.ymd(new Date())).split("-").map(Number);
+        return new Date(y, m - 1, d, 12, 0, 0);
+    }
+    get hoyYmd() { return this.ymd(new Date()); }
+    get anclaEsHoy() { return this.state.fecha === this.hoyYmd; }
+    /** "Hoy" solo esta activo si el ancla es hoy Y el periodo es de 1 dia. */
+    get esHoy() { return this.anclaEsHoy && this.state.days === 1; }
+
+    /** Etiqueta del periodo que se esta viendo, para el subtitulo. */
+    get periodoLabel() {
+        if (this.esHoy) return "Hoy";
+        const fin = this.fechaAncla();
+        if (this.state.days === 1) return this.fechaCorta(fin);
+        const ini = new Date(fin); ini.setDate(fin.getDate() - (this.state.days - 1));
+        return `${this.fechaCorta(ini)} – ${this.fechaCorta(fin)}`;
+    }
+    /** "8 oct" (dia y mes, sin año: el tablero vive en el presente). */
+    fechaCorta(d) {
+        const mes = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        return `${d.getDate()} ${mes[d.getMonth()]}`;
+    }
+
+    verHoy() {
+        if (this.esHoy) return;
+        this.state.days = 1;
+        this.state.fecha = this.hoyYmd;
+        this.load();
+    }
+    setFecha(ev) {
+        let v = ev.target.value;
+        if (!v) return;
+        if (v > this.hoyYmd) v = this.hoyYmd;   // nunca un dia futuro
+        if (v === this.state.fecha) return;
+        this.state.fecha = v;
+        this.load();
+    }
+
+    /** Minutos a texto compacto: «40 min», «1 h 05 min». */
+    fmtMinutos(m) {
+        m = Math.round(m || 0);
+        if (m < 60) return `${m} min`;
+        return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+    }
 }
 
 registry.category("actions").add("foco_dashboard", FocoDashboard);

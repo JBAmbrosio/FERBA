@@ -550,14 +550,49 @@
     .fd_row { animation: fd_in .32s var(--ease) both; }
     @keyframes fd_in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+    // ------------------------------------------- selector de fecha y jornada
+    // Selector de fecha para ver el tablero de dias anteriores. Mismo lenguaje
+    // que los segmentos de periodo: pastilla con icono y el input nativo dentro.
+    .fd_fecha { display: inline-flex; align-items: center; gap: 6px;
+        background: var(--track); border-radius: 10px; padding: 6px 10px;
+        color: var(--ink2); font-size: 13px; cursor: pointer;
+        i { color: var(--ink3); }
+        input[type="date"] { border: 0; background: transparent; color: var(--ink);
+            font: inherit; font-weight: 550; cursor: pointer; color-scheme: light dark;
+            padding: 0; outline: 0; min-width: 0; }
+    }
+    .fd_periodo { color: var(--ink); font-weight: 700; }
+
+    // Columna Jornada: cuanto de la 8:30 se cubrio, con su barra de avance.
+    .fd_table th.c_jor { width: 150px; }
+    .fd_jor { display: flex; flex-direction: column; gap: 5px; min-width: 108px;
+        .fd_jor_v { font-size: 13px; font-weight: 600; color: var(--ink);
+            font-variant-numeric: tabular-nums;
+            small { color: var(--ink3); font-weight: 450; } }
+    }
+    .fd_jor_na { color: var(--ink3); }
+
+    // Etiqueta del rezago checador -> PC: tinta neutra, es un dato, no una
+    // alarma. Nunca el rojo de "mal".
+    .fd_tag.lag { color: var(--neu); text-transform: none; letter-spacing: 0;
+        font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px;
+        i { font-size: 11px; } }
+
+    // Fila del cubierto en la ficha: es el resultado del calculo, resaltado.
+    .fd_acct .r.total { border-top: 1px solid var(--line); border-bottom: 0;
+        margin-top: 2px; padding-top: 9px;
+        .l { color: var(--ink); font-weight: 700; }
+        .v.idx { font-size: 15px; font-weight: 800;
+            &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } } }
+
     @media (max-width: 900px) {
         .fd_kpis { grid-template-columns: repeat(2, 1fr); }
         .fd_cols { grid-template-columns: 1fr; }
         // Las dos graficas pedian 420 px cada una tambien en un telefono y
         // desbordaban la pagina; a una columna caben.
         .fd_duo { grid-template-columns: 1fr; }
-        // La columna de Distraccion es la 6a desde que existe el caret.
-        .fd_table th.c_num:nth-child(6), .fd_table td.c_num:nth-child(6) { display: none; }
+        // Distraccion es la 7a columna desde que Jornada entro antes que Activo.
+        .fd_table th.c_num:nth-child(7), .fd_table td.c_num:nth-child(7) { display: none; }
         .fd_exp_box { padding-left: 30px; }
         .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 96px 56px; .p { display: none; } }
     }
