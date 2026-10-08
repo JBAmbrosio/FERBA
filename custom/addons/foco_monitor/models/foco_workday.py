@@ -117,6 +117,16 @@ class FocoWorkday(models.Model):
              'primera senal en la computadora. Positivo: checo y tardo en '
              'llegar al equipo (metrica pedida). Solo se calcula cuando usa el '
              'checador; 0 si no checa o si uso la PC antes de checar.')
+    check_out_missing = fields.Boolean(
+        string='No cerro salida', readonly=True, index=True,
+        help='Checo entrada ese dia y el dia ya termino sin que checara salida. '
+             'Solo se marca en dias PASADOS: hoy una asistencia abierta es '
+             'normal (sigue trabajando). Se limpia solo si despues cierra la '
+             'salida o RRHH la corrige.')
+    check_out_notified = fields.Boolean(
+        string='Avisado de la salida', readonly=True, copy=False,
+        help='Ya se le recordo al empleado que no cerro salida ese dia. Se '
+             'avisa UNA vez por dia, no se insiste.')
 
     gap_count = fields.Integer(string='Huecos', readonly=True)
     unexplained_minutes = fields.Integer(
@@ -247,6 +257,14 @@ class FocoWorkday(models.Model):
                 # checador no prueba que ya este trabajando.
                 vals['check_in_lag_minutes'] = self._lag_checador(
                     ajustes, emp, dia, zona, primero, jor['fuente'])
+                # "No cerro salida": checo entrada ese dia y el dia ya termino
+                # sin que cerrara. Solo en dias pasados. Se recalcula cada vez,
+                # asi que si despues cierra la salida se limpia solo. El aviso
+                # al empleado no se reenvia (se conserva check_out_notified).
+                falta = self._falta_salida(emp, dia, zona, ini_utc, fin_utc)
+                vals['check_out_missing'] = falta
+                if not falta:
+                    vals['check_out_notified'] = False
                 if primero and ultimo and (primero_p or ultimo_p or usos):
                     vals['state'] = 'completo'
                 elif primero and ultimo:
@@ -298,6 +316,57 @@ class FocoWorkday(models.Model):
         if lag < 0 or lag > 600:            # antes de checar, o ruido de borde
             return 0
         return lag
+
+    @api.model
+    def _falta_salida(self, emp, dia, zona, ini_utc, fin_utc):
+        """Checo entrada ese dia y el dia ya termino sin cerrar salida.
+
+        Solo tiene sentido en dias PASADOS: hoy una asistencia abierta es
+        normal (la persona sigue trabajando). Se mira la asistencia cuya
+        ENTRADA cae en el dia; si sigue sin salida y el dia ya paso, falto
+        cerrar. Solo aplica a quien usa el checador: sin asistencia, nada que
+        cerrar.
+        """
+        if 'hr.attendance' not in self.env:
+            return False
+        if dia >= datetime.now(zona).date():
+            return False
+        return bool(self.env['hr.attendance'].sudo().search_count([
+            ('employee_id', '=', emp.id),
+            ('check_in', '>=', ini_utc), ('check_in', '<=', fin_utc),
+            ('check_out', '=', False)]))
+
+    # ---------------------------------------------- recordatorio "no cerro salida"
+    @api.model
+    def _cron_recordar_salida(self, dias_atras=7):
+        """Avisa UNA vez a cada empleado que dejo una salida sin cerrar.
+
+        Al cierre del dia: un cron diario busca las jornadas marcadas y aun no
+        avisadas de los ultimos dias y le manda un correo al propio empleado con
+        los dias que le faltan por cerrar. No insiste: `check_out_notified`.
+        """
+        hoy = fields.Date.context_today(self)
+        pend = self.sudo().search([
+            ('check_out_missing', '=', True),
+            ('check_out_notified', '=', False),
+            ('date', '>=', hoy - timedelta(days=dias_atras))])
+        if not pend:
+            return 0
+        tpl = self.env.ref('foco_monitor.mail_tpl_no_salida', raise_if_not_found=False)
+        enviados = 0
+        for emp in pend.mapped('employee_id'):
+            suyas = pend.filtered(lambda w, e=emp: w.employee_id == e)
+            if tpl and emp.work_email:
+                try:
+                    tpl.sudo().send_mail(emp.id, force_send=False)
+                except Exception:
+                    _logger.exception('Foco: aviso de salida sin cerrar de %s', emp.name)
+            # Se marca avisado aunque no haya correo: el KPI y la etiqueta del
+            # tablero siguen mostrandolo para que un administrador lo vea.
+            suyas.write({'check_out_notified': True})
+            enviados += 1
+        _logger.info('Foco: recordatorios de salida sin cerrar: %s empleados', enviados)
+        return enviados
 
     @api.model
     def _momentos(self, eventos, huecos, ini_utc, fin_utc):

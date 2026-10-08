@@ -331,6 +331,17 @@ class FocoAbsence(models.Model):
                 ('shift_source', '=', 'checador'),
                 ('first_signal', '!=', False)]):
             lags.setdefault(w.employee_id.id, []).append(w.check_in_lag_minutes)
+        # Dias del periodo en que el empleado checo entrada y nunca cerro salida
+        # (8-oct-2026). Es un conteo por persona para la etiqueta de su fila y el
+        # KPI del equipo; el recordatorio al propio empleado va por su cron.
+        sin_salida = {}
+        for emp_x, cuantos in self.env['foco.workday'].sudo()._read_group(
+                [('employee_id', 'in', empleados.ids),
+                 ('date', '>=', d_ini), ('date', '<=', d_fin),
+                 ('check_out_missing', '=', True)],
+                ['employee_id'], ['__count']):
+            if emp_x:
+                sin_salida[emp_x.id] = cuantos
         out = {}
         for employee in empleados:
             tz = Settings._tzinfo_for(employee)
@@ -363,6 +374,8 @@ class FocoAbsence(models.Model):
                 # None cuando no hay ningun dia con checada: el tablero no lo
                 # dibuja, en vez de pintar un 0 que afirmaria "llego al instante".
                 'lag_min': int(round(sum(v) / len(v))) if v else None,
+                # Dias del periodo en que checo entrada y no cerro salida.
+                'sin_salida': sin_salida.get(employee.id, 0),
             }
         return out
 

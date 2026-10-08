@@ -84,6 +84,48 @@
             </field>
         </record>
 
+        <record id="mail_tpl_no_salida" model="mail.template">
+            <field name="name">Foco: no cerraste salida en el checador</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="subject">Te faltó cerrar salida en el checador</field>
+            <field name="email_to">{{ object.work_email }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; color:#111826; max-width:520px;">
+                    <p>Hola <t t-out="object.name and object.name.split(' ')[0] or ''"/>,</p>
+                    <p>Checaste entrada pero no registraste tu <b>salida</b> en el checador
+                       estos días. Para que tu jornada quede completa, ciérrala en el
+                       checador o avísale a Recursos Humanos.</p>
+                    <div style="margin:18px 0;">
+                        <t t-foreach="object.foco_dias_sin_salida()" t-as="d">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+                                   style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+                                <tr>
+                                    <td width="5" style="width:5px; background-color:#b45309; font-size:0; line-height:0;">&#160;</td>
+                                    <td style="background-color:#fbf6ee; border:1px solid #efe2cf; border-left:0; padding:13px 16px; font-size:15px; font-weight:bold; color:#111826;">
+                                        <t t-out="d"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </t>
+                    </div>
+                    <p style="color:#8b95a6;font-size:12px;">
+                        Este recordatorio se envía una sola vez por día.<br/>
+                        FERBA · Postharvest Technology
+                    </p>
+                </div>
+            </field>
+        </record>
+
+        <record id="cron_foco_no_salida" model="ir.cron">
+            <field name="name">Foco: recordar salida sin cerrar</field>
+            <field name="model_id" ref="foco_monitor.model_foco_workday"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_recordar_salida()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
         <record id="cron_foco_agent_health" model="ir.cron">
             <field name="name">Foco: vigilar agentes sin señal</field>
             <field name="model_id" ref="foco_monitor.model_foco_computer"/>

@@ -166,6 +166,18 @@
                         <div t-attf-class="fd_kpi_v {{ state.revisar ? 'warn' : '' }}"><t t-esc="state.revisar"/></div>
                         <div class="fd_kpi_foot">la IA las marcó como vagas · sin revisar</div>
                     </div>
+
+                    <!-- Dias en que alguien checó ENTRADA y nunca cerró SALIDA.
+                         Puede ser un olvido, no una falta: ámbar, no rojo. Lleva
+                         a la lista de jornadas filtrada a esos dias. -->
+                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirSinSalida"
+                         title="Abrir Jornadas › Salidas sin cerrar: checó entrada y no cerró salida.">
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Sin cerrar salida</span>
+                        </div>
+                        <div t-attf-class="fd_kpi_v {{ state.team.sinSalida ? 'warn' : '' }}"><t t-esc="state.team.sinSalida or 0"/></div>
+                        <div class="fd_kpi_foot">checó entrada y no cerró salida</div>
+                    </div>
                 </section>
 
                 <!-- ================================================ TENDENCIA
@@ -322,6 +334,14 @@
                                                         <span class="fd_tag lag"
                                                               t-attf-title="Checó entrada y su primera señal en la computadora fue {{ fmtMinutos(e.lagMin) }} después.">
                                                             <i class="fa fa-clock-o"/> +<t t-esc="fmtMinutos(e.lagMin)"/> al PC
+                                                        </span>
+                                                    </t>
+                                                    <!-- Checó entrada y no cerró salida. Puede ser un
+                                                         olvido: ámbar de revisar, no rojo de falta. -->
+                                                    <t t-if="e.sinSalida">
+                                                        <span class="fd_tag lag"
+                                                              t-attf-title="{{ e.sinSalida === 1 ? 'Un día' : e.sinSalida + ' días' }} del periodo en que checó entrada y no cerró salida.">
+                                                            <i class="fa fa-sign-out"/> no cerró salida<t t-if="e.sinSalida > 1"> (<t t-esc="e.sinSalida"/>)</t>
                                                         </span>
                                                     </t>
                                                 </span>
@@ -575,6 +595,14 @@
                                     <span class="fd_dot neutral"/>Del checador a la PC
                                 </span>
                                 <span class="v" t-esc="fmtMinutos(state.detail.lagMin)"/>
+                            </div>
+                            <!-- Checó entrada y no cerró salida en el periodo.
+                                 Dato para RRHH, no castigo: puede ser un olvido. -->
+                            <div class="r sub" t-if="state.detail.sinSalida">
+                                <span class="l" title="Días del periodo en que checó entrada en el checador y terminó el día sin checar salida. Se le avisa una vez por día.">
+                                    <span class="fd_dot neutral"/>Días sin cerrar salida
+                                </span>
+                                <span class="v warn" t-esc="state.detail.sinSalida"/>
                             </div>
                             <div class="r sub" t-if="state.detail.hasCall">
                                 <span class="l"><span class="fd_dot navegador"/>Activo, de eso en llamadas</span>

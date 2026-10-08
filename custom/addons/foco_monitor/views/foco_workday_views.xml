@@ -33,6 +33,9 @@
                 <field name="expected_hours" widget="float_time" optional="hide"/>
                 <field name="unexplained_minutes" optional="show"
                        decoration-warning="unexplained_minutes > 0"/>
+                <field name="check_out_missing" string="No cerro salida" optional="show"
+                       decoration-warning="check_out_missing"/>
+                <field name="check_out_notified" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-muted="state == 'sin_dato'"
                        decoration-warning="state == 'sin_detalle' or state == 'solo_equipo'"/>
@@ -53,6 +56,8 @@
                         domain="[('shift_gap_hours', '&gt;', 0)]"/>
                 <filter name="f_sin_explicar" string="Con tiempo sin explicar"
                         domain="[('unexplained_minutes', '&gt;', 0)]"/>
+                <filter name="f_sin_salida" string="No cerro salida"
+                        domain="[('check_out_missing', '=', True)]"/>
                 <separator/>
                 <filter name="f_hoy" string="Hoy"
                         domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
@@ -77,6 +82,24 @@
             <p class="o_view_nocontent_smiling_face">Todavia no hay jornadas calculadas</p>
             <p>Se arman solas cuando los equipos reportan. Un equipo que nunca
                ha reportado no aparece aqui.</p>
+        </field>
+    </record>
+
+    <!-- El KPI del tablero "Sin cerrar salida" abre esta vista, ya filtrada a
+         los dias en que alguien checo entrada y nunca cerro. -->
+    <record id="foco_workday_sin_salida_action" model="ir.actions.act_window">
+        <field name="name">Salidas sin cerrar</field>
+        <field name="res_model">foco.workday</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="foco_workday_view_list"/>
+        <field name="search_view_id" ref="foco_workday_view_search"/>
+        <field name="domain">[('check_out_missing', '=', True)]</field>
+        <field name="context">{'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nadie dejo una salida sin cerrar</p>
+            <p>Aqui aparece quien checo ENTRADA y termino el dia sin checar
+               SALIDA. Si la persona la cierra despues o RRHH la corrige, el
+               renglon desaparece solo.</p>
         </field>
     </record>
 </odoo>

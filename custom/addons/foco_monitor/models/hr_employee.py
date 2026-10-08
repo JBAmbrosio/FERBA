@@ -35,6 +35,19 @@ class HrEmployee(models.Model):
         self.ensure_one()
         return self.env['foco.absence'].sudo().pending_for_employee(self).payload()
 
+    def foco_dias_sin_salida(self):
+        """Dias en que no cerro salida y aun no se le ha avisado. Lo usa el
+        correo de recordatorio. Devuelve ['lunes 6 de octubre', ...]."""
+        self.ensure_one()
+        dias_es = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+        meses_es = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+                    'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+        wds = self.env['foco.workday'].sudo().search(
+            [('employee_id', '=', self.id), ('check_out_missing', '=', True),
+             ('check_out_notified', '=', False)], order='date')
+        return ['%s %d de %s' % (dias_es[d.weekday()], d.day, meses_es[d.month - 1])
+                for d in wds.mapped('date')]
+
     @api.model
     def _foco_by_token(self, token):
         """Resuelve el token. Devuelve vacio si no existe o si ya caduco."""

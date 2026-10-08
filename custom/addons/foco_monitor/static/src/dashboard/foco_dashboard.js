@@ -799,6 +799,9 @@ export class FocoDashboard extends Component {
                 covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
                 // Rezago del checador a la PC (min), null si no checo ese dia.
                 lagMin: (typeof res.lag_min === "number") ? res.lag_min : null,
+                // Dias del periodo en que checo entrada y no cerro salida. Es
+                // una etiqueta en su fila, no un castigo: puede ser un olvido.
+                sinSalida: res.sin_salida || 0,
                 pendingAbs: res.pending || 0,
                 hasExpected: expected > 0,
                 // Presencia REAL, no un punto verde o gris. Los estados
@@ -911,6 +914,11 @@ export class FocoDashboard extends Component {
         for (const v of Object.values(resumenPrev || {})) {
             prevJust += v.justified || 0; prevExp += v.expected || 0;
         }
+        // Dias "sin cerrar salida" de TODO el equipo en el periodo: se suma
+        // sobre el resumen (todas las personas monitoreadas), no sobre la tabla,
+        // que deja fuera a quien no genero renglones de uso.
+        let teamSinSalida = 0;
+        for (const v of Object.values(resumen || {})) teamSinSalida += v.sin_salida || 0;
         const idx = teamExp > 0 ? Math.min(100, (teamCovered / teamExp) * 100)
             : (tActive > 0 ? (tProd / tActive) * 100 : 0);
         const pIdx = prevExp > 0 ? Math.min(100, ((pProd + prevJust) / prevExp) * 100)
@@ -932,6 +940,9 @@ export class FocoDashboard extends Component {
             siteHours: siteAll.reduce((sum, s) => sum + s.hours, 0),
             pendCount: pend.length, pendHours,
             monitored: employees.length, online: employees.filter((e) => e.online).length,
+            // Salidas sin cerrar del equipo en el periodo: el KPI lleva a la
+            // lista de jornadas filtrada a esos dias.
+            sinSalida: teamSinSalida,
             meter: idx >= 70 ? "good" : idx >= 40 ? "mid" : "low",
             // Veredictos de la IA del equipo en el periodo (de la analitica,
             // que ya respeta el alcance y la ACL del usuario).
@@ -1082,6 +1093,11 @@ export class FocoDashboard extends Component {
         this.action.doAction("foco_monitor.foco_absence_review_action", {
             additionalContext: { search_default_sin_revisar: 1 },
         });
+    }
+
+    /** Los dias en que alguien checo entrada y nunca cerro salida. */
+    abrirSinSalida() {
+        this.action.doAction("foco_monitor.foco_workday_sin_salida_action");
     }
 
     /** Los episodios que la IA no explico como trabajo, con los que faltan
