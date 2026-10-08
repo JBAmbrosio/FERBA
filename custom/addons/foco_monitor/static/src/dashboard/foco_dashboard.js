@@ -629,6 +629,9 @@ export class FocoDashboard extends Component {
         ]);
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
+        // Veredictos de la IA: solo quien puede ver los episodios (administradores)
+        // recibe la tarjeta; para los demas el servidor manda falso.
+        this.state.iaVisible = !!analitica.ia_visible;
         // Desde 19.0.18: {dias, fuentes}. `fuentes` dice cuantas personas se
         // rigen por el checador y cuantas por el calendario en el periodo.
         this.state.jornada = (jornada && jornada.dias) || [];
@@ -790,6 +793,16 @@ export class FocoDashboard extends Component {
                     .map((h) => `${h.etiqueta}: ${h.texto} · ${h.dias} ${h.dias === 1 ? "día" : "días"}`
                         + (h.mantenimiento_dias ? `, ${h.mantenimiento_dias} con mantenimiento del agente` : ""))
                     .join("\n"),
+                // Veredictos de la IA del periodo: episodios sospechosos con
+                // captura en los que el modelo NO vio trabajo y nadie descarto.
+                // Los que la IA explico como trabajo no se cuentan: absuelven.
+                iaN: (hx.ia && hx.ia.sospechosos) || 0,
+                iaSinRevisar: (hx.ia && hx.ia.sin_revisar) || 0,
+                iaTitulo: hx.ia && hx.ia.analizados
+                    ? `${hx.ia.analizados} episodio${hx.ia.analizados === 1 ? "" : "s"} analizado${hx.ia.analizados === 1 ? "" : "s"} por la IA`
+                      + ` · ${hx.ia.sospechosos} no parece${hx.ia.sospechosos === 1 ? "" : "n"} trabajo (${Math.round(hx.ia.minutos)} min)`
+                      + ` · ${hx.ia.sin_revisar} sin revisar · ${hx.ia.confirmados} confirmado${hx.ia.confirmados === 1 ? "" : "s"}`
+                    : "",
                 call: e.call, hasCall: e.call > 0.008,
                 // Frente a la pantalla sin teclear. NO se resta de nada: se
                 // traslapa con las ausencias justificadas (quien se va al
@@ -860,6 +873,15 @@ export class FocoDashboard extends Component {
             pendCount: pend.length, pendHours,
             monitored: employees.length, online: employees.filter((e) => e.online).length,
             meter: idx >= 70 ? "good" : idx >= 40 ? "mid" : "low",
+            // Veredictos de la IA del equipo en el periodo (de la analitica,
+            // que ya respeta el alcance y la ACL del usuario).
+            ...((this.state.porPersona || []).reduce((a, p) => {
+                const x = p.ia || {};
+                a.iaAnalizados += x.analizados || 0;
+                a.iaSospechosos += x.sospechosos || 0;
+                a.iaSinRevisar += x.sin_revisar || 0;
+                return a;
+            }, { iaAnalizados: 0, iaSospechosos: 0, iaSinRevisar: 0 })),
         };
         this.state.employees = employees;
         this.state.composition = composition;
@@ -992,6 +1014,14 @@ export class FocoDashboard extends Component {
                 foco_employee_id: e.id,
                 foco_desde: this.state.rango ? this.state.rango[1] : undefined,
             },
+        });
+    }
+
+    /** Los episodios que la IA no explico como trabajo, con los que faltan
+     *  por revisar al frente: la tarjeta es la puerta a las capturas. */
+    abrirVeredictos() {
+        this.action.doAction("foco_monitor.foco_integrity_verdict_action", {
+            additionalContext: { search_default_sin_revisar: 1 },
         });
     }
 

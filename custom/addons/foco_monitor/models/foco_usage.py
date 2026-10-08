@@ -331,11 +331,53 @@ class FocoUsage(models.Model):
                            for h in lista[:6]]
             e['hechos_n'] = len(lista)
 
+        # --- veredictos de la IA del periodo, por persona ----------------------
+        # Solo administradores ven los episodios (ACL): a los demas, ceros y
+        # `ia_visible` en falso, y el tablero no dibuja la tarjeta. Cuenta los
+        # analizados, los que NO parecen trabajo y nadie descarto, y los que
+        # esperan revision.
+        ia = {}
+        ia_visible = False
+        try:
+            Ver = self.env['foco.integrity.verdict']
+            ia_visible = bool(Ver.has_access('read')) if hasattr(Ver, 'has_access') \
+                else bool(Ver.check_access_rights('read', raise_exception=False))
+            if ia_visible and empleados:
+                import pytz
+                from datetime import datetime as _dt, time as _time
+                try:
+                    tz = pytz.timezone(self.env.user.tz or self.env.company.partner_id.tz or 'America/Mazatlan')
+                except Exception:
+                    tz = pytz.timezone('America/Mazatlan')
+                ini = tz.localize(_dt.combine(desde, _time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+                fin = tz.localize(_dt.combine(hasta, _time.max)).astimezone(pytz.UTC).replace(tzinfo=None, microsecond=0)
+                for v in Ver.search([('employee_id', 'in', [e['id'] for e in empleados]),
+                                     ('state', '=', 'analizado'),
+                                     ('started_at', '>=', ini), ('started_at', '<=', fin)]):
+                    x = ia.setdefault(v.employee_id.id, {'analizados': 0, 'sospechosos': 0,
+                                                          'sin_revisar': 0, 'confirmados': 0, 'minutos': 0.0})
+                    x['analizados'] += 1
+                    if v.sospechoso and v.review_outcome != 'descartado':
+                        x['sospechosos'] += 1
+                        x['minutos'] += v.duration_min or 0.0
+                        if v.review_outcome == 'pendiente':
+                            x['sin_revisar'] += 1
+                        elif v.review_outcome == 'confirmado':
+                            x['confirmados'] += 1
+        except Exception:
+            ia, ia_visible = {}, False
+        for e in empleados:
+            x = ia.get(e['id']) or {'analizados': 0, 'sospechosos': 0, 'sin_revisar': 0,
+                                    'confirmados': 0, 'minutos': 0.0}
+            x['minutos'] = round(x['minutos'], 1)
+            e['ia'] = x
+
         total_activo = sum(e['activo'] for e in empleados)
         total_prod = sum(e['productivo'] for e in empleados)
         return {
             'dias': dias,
             'empleados': empleados,
+            'ia_visible': ia_visible,
             'reparto': {
                 'productivo': round(total_prod, 3),
                 'distraccion': round(sum(e['distraccion'] for e in empleados), 3),

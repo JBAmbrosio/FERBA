@@ -520,6 +520,44 @@ class FocoIntegrityVerdict(models.Model):
                 'tokens': int(res.get('tokens') or 0), 'decided_at': fields.Datetime.now(),
                 'error_detail': False,
             })
+            rec._rehacer_hecho()
+
+    # ------------------------------------------------------------ hecho de integridad
+    def _dia_local(self, settings=None):
+        self.ensure_one()
+        settings = settings or self.env['foco.settings'].sudo().get_settings()
+        zona = settings._tzinfo_for(self.employee_id, self.computer_id) or pytz.UTC
+        return pytz.UTC.localize(self.started_at).astimezone(zona).date() if self.started_at else False
+
+    def _rehacer_hecho(self):
+        """El hecho de integridad 'veredicto_ia' del dia de esa persona se
+        rehace en cuanto hay veredicto o revision, sin esperar al cron de 6 h:
+        el tablero y Tomy leen los hechos, no los episodios."""
+        if 'foco.integrity.fact' not in self.env:
+            return
+        settings = self.env['foco.settings'].sudo().get_settings()
+        Fact = self.env['foco.integrity.fact'].sudo()
+        for rec in self:
+            dia = rec._dia_local(settings) if rec.employee_id else False
+            if not dia:
+                continue
+            try:
+                Fact.rebuild(rec.employee_id, [dia])
+            except Exception as e:
+                _logger.warning('foco.integrity.verdict %s: no se rehizo el hecho (%s)', rec.ref, e)
+
+    def unlink(self):
+        # Borrar un episodio tiene que borrar lo que el hecho decia de el.
+        pares = [(r.employee_id, r._dia_local()) for r in self if r.employee_id and r.started_at]
+        res = super().unlink()
+        if pares and 'foco.integrity.fact' in self.env:
+            Fact = self.env['foco.integrity.fact'].sudo()
+            for emp, dia in {(e.id, d): (e, d) for e, d in pares}.values():
+                try:
+                    Fact.rebuild(emp, [dia])
+                except Exception as e:
+                    _logger.warning('foco.integrity.verdict: no se rehizo el hecho al borrar (%s)', e)
+        return res
 
     # ------------------------------------------------------------ revision humana
     def action_confirmar(self):
@@ -538,6 +576,8 @@ class FocoIntegrityVerdict(models.Model):
         self.write({'review_outcome': resultado,
                     'reviewed_by': self.env.user.id if resultado != 'pendiente' else False,
                     'reviewed_at': fields.Datetime.now() if resultado != 'pendiente' else False})
+        # Descartar un episodio lo saca del hecho; confirmarlo lo deja marcado.
+        self._rehacer_hecho()
 
     # ------------------------------------------------------------ cron
     @api.model

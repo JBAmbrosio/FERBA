@@ -62,6 +62,11 @@ DEFINICIONES = {
                                  'la politica y el navegador no lo cargo. No lo vio.',
     'dispositivo_nuevo': 'Windows instalo un mouse, teclado o HID que no conocia. Normal al estrenar un '
                          'mouse; junto a horas solo-mouse es evidencia de jiggler de hardware.',
+    'veredicto_ia': 'Episodio sospechoso: un patron (pantalla sin cambio, solo mouse, input inyectado) que '
+                    'duro el umbral (15 min) en la misma app; el agente tomo capturas y la IA de Odoo dijo '
+                    'que se veia -trabajo real, revision pasiva, entretenimiento, asunto personal, pantalla '
+                    'inactiva, simulacion o indeterminado- con confianza y motivo. Un administrador lo '
+                    'confirma o lo descarta. Es evidencia del modelo sobre capturas; nunca una sancion.',
 }
 
 
@@ -294,6 +299,11 @@ class FocoTomy(models.AbstractModel):
             "11. Si preguntan por trampa, evasion, engano, 'algo raro' o integridad, usa 'integridad': "
             "contesta con los hechos (medida, dias, significado), di si ese dia hubo mantenimiento, y "
             "cierra con lo que Foco no puede saber. Nunca escribas 'hizo trampa' ni 'no hizo trampa'.\n"
+            "12. Si preguntan que vio la IA, por capturas, episodios sospechosos o veredictos, usa "
+            "'veredictos_ia': di el veredicto del modelo con su confianza y lo que vio, distingue lo "
+            "confirmado por un administrador de lo sin revisar y de lo descartado, y si la IA vio trabajo o "
+            "revision dilo como lo que EXPLICA el patron (un plano quieto no es simulacion). El veredicto es "
+            "del modelo sobre capturas, no un hecho medido: nunca escribas 'esta simulando' ni 'hizo trampa'.\n"
             "%s"
             % (PREFIJO_FUERA, dias[hoy.weekday()], hoy.isoformat(), lunes.isoformat(),
                (lunes + timedelta(days=6)).isoformat(), (hoy - timedelta(days=1)).isoformat(), gente, rango)
@@ -470,6 +480,17 @@ class FocoTomy(models.AbstractModel):
               '"algo raro". Nunca da veredicto. SIN employee_id trae a TODAS las personas del alcance de '
               'una vez: para el equipo llamala UNA sola vez, no una por persona.',
               {'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
+            t('veredictos_ia',
+              'Episodios de actividad sospechosa (pantalla quieta, solo mouse o input inyectado durante el '
+              'umbral) en los que el agente tomo capturas y la IA de Odoo dijo que se veia: trabajo real, '
+              'revision pasiva, entretenimiento, asunto personal, pantalla inactiva, simulacion o '
+              'indeterminado, con confianza, motivo, que vio, y si un administrador lo confirmo o lo '
+              'descarto. Para "que vio la IA", "capturas", "episodios", "veredictos", "simulacion". Solo '
+              'administradores. Nunca es una sancion.',
+              {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
+               'solo_sospechosos': {'type': 'boolean',
+                                    'description': 'opcional: solo los episodios que no parecen trabajo'}},
+              ['desde', 'hasta']),
             t('grafica',
               'Dibuja una grafica en la respuesta con datos que YA obtuviste de otras herramientas.',
               {'tipo': {'type': 'string', 'enum': ['barras', 'lineas', 'dona']},
@@ -484,7 +505,8 @@ class FocoTomy(models.AbstractModel):
             t('abrir_en_odoo',
               'Pone en la respuesta un boton para abrir esa pantalla de Foco con el filtro dado.',
               {'pantalla': {'type': 'string',
-                            'enum': ['detalle_uso', 'jornada', 'ausencias', 'llamadas', 'sitios', 'tablero']},
+                            'enum': ['detalle_uso', 'jornada', 'ausencias', 'llamadas', 'sitios', 'tablero',
+                                     'veredictos']},
                'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['pantalla']),
         ]
 
@@ -528,6 +550,67 @@ class FocoTomy(models.AbstractModel):
                          'cuantos de esos dias hubo mantenimiento (explica arranques sin causa y '
                          'retrasos), y cierra con lo que Foco no puede saber. Ningun hecho prueba '
                          'intencion: no concluyas "hizo trampa" ni "no hizo trampa".'}
+
+    def _tool_veredictos_ia(self, artefactos, desde=None, hasta=None, employee_id=None,
+                            solo_sospechosos=False):
+        d, h, nota = self._fechas(desde, hasta)
+        # ACL de administrador: a quien no puede verlos, el ORM le levanta
+        # AccessError y _ejecutar contesta "no tienes permiso".
+        Ver = self.env['foco.integrity.verdict']
+        gente = self._empleado(employee_id) if employee_id else self._alcance()
+        regs = Ver.search([('employee_id', 'in', gente.ids),
+                           ('started_at', '>=', self._utc(d)), ('started_at', '<=', self._utc(h, fin=True))],
+                          order='started_at desc')
+        if solo_sospechosos:
+            regs = regs.filtered(lambda v: v.sospechoso)
+        etiq_v = dict(Ver._fields['veredicto'].selection)
+        etiq_p = dict(Ver._fields['pattern'].selection)
+        etiq_r = dict(Ver._fields['review_outcome'].selection)
+        conteo, minutos = {}, {}
+        sin_revisar = 0
+        for v in regs:
+            ver = etiq_v.get(v.veredicto, 'sin veredicto todavia').split(' (')[0] if v.veredicto else 'sin veredicto todavia'
+            conteo[ver] = conteo.get(ver, 0) + 1
+            minutos[ver] = minutos.get(ver, 0.0) + (v.duration_min or 0.0)
+            if v.sospechoso and v.review_outcome == 'pendiente':
+                sin_revisar += 1
+        episodios, filas = [], []
+        for v in regs[:60]:
+            ver = etiq_v.get(v.veredicto, 'sin veredicto todavia').split(' (')[0] if v.veredicto else 'sin veredicto todavia'
+            rev = etiq_r.get(v.review_outcome, v.review_outcome)
+            episodios.append({
+                'persona': v.employee_id.name, 'employee_id': v.employee_id.id,
+                'inicio': self._local(v.started_at), 'duracion_min': round(v.duration_min or 0.0),
+                'patron': etiq_p.get(v.pattern, v.pattern), 'app': v.app_name or v.exe or '',
+                'veredicto': ver, 'no_parece_trabajo': bool(v.sospechoso),
+                'confianza_pct': int(round((v.confianza or 0.0) * 100)),
+                'motivo': v.motivo or '', 'que_vio': v.que_se_ve or '',
+                'capturas': v.capture_count, 'las_capturas': v.capturas_cambian or '',
+                'revision': rev, 'ajustado_por_regla': bool(v.ajustado),
+                'estado': v.state,
+            })
+            filas.append([v.employee_id.name, self._local(v.started_at), round(v.duration_min or 0.0),
+                          v.app_name or v.exe or '', ver, '%d%%' % int(round((v.confianza or 0.0) * 100)),
+                          rev])
+        if filas:
+            self._tabla(artefactos, 'Veredictos de la IA (%s a %s)' % (d, h),
+                        ['Persona', 'Inicio', 'Min', 'Aplicacion', 'Veredicto', 'Confianza', 'Revision'], filas)
+        return {
+            'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None,
+            'total_episodios': len(regs),
+            'por_veredicto': [{'veredicto': k, 'episodios': n, 'minutos': round(minutos.get(k, 0.0))}
+                              for k, n in sorted(conteo.items(), key=lambda kv: -kv[1])],
+            'sin_revisar': sin_revisar,
+            'episodios': episodios,
+            'sin_episodios': [e.name for e in gente if not any(x['employee_id'] == e.id for x in episodios)]
+                             if not solo_sospechosos else None,
+            'significado': DEFINICIONES['veredicto_ia'],
+            'regla': 'La tabla ya se muestra: no la repitas. Resume por persona cuantos episodios hubo, '
+                     'cuantos la IA explico como trabajo o revision (eso absuelve el patron) y cuantos no '
+                     'parecen trabajo, con lo que el modelo vio; distingue confirmado, sin revisar y '
+                     'descartado. El veredicto es del modelo sobre capturas, no un hecho: nunca concluyas '
+                     '"esta simulando" ni "hizo trampa"; invita a abrir el episodio y mirar las capturas.',
+        }
 
     def _tool_resumen_persona(self, artefactos, employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id)
@@ -930,6 +1013,8 @@ class FocoTomy(models.AbstractModel):
                          {'search_default_employee_id': emp.id} if emp else {}),
             'sitios': ('Sitios por clasificar', 'foco_monitor.foco_site_action', {'search_default_sin_clasificar': 1}),
             'tablero': ('Tablero', 'foco_monitor.foco_dashboard_action', {}),
+            'veredictos': ('Veredictos de la IA', 'foco_monitor.foco_integrity_verdict_action',
+                           {'search_default_employee_id': emp.id} if emp else {'search_default_sin_revisar': 1}),
         }
         etiqueta, accion, ctx = pantallas.get(pantalla, pantallas['tablero'])
         if emp:
