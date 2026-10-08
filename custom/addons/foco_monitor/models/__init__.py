@@ -17,6 +17,7 @@ from . import foco_openai
 from . import foco_call_review
 from . import foco_tomy
 from . import foco_integrity
+from . import foco_integrity_verdict
 from . import foco_invitation
 from . import foco_absence
 from . import foco_tab_review

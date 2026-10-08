@@ -160,6 +160,48 @@ class FocoOpenAI(models.AbstractModel):
         return {'message': mensaje, 'usage': j.get('usage') or {}, 'modelo': modelo}
 
     @api.model
+    def vision(self, imagenes, sistema, usuario, esquema, max_tokens=700, detail='low'):
+        """Una pregunta con imagenes y respuesta en JSON con esquema.
+
+        `imagenes`: lista de (mime, base64) en el orden en que el modelo debe
+        verlas. `detail`='low' manda cada imagen a 512 px (unos 85 tokens por
+        imagen, suficiente para decir que hay en pantalla); 'high' lee texto
+        pequeno y cuesta varias veces mas. Devuelve {'json', 'tokens', 'modelo'}.
+        Levanta UserError si la API falla o no contesta JSON: quien llama
+        decide si reintenta."""
+        key = self.api_key()
+        if not key:
+            raise UserError('Falta la API key de OpenAI (Foco > Configuracion > Analisis de llamadas).')
+        modelo = self._param('foco.openai_vision_model', 'gpt-4o')
+        contenido = [{'type': 'text', 'text': usuario}]
+        for mime, b64 in imagenes:
+            if isinstance(b64, bytes):
+                b64 = b64.decode('ascii', 'ignore')
+            contenido.append({'type': 'image_url', 'image_url': {
+                'url': 'data:%s;base64,%s' % (mime or 'image/jpeg', b64),
+                'detail': detail if detail in ('low', 'high', 'auto') else 'low'}})
+        cuerpo = {
+            'model': modelo, 'temperature': 0, 'max_tokens': int(max_tokens or 700),
+            'response_format': {'type': 'json_schema', 'json_schema': esquema},
+            'messages': [{'role': 'system', 'content': sistema},
+                         {'role': 'user', 'content': contenido}],
+        }
+        try:
+            r = requests.post(API + '/chat/completions', headers={'Authorization': 'Bearer ' + key},
+                              json=cuerpo, timeout=120)
+        except requests.RequestException as e:
+            raise UserError('OpenAI vision: sin respuesta (%s)' % e)
+        if r.status_code != 200:
+            raise UserError('OpenAI vision %s: %s' % (r.status_code, r.text[:300]))
+        j = r.json()
+        try:
+            res = json.loads(j['choices'][0]['message']['content'])
+        except (KeyError, IndexError, ValueError, TypeError):
+            raise UserError('OpenAI vision: respuesta sin JSON valido')
+        return {'json': res, 'tokens': int((j.get('usage') or {}).get('total_tokens') or 0),
+                'modelo': modelo}
+
+    @api.model
     def clasificar(self, contexto, empleado, otro, duracion_s):
         """dict(clasificacion, confianza, con_quien, motivo, tokens, modelo)."""
         key = self.api_key()

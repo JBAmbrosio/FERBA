@@ -23,6 +23,8 @@ access_foco_workday_user,foco.workday user,model_foco_workday,group_foco_user,1,
 access_foco_workday_manager,foco.workday manager,model_foco_workday,group_foco_manager,1,1,1,1
 access_foco_integrity_user,foco.integrity.fact user,model_foco_integrity_fact,group_foco_user,1,0,0,0
 access_foco_integrity_manager,foco.integrity.fact manager,model_foco_integrity_fact,group_foco_manager,1,1,1,1
+access_foco_integrity_verdict_manager,foco.integrity.verdict manager,model_foco_integrity_verdict,group_foco_manager,1,1,1,1
+access_foco_integrity_capture_manager,foco.integrity.capture manager,model_foco_integrity_capture,group_foco_manager,1,1,1,1
 access_foco_policy_user,foco.policy user,model_foco_policy,group_foco_user,1,0,0,0
 access_foco_policy_manager,foco.policy manager,model_foco_policy,group_foco_manager,1,1,1,1
 access_foco_policy_rule_user,foco.policy.rule user,model_foco_policy_rule,group_foco_user,1,0,0,0

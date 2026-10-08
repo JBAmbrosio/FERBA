@@ -485,7 +485,54 @@ class FocoController(http.Controller):
             # respuesta, interruptor incluido, por la misma razon que las
             # capturas: apagarlo tiene que surtir efecto en el siguiente envio.
             'call_review': settings.call_review_config(computer),
+            # Veredicto por IA ante actividad sospechosa: umbral, cuantas
+            # capturas y cada cuanto. Tambien en cada respuesta.
+            'vision': settings.vision_config(computer),
         })
+
+    # ------------------------------------- actividad sospechosa: veredicto por IA
+    #
+    # El agente mide el patron (pantalla sin cambio con input, solo mouse,
+    # clics ritmicos, input inyectado); pasado el umbral abre un episodio con
+    # una `ref` y manda capturas en uno o varios envios; el ultimo trae
+    # `cerrar`. Odoo arma el contexto y le pide el veredicto al modelo de
+    # vision. La llave de OpenAI no sale de aqui.
+    @http.route('/foco/agent/sospecha', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_sospecha(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        settings = request.env['foco.settings'].sudo().get_settings()
+        if not settings.vision_allowed(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        if len(request.httprequest.get_data() or b'') > 25 * 1024 * 1024:
+            return request.make_json_response({'ok': False, 'error': 'demasiado_grande'}, status=413)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'ok': False, 'error': 'json_invalido'}, status=400)
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        try:
+            rec, nuevas = request.env['foco.integrity.verdict'].sudo()._registrar(computer, ref, data)
+        except Exception as e:
+            _logger.warning('foco: episodio %s de %s sin registrar: %s', ref, computer.name, e)
+            request.env.cr.rollback()
+            return request.make_json_response(
+                {'ok': False, 'error': 'registro', 'detail': str(e)[:200]}, status=503)
+        if data.get('cerrar') and rec.state == 'pendiente':
+            # El veredicto se intenta aqui mismo; si la API falla, el proceso
+            # de cada 5 min lo reintenta. El agente no espera por el resultado
+            # ni lo recibe: es para quien administra.
+            try:
+                rec._analizar()
+            except Exception as e:
+                _logger.warning('foco: episodio %s sin veredicto por ahora: %s', ref, e)
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'state': rec.state,
+            'capturas': len(rec.capture_ids), 'nuevas': nuevas,
+            'max_capturas': min(settings.vision_max_capturas or 4, 12)})
 
     # ------------------------------------------------ llamadas de WhatsApp
     #
