@@ -769,8 +769,11 @@ export class FocoDashboard extends Component {
             // los renglones de uso con los que se arma esta fila.
             const hx = (this.state.porPersona || []).find((p) => p.id === e.id) || {};
             const hechos = hx.hechos || [];
-            // Lo unico que amerita conversacion: ni medido, ni justificado.
-            const unexplained = Math.max(0, expected - e.active - justified);
+            // "Sin explicar" = huecos de la jornada SIN justificar (lo calcula
+            // el servidor con la porcion dentro de la jornada). Antes se
+            // derivaba restando esperado - activo - justificado, que a media
+            // jornada daba un numero enorme (el esperado es el dia completo).
+            const unexplained = res.unexplained_h || 0;
             const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
             const topDistr = dList.length && dList[0].hours > 0.008
                 ? { name: this.appLabel(dList[0].name), hours: dList[0].hours } : null;
