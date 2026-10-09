@@ -15,8 +15,10 @@
                 <field name="reason"/>
                 <field name="note" optional="show"/>
                 <field name="ai_veredicto" optional="hide"/>
+                <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo" optional="hide"/>
                 <field name="ai_requiere_revision" optional="hide"/>
+                <field name="ai_incoherente" optional="hide"/>
                 <field name="answered_via" optional="hide"/>
                 <field name="computer_id" optional="hide"/>
             </list>
@@ -36,8 +38,8 @@
                 <field name="reason"/>
                 <field name="note"/>
                 <field name="ai_veredicto" widget="badge"
-                       decoration-warning="ai_veredicto == 'vaga'"
-                       decoration-danger="ai_veredicto == 'sin_relacion'"/>
+                       decoration-warning="ai_veredicto == 'vaga'"/>
+                <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
                 <field name="review_visto" string="Revisado"/>
@@ -65,9 +67,15 @@
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="not ai_requiere_revision or review_visto">
-                        La IA marco esta justificacion como <field name="ai_veredicto" readonly="1" nolabel="1"/>:
+                        La IA marco esta justificacion como VAGA (no da ninguna razon):
                         <field name="ai_motivo" readonly="1" nolabel="1"/>. Revisala con la persona y
                         marca "Revisado". Es evidencia del modelo, no un veredicto final.
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="not ai_incoherente or review_visto">
+                        El empleado declaro estar fuera de su horario, pero este hueco cae DENTRO
+                        de su jornada configurada. Es un DATO, no una acusacion: puede ser una
+                        evasion o que el horario configurado no sea el real.
                     </div>
                     <group>
                         <group string="Periodo">
@@ -89,7 +97,9 @@
                         <group string="Revision por IA">
                             <field name="ai_estado" readonly="1"/>
                             <field name="ai_veredicto" readonly="1"/>
+                            <field name="ai_categoria" readonly="1"/>
                             <field name="ai_requiere_revision" readonly="1"/>
+                            <field name="ai_incoherente" readonly="1"/>
                             <field name="ai_motivo" readonly="1"/>
                             <field name="ai_confianza" widget="percentage" readonly="1"/>
                             <field name="ai_at" readonly="1"/>
@@ -131,6 +141,8 @@
                         domain="[('ai_requiere_revision', '=', True), ('review_visto', '=', False)]"/>
                 <filter name="revisadas" string="Ya revisadas"
                         domain="[('review_visto', '=', True)]"/>
+                <filter name="incoherentes" string="No coincide con su horario"
+                        domain="[('ai_incoherente', '=', True)]"/>
                 <separator/>
                 <filter name="semana" string="Ultimos 7 dias"
                         domain="[('start', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
@@ -140,6 +152,7 @@
                 <filter name="g_reason" string="Motivo" context="{'group_by': 'reason'}"/>
                 <filter name="g_kind" string="Tipo" context="{'group_by': 'kind'}"/>
                 <filter name="g_veredicto" string="Veredicto IA" context="{'group_by': 'ai_veredicto'}"/>
+                <filter name="g_categoria" string="Categoria IA" context="{'group_by': 'ai_categoria'}"/>
             </search>
         </field>
     </record>
@@ -156,9 +169,10 @@
         <field name="context">{'search_default_sin_revisar': 1, 'search_default_g_emp': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nada por revisar</p>
-            <p>Aqui llegan las justificaciones que la IA leyó y marcó como vagas
-               o sin relación con el trabajo (por ejemplo «Otro» con una nota de
-               «.»). La IA las analiza sola; tú las revisas con la persona y
+            <p>Aqui llegan solo las justificaciones que la IA leyó y marcó como
+               VAGAS: las que no dan ninguna razón (por ejemplo «Otro» con una
+               nota de «.»). Una razón escrita, aunque sea discutible, no cae
+               aquí. La IA las analiza sola; tú las revisas con la persona y
                marcas «Revisado». Es evidencia del modelo, nunca un veredicto
                final.</p>
         </field>
