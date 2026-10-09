@@ -74,7 +74,10 @@ class FocoUsage(models.Model):
         compute='_compute_category_id',
         help='Del SITIO si esta clasificado; si no, de la aplicacion.')
     category_source = fields.Selection(
-        [('whatsapp', 'Grupo de WhatsApp'), ('site', 'Sitio'),
+        [('whatsapp', 'Grupo de WhatsApp'),
+         ('perfil_sitio', 'Sitio (de este perfil)'),
+         ('site', 'Sitio'),
+         ('perfil_app', 'Aplicacion (de este perfil)'),
          ('app', 'Aplicacion'), ('none', 'Sin clasificar')],
         string='Origen de la categoria', store=True, compute='_compute_category_id',
         help='De donde salio el peso de este renglon. Que el numero pueda '
@@ -155,26 +158,57 @@ class FocoUsage(models.Model):
         help='Horas activas ponderadas por el peso de la categoria.')
 
     @api.depends('wa_group_id', 'wa_group_id.category_id',
-                 'site_id', 'site_id.category_id', 'app_id', 'app_id.category_id')
+                 'site_id', 'site_id.category_id', 'app_id', 'app_id.category_id',
+                 'computer_id', 'computer_id.policy_id')
     def _compute_category_id(self):
+        # La categoria se resuelve de lo MAS ESPECIFICO a lo general:
+        #   1) grupo de WhatsApp (el mas fino)
+        #   2) SITIO clasificado EN ESTE PERFIL   (gana sobre el global)
+        #   3) sitio clasificado global
+        #   4) APP clasificada EN ESTE PERFIL     (gana sobre la global)
+        #   5) app clasificada global
+        # El "perfil" es el EFECTIVO del equipo (el suyo o el de omision), igual
+        # que foco.policy._perfil_vigente: asi WhatsApp cuenta productivo para un
+        # perfil y distraccion para otro (reunion 9-oct-2026).
+        PolicyCat = self.env['foco.policy.category'].sudo()
+        try:
+            default_pol = self.env['foco.settings'].sudo().get_settings()\
+                .default_policy_id.filtered('active')
+        except Exception:
+            default_pol = self.env['foco.policy']
+
+        def perfil(computer):
+            propio = computer.policy_id.filtered('active')
+            return (propio or default_pol)[:1]
+
+        perfiles = self.env['foco.policy']
         for rec in self:
-            # El grupo de WhatsApp manda sobre todo: es el detalle mas fino y es
-            # el que el aprobador clasifico a proposito. Luego el sitio (para el
-            # navegador) y, al final, la app. La misma regla "lo mas especifico
-            # gana" con la que el sitio ya le gana a la app.
-            cat = rec.wa_group_id.category_id
-            if cat:
-                rec.category_id = cat
-                rec.category_source = 'whatsapp'
-            elif rec.site_id.category_id:
-                rec.category_id = rec.site_id.category_id
-                rec.category_source = 'site'
-            elif rec.app_id.category_id:
-                rec.category_id = rec.app_id.category_id
-                rec.category_source = 'app'
-            else:
-                rec.category_id = False
-                rec.category_source = 'none'
+            perfiles |= perfil(rec.computer_id)
+        por_sitio, por_app = {}, {}
+        if perfiles:
+            for o in PolicyCat.search([('policy_id', 'in', perfiles.ids)]):
+                if o.site_id:
+                    por_sitio[(o.policy_id.id, o.site_id.id)] = o.category_id
+                elif o.app_id:
+                    por_app[(o.policy_id.id, o.app_id.id)] = o.category_id
+
+        Cat = self.env['foco.category']
+        for rec in self:
+            pid = perfil(rec.computer_id).id
+            site, app = rec.site_id, rec.app_id
+            cat, src = Cat, 'none'
+            if rec.wa_group_id.category_id:
+                cat, src = rec.wa_group_id.category_id, 'whatsapp'
+            elif site and pid and por_sitio.get((pid, site.id)):
+                cat, src = por_sitio[(pid, site.id)], 'perfil_sitio'
+            elif site.category_id:
+                cat, src = site.category_id, 'site'
+            elif app and pid and por_app.get((pid, app.id)):
+                cat, src = por_app[(pid, app.id)], 'perfil_app'
+            elif app.category_id:
+                cat, src = app.category_id, 'app'
+            rec.category_id = cat.id if cat else False
+            rec.category_source = src
 
     # El rato de una llamada de WhatsApp analizada. Va EN LA LLAVE, como el
     # sitio y el archivo: asi "Excel durante la llamada #12" es su propio

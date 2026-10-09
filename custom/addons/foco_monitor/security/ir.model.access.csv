@@ -8,6 +8,8 @@ access_foco_site_manager,foco.site manager,model_foco_site,group_foco_manager,1,
 access_foco_whatsapp_group_user,foco.whatsapp.group user,model_foco_whatsapp_group,group_foco_user,1,0,0,0
 access_foco_whatsapp_group_manager,foco.whatsapp.group manager,model_foco_whatsapp_group,group_foco_manager,1,1,1,1
 access_foco_whatsapp_header_manager,foco.whatsapp.header manager,model_foco_whatsapp_header,group_foco_manager,1,1,1,1
+access_foco_policy_category_user,foco.policy.category user,model_foco_policy_category,group_foco_user,1,0,0,0
+access_foco_policy_category_manager,foco.policy.category manager,model_foco_policy_category,group_foco_manager,1,1,1,1
 access_foco_computer_user,foco.computer user,model_foco_computer,group_foco_user,1,0,0,0
 access_foco_computer_manager,foco.computer manager,model_foco_computer,group_foco_manager,1,1,1,1
 access_foco_usage_user,foco.usage user,model_foco_usage,group_foco_user,1,0,0,0

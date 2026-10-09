@@ -164,6 +164,33 @@
                         </div>
                     </group>
 
+                    <!-- Clasificacion de productividad PROPIA de este perfil: la
+                         misma app o sitio puede contar productivo en un perfil y
+                         distraccion en otro (reunion 9-oct-2026). Gana sobre la
+                         clasificacion global; lo que no se ponga aqui usa la general. -->
+                    <group string="Clasificación de productividad de este perfil">
+                        <div colspan="2" class="alert alert-light border" role="alert">
+                            Decide si una <b>app</b> o un <b>sitio</b> cuenta como
+                            productivo o distracción <b>solo para los equipos de este
+                            perfil</b>. Ejemplo: <code>WhatsApp</code> puede ser
+                            <b>productivo</b> en «compras y ventas» y <b>distracción</b>
+                            en «Oficina técnica». Lo que no pongas aquí usa la
+                            clasificación general (la de <b>Actividad › Aplicaciones</b> y
+                            <b>Sitios</b>). Pon una app <b>o</b> un sitio por renglón, y su
+                            categoría. El histórico de este perfil se reacomoda al guardar.
+                        </div>
+                        <field name="category_ids" nolabel="1" colspan="2">
+                            <list editable="bottom">
+                                <field name="app_id" options="{'no_create_edit': True}"
+                                       placeholder="una app (WhatsApp, Spotify…)"/>
+                                <field name="site_id" options="{'no_create_edit': True}"
+                                       placeholder="o un sitio (web.whatsapp.com, youtube.com…)"/>
+                                <field name="category_id" options="{'no_create_edit': True}"
+                                       placeholder="Productiva / Distraccion…"/>
+                            </list>
+                        </field>
+                    </group>
+
                     <group>
                         <field name="note" string="Para qué es este perfil"
                                placeholder="Quién lo usa y por qué. Se lee el día que alguien pregunte por qué no puede abrir un sitio."/>
