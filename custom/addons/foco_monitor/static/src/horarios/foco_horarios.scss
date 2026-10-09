@@ -193,8 +193,20 @@
         .fh_body { grid-template-columns: 1fr; }
         .fh_list { position: static; }
         .fh_people { max-height: 260px; }
+        // En telefono la fila del dia apila sus partes y los campos de hora se
+        // encogen, para que nada se salga de la pantalla (sin scroll horizontal).
         .fh_day { flex-wrap: wrap; }
         .fh_dname { flex-basis: auto; }
+        .fh_times { gap: 8px 6px; width: 100%; }
+        .fh_fld, input[type="time"] { min-width: 0; }
+        input[type="time"] { width: 100%; }
+        .fh_fld { flex: 1 1 42%; }
+        // La comida baja a su propio renglon completo, sin el borde/margen que la
+        // ataba a la derecha del turno.
+        .fh_comida { flex: 1 1 100%; margin-left: 0; padding-left: 0; border-left: 0;
+            flex-wrap: wrap; }
+        .fh_comida input[type="time"] { flex: 1 1 40%; }
+        .fh_dhrs { width: auto; }
     }
     @media (prefers-reduced-motion: reduce) {
         * { transition: none !important; animation: none !important; }

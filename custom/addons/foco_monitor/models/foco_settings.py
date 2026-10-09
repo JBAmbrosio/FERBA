@@ -1075,7 +1075,9 @@ class FocoSettings(models.Model):
             return cal
         nombre = 'Horario — %s' % emp.name
         if cal:
-            nuevo = cal.sudo().copy({'name': nombre})
+            nuevo = cal.sudo().copy()
+            # resource.calendar.copy ignora el name y pone "(copy)": se fija aparte.
+            nuevo.sudo().write({'name': nombre})
         else:
             nuevo = self.env['resource.calendar'].sudo().create({
                 'name': nombre,
