@@ -3,6 +3,7 @@ from . import foco_app
 from . import foco_site
 from . import foco_whatsapp
 from . import foco_policy
+from . import foco_policy_category
 from . import foco_computer
 from . import foco_usage
 from . import foco_mi_dia
