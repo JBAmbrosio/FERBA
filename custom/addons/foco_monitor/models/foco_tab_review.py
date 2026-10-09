@@ -54,6 +54,27 @@ def _dominio_bloqueable(host):
     return '.' in h and bool(_TLD_ALFA.match(h.rsplit('.', 1)[-1]))
 
 
+# Buscadores: NO se bloquean nunca. Bloquear google.com apaga la busqueda
+# ENTERA (su dominio es google.com, no la consulta), que es justo lo que no se
+# quiere (reunion 8-oct-2026). Se tratan como permitidos y action_bloquear los
+# rechaza. Gmail/Drive son otros hosts (mail.google.com, drive.google.com), asi
+# que proteger el google.com pelado solo cubre el buscador.
+DOMINIOS_PROTEGIDOS = {'google.com', 'google.com.mx', 'bing.com', 'duckduckgo.com'}
+
+
+def _es_buscador(host):
+    """`host` ya normalizado es un buscador que no debe bloquearse. A nivel de
+    modulo para poder probarla sin Odoo."""
+    return (host or '').strip().lower() in DOMINIOS_PROTEGIDOS
+
+
+def _es_pdf(titulo):
+    """El titulo es un archivo PDF abierto en el navegador, no un sitio: no tiene
+    sentido ofrecerlo para bloquear (reunion 8-oct-2026). Facil de ampliar a otros
+    documentos si hiciera falta. A nivel de modulo para poder probarla sin Odoo."""
+    return (titulo or '').strip().lower().endswith('.pdf')
+
+
 class FocoTabReview(models.Model):
     """Una pestaña abierta que la IA clasifico contra el perfil del puesto y que
     espera la decision de un aprobador (permitir / bloquear).
@@ -124,7 +145,9 @@ class FocoTabReview(models.Model):
         vistos, limpios = set(), []
         for t in (titulos or []):
             n = _normaliza_titulo(t)
-            if n and n not in vistos:
+            # Los PDF abiertos en el navegador no son sitios: no se ofrecen para
+            # bloquear (reunion 8-oct-2026), asi no ensucian la cola de revision.
+            if n and n not in vistos and not _es_pdf(n):
                 vistos.add(n)
                 limpios.append(n)
         if not limpios:
@@ -146,21 +169,37 @@ class FocoTabReview(models.Model):
         for f in existentes:
             h = real.get(f.title)
             if h and not f.host_capturado and f.state == 'pendiente':
-                f.write({'host': h, 'host_capturado': True})
+                vals = {'host': h, 'host_capturado': True}
+                if _es_buscador(h):
+                    vals.update(self._permiso_buscador())
+                f.write(vals)
         perfil = self.env['foco.policy']._perfil_vigente(computer)
         nuevos = []
         for t in limpios:
             if t in ya:
                 continue
             h = real.get(t)
-            nuevos.append({'computer_id': computer.id,
-                           'policy_id': perfil.id if perfil else False,
-                           'title': t,
-                           'host': h or False,
-                           'host_capturado': bool(h)})
+            vals = {'computer_id': computer.id,
+                    'policy_id': perfil.id if perfil else False,
+                    'title': t,
+                    'host': h or False,
+                    'host_capturado': bool(h)}
+            # Un buscador (google.com) entra ya PERMITIDO: no se bloquea nunca.
+            if h and _es_buscador(h):
+                vals.update(self._permiso_buscador())
+            nuevos.append(vals)
         if nuevos:
             self.create(nuevos)
         return len(nuevos)
+
+    @api.model
+    def _permiso_buscador(self):
+        """Valores para dejar una fila de buscador como permitida y fuera de la
+        cola de la IA: se decide sola, no hay nada que revisar."""
+        return {'state': 'permitido', 'ia_clasificado': True,
+                'ia_suggestion': 'permitir',
+                'ia_reason': 'Buscador: no se bloquea para no apagar la busqueda',
+                'decided_uid': self.env.uid, 'decided_at': fields.Datetime.now()}
 
     @api.model
     def _cron_clasificar(self, limite=200):
@@ -204,6 +243,15 @@ class FocoTabReview(models.Model):
                 # cuando no hay un host capturado.
                 if not f.host_capturado:
                     vals['host'] = f.host or r['dominio'] or False
+                # Si lo que quedo (capturado o adivinado) es un buscador, se
+                # permite y no se ofrece para bloquear, diga lo que diga la IA.
+                host_final = (vals.get('host') if 'host' in vals else f.host) or ''
+                if _es_buscador(host_final):
+                    vals.update({'ia_suggestion': 'permitir',
+                                 'ia_reason': 'Buscador: no se bloquea para no apagar la busqueda'})
+                    if f.state == 'pendiente':
+                        vals.update({'state': 'permitido', 'decided_uid': self.env.uid,
+                                     'decided_at': fields.Datetime.now()})
                 f.write(vals)
 
     def action_permitir(self):
@@ -229,6 +277,13 @@ class FocoTabReview(models.Model):
                     'Para bloquear "%s" hace falta un dominio valido (p. ej. '
                     'youtube.com). "%s" no lo parece; corrigelo en la columna '
                     'Dominio y vuelve a bloquear.' % (r.title or '', r.host or ''))
+            # Un buscador no se bloquea: su dominio es la busqueda entera, no una
+            # consulta, y bloquearlo la apagaria para todos (reunion 8-oct-2026).
+            if _es_buscador(host):
+                raise UserError(
+                    'No se puede bloquear "%s": es un buscador. Su dominio es la '
+                    'busqueda completa, no una consulta, asi que bloquearlo apagaria '
+                    'la busqueda para todos. Dejalo permitido.' % host)
             perfil = r.policy_id
             if not perfil:
                 raise UserError(
