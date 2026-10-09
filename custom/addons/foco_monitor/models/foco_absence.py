@@ -587,7 +587,10 @@ class FocoAbsence(models.Model):
             [{'role': 'system', 'content': sistema},
              {'role': 'user', 'content': usuario}],
             response_format={'type': 'json_schema', 'json_schema': ESQUEMA_JUST},
-            max_tokens=200)
+            # 500, no 200: con 200 el modelo a veces gasta el cupo en un preambulo
+            # y corta el JSON (stop_reason max_tokens, texto vacio) -> "sin JSON
+            # valido". El JSON real son ~60 tokens; 500 da margen de sobra.
+            max_tokens=500)
         try:
             j = json.loads(resp['message'].get('content') or '{}')
         except (ValueError, TypeError):
