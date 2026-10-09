@@ -84,11 +84,15 @@
                             <field name="error_detail"/>
                         </group>
                     </group>
-                    <group string="Conversación"
-                           invisible="transcript_cleared"
-                           groups="foco_monitor.group_foco_manager">
+                    <!-- La conversacion va a lo ANCHO, FUERA de <group>: dentro de un
+                         group cae en la celda-valor (la mitad angosta del sheet) y las
+                         burbujas se parten palabra por palabra, con su propio scroll.
+                         Suelta en el sheet ocupa todo el ancho y se lee como chat. -->
+                    <div invisible="transcript_cleared"
+                         groups="foco_monitor.group_foco_manager">
+                        <separator string="Conversación"/>
                         <field name="dialogo_html" nolabel="1" readonly="1"/>
-                    </group>
+                    </div>
                     <group string="Transcripcion por pista (crudo)"
                            invisible="transcript_cleared"
                            groups="foco_monitor.group_foco_manager">

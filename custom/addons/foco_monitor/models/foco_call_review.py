@@ -196,14 +196,18 @@ class FocoCallReview(models.Model):
                 quien = quien_emp if es_emp else 'Interlocutor'
                 filas.append(
                     '<div style="display:flex;justify-content:%s;margin:3px 0;">'
-                    '<div style="max-width:80%%;background:%s;border:1px solid #e4e4e4;'
+                    '<div style="max-width:78%%;min-width:0;background:%s;border:1px solid #e4e4e4;'
                     'border-radius:12px;padding:7px 11px;box-shadow:0 1px 1px rgba(0,0,0,.08);">'
                     '<div style="font-size:11px;font-weight:600;color:%s;margin-bottom:2px;">%s</div>'
-                    '<div style="white-space:pre-wrap;color:#111;line-height:1.35;">%s</div>'
+                    '<div style="white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;'
+                    'color:#111;line-height:1.35;">%s</div>'
                     '</div></div>' % (align, bg, etq_color, escape(quien), escape(texto)))
+            # Ancho completo (width:100%% + box-sizing) para que las burbujas usen
+            # todo el sheet; scroll propio solo cuando la charla es muy larga.
             rec.dialogo_html = Markup(
-                '<div style="background:#efeae2;padding:12px;border-radius:10px;'
-                'max-height:540px;overflow:auto;">%s</div>' % ''.join(filas))
+                '<div style="width:100%%;box-sizing:border-box;background:#efeae2;'
+                'padding:12px;border-radius:10px;max-height:560px;overflow-y:auto;">%s</div>'
+                % ''.join(filas))
 
     # ------------------------------------------------------------ pesos
     def weight(self):
