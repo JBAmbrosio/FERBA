@@ -797,6 +797,14 @@ export class FocoDashboard extends Component {
                 // Cubierto de su jornada = productivo + justificado. La columna
                 // "Jornada" lo muestra como «cubierto / 8:30» con barra.
                 covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
+                // La columna Jornada muestra el CHECADOR (lo real) cuando la
+                // persona lo usa, con el extra/faltante vs el horario (la guia);
+                // el horario es solo guia, el checador manda (decisión 8-oct).
+                usaChecador: !!res.usa_checador,
+                checado: res.checado_h || 0,
+                extra: res.extra_h || 0,
+                faltante: res.faltante_h || 0,
+                checadoPct: expected > 0 ? Math.min(100, Math.round((res.checado_h || 0) / expected * 100)) : 0,
                 // Rezago del checador a la PC (min), null si no checo ese dia.
                 lagMin: (typeof res.lag_min === "number") ? res.lag_min : null,
                 // Dias del periodo en que checo entrada y no cerro salida. Es

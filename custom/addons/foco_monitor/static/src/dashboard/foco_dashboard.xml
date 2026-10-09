@@ -269,7 +269,7 @@
                                     <th class="c_tog"><span class="sr">Desplegar</span></th>
                                     <th class="c_emp">Empleado</th>
                                     <th class="c_idx">Índice</th>
-                                    <th class="c_jor" title="De su jornada (8:30) cuánto cubrió con trabajo productivo más lo justificado.">Jornada</th>
+                                    <th class="c_jor" title="Lo que marcó el checador (lo real) frente a su horario. El horario es la guía; el checador manda, y el extra es lo que se quedó de más.">Jornada</th>
                                     <th class="c_num">Activo</th>
                                     <th class="c_num">Productivo</th>
                                     <th class="c_num">Distracción</th>
@@ -354,10 +354,22 @@
                                             </div>
                                         </td>
                                         <td class="c_jor">
-                                            <t t-if="e.hasExpected">
-                                                <div class="fd_jor" t-attf-title="Cubierto {{ fmt(e.covered) }} de su jornada de {{ fmt(e.expected) }} (productivo + justificado).">
-                                                    <span class="fd_jor_v"><t t-esc="fmt(e.covered)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
-                                                    <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - e.coveredPct }}% 0 0)"/></div>
+                                            <t t-if="e.usaChecador">
+                                                <div class="fd_jor" t-attf-title="Checó {{ fmt(e.checado) }} de su horario de {{ fmt(e.expected) }}. El checador manda; el horario es la guía. {{ e.extra > 0.016 ? 'Se quedó ' + fmt(e.extra) + ' de más.' : (e.faltante > 0.016 ? 'Checó ' + fmt(e.faltante) + ' menos.' : '') }}">
+                                                    <span class="fd_jor_v"><t t-esc="fmt(e.checado)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
+                                                    <div class="fd_meter"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - e.checadoPct }}% 0 0)"/></div>
+                                                    <t t-if="e.extra > 0.016">
+                                                        <span class="fd_extra"><i class="fa fa-arrow-up"/> +<t t-esc="fmt(e.extra)"/></span>
+                                                    </t>
+                                                    <t t-elif="e.faltante > 0.016">
+                                                        <span class="fd_falta">−<t t-esc="fmt(e.faltante)"/></span>
+                                                    </t>
+                                                </div>
+                                            </t>
+                                            <t t-elif="e.hasExpected">
+                                                <div class="fd_jor" title="Horario configurado (esta persona no usa el checador).">
+                                                    <span class="fd_jor_v"><t t-esc="fmt(e.expected)"/></span>
+                                                    <span class="fd_jor_guia">según horario</span>
                                                 </div>
                                             </t>
                                             <t t-else="">
