@@ -42,6 +42,9 @@
                 <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
+                <field name="rebotes" string="Devuelta (veces)" optional="show"/>
+                <field name="rebote_pendiente" string="Devuelta ahora" optional="show"/>
+                <field name="nota_rechazada" optional="hide"/>
                 <field name="review_visto" string="Revisado"/>
                 <field name="review_por" optional="hide"/>
                 <field name="ai_requiere_revision" column_invisible="1"/>
@@ -111,6 +114,11 @@
                             <field name="review_at" readonly="1"/>
                             <field name="review_nota"/>
                         </group>
+                        <group string="Devuelta al empleado">
+                            <field name="rebote_pendiente" readonly="1"/>
+                            <field name="rebotes" readonly="1"/>
+                            <field name="nota_rechazada" readonly="1"/>
+                        </group>
                     </group>
                     <group string="Diagnostico">
                         <field name="expected_seconds" readonly="1"
@@ -143,6 +151,8 @@
                         domain="[('review_visto', '=', True)]"/>
                 <filter name="incoherentes" string="No coincide con su horario"
                         domain="[('ai_incoherente', '=', True)]"/>
+                <filter name="devueltas" string="Devueltas al empleado ahora"
+                        domain="[('rebote_pendiente', '=', True)]"/>
                 <separator/>
                 <filter name="semana" string="Ultimos 7 dias"
                         domain="[('start', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>

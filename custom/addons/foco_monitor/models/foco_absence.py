@@ -88,6 +88,12 @@ AI_DIAS_ATRAS = 45
 # Menos de esto DENTRO de la jornada = el hueco cae fuera del turno: no hay nada
 # que justificar. Es un hecho medido (expected_seconds), no una conjetura.
 OFF_SHIFT_SEGUNDOS = 60
+# Rebote de justificaciones vagas al empleado (enforcement, 9-oct-2026): cuando
+# la IA dice que el texto NO explica nada, en vez de solo dejarlo para el admin
+# se REABRE el periodo para que lo rehaga (la ventana del agente vuelve con un
+# aviso). Tope de seguridad: tras estos rebotes se deja de reabrir y queda solo
+# para revision del admin, para no dejar un equipo atascado si la IA se equivoca.
+REBOTES_MAX = 5
 
 REASONS = [
     ('comida', 'Comida'),
@@ -192,6 +198,21 @@ class FocoAbsence(models.Model):
     ai_at = fields.Datetime(string='Analizada el', readonly=True)
     ai_intentos = fields.Integer(string='Intentos IA', default=0)
     ai_error = fields.Char(string='Ultimo error IA')
+
+    # ---- rebote al empleado cuando la IA la marca vaga (enforcement) --------
+    rebote_pendiente = fields.Boolean(
+        string='Devuelta al empleado', index=True,
+        help='La IA marco su justificacion como VAGA y el periodo se REABRIO para '
+             'que la rehaga: la ventana del agente vuelve con un aviso. Se apaga en '
+             'cuanto el empleado contesta de nuevo.')
+    rebotes = fields.Integer(
+        string='Veces devuelta', default=0, readonly=True,
+        help='Cuantas veces se le devolvio por justificar de forma vaga. Tras '
+             'el tope deja de devolverse y queda solo para el admin.')
+    nota_rechazada = fields.Char(
+        string='Ultimo texto rechazado', readonly=True,
+        help='Lo que el empleado habia escrito y la IA considero que no explica '
+             'nada. Se guarda para no perder el historial al reabrir.')
 
     # ---- revision humana de lo que la IA marco ------------------------------
     review_visto = fields.Boolean(
@@ -316,6 +337,9 @@ class FocoAbsence(models.Model):
         tengan que saber de formatos ni de zonas horarias.
         """
         tz_model = self.env['foco.settings']
+        # El aviso del rebote viaja desde el servidor (no incrustado en el .exe),
+        # para poder ajustar la frase sin recompilar el agente.
+        bmsg = (tz_model.sudo().get_settings().justify_rebote_msg or '').strip()
         out = []
         for rec in self:
             tz = tz_model._tzinfo_for(rec.employee_id)
@@ -341,6 +365,11 @@ class FocoAbsence(models.Model):
                 'kind': rec.kind,
                 'kind_label': KIND_FRASE.get(rec.kind, ''),
                 'suggested': rec._suggested_reason() or '',
+                # Rebote: la ventana del agente pinta este aviso cuando no esta
+                # vacio (periodo devuelto por justificacion vaga). Si el .exe no
+                # conoce la clave, la ignora: el rebote degrada a re-preguntar.
+                'bounced': bool(rec.rebote_pendiente),
+                'bounce_msg': bmsg if rec.rebote_pendiente else '',
             })
         return out
 
@@ -496,6 +525,9 @@ class FocoAbsence(models.Model):
             # Recien justificada: la IA la analiza en su proximo ciclo. Nota de
             # "." o basura con motivo "Otro" es justo lo que viene a cazar.
             'ai_estado': 'sin_analizar', 'ai_intentos': 0,
+            # Si venia devuelta por vaga, el empleado ya contesto de nuevo: se
+            # apaga el aviso hasta que la IA vuelva a juzgar este texto.
+            'rebote_pendiente': False,
         })
         return {'ok': True, 'reason_label': dict(REASONS).get(reason, '')}
 
@@ -620,7 +652,7 @@ class FocoAbsence(models.Model):
             conf = min(max(float(j.get('confianza') or 0.0), 0.0), 1.0)
         except (TypeError, ValueError):
             conf = 0.0
-        self.sudo().write({
+        vals = {
             'ai_estado': 'analizado', 'ai_veredicto': ver,
             'ai_categoria': cat, 'ai_requiere_revision': requiere,
             'ai_incoherente': incoherente,
@@ -628,7 +660,23 @@ class FocoAbsence(models.Model):
             'ai_confianza': conf, 'ai_modelo': resp.get('modelo') or False,
             'ai_tokens': int((resp.get('usage') or {}).get('total_tokens') or 0),
             'ai_at': fields.Datetime.now(), 'ai_error': False,
-        })
+        }
+        # Rebote (enforcement): si la IA dice que el texto NO explica nada, se
+        # DEVUELVE al empleado para que lo rehaga -se reabre el periodo y la
+        # ventana del agente vuelve con el aviso-, en vez de solo dejarlo para el
+        # admin. Gobernado por el interruptor de Ajustes y con tope de seguridad:
+        # tras REBOTES_MAX se deja de reabrir (queda en «Periodos a revisar»).
+        settings = self.env['foco.settings'].sudo().get_settings()
+        if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX:
+            vals.update({
+                'state': 'pendiente',
+                'rebote_pendiente': True,
+                'rebotes': self.rebotes + 1,
+                'nota_rechazada': (self.note or '').strip()[:200] or False,
+                # Que lo nag la VENTANA, no el correo: evita avisar dos veces.
+                'notified': True,
+            })
+        self.sudo().write(vals)
 
     # ------------------------------------------------- revision humana
     def action_marcar_revisado(self):
