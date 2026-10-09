@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.Horarios">
+        <div class="foco_hor" t-att-class="{ 'fh-dark': state.dark }" t-ref="root">
+            <header class="fh_head">
+                <div>
+                    <h1>Horarios laborales</h1>
+                    <p class="fh_sub">
+                        El horario de cada empleado, del que salen todas las métricas.
+                        <t t-if="!state.loading">
+                            · <t t-esc="state.empleados.length"/> empleados ·
+                            tope legal <b t-esc="hm(state.tope)"/>/semana
+                        </t>
+                    </p>
+                </div>
+            </header>
+
+            <t t-if="state.loading">
+                <div class="fh_skeleton">Cargando horarios…</div>
+            </t>
+            <t t-elif="!state.empleados.length">
+                <div class="fh_empty">
+                    <p>No hay empleados con equipo monitoreado todavía.</p>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="fh_body">
+                    <!-- Lista de empleados -->
+                    <aside class="fh_list">
+                        <div class="fh_search">
+                            <i class="fa fa-search"/>
+                            <input type="text" placeholder="Buscar empleado o área…" t-model="state.q"/>
+                        </div>
+                        <ul class="fh_people">
+                            <t t-foreach="filtrados" t-as="e" t-key="e.id">
+                                <li t-att-class="{ on: e.id === state.sel }"
+                                    t-on-click="() => this.seleccionar(e.id)" tabindex="0"
+                                    t-on-keydown="(ev) => { if (ev.key === 'Enter') this.seleccionar(e.id); }">
+                                    <span class="fh_av" t-attf-style="--h: {{ hue(e.name) }}"
+                                          t-esc="iniciales(e.name)"/>
+                                    <span class="fh_who">
+                                        <span class="fh_nm" t-esc="e.name"/>
+                                        <span class="fh_meta">
+                                            <t t-if="e.departamento" t-esc="e.departamento"/>
+                                            <t t-if="e.compartido"> · <span class="fh_shared">estándar</span></t>
+                                        </span>
+                                    </span>
+                                    <span class="fh_hrs" t-att-class="{ warn: e.horas_semana > state.tope }"
+                                          t-esc="hm(e.horas_semana)"/>
+                                </li>
+                            </t>
+                            <li t-if="!filtrados.length" class="fh_none">Sin coincidencias</li>
+                        </ul>
+                    </aside>
+
+                    <!-- Editor del empleado seleccionado -->
+                    <section class="fh_editor" t-if="state.emp">
+                        <div class="fh_ed_head">
+                            <div>
+                                <h2 t-esc="state.emp.name"/>
+                                <p class="fh_ed_sub">
+                                    <t t-if="state.emp.departamento" t-esc="state.emp.departamento"/>
+                                    <t t-if="state.emp.compartido">
+                                        · usa un horario compartido; al guardar se le crea el suyo
+                                    </t>
+                                </p>
+                            </div>
+                            <span t-attf-class="fh_fuente {{ state.emp.fuente_hoy }}" t-esc="fuenteTxt"/>
+                        </div>
+
+                        <div class="fh_tpl">
+                            <span class="fh_tpl_lbl">Plantilla</span>
+                            <t t-foreach="state.plantillas" t-as="p" t-key="p.clave">
+                                <button class="fh_chip" t-on-click="() => this.aplicarPlantilla(p.clave)"
+                                        t-esc="p.etiqueta"/>
+                            </t>
+                        </div>
+
+                        <div class="fh_week">
+                            <t t-foreach="state.emp.dias" t-as="d" t-key="d.iso">
+                                <div class="fh_day" t-att-class="{ off: !d.trabaja }">
+                                    <label class="fh_sw" t-att-title="d.trabaja ? 'Día laborable' : 'Descanso'">
+                                        <input type="checkbox" t-att-checked="d.trabaja"
+                                               t-on-change="() => this.toggleDia(d)"/>
+                                        <span class="fh_sw_track"><span class="fh_sw_knob"/></span>
+                                    </label>
+                                    <span class="fh_dname" t-esc="d.etiqueta"/>
+
+                                    <t t-if="d.trabaja">
+                                        <div class="fh_times">
+                                            <span class="fh_fld">
+                                                <span class="fh_fld_l">Entrada</span>
+                                                <input type="time" step="300" t-att-value="f2hhmm(d.entrada)"
+                                                       t-on-change="(ev) => this.setHora(d, 'entrada', ev.target.value)"/>
+                                            </span>
+                                            <span class="fh_dash">–</span>
+                                            <span class="fh_fld">
+                                                <span class="fh_fld_l">Salida</span>
+                                                <input type="time" step="300" t-att-value="f2hhmm(d.salida)"
+                                                       t-on-change="(ev) => this.setHora(d, 'salida', ev.target.value)"/>
+                                            </span>
+
+                                            <t t-if="d.comida_inicio !== null">
+                                                <span class="fh_comida">
+                                                    <span class="fh_fld_l">Comida</span>
+                                                    <input type="time" step="300" t-att-value="f2hhmm(d.comida_inicio)"
+                                                           t-on-change="(ev) => this.setHora(d, 'comida_inicio', ev.target.value)"/>
+                                                    <span class="fh_dash">–</span>
+                                                    <input type="time" step="300" t-att-value="f2hhmm(d.comida_fin)"
+                                                           t-on-change="(ev) => this.setHora(d, 'comida_fin', ev.target.value)"/>
+                                                    <button class="fh_x" title="Quitar comida"
+                                                            t-on-click="() => this.toggleComida(d)">×</button>
+                                                </span>
+                                            </t>
+                                            <t t-else="">
+                                                <button class="fh_addcomida" t-on-click="() => this.toggleComida(d)">
+                                                    <i class="fa fa-plus"/> comida
+                                                </button>
+                                            </t>
+                                        </div>
+                                        <span class="fh_dhrs" t-esc="hm(horasDia(d))"/>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="fh_rest">Descanso</span>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+
+                        <div class="fh_foot">
+                            <div class="fh_total">
+                                <span class="fh_total_l"><t t-esc="diasActivos"/> días ·
+                                    semana</span>
+                                <span t-attf-class="fh_total_v {{ sobreTope ? 'over' : '' }}"
+                                      t-esc="hm(horasSemana)"/>
+                                <span t-if="sobreTope" class="fh_cap">
+                                    rebasa el tope legal de <t t-esc="hm(state.tope)"/>
+                                </span>
+                            </div>
+                            <div class="fh_actions">
+                                <span t-if="guardado" class="fh_ok"><i class="fa fa-check"/> Guardado</span>
+                                <button class="fh_btn ghost" t-att-disabled="!state.dirty || state.saving"
+                                        t-on-click="descartar">Descartar</button>
+                                <button class="fh_btn" t-att-disabled="!state.dirty || state.saving"
+                                        t-on-click="guardar">
+                                    <t t-if="state.saving">Guardando…</t>
+                                    <t t-else="">Guardar</t>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div t-if="state.error" class="fh_err" role="alert" t-esc="state.error"/>
+                    </section>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta
 import pytz
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -417,6 +417,11 @@ class FocoSettings(models.Model):
         help='0 = se conservan como evidencia, no se borran nunca (decision del '
              '7-oct-2026). Con un numero, el proceso de cada 5 min borra las mas '
              'antiguas; el veredicto se queda.')
+    jornada_tope_semana = fields.Float(
+        string='Tope legal de horas por semana', default=40.0,
+        help='Solo para AVISAR en la pantalla de horarios cuando un empleado lo '
+             'rebasa. No recorta ni bloquea nada: la cifra la fija el area legal '
+             '(hoy el limite va camino a 40/38 h).')
 
     @api.constrains('vision_umbral_minutos', 'vision_max_capturas', 'vision_capturas_cada_min')
     def _check_vision(self):
@@ -933,6 +938,202 @@ class FocoSettings(models.Model):
                     "intervals": {str(k): v for k, v in intervals.items()}}
         return {"enabled": False, "intervals": {}, "source": "sin_calendario",
                 "tz": self._tz_for(employee)}
+
+    # ---- editor de horarios por empleado (Config > Horarios laborales) -----
+    #
+    # Edita el horario laboral NATIVO (resource.calendar) de cada empleado, que
+    # es de donde ya salen TODAS las metricas (expected_seconds / jornada_de /
+    # schedule_for). No se inventa una segunda verdad. Al personalizar a alguien
+    # que comparte un calendario (el estandar), se le da el suyo propio para no
+    # mover a los demas. El checador sigue mandando lo REAL en los dias que marca.
+    DIAS_SEMANA = [(1, 'Lunes'), (2, 'Martes'), (3, 'Miércoles'), (4, 'Jueves'),
+                   (5, 'Viernes'), (6, 'Sábado'), (7, 'Domingo')]
+
+    @api.model
+    def _hora_valida(self, v):
+        """Un numero de hora (0..24) o None. Acepta float o cadena."""
+        if v is None or v is False or v == '':
+            return None
+        try:
+            return max(0.0, min(24.0, round(float(v), 4)))
+        except (TypeError, ValueError):
+            return None
+
+    @api.model
+    def _horario_dias(self, calendar):
+        """El horario semanal EDITABLE de un calendario: por dia ISO, si trabaja,
+        entrada, salida y comida. Reconstruye entrada=min y salida=max de las
+        lineas de trabajo (la comida sale de la linea 'lunch')."""
+        trabajo = self.calendar_intervals(calendar)   # {iso: [(a,b)...]} sin comida
+        comidas = self.lunch_intervals(calendar)       # {iso: [(a,b)...]} lineas 'lunch'
+        dias = []
+        for iso, etiqueta in self.DIAS_SEMANA:
+            spans = sorted(trabajo.get(iso) or [])
+            com = comidas.get(iso) or []
+            if spans:
+                entrada = spans[0][0]
+                salida = spans[-1][1]
+                horas = round(sum(b - a for a, b in spans), 2)
+                if com:
+                    ci, cf = com[0][0], com[0][1]
+                elif len(spans) >= 2 and spans[1][0] > spans[0][1]:
+                    # El 'Standard 40h' de Odoo NO tiene linea de comida: la comida
+                    # es el HUECO entre el bloque de la mañana y el de la tarde.
+                    ci, cf = spans[0][1], spans[1][0]
+                else:
+                    ci = cf = None
+            else:
+                entrada = salida = ci = cf = None
+                horas = 0.0
+            dias.append({'iso': iso, 'etiqueta': etiqueta, 'trabaja': bool(spans),
+                         'entrada': entrada, 'salida': salida,
+                         'comida_inicio': ci, 'comida_fin': cf, 'horas': horas})
+        return dias
+
+    @api.model
+    def _horario_plantillas(self):
+        """Plantillas rapidas para no capturar dia por dia. 8:30 h = 9:00–18:30
+        menos 1 h de comida."""
+        def d(e, s, ci=None, cf=None):
+            return {'entrada': e, 'salida': s, 'comida_inicio': ci, 'comida_fin': cf}
+        lv = {str(i): d(9.0, 18.5, 13.0, 14.0) for i in range(1, 6)}
+        lv8 = {str(i): d(9.0, 18.0, 13.0, 14.0) for i in range(1, 6)}
+        return [
+            {'clave': 'lv85', 'etiqueta': 'Lun–Vie 8:30 h', 'dias': lv},
+            {'clave': 'lv85s5', 'etiqueta': 'Lun–Vie 8:30 h + Sáb 5 h',
+             'dias': {**lv, '6': d(9.0, 14.0)}},
+            {'clave': 'lv8', 'etiqueta': 'Lun–Vie 8 h', 'dias': lv8},
+        ]
+
+    @api.model
+    def _fuente_hoy(self, emp):
+        """De donde manda la jornada de esa persona HOY: checador o calendario."""
+        zona = self._tzinfo_for(emp)
+        hoy = datetime.now(zona).date()
+        if self._usa_checador(emp, hoy, zona):
+            return 'checador'
+        return 'calendario' if self.calendar_intervals(emp.resource_calendar_id) else 'ninguno'
+
+    @api.model
+    def horarios_tablero(self):
+        """Lista de empleados monitoreados con su horario resumido. Lo lee la
+        pantalla OWL de Horarios laborales (sin sudo: respeta el alcance)."""
+        ajustes = self.get_settings()
+        empleados = self.env['foco.computer'].search(
+            [('employee_id', '!=', False)]).mapped('employee_id')
+        out = []
+        for emp in empleados:
+            cal = emp.resource_calendar_id
+            dias = ajustes._horario_dias(cal)
+            comparten = (self.env['hr.employee'].sudo().search_count(
+                [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+            out.append({
+                'id': emp.id, 'name': emp.name,
+                'departamento': emp.department_id.name or '',
+                'dias': [d['iso'] for d in dias if d['trabaja']],
+                'horas_semana': round(sum(d['horas'] for d in dias), 2),
+                'calendario': cal.name or '', 'compartido': comparten > 1,
+                'fuente_hoy': self._fuente_hoy(emp),
+            })
+        out.sort(key=lambda p: p['name'])
+        return {'empleados': out,
+                'tope_semana': ajustes.jornada_tope_semana or 40.0,
+                'plantillas': self._horario_plantillas()}
+
+    @api.model
+    def horario_empleado(self, employee_id):
+        """El horario completo y editable de un empleado."""
+        emp = self.env['hr.employee'].browse(int(employee_id or 0)).exists()
+        if not emp:
+            return {}
+        ajustes = self.get_settings()
+        cal = emp.resource_calendar_id
+        comparten = (self.env['hr.employee'].sudo().search_count(
+            [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+        return {
+            'id': emp.id, 'name': emp.name,
+            'departamento': emp.department_id.name or '',
+            'calendario': cal.name or '', 'compartido': comparten > 1,
+            'comparten': comparten,
+            'tz': (cal.tz if cal else None) or ajustes._tz_for(emp),
+            'tope_semana': ajustes.jornada_tope_semana or 40.0,
+            'fuente_hoy': self._fuente_hoy(emp),
+            'dias': ajustes._horario_dias(cal),
+        }
+
+    @api.model
+    def _calendario_propio(self, emp):
+        """El calendario que usa SOLO este empleado, para editarlo sin tocar a
+        nadie mas. Si el actual lo comparte, es el de la empresa, o no tiene, se
+        le clona/crea uno propio y se le asigna."""
+        cal = emp.resource_calendar_id
+        company_def = self.env.company.resource_calendar_id
+        comparten = (self.env['hr.employee'].sudo().search_count(
+            [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+        propio = bool(cal) and comparten <= 1 and cal.id != (company_def.id if company_def else 0)
+        if propio:
+            return cal
+        nombre = 'Horario — %s' % emp.name
+        if cal:
+            nuevo = cal.sudo().copy({'name': nombre})
+        else:
+            nuevo = self.env['resource.calendar'].sudo().create({
+                'name': nombre,
+                'tz': emp.tz or (company_def.tz if company_def else 'America/Mexico_City')})
+        emp.sudo().write({'resource_calendar_id': nuevo.id})
+        return nuevo
+
+    @api.model
+    def horario_guardar(self, employee_id, dias):
+        """Guarda el horario del empleado en SU calendario (clona si lo comparte).
+
+        `dias` = [{iso, trabaja, entrada, salida, comida_inicio, comida_fin}].
+        Un dia con comida se escribe como manana + comida + tarde (como el
+        estandar de Odoo), para que `calendar_intervals` cuente el trabajo sin la
+        comida y `lunch_intervals` reconozca la comida. Levanta UserError con un
+        mensaje claro si un dia no cuadra: nada se guarda a medias."""
+        emp = self.env['hr.employee'].browse(int(employee_id or 0)).exists()
+        if not emp:
+            raise UserError('No se encontró al empleado.')
+        etq = dict(self.DIAS_SEMANA)
+        lineas = []
+        for d in (dias or []):
+            if not d.get('trabaja'):
+                continue
+            try:
+                iso = int(d.get('iso'))
+            except (TypeError, ValueError):
+                continue
+            nombre_dia = etq.get(iso, '')
+            e = self._hora_valida(d.get('entrada'))
+            s = self._hora_valida(d.get('salida'))
+            ci = self._hora_valida(d.get('comida_inicio'))
+            cf = self._hora_valida(d.get('comida_fin'))
+            if e is None or s is None or s <= e:
+                raise UserError('En %s la salida debe ser mayor que la entrada.' % nombre_dia)
+            dow = str(iso - 1)
+            hay_comida = ci is not None and cf is not None
+            if hay_comida:
+                if not (e <= ci < cf <= s):
+                    raise UserError('En %s la comida debe caer dentro del turno '
+                                    '(entrada ≤ comida ≤ salida).' % nombre_dia)
+                lineas += [
+                    (0, 0, {'name': '%s mañana' % nombre_dia, 'dayofweek': dow,
+                            'hour_from': e, 'hour_to': ci, 'day_period': 'morning'}),
+                    (0, 0, {'name': 'Comida', 'dayofweek': dow,
+                            'hour_from': ci, 'hour_to': cf, 'day_period': 'lunch'}),
+                    (0, 0, {'name': '%s tarde' % nombre_dia, 'dayofweek': dow,
+                            'hour_from': cf, 'hour_to': s, 'day_period': 'afternoon'}),
+                ]
+            else:
+                periodo = 'afternoon' if e >= 13.0 else 'morning'
+                lineas.append((0, 0, {
+                    'name': nombre_dia, 'dayofweek': dow,
+                    'hour_from': e, 'hour_to': s, 'day_period': periodo}))
+        cal = self._calendario_propio(emp)
+        cal.sudo().write({'two_weeks_calendar': False,
+                          'attendance_ids': [(5, 0, 0)] + lineas})
+        return self.horario_empleado(emp.id)
 
     # ---- purga ----------------------------------------------------------
     def _purgar_modelo(self, modelo, dominio, cupo):
