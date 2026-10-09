@@ -59,6 +59,10 @@ export class FocoHorarios extends Component {
         this.state.emp = await this.orm.call("foco.settings", "horario_empleado", [id]);
     }
 
+    teclaFila(ev, id) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.seleccionar(id); }
+    }
+
     get filtrados() {
         const q = (this.state.q || "").trim().toLowerCase();
         if (!q) return this.state.empleados;
