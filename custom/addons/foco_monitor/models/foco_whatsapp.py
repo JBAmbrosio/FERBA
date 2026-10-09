@@ -26,6 +26,14 @@ _SUFIJO_WA = re.compile(r'\s*[-•|]\s*whatsapp(?:\s*web)?\s*$', re.I)
 # Chrome/Edge 154 decoran la pestaña dormida con "Uso de memoria: N MB".
 _MEM_SUFIJO = re.compile(
     r'\s*[-:]\s*(?:uso de memoria|memory usage)\s*[-:]\s*[\d.,]+\s*[KMG]B\s*$', re.I)
+# El titulo de ventana del navegador con VARIAS pestañas: "<pestaña activa> y N
+# paginas mas" (es) / "<tab> and N more page(s)" (en). Es decoracion del navegador,
+# no parte del nombre: medido en produccion "WhatsApp y 1 pagina mas" = WhatsApp
+# sin chat abierto. Se quita para quedarse con el titulo real y que el placeholder
+# lo reconozca (y para que un chat real con varias pestañas no arrastre el sufijo).
+_SUFIJO_MASPESTANAS = re.compile(
+    r'\s+(?:y\s+\d+\s+(?:p[aá]gina|p[aá]ginas|pesta[nñ]a|pesta[nñ]as)\s+m[aá]s'
+    r'|and\s+\d+\s+more\s+(?:page|pages|tab|tabs))\s*$', re.I)
 
 
 def normaliza_grupo(nombre):
@@ -34,6 +42,7 @@ def normaliza_grupo(nombre):
     t = (nombre or '').strip()
     t = _CONTADOR.sub('', t)
     t = _MEM_SUFIJO.sub('', t)
+    t = _SUFIJO_MASPESTANAS.sub('', t)
     t = _SUFIJO_WA.sub('', t)
     t = re.sub(r'\s+', ' ', t).strip()
     return t[:200]
