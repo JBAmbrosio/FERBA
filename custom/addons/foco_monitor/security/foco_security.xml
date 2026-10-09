@@ -21,4 +21,15 @@
     <record id="base.user_admin" model="res.users">
         <field name="group_ids" eval="[(4, ref('group_foco_manager'))]"/>
     </record>
+
+    <!-- Rol de VENDEDOR con las apps acotadas. Es un marcador: a quien lo tenga,
+         Foco le oculta un conjunto de apps (Aplicaciones, Sitio web, Aprobaciones,
+         Mantenimiento, Empleados) SIN tocar a los demas usuarios. Odoo no permite
+         "ocultar un menu a un grupo" de forma nativa (groups_id es positivo), por
+         eso se filtra en el override de ir.ui.menu._visible_menu_ids. El admin lo
+         asigna a cada vendedor. -->
+    <record id="group_foco_vendedor_acotado" model="res.groups">
+        <field name="name">Foco / Vendedor (apps acotadas)</field>
+        <field name="comment">Asignalo a los vendedores: les oculta Aplicaciones, Sitio web, Aprobaciones, Mantenimiento y Empleados, sin afectar a nadie mas.</field>
+    </record>
 </odoo>
