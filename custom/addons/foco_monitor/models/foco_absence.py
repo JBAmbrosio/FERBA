@@ -14,49 +14,80 @@ _logger = logging.getLogger(__name__)
 # sin boton, con la llave de OpenAI que vive en Odoo. Nace de que la gente
 # justifica con "Otro" y una nota de "." o basura para saltarse la regla de
 # "Otro exige texto" (que solo mira que NO este vacio).
+# La IA hace DOS cosas con la justificacion: (A) dice si el texto da alguna
+# razon (veredicto) y (B) la ordena en una categoria medible. Lo que decide si
+# algo "es creible" NO lo adivina el modelo: lo mide el sistema con el dato (si
+# el hueco cayo dentro o fuera de la jornada). Asi no hay falsos positivos.
 SISTEMA_JUST = (
     "Eres quien revisa las justificaciones de ausencia de los empleados de {contexto} "
     "El empleado eligio el motivo 'Otro' y escribio un TEXTO LIBRE para explicar por que su "
-    "computadora estuvo un rato sin actividad. Te doy ese texto, cuanto duro y a que hora. "
-    "LEE el texto completo y decide si EXPLICA la ausencia o si es vaga y hay que revisarla.\n"
-    "Reglas:\n"
-    "(1) 'adecuada' si el texto nombra una actividad, tarea, lugar o gestion concreta, AUNQUE "
-    "sea de una sola palabra ('almacen', 'limpieza', 'junta', 'bano'), este en mayusculas, sea "
-    "informal o sea largo. 'llegada a oficina y revision de actividades' o 'reunion con "
-    "proveedor' son ADECUADAS: dicen que hacia.\n"
-    "(2) 'vaga' SOLO cuando el texto no aporta NINGUNA razon: vacio, un punto, comas, 'x', "
-    "'asdf', letras o numeros sueltos, o repetir 'otro'/'na'/'nada'.\n"
-    "(3) 'sin_relacion' si el texto no es una razon de ausencia de trabajo (p.ej. 'fuera de "
-    "horario laboral', que niega la ausencia en vez de explicarla).\n"
-    "(4) 'indeterminada' si de verdad no puedes decidir.\n"
-    "'requiere_revision' es true para 'vaga' y 'sin_relacion'. 'motivo' RESUME lo que dice el "
-    "texto en maximo 12 palabras (no una frase generica), sin nombres de personas. Se tolerante: "
-    "la meta es cazar las que no dicen nada, nunca castigar un texto corto pero real."
+    "computadora estuvo un rato sin actividad. Te doy ese texto, cuanto duro, a que hora y "
+    "cuantos minutos del hueco caian DENTRO de su jornada. Haz dos cosas:\n"
+    "(A) VEREDICTO sobre el texto:\n"
+    " - 'adecuada' si el texto da CUALQUIER razon o circunstancia concreta: una actividad, "
+    "tarea, lugar, gestion, o una afirmacion de horario, aunque sea de una sola palabra "
+    "('almacen', 'bano', 'junta'), este en mayusculas o sea informal. 'fuera de horario "
+    "laboral', 'sin actividades asignadas' y 'reunion con proveedor' SON adecuadas: dicen algo.\n"
+    " - 'vaga' SOLO cuando el texto no aporta NADA: vacio, un punto, comas, 'x', 'asdf', letras "
+    "o numeros sueltos, o repetir 'otro'/'na'/'nada'.\n"
+    " - 'indeterminada' si de verdad no puedes decidir.\n"
+    "NO castigues que alguien diga que estaba fuera de su horario: si eso es cierto o no lo "
+    "verifica el SISTEMA con el dato de la jornada, no tu. Tu solo dices si el texto aporta una "
+    "razon.\n"
+    "(B) CATEGORIA: elige de la lista del esquema la que mejor describa el texto. Si dice que "
+    "estaba fuera de horario, de fin de semana, dormido o en casa, usa 'fuera_horario'. Si no "
+    "encaja en ninguna, 'otra'.\n"
+    "'motivo' RESUME el texto en maximo 12 palabras, sin nombres de personas. Se tolerante: la "
+    "meta es cazar solo las que no dicen nada y ordenar las demas por categoria."
 )
 # Motivos del catalogo que explican la ausencia por SI SOLOS: si el empleado
 # eligio uno de estos (no "Otro"), no hay nada que revisar ni se llama a la IA.
 MOTIVOS_EXPLICAN = {'comida', 'medico', 'escuela', 'permiso', 'tramite', 'personal'}
+# Veredicto del texto. 'sin_relacion' queda solo por compatibilidad con filas
+# viejas (ya no se asigna ni se marca a revisar): ahora lo que no es creible se
+# decide por el dato, no por el texto.
 VEREDICTOS_JUST = [
     ('adecuada', 'Justificacion adecuada'),
     ('vaga', 'Vaga o sin explicacion'),
-    ('sin_relacion', 'No parece razon de trabajo'),
+    ('sin_relacion', 'No parece razon de trabajo (historico)'),
     ('indeterminada', 'Indeterminada'),
+]
+# Categorias medibles. Las seis primeras son las del catalogo (un motivo elegido
+# cae directo en la suya). El catalogo puede crecer desde el dato real.
+CATEGORIAS_JUST = [
+    ('comida', 'Comida'),
+    ('medico', 'Cita medica'),
+    ('escuela', 'Escuela'),
+    ('permiso', 'Permiso'),
+    ('tramite', 'Tramite'),
+    ('personal', 'Asunto personal'),
+    ('pausa', 'Pausa breve'),
+    ('apoyo_otra_area', 'Apoyo a otra area'),
+    ('reunion', 'Reunion o junta'),
+    ('atencion_cliente', 'Atencion a cliente o visita'),
+    ('capacitacion', 'Capacitacion'),
+    ('fuera_horario', 'Declaro fuera de su horario'),
+    ('sin_tarea', 'Sin tarea asignada'),
+    ('otra', 'Otra'),
 ]
 ESQUEMA_JUST = {
     'name': 'revision_justificacion', 'strict': True,
     'schema': {
         'type': 'object', 'additionalProperties': False,
         'properties': {
-            'veredicto': {'type': 'string', 'enum': [v for v, _ in VEREDICTOS_JUST]},
-            'requiere_revision': {'type': 'boolean'},
+            'veredicto': {'type': 'string', 'enum': ['adecuada', 'vaga', 'indeterminada']},
+            'categoria': {'type': 'string', 'enum': [c for c, _ in CATEGORIAS_JUST]},
             'motivo': {'type': 'string'},
             'confianza': {'type': 'number'},
         },
-        'required': ['veredicto', 'requiere_revision', 'motivo', 'confianza'],
+        'required': ['veredicto', 'categoria', 'motivo', 'confianza'],
     },
 }
 AI_MAX_INTENTOS = 4
 AI_DIAS_ATRAS = 45
+# Menos de esto DENTRO de la jornada = el hueco cae fuera del turno: no hay nada
+# que justificar. Es un hecho medido (expected_seconds), no una conjetura.
+OFF_SHIFT_SEGUNDOS = 60
 
 REASONS = [
     ('comida', 'Comida'),
@@ -138,10 +169,22 @@ class FocoAbsence(models.Model):
         help='La IA lee la justificacion y decide si explica la ausencia o si es '
              'vaga. Corre sola en un proceso periodico, no hay boton.')
     ai_veredicto = fields.Selection(VEREDICTOS_JUST, string='Veredicto IA')
+    ai_categoria = fields.Selection(
+        CATEGORIAS_JUST, string='Categoria IA', index=True,
+        help='En que cae la justificacion, para poder medirla: minutos por '
+             'categoria, por persona y por area. La asigna la IA (o el motivo del '
+             'catalogo si se eligio uno).')
     ai_requiere_revision = fields.Boolean(
         string='A revisar', index=True,
-        help='La IA la marco como vaga o sin relacion con el trabajo: alguien '
-             'deberia revisarla con la persona.')
+        help='La IA la marco como VAGA (no da ninguna razon: vacio, un punto, '
+             'basura). Solo eso llega a "Periodos a revisar": una razon escrita, '
+             'aunque sea discutible, no se marca aqui.')
+    ai_incoherente = fields.Boolean(
+        string='No coincide con su horario', index=True,
+        help='El empleado declaro que estaba fuera de su horario, pero el hueco '
+             'cae DENTRO de su jornada configurada. Es un DATO medido, no una '
+             'acusacion: puede ser una evasion o que el horario configurado no sea '
+             'el real (lo afina la jornada por empleado). No entra a "a revisar".')
     ai_motivo = fields.Char(string='Que vio la IA')
     ai_confianza = fields.Float(string='Confianza IA', digits=(3, 2))
     ai_modelo = fields.Char(string='Modelo IA')
@@ -491,33 +534,54 @@ class FocoAbsence(models.Model):
         return n
 
     def _clasificar_ia(self, contexto):
-        """Una justificacion: le pide a la IA el veredicto y lo guarda."""
+        """Una justificacion: decide si el texto da una razon (veredicto), la
+        ordena en una categoria medible, y marca si lo declarado NO coincide con
+        la jornada medida. Lo que es "creible" se decide con el DATO (dentro o
+        fuera de turno), no con una conjetura del modelo: asi no hay falsos
+        positivos."""
         self.ensure_one()
-        # Motivo del catalogo (Comida, Cita medica, Tramite, Permiso, Escuela,
-        # Asunto personal): el motivo elegido YA explica la ausencia, no se
-        # revisa ni se gasta una llamada a la IA. La IA solo juzga el "Otro".
+        # 1) Motivo del catalogo (Comida, Cita medica, Tramite, Permiso, Escuela,
+        #    Asunto personal): el motivo elegido YA explica la ausencia y cae
+        #    directo en su categoria. No se revisa ni se gasta una llamada.
         if self.reason in MOTIVOS_EXPLICAN:
             self.sudo().write({
                 'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
-                'ai_requiere_revision': False,
+                'ai_categoria': self.reason, 'ai_requiere_revision': False,
+                'ai_incoherente': False,
                 'ai_motivo': 'Motivo del catalogo: %s' % dict(REASONS).get(self.reason, ''),
                 'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
                 'ai_at': fields.Datetime.now(), 'ai_error': False,
             })
             return
+        # 2) El hueco cae FUERA de su jornada (hecho medido, no conjetura): no hay
+        #    nada que justificar fuera de hora. Se acepta sin gastar IA y sin
+        #    marcar. Cero falsos positivos: lo dice el dato, no el texto.
+        if (self.expected_seconds or 0.0) < OFF_SHIFT_SEGUNDOS:
+            self.sudo().write({
+                'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
+                'ai_categoria': 'fuera_horario', 'ai_requiere_revision': False,
+                'ai_incoherente': False,
+                'ai_motivo': 'El hueco cae fuera de su jornada',
+                'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
+                'ai_at': fields.Datetime.now(), 'ai_error': False,
+            })
+            return
+        # 3) "Otro" con texto y DENTRO de la jornada: lo lee la IA.
         tz = self.env['foco.settings'].sudo()._tzinfo_for(self.employee_id)
         ini = pytz.UTC.localize(self.start).astimezone(tz) if self.start else None
         mins = int(round((self.duration or 0.0) * 60))
         dur = ('%d h %d min' % (mins // 60, mins % 60)) if mins >= 60 else ('%d min' % mins)
+        en_turno_min = int(round((self.expected_seconds or 0.0) / 60.0))
         ctx = (contexto or '').strip()
         if ctx and not ctx.endswith('.'):
             ctx += '.'
         sistema = SISTEMA_JUST.format(contexto=ctx or 'la empresa.')
         usuario = (
-            'MOTIVO ELEGIDO: %s\nTEXTO QUE ESCRIBIO: %s\nDURACION: %s\nHORA LOCAL: %s\nTIPO: %s'
+            'MOTIVO ELEGIDO: %s\nTEXTO QUE ESCRIBIO: %s\nDURACION: %s\nHORA LOCAL: %s\n'
+            'MINUTOS DEL HUECO DENTRO DE SU JORNADA: %d\nTIPO: %s'
             % (dict(REASONS).get(self.reason, self.reason or '(ninguno)'),
                (self.note or '').strip() or '(vacio)', dur,
-               ini.strftime('%H:%M') if ini else '?',
+               ini.strftime('%H:%M') if ini else '?', en_turno_min,
                dict(KINDS).get(self.kind, self.kind or '')))
         resp = self.env['foco.openai'].chat(
             [{'role': 'system', 'content': sistema},
@@ -528,17 +592,24 @@ class FocoAbsence(models.Model):
             j = json.loads(resp['message'].get('content') or '{}')
         except (ValueError, TypeError):
             j = {}
-        ver = j.get('veredicto') if j.get('veredicto') in dict(VEREDICTOS_JUST) else 'indeterminada'
-        # El flag se fija por el veredicto, no por el booleano suelto del modelo:
-        # 'vaga' y 'sin_relacion' SIEMPRE son a revisar, pase lo que pase.
-        requiere = ver in ('vaga', 'sin_relacion')
+        ver = j.get('veredicto') if j.get('veredicto') in ('adecuada', 'vaga', 'indeterminada') else 'indeterminada'
+        cat = j.get('categoria') if j.get('categoria') in dict(CATEGORIAS_JUST) else 'otra'
+        # A REVISAR solo lo VAGO (no da ninguna razon). Una razon escrita, aunque
+        # sea discutible, no se marca: eso es lo que pidio la reunion del 8-oct.
+        requiere = (ver == 'vaga')
+        # Señal MEDIDA (no acusacion): declaro estar fuera de horario, pero este
+        # hueco cae dentro de su turno (llegamos aqui con expected_seconds alto).
+        # Lo ve el admin aparte; NO entra a "a revisar", porque puede ser que el
+        # horario configurado no sea el real (lo afina la jornada por empleado).
+        incoherente = (cat == 'fuera_horario')
         try:
             conf = min(max(float(j.get('confianza') or 0.0), 0.0), 1.0)
         except (TypeError, ValueError):
             conf = 0.0
         self.sudo().write({
             'ai_estado': 'analizado', 'ai_veredicto': ver,
-            'ai_requiere_revision': requiere,
+            'ai_categoria': cat, 'ai_requiere_revision': requiere,
+            'ai_incoherente': incoherente,
             'ai_motivo': (j.get('motivo') or '').strip()[:150] or False,
             'ai_confianza': conf, 'ai_modelo': resp.get('modelo') or False,
             'ai_tokens': int((resp.get('usage') or {}).get('total_tokens') or 0),
