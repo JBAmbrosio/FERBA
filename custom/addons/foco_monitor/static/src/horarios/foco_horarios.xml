@@ -35,7 +35,7 @@
                             <t t-foreach="filtrados" t-as="e" t-key="e.id">
                                 <li t-att-class="{ on: e.id === state.sel }"
                                     t-on-click="() => this.seleccionar(e.id)" tabindex="0"
-                                    t-on-keydown="(ev) => { if (ev.key === 'Enter') this.seleccionar(e.id); }">
+                                    t-on-keydown="(ev) => this.teclaFila(ev, e.id)">
                                     <span class="fh_av" t-attf-style="--h: {{ hue(e.name) }}"
                                           t-esc="iniciales(e.name)"/>
                                     <span class="fh_who">
