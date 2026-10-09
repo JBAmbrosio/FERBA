@@ -43,7 +43,6 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'data/foco_integrity_verdict_data.xml',
         'views/foco_app_views.xml',
         'views/foco_site_views.xml',
-        'views/foco_whatsapp_views.xml',
         'views/foco_policy_views.xml',
         'views/foco_computer_views.xml',
         'views/foco_usage_views.xml',
@@ -73,6 +72,7 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'security/foco_mdm_rules.xml',
         'data/foco_mdm_data.xml',
         'views/foco_tab_review_views.xml',
+        'views/foco_whatsapp_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
