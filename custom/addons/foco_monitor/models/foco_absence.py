@@ -385,6 +385,12 @@ class FocoAbsence(models.Model):
                 ['employee_id'], ['__count']):
             if emp_x:
                 sin_salida[emp_x.id] = cuantos
+        # Jornada REAL segun el CHECADOR y el extra/faltante contra el horario
+        # (la guia). Decision del usuario 8-oct: el horario es una guia; el
+        # checador tiene el veredicto final de la columna Jornada, y lo
+        # configurado dice cuanto fue EXTRA. El indice NO cambia (sigue contra
+        # la guia). Un dia sin cerrar salida no cuenta como extra.
+        chk = Settings._checador_jornada(empleados, d_ini, d_fin)
         out = {}
         for employee in empleados:
             tz = Settings._tzinfo_for(employee)
@@ -419,6 +425,11 @@ class FocoAbsence(models.Model):
                 'lag_min': int(round(sum(v) / len(v))) if v else None,
                 # Dias del periodo en que checo entrada y no cerro salida.
                 'sin_salida': sin_salida.get(employee.id, 0),
+                # Jornada real del checador y extra/faltante vs el horario (guia).
+                'usa_checador': bool(chk.get(employee.id, {}).get('usa')),
+                'checado_h': round(chk.get(employee.id, {}).get('checado', 0.0), 3),
+                'extra_h': round(chk.get(employee.id, {}).get('extra', 0.0), 3),
+                'faltante_h': round(chk.get(employee.id, {}).get('faltante', 0.0), 3),
             }
         return out
 

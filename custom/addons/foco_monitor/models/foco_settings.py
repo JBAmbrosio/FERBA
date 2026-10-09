@@ -1324,3 +1324,95 @@ class FocoSettings(models.Model):
                         total += (b - a).total_seconds()
             day += timedelta(days=1)
         return total
+
+    # ---- la columna Jornada del tablero: el checador manda, el horario guia --
+    @api.model
+    def _comida_por_iso(self, calendar):
+        """La comida por dia ISO: la linea 'lunch' si existe, o el HUECO entre el
+        bloque de la mañana y el de la tarde (asi la trae el Standard 40h)."""
+        trabajo = self.calendar_intervals(calendar)
+        comidas = self.lunch_intervals(calendar)
+        out = {}
+        for iso, spans in trabajo.items():
+            spans = sorted(spans)
+            if comidas.get(iso):
+                out[iso] = (comidas[iso][0][0], comidas[iso][0][1])
+            elif len(spans) >= 2 and spans[1][0] > spans[0][1]:
+                out[iso] = (spans[0][1], spans[1][0])
+        return out
+
+    @api.model
+    def _checador_jornada(self, empleados, d_ini, d_fin):
+        """Jornada REAL del checador y EXTRA/faltante vs el horario (la guia), por
+        empleado, en [d_ini, d_fin]. Decision del usuario (8-oct-2026): el horario
+        es una guia; el CHECADOR tiene el veredicto final de la columna Jornada, y
+        lo configurado dice cuanto fue EXTRA. Se compara en NETO (se descuenta la
+        comida configurada, para no contar como extra la hora de comer de quien no
+        la checa). Un dia PASADO sin cerrar salida NO cuenta: no hay con que medir
+        (cero falsos positivos). El indice de productividad NO usa esto: sigue
+        contra la guia."""
+        base = {e.id: {'usa': False, 'checado': 0.0, 'extra': 0.0, 'faltante': 0.0}
+                for e in empleados}
+        if 'hr.attendance' not in self.env or not empleados:
+            return base
+        guia, comida, zonas, hoy = {}, {}, {}, {}
+        for e in empleados:
+            cal = e.resource_calendar_id
+            tr = self.calendar_intervals(cal)
+            guia[e.id] = {iso: round(sum(b - a for a, b in sp), 4) for iso, sp in tr.items()}
+            comida[e.id] = self._comida_por_iso(cal)
+            z = self._tzinfo_for(e)
+            zonas[e.id] = z
+            hoy[e.id] = datetime.now(z).date()
+        lo = datetime.combine(d_ini - timedelta(days=1), time.min)
+        hi = datetime.combine(d_fin + timedelta(days=1), time.max)
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', 'in', [e.id for e in empleados]),
+                 ('check_in', '>=', lo), ('check_in', '<=', hi)],
+                ['employee_id', 'check_in', 'check_out'], order='check_in')
+        except Exception:
+            return base
+        por = {}
+        for r in regs:
+            eid = r['employee_id'][0]
+            z = zonas.get(eid)
+            if not z:
+                continue
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(z)
+            dia = ci.date()
+            if dia < d_ini or dia > d_fin:
+                continue
+            por.setdefault((eid, dia), []).append((ci, r['check_out']))
+        for (eid, dia), pares in por.items():
+            base[eid]['usa'] = True
+            z = zonas[eid]
+            iso = dia.isoweekday()
+            tramos, abierto_pasado = [], False
+            for ci, co_raw in pares:
+                if not co_raw:
+                    if dia < hoy[eid]:
+                        abierto_pasado = True       # paso el dia y no cerro salida
+                        continue
+                    co = datetime.now(z)            # hoy: sigue checado
+                else:
+                    co = pytz.UTC.localize(
+                        fields.Datetime.to_datetime(co_raw)).astimezone(z)
+                a = ci.hour + ci.minute / 60.0 + ci.second / 3600.0
+                b = 24.0 if co.date() > dia else co.hour + co.minute / 60.0 + co.second / 3600.0
+                if b > a:
+                    tramos.append((a, b))
+            if abierto_pasado or not tramos:
+                continue
+            cw = comida[eid].get(iso)
+            neto = 0.0
+            for a, b in tramos:
+                dur = b - a
+                if cw:                               # descontar la comida configurada
+                    dur -= max(0.0, min(b, cw[1]) - max(a, cw[0]))
+                neto += max(0.0, dur)
+            g = guia[eid].get(iso, 0.0)
+            base[eid]['checado'] += neto
+            base[eid]['extra'] += max(0.0, neto - g)
+            base[eid]['faltante'] += max(0.0, g - neto)
+        return base
