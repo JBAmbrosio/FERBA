@@ -186,6 +186,7 @@ class FocoController(http.Controller):
 
         App = request.env['foco.app'].sudo()
         Site = request.env['foco.site'].sudo()
+        WaGroup = request.env['foco.whatsapp.group'].sudo()
         Usage = request.env['foco.usage'].sudo()
 
         info = data.get('computer') or {}
@@ -337,6 +338,11 @@ class FocoController(http.Controller):
             # El sitio se cataloga como entidad propia: es lo que permite
             # clasificarlo y que pese distinto que la app que lo muestra.
             site = Site._get_or_create(host) if host else Site.browse()
+            # El grupo/chat de WhatsApp abierto, cuando el renglon es WhatsApp
+            # (Web: host web.whatsapp.com; escritorio: la app ES WhatsApp). El
+            # nombre viaja en `document`. Su categoria mandara sobre la de la app,
+            # como el sitio sobre el navegador (requisito Francesco 9-oct-2026).
+            wa = WaGroup.resolver_desde_uso(app, host, documento)
             usage = Usage.search([
                 ('computer_id', '=', computer.id),
                 ('app_id', '=', app.id),
@@ -356,7 +362,8 @@ class FocoController(http.Controller):
                       'keys_count': _entero(s.get('keys')),
                       'mouse_events': _entero(s.get('mouse_events')),
                       'positions_count': _entero(s.get('positions')),
-                      'site_id': site.id or False}
+                      'site_id': site.id or False,
+                      'wa_group_id': wa.id or False}
             if call_ref:
                 llamada = Review._buscar(computer, call_ref)
                 if llamada:
@@ -425,6 +432,19 @@ class FocoController(http.Controller):
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
 
+        # --- encabezados de WhatsApp de escritorio (vision) -----------------
+        # La app UWP no expone su chat a UIA; el agente manda un recorte del
+        # encabezado con su huella. Aqui NO se corre vision (eso es un cron): se
+        # guardan los nuevos y se devuelven los que ya tienen nombre, para que el
+        # agente los use como el chat abierto. Nunca tumba el ingest.
+        wa_header_names = {}
+        try:
+            with request.env.cr.savepoint():
+                wa_header_names = WaGroup.resolver_headers(data.get('wa_headers') or [])
+        except Exception:
+            _logger.exception('Foco: encabezados de WhatsApp de %s', computer.id)
+            wa_header_names = {}
+
         # --- donde esta la persona AHORA ------------------------------------
         presencia = data.get('presence') or {}
         estados = dict(Comp._fields['presence_state'].selection)
@@ -491,6 +511,9 @@ class FocoController(http.Controller):
             'gaps_stored': gaps_stored,
             'events_stored': events_stored,
             'tabs_stored': tabs_stored,
+            # {huella: nombre} de los encabezados de WhatsApp ya resueltos por
+            # vision. El agente los cachea y los usa como el chat abierto.
+            'wa_header_names': wa_header_names,
             'commands': out,
             'config': config,
             # El CHECADOR, en vivo: si esta persona lo usa y si ahora mismo

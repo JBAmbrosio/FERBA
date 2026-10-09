@@ -48,6 +48,16 @@ class FocoUsage(models.Model):
         help='El sitio como entidad clasificable. Es lo que permite que una '
              'hora en el ERP y una hora en YouTube dejen de valer lo mismo '
              'solo porque las dos ocurrieron en el navegador.')
+    # El grupo/chat de WhatsApp abierto en este renglon (requisito de Francesco,
+    # 9-oct-2026). Es a WhatsApp lo que el sitio al navegador: lo que permite que
+    # el grupo de ventas cuente como productivo y uno de ocio como distraccion,
+    # aunque los dos sean "WhatsApp". El nombre viene de `document` (titulo del
+    # chat); lo resuelve el ingest. Vacio = ese renglon no es un chat de WhatsApp.
+    wa_group_id = fields.Many2one(
+        'foco.whatsapp.group', string='Grupo de WhatsApp',
+        ondelete='set null', index=True,
+        help='El grupo o chat que estaba abierto. Si esta clasificado, su '
+             'categoria MANDA sobre la de WhatsApp.')
     host_status = fields.Selection(
         [('ok', 'Leido'), ('typing', 'Escribiendo'),
          ('unreadable', 'Navegador no identificado'),
@@ -64,7 +74,8 @@ class FocoUsage(models.Model):
         compute='_compute_category_id',
         help='Del SITIO si esta clasificado; si no, de la aplicacion.')
     category_source = fields.Selection(
-        [('site', 'Sitio'), ('app', 'Aplicacion'), ('none', 'Sin clasificar')],
+        [('whatsapp', 'Grupo de WhatsApp'), ('site', 'Sitio'),
+         ('app', 'Aplicacion'), ('none', 'Sin clasificar')],
         string='Origen de la categoria', store=True, compute='_compute_category_id',
         help='De donde salio el peso de este renglon. Que el numero pueda '
              'explicarse es parte del numero.')
@@ -143,12 +154,20 @@ class FocoUsage(models.Model):
         string='Horas productivas', compute='_compute_metrics', store=True,
         help='Horas activas ponderadas por el peso de la categoria.')
 
-    @api.depends('site_id', 'site_id.category_id', 'app_id', 'app_id.category_id')
+    @api.depends('wa_group_id', 'wa_group_id.category_id',
+                 'site_id', 'site_id.category_id', 'app_id', 'app_id.category_id')
     def _compute_category_id(self):
         for rec in self:
-            cat = rec.site_id.category_id
+            # El grupo de WhatsApp manda sobre todo: es el detalle mas fino y es
+            # el que el aprobador clasifico a proposito. Luego el sitio (para el
+            # navegador) y, al final, la app. La misma regla "lo mas especifico
+            # gana" con la que el sitio ya le gana a la app.
+            cat = rec.wa_group_id.category_id
             if cat:
                 rec.category_id = cat
+                rec.category_source = 'whatsapp'
+            elif rec.site_id.category_id:
+                rec.category_id = rec.site_id.category_id
                 rec.category_source = 'site'
             elif rec.app_id.category_id:
                 rec.category_id = rec.app_id.category_id

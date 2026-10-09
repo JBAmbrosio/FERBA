@@ -67,6 +67,36 @@ def _alinea_pestanas(items, lote, modelo):
     return salida
 
 
+def _alinea_whatsapp(items, lote, modelo):
+    """Como `_alinea_pestanas`, pero para nombres de grupos de WhatsApp: la
+    sugerencia es productiva/distraccion/revisar (no permitir/bloquear). Empareja
+    por el indice 'i'. Funcion a nivel de modulo para poder probarla sin Odoo."""
+    porindice = {}
+    for it in (items or []):
+        if not isinstance(it, dict):
+            continue
+        i = it.get('i')
+        if isinstance(i, bool):
+            continue
+        if not isinstance(i, int):
+            try:
+                i = int(str(i).strip())
+            except (TypeError, ValueError):
+                continue
+        porindice[i] = it
+    salida = []
+    for pos, n in enumerate(lote, start=1):
+        it = porindice.get(pos, {})
+        sug = it.get('sugerencia')
+        salida.append({
+            'nombre': n,
+            'sugerencia': sug if sug in ('productiva', 'distraccion', 'revisar') else 'revisar',
+            'motivo': (it.get('motivo') or '')[:200],
+            'modelo': modelo,
+        })
+    return salida
+
+
 def _extraer_json(txt):
     """El primer objeto {...} de un texto. Tolera fences ```json y prosa
     alrededor, y cuenta llaves SALTANDO las cadenas (para no confundirse con un
@@ -469,3 +499,70 @@ class FocoOpenAI(models.AbstractModel):
         except (ValueError, TypeError):
             items = []
         return _alinea_pestanas(items, lote, resp.get('modelo') or '')
+
+    @api.model
+    def clasificar_whatsapp(self, nombres):
+        """Clasifica NOMBRES de grupos/chats de WhatsApp como productivos o
+        distraccion (requisito de Francesco, 9-oct-2026).
+
+        Devuelve una lista alineada con `nombres`: nombre, sugerencia
+        (productiva/distraccion/revisar), motivo y modelo. Igual que las
+        pestañas: se empareja por indice y se procesa en lotes. Juzga SOLO por el
+        nombre del grupo, nunca mensajes. Un fallo de la API sube como UserError.
+        """
+        nombres = [n for n in (nombres or []) if n]
+        if not nombres:
+            return []
+        CHUNK = 20
+        salida = []
+        for inicio in range(0, len(nombres), CHUNK):
+            salida.extend(self._clasificar_wa_lote(nombres[inicio:inicio + CHUNK]))
+        return salida
+
+    @api.model
+    def _clasificar_wa_lote(self, lote):
+        sistema = (
+            "Eres el clasificador de PRODUCTIVIDAD de WhatsApp de una empresa. Te doy una "
+            "lista NUMERADA de NOMBRES de grupos o chats de WhatsApp (solo el nombre, nunca "
+            "mensajes). Por cada uno decide si su uso es de TRABAJO o de distraccion. Reglas: "
+            "(1) responde un item POR CADA numero, e incluye su 'i' (el numero al que "
+            "respondes); (2) 'sugerencia'='productiva' si el nombre sugiere trabajo (ventas, "
+            "clientes, proveedores, un proyecto, obra, cotizaciones, soporte, coordinacion de "
+            "un area), 'distraccion' si sugiere ocio o personal (memes, familia, amigos, "
+            "futbol, fiestas, chismes), 'revisar' si el nombre no permite saberlo (un nombre "
+            "de persona a secas, siglas, algo ambiguo); (3) 'motivo' maximo 12 palabras, sin "
+            "nombres de personas. Juzga cada nombre por SI MISMO; ante la duda, 'revisar'.")
+        esquema = {
+            'name': 'clasificacion_whatsapp', 'strict': True,
+            'schema': {
+                'type': 'object', 'additionalProperties': False,
+                'properties': {
+                    'items': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object', 'additionalProperties': False,
+                            'properties': {
+                                'i': {'type': 'integer'},
+                                'sugerencia': {'type': 'string',
+                                               'enum': ['productiva', 'distraccion', 'revisar']},
+                                'motivo': {'type': 'string'},
+                            },
+                            'required': ['i', 'sugerencia', 'motivo'],
+                        },
+                    },
+                },
+                'required': ['items'],
+            },
+        }
+        usuario = ("GRUPOS DE WHATSAPP:\n%s"
+                   % "\n".join("%d. %s" % (i + 1, n) for i, n in enumerate(lote)))
+        resp = self.chat(
+            [{'role': 'system', 'content': sistema},
+             {'role': 'user', 'content': usuario}],
+            response_format={'type': 'json_schema', 'json_schema': esquema},
+            max_tokens=1500)
+        try:
+            items = json.loads(resp['message'].get('content') or '{}').get('items') or []
+        except (ValueError, TypeError):
+            items = []
+        return _alinea_whatsapp(items, lote, resp.get('modelo') or '')
