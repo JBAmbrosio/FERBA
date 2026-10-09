@@ -308,6 +308,22 @@ class FocoSettings(models.Model):
         string='Subir el audio en trozos de (min)', default=3,
         help='Cada trozo se transcribe al llegar y se descarta. Trozos cortos '
              'suben mas seguido; largos cargan mas cada peticion. 1 a 10.')
+    # ---- rebote de justificaciones vagas al empleado (enforcement) ----------
+    justify_rebote_activo = fields.Boolean(
+        string='Devolver justificaciones vagas al empleado', default=False,
+        help='Encendido: cuando la IA marca una justificacion como VAGA (no da '
+             'ninguna razon: un punto, vacio, basura), el periodo se REABRE y la '
+             'ventana del agente vuelve a pedirla con un aviso, hasta que el '
+             'empleado de un motivo coherente (o, tras varios intentos, queda solo '
+             'para revision del admin). Apagado: solo se marca en «Periodos a '
+             'revisar» para que el admin lo trate con la persona.')
+    justify_rebote_msg = fields.Char(
+        string='Aviso al devolver la justificacion',
+        default='Tu justificacion anterior no explica que paso. Escribe el motivo '
+                'real (aunque sea breve: «cita medica», «junta con proveedor», «fui '
+                'al almacen») para poder seguir usando el equipo.',
+        help='Lo que ve el empleado en la ventana del agente cuando se le devuelve '
+             'una justificacion vaga. Se puede ajustar aqui sin recompilar el agente.')
     anthropic_api_key = fields.Char(
         string='API key de Anthropic (Claude)', compute='_compute_anthropic_api_key',
         inverse='_inverse_anthropic_api_key',

@@ -91,6 +91,20 @@
                         por su nombre. El cambio llega a cada equipo en su siguiente envío
                         (unos minutos), sin reinstalar nada.
                     </div>
+                    <group string="Justificaciones vagas: devolverlas al empleado">
+                        <field name="justify_rebote_activo"/>
+                        <field name="justify_rebote_msg" invisible="not justify_rebote_activo"
+                               placeholder="Mensaje que verá el empleado al devolverle la justificación..."/>
+                    </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not justify_rebote_activo">
+                        Con esto encendido, cuando la IA marca una justificación como <b>vaga</b>
+                        (un punto, vacío, basura) el periodo se <b>reabre</b> y la ventana del
+                        agente vuelve a pedirla con el aviso de arriba, hasta que la persona dé
+                        un motivo coherente. Tras varios intentos deja de insistir y queda solo
+                        en <b>Periodos a revisar</b> para el admin. El equipo debe tener el agente
+                        actualizado para ver el aviso.
+                    </div>
                 </sheet>
             </form>
         </field>
