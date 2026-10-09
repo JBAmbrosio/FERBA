@@ -26,6 +26,7 @@ from . import foco_tab_review
 from . import hr_employee
 from . import res_config_settings
 from . import res_users
+from . import foco_menu_visibility
 # Flujo de vendedores: el cliente es un res.partner, la oportunidad un crm.lead.
 from . import res_partner
 from . import foco_visita
