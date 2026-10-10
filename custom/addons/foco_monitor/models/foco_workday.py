@@ -679,7 +679,7 @@ class FocoWorkday(models.Model):
             cnt = {'laborables': 0, 'a_tiempo': 0, 'tarde': 0, 'falto': 0,
                    'permiso': 0, 'salio_antes': 0, 'sin_checada': 0,
                    'tarde_min': 0, 'antes_min': 0}
-            ultimo = None
+            ultimo, ultima_senal = None, None
             for dia in dias:
                 w = senales.get((emp.id, dia)) or {}
                 primera = fields.Datetime.to_datetime(w['first_signal']) if w.get('first_signal') else None
@@ -699,7 +699,7 @@ class FocoWorkday(models.Model):
                 if a['left_early']:
                     cnt['salio_antes'] += 1
                     cnt['antes_min'] += a['early_minutes']
-                ultimo = a
+                ultimo, ultima_senal = a, primera
             u = ultimo or {}
             z = ctx['zona'].get(emp.id) or pytz.UTC
 
@@ -708,12 +708,17 @@ class FocoWorkday(models.Model):
                     return ''
                 return pytz.UTC.localize(dt).astimezone(z).strftime('%H:%M')
 
+            # La hora de entrada que se muestra: la checada; si la entrada
+            # salio del equipo, la primera senal con persona de ese dia.
+            entrada = hhmm(u.get('check_in_at'))
+            if not entrada and u.get('adherence_source') == 'equipo' and u.get('adherence') in ADH_CON_ENTRADA:
+                entrada = hhmm(ultima_senal)
             personas[str(emp.id)] = {
                 'estado': u.get('adherence') or '',
                 'etiqueta': ADHERENCIA_ETQ.get(u.get('adherence') or '', ''),
                 'texto': self._adherencia_texto(u) if u else '',
                 'fuente': u.get('adherence_source') or '',
-                'entrada': hhmm(u.get('check_in_at')),
+                'entrada': entrada,
                 'salida': hhmm(u.get('check_out_at')),
                 'tarde_min': u.get('late_minutes') or 0,
                 'antes_min': u.get('early_minutes') or 0,

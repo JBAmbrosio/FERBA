@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
+    <!-- El tablero (rediseno del 10-oct-2026). El orden de las secciones es el
+         orden de las preguntas de un jefe: cuatro cifras con su variacion;
+         quien esta, quien llego tarde o no vino, que pide atencion; como viene
+         cada quien contra su jornada; la linea del dia; la tabla por
+         departamento; en que se va el tiempo; la tendencia. Nada se muestra al
+         empleado: es una pantalla de administracion. -->
     <t t-name="foco_monitor.Dashboard">
         <div class="foco_dash" t-att-class="{ 'fd-dark': state.dark }" t-ref="root">
             <header class="fd_head">
@@ -8,8 +14,8 @@
                     <p class="fd_sub">
                         <t t-if="!state.loading">
                             <b class="fd_periodo" t-esc="periodoLabel"/> ·
-                            <span t-esc="state.team.monitored"/> empleados ·
-                            <span class="fd_on"><span class="fd_dot on"/><t t-esc="state.team.online"/> en línea</span>
+                            <span t-esc="state.team.monitored"/> personas ·
+                            <span class="fd_on"><span class="fd_dot on"/><t t-esc="state.conectados"/> conectadas</span>
                             <t t-if="state.ultimo">
                                 <span class="sep">·</span>
                                 <span class="fd_ultimo"
@@ -25,14 +31,27 @@
                         <button class="on"><i class="fa fa-laptop"/><span>PC</span></button>
                         <button t-on-click="() => this.verMovil()"><i class="fa fa-mobile"/><span>Móvil</span></button>
                     </div>
+                    <!-- Un dia atras o adelante sin abrir el calendario; el
+                         selector sigue ahi para saltar lejos. Nunca futuro. -->
+                    <div class="fd_datenav" role="group">
+                        <button t-on-click="() => this.cambiarDia(-1)" title="Día anterior" aria-label="Día anterior">‹</button>
+                        <label class="fd_fecha" title="Ver el tablero de otro día">
+                            <i class="fa fa-calendar"/>
+                            <input type="date" t-att-value="state.fecha" t-att-max="hoyYmd"
+                                   t-on-change="(ev) => this.setFecha(ev)"/>
+                        </label>
+                        <button t-on-click="() => this.cambiarDia(1)" t-att-disabled="anclaEsHoy" title="Día siguiente" aria-label="Día siguiente">›</button>
+                    </div>
+                    <div class="fd_seg" role="group">
+                        <button t-att-class="esHoy ? 'on' : ''" t-on-click="() => this.verHoy()">Hoy</button>
+                        <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
+                        <button t-att-class="state.days === 30 ? 'on' : ''" t-on-click="() => this.setDays(30)">30 días</button>
+                    </div>
                     <t t-if="state.sinSenal">
                         <span class="fd_attn sin_senal"
-                              title="Su agente dejó de reportar: los datos de esas personas están incompletos.">
+                              title="Su agente dejó de reportar en horario: los datos de esas personas están incompletos.">
                             <t t-esc="state.sinSenal"/> sin señal
                         </span>
-                    </t>
-                    <t t-if="state.attention">
-                        <span class="fd_attn"><t t-esc="state.attention"/> requiere<t t-if="state.attention > 1">n</t> atención</span>
                     </t>
                     <button class="fd_refrescar" t-on-click="() => this.refrescar()"
                             t-att-disabled="state.refrescando"
@@ -41,18 +60,6 @@
                         <span class="ico">&#8635;</span>
                         <span class="txt"><t t-esc="state.refrescando ? 'Actualizando' : 'Actualizar'"/></span>
                     </button>
-                    <div class="fd_seg" role="group">
-                        <button t-att-class="esHoy ? 'on' : ''" t-on-click="() => this.verHoy()">Hoy</button>
-                        <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
-                        <button t-att-class="state.days === 30 ? 'on' : ''" t-on-click="() => this.setDays(30)">30 días</button>
-                    </div>
-                    <!-- Selector de fecha: ancla el periodo en un dia pasado
-                         para ver el tablero de dias anteriores. Nunca futuro. -->
-                    <label class="fd_fecha" title="Ver el tablero de otro día">
-                        <i class="fa fa-calendar"/>
-                        <input type="date" t-att-value="state.fecha" t-att-max="hoyYmd"
-                               t-on-change="(ev) => this.setFecha(ev)"/>
-                    </label>
                 </div>
             </header>
 
@@ -60,89 +67,64 @@
                 <div class="fd_loading">Cargando…</div>
             </t>
             <t t-else="">
-                <section class="fd_kpis">
-                    <div class="fd_kpi">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Índice del equipo</span>
-                            <!-- La flecha compara contra el periodo anterior. En
-                                 "Hoy" (dia en curso) seria un dia a medias contra
-                                 uno completo: una caida falsa cada manana. Se
-                                 oculta hasta que el dia cierre o se vea un rango. -->
+                <!-- ============================================ CUATRO CIFRAS -->
+                <section class="fd_widgets">
+                    <div class="fd_w spk">
+                        <div class="fd_w_top">
+                            <span class="fd_w_lbl">Índice del equipo</span>
+                            <!-- La flecha compara contra el periodo anterior. En «Hoy»
+                                 seria un dia a medias contra uno completo: una caida
+                                 falsa cada manana. Se oculta hasta que el dia cierre. -->
                             <t t-if="!esHoy">
                                 <span t-attf-class="fd_pill {{ state.team.indexDelta >= 0 ? 'up' : 'down' }}">
-                                    <t t-esc="state.team.indexDelta >= 0 ? '↑' : '↓'"/> <t t-esc="Math.abs(state.team.indexDelta)"/> pts
+                                    <t t-esc="state.team.indexDelta >= 0 ? '▲' : '▼'"/> <t t-esc="Math.abs(state.team.indexDelta)"/> pts
                                 </span>
                             </t>
                         </div>
-                        <div class="fd_kpi_v"><t t-esc="state.team.index"/><span class="u">%</span></div>
+                        <div t-attf-class="fd_w_v {{ state.team.meter }}"><t t-esc="state.team.index"/><span class="u">%</span></div>
                         <div class="fd_meter big"><div t-attf-class="fill {{ state.team.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (state.team.index) }}% 0 0)"/></div>
-                        <div class="fd_kpi_foot"
+                        <div class="fd_w_foot"
                              title="De la jornada que el equipo debía cubrir (8:30 por persona), cuánto se cubrió con trabajo productivo más lo justificado.">
                             cubierto <b t-esc="fmt(state.team.covered)"/> de <t t-esc="fmt(state.team.expected)"/>
                         </div>
                         <t t-if="esHoy">
-                            <div class="fd_kpi_foot muted">día en curso · el índice se completa al cerrar la jornada</div>
+                            <div class="fd_w_foot muted">día en curso · el índice se completa al cerrar la jornada</div>
+                        </t>
+                        <t t-if="state.spark.indice.d">
+                            <svg class="fd_spark" viewBox="0 0 108 34" aria-hidden="true">
+                                <path t-att-d="state.spark.indice.d" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle t-if="state.spark.indice.fin" t-att-cx="state.spark.indice.fin.x" t-att-cy="state.spark.indice.fin.y" r="3" fill="var(--accent)"/>
+                            </svg>
                         </t>
                     </div>
 
-                    <div class="fd_kpi">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Horas productivas</span>
+                    <div class="fd_w spk">
+                        <div class="fd_w_top">
+                            <span class="fd_w_lbl">Horas productivas</span>
                             <t t-if="!esHoy">
                                 <span t-attf-class="fd_pill {{ state.team.prodDelta >= 0 ? 'up' : 'down' }}">
-                                    <t t-esc="state.team.prodDelta >= 0 ? '↑' : '↓'"/> <t t-esc="fmtDelta(state.team.prodDelta).replace('+','').replace('−','')"/>
+                                    <t t-esc="state.team.prodDelta >= 0 ? '▲' : '▼'"/> <t t-esc="fmtDelta(state.team.prodDelta).replace('+','').replace('−','')"/>
                                 </span>
                             </t>
                         </div>
-                        <div class="fd_kpi_v"><t t-esc="fmt(state.team.prod)"/></div>
-                        <div class="fd_kpi_foot">de <t t-esc="fmt(state.team.active)"/> activas</div>
-                    </div>
-
-                    <div class="fd_kpi">
-                        <div class="fd_kpi_top"><span class="fd_kpi_label">Distracción</span></div>
-                        <div class="fd_kpi_v warn"><t t-esc="fmt(state.team.distr)"/></div>
-                        <div class="fd_kpi_foot"><t t-esc="state.team.distrPct"/>% del tiempo activo</div>
-                    </div>
-
-                    <div class="fd_kpi">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Cobertura del dato</span>
-                            <t t-if="state.team.cobParciales">
-                                <span class="fd_pill down"><t t-esc="state.team.cobParciales"/> incompleto<t t-if="state.team.cobParciales > 1">s</t></span>
-                            </t>
-                        </div>
-                        <t t-if="state.team.cobMedible">
-                            <div class="fd_kpi_v"><t t-esc="state.team.cobPct"/><span class="u">%</span></div>
-                            <div class="fd_kpi_foot"
-                                 title="Días laborables del calendario de cada persona contra días en los que su equipo reportó algo. Un índice alto sobre pocos días medidos no es comparable con uno sobre el periodo completo.">
-                                <t t-esc="state.team.cobDias"/> de <t t-esc="state.team.cobEsp"/> días con dato
-                            </div>
-                        </t>
-                        <t t-else="">
-                            <div class="fd_kpi_v">—</div>
-                            <div class="fd_kpi_foot">no hay jornada esperada en este rango</div>
-                        </t>
-                        <t t-if="state.team.cobSinDato">
-                            <div class="fd_kpi_foot warn"
-                                 t-attf-title="Sin un solo día reportado en el periodo: {{ state.team.cobSinDatoNombres }}">
-                                <t t-esc="state.team.cobSinDato"/> sin ningún dato
-                            </div>
+                        <div class="fd_w_v"><t t-esc="fmt(state.team.prod)"/></div>
+                        <div class="fd_w_foot">de <b t-esc="fmt(state.team.active)"/> activas · <t t-esc="state.team.cobDias"/> de <t t-esc="state.team.cobEsp"/> días con dato</div>
+                        <div class="fd_w_foot">distracción <b class="warn" t-esc="fmt(state.team.distr)"/> · <t t-esc="state.team.distrPct"/>% del activo</div>
+                        <t t-if="state.spark.prod.d">
+                            <svg class="fd_spark" viewBox="0 0 108 34" aria-hidden="true">
+                                <path t-att-d="state.spark.prod.d" fill="none" stroke="var(--prod)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle t-if="state.spark.prod.fin" t-att-cx="state.spark.prod.fin.x" t-att-cy="state.spark.prod.fin.y" r="3" fill="var(--prod)"/>
+                            </svg>
                         </t>
                     </div>
 
-                    <div class="fd_kpi">
-                        <div class="fd_kpi_top"><span class="fd_kpi_label">En línea ahora</span></div>
-                        <div class="fd_kpi_v"><t t-esc="state.team.online"/><span class="u">/<t t-esc="state.team.monitored"/></span></div>
-                        <div class="fd_kpi_foot">equipos reportando en este momento</div>
-                    </div>
-
-                    <!-- Asistencia (adherencia al turno): como llego cada quien
-                         contra su horario. Hoy son los estados vivos; en un
-                         rango, dias sumados. Abre la lista con la evidencia. -->
-                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirAsistencia"
+                    <!-- Asistencia (adherencia al turno): como llego cada quien contra
+                         su horario. Hoy son los estados vivos; en un rango, dias
+                         sumados. Abre la lista con la evidencia. -->
+                    <div class="fd_w fd_kpi_click" t-on-click="abrirAsistencia"
                          title="Abrir Jornadas › Asistencia: entrada y salida checadas, minutos tarde y fuente, agrupado por estado.">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Asistencia<t t-if="asis.dias"> · días</t></span>
+                        <div class="fd_w_top">
+                            <span class="fd_w_lbl">Asistencia<t t-if="asis.dias"> · días</t></span>
                             <t t-if="state.asistencia.gracia">
                                 <span class="fd_kpi_hint">tolerancia <t t-esc="state.asistencia.gracia"/> min</span>
                             </t>
@@ -153,7 +135,7 @@
                             <span t-attf-class="a {{ asis.falto ? 'low' : '' }}" title="Día cerrado sin checada ni señal de persona en su equipo"><b t-esc="asis.falto"/><small>sin registro</small></span>
                             <span class="a" title="Permiso validado o festivo"><b t-esc="asis.permiso"/><small>permiso</small></span>
                         </div>
-                        <div class="fd_kpi_foot">
+                        <div class="fd_w_foot">
                             <t t-if="asis.salioAntes"><t t-esc="asis.salioAntes"/> salió antes · </t>
                             <t t-if="asis.enCurso"><t t-esc="asis.enCurso"/> sin entrada aún · </t>
                             <t t-if="asis.sinChecada"><t t-esc="asis.sinChecada"/> con checada abierta de otro día · </t>
@@ -161,368 +143,399 @@
                         </div>
                     </div>
 
-                    <!-- Veredictos de la IA: episodios sospechosos con captura en
-                         los que el modelo NO vio trabajo. Solo para quien puede ver
-                         los episodios. Es evidencia por revisar: ámbar, nunca rojo. -->
-                    <t t-if="state.iaVisible">
-                        <div class="fd_kpi fd_kpi_click" t-on-click="abrirVeredictos"
-                             title="Abrir Actividad › Veredictos de la IA con los que faltan por revisar">
-                            <div class="fd_kpi_top">
-                                <span class="fd_kpi_label">Veredictos de la IA</span>
-                                <t t-if="state.team.iaSinRevisar">
-                                    <span class="fd_pill down"><t t-esc="state.team.iaSinRevisar"/> sin revisar</span>
+                    <!-- Lo que pide atencion, en corto. El detalle y las puertas a
+                         cada pantalla estan en la tarjeta de abajo. -->
+                    <div class="fd_w">
+                        <div class="fd_w_top">
+                            <span class="fd_w_lbl">Requiere atención</span>
+                            <span t-attf-class="fd_pill {{ state.atencionN ? 'down' : 'flat' }}"><t t-esc="state.atencionN"/> pendientes</span>
+                        </div>
+                        <div class="fd_attn_list">
+                            <t t-foreach="state.atencion.slice(0, 5)" t-as="a" t-key="a.clave">
+                                <span t-attf-class="r {{ a.tono }}" t-on-click="() => this.clickAtencion(a)"><b t-esc="a.n"/><t t-esc="a.titulo"/></span>
+                            </t>
+                            <t t-if="!state.atencion.length"><span class="r muted">Nada pendiente.</span></t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ TRES PREGUNTAS -->
+                <section class="fd_trio">
+                    <div class="fd_card fd_online_card">
+                        <div class="fd_card_head">
+                            <h2>Quién está en línea</h2>
+                            <span class="fd_card_hint"><t t-esc="state.conectados"/> conectad<t t-esc="state.conectados === 1 ? 'a' : 'as'"/> ahora</span>
+                        </div>
+                        <div class="fd_online">
+                            <t t-foreach="state.online" t-as="g" t-key="g.nombre">
+                                <div class="grp" t-esc="g.nombre"/>
+                                <t t-foreach="g.personas" t-as="o" t-key="o.id">
+                                    <div class="p" t-attf-style="--i:{{ Math.min(o_index, 12) }}" role="button" tabindex="0"
+                                         t-on-click="() => this.openDetail(empleadoDe(o.id))"
+                                         t-on-keydown="(ev) => this.teclaFila(ev, empleadoDe(o.id))">
+                                        <span class="fd_avawrap">
+                                            <span class="fd_ava" t-attf-style="--h:{{ o.hue }}">
+                                                <t t-esc="o.initials"/>
+                                                <img t-attf-src="/web/image/hr.employee/{{ o.id }}/avatar_128" t-att-alt="o.name" loading="lazy"/>
+                                            </span>
+                                            <i t-attf-class="fd_pdot2 {{ o.presencia }}"/>
+                                        </span>
+                                        <span class="who">
+                                            <span class="nm" t-esc="o.name"/>
+                                            <span t-attf-class="st {{ o.presencia }}">
+                                                <t t-esc="o.presenciaTxt"/><t t-if="o.topApp"> · <t t-esc="o.topApp"/></t>
+                                            </span>
+                                        </span>
+                                        <span class="hrs">
+                                            <b t-esc="o.sinUso ? '—' : fmt(o.active)"/>
+                                            <span class="fd_meter mini"><div t-attf-class="fill {{ o.meter }}" t-attf-style="clip-path: inset(0 {{ o.sinUso ? 100 : 100 - o.index }}% 0 0)"/></span>
+                                        </span>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-if="!state.online.length"><div class="fd_empty small">Ningún equipo ligado a un empleado.</div></t>
+                        </div>
+                    </div>
+
+                    <div class="fd_card">
+                        <div class="fd_card_head">
+                            <h2><t t-esc="state.days === 1 ? 'Asistencia del día' : 'Asistencia del periodo'"/></h2>
+                            <span class="fd_card_hint"><t t-esc="asis.aTiempo"/> a tiempo · <t t-esc="asis.tarde"/> tarde · <t t-esc="asis.falto"/> sin registro</span>
+                        </div>
+                        <div class="fd_late">
+                            <t t-foreach="state.asistenciaLista" t-as="p" t-key="p.id">
+                                <div class="p" t-attf-style="--i:{{ Math.min(p_index, 12) }}" role="button" tabindex="0"
+                                     t-on-click="() => this.openDetail(empleadoDe(p.id))"
+                                     t-on-keydown="(ev) => this.teclaFila(ev, empleadoDe(p.id))">
+                                    <span class="fd_ava" t-attf-style="--h:{{ p.hue }}">
+                                        <t t-esc="p.initials"/>
+                                        <img t-attf-src="/web/image/hr.employee/{{ p.id }}/avatar_128" t-att-alt="p.name" loading="lazy"/>
+                                    </span>
+                                    <span class="who"><span class="nm" t-esc="p.name"/><span class="ev" t-esc="p.ev"/></span>
+                                    <span t-attf-class="fd_chip2 {{ p.chip }}" t-esc="p.chipTxt"/>
+                                </div>
+                            </t>
+                            <t t-if="!state.asistenciaLista.length">
+                                <div class="fd_empty small"><t t-esc="state.days === 1 ? 'Todos a tiempo.' : 'Sin retardos ni faltas en el periodo.'"/></div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="fd_card">
+                        <div class="fd_card_head">
+                            <h2>Requiere atención</h2>
+                            <span class="fd_card_hint"><t t-esc="state.atencion.length"/> tema<t t-if="state.atencion.length !== 1">s</t></span>
+                        </div>
+                        <div class="fd_atn">
+                            <t t-foreach="state.atencion" t-as="a" t-key="a.clave">
+                                <div t-attf-class="it {{ a.tono }} {{ a.accion ? 'abrible' : '' }}"
+                                     t-att-role="a.accion ? 'button' : undefined" t-att-tabindex="a.accion ? 0 : undefined"
+                                     t-on-click="() => this.clickAtencion(a)">
+                                    <div class="t"><t t-esc="a.titulo"/><b t-esc="a.n"/></div>
+                                    <div class="d">
+                                        <t t-foreach="a.detalle" t-as="l" t-key="l_index"><span t-att-title="l" t-esc="l"/></t>
+                                        <t t-if="a.mas"><span class="mas">y <t t-esc="a.mas"/> más…</span></t>
+                                    </div>
+                                </div>
+                            </t>
+                            <t t-if="!state.atencion.length"><div class="fd_empty small">Nada que requiera atención.</div></t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ====================================== CONTRA SU JORNADA -->
+                <t t-if="state.barras.length">
+                    <section class="fd_card">
+                        <div class="fd_card_head">
+                            <h2><t t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo vino cada quien en el periodo'"/></h2>
+                            <span class="fd_card_hint">cada barra es su jornada esperada<t t-if="state.days === 1"> · la marca es el margen de 1h30</t></span>
+                        </div>
+                        <div class="fd_bars">
+                            <t t-foreach="state.barras" t-as="b" t-key="b.id">
+                                <div class="brow" t-attf-style="--i:{{ Math.min(b_index, 14) }}">
+                                    <div class="nm">
+                                        <span class="fd_ava sm" t-attf-style="--h:{{ b.hue }}">
+                                            <t t-esc="b.initials"/>
+                                            <img t-attf-src="/web/image/hr.employee/{{ b.id }}/avatar_128" t-att-alt="b.name" loading="lazy"/>
+                                        </span>
+                                        <span t-esc="b.name"/>
+                                    </div>
+                                    <div class="track" t-att-title="b.titulo">
+                                        <t t-foreach="b.segs" t-as="s" t-key="s.k">
+                                            <span t-attf-class="s {{ s.k }}" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%" t-att-title="s.label"/>
+                                        </t>
+                                        <t t-if="b.marca !== null"><span class="mark" t-attf-style="left:{{ b.marca }}%" data-l="7h"/></t>
+                                        <span class="mark fin" t-attf-style="left:{{ b.fin }}%" t-att-data-l="b.finTxt"/>
+                                    </div>
+                                    <div t-attf-class="pct {{ b.meter }}"><t t-esc="b.index"/>%</div>
+                                </div>
+                            </t>
+                        </div>
+                        <div class="fd_legend">
+                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo</span>
+                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (cuenta como cubierto)</span>
+                            <span class="fd_leg"><span class="fd_dot neutral"/>Neutral y navegador</span>
+                            <span class="fd_leg"><span class="fd_dot distraccion"/>Distracción</span>
+                            <span class="fd_leg"><span class="fd_dot sin"/>Sin clasificar</span>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- ========================================== LA LINEA DEL DIA -->
+                <t t-if="state.days === 1 and state.tl.filas.length">
+                    <section class="fd_card">
+                        <div class="fd_card_head">
+                            <h2>La línea del día</h2>
+                            <span class="fd_card_hint">lo que registró el equipo de cada quien, hora por hora · ● checó entrada · ○ checó salida · la franja azul es su jornada</span>
+                        </div>
+                        <div class="fd_tl">
+                            <div class="fd_tl_h">
+                                <div/>
+                                <div class="hours">
+                                    <t t-foreach="state.tl.horas" t-as="hh" t-key="hh.t"><span t-attf-style="left:{{ hh.left }}%" t-esc="hh.label"/></t>
+                                </div>
+                            </div>
+                            <div class="fd_tl_grid">
+                                <t t-foreach="state.tl.filas" t-as="f" t-key="f.id">
+                                    <div class="nm">
+                                        <span class="fd_ava sm" t-attf-style="--h:{{ f.hue }}">
+                                            <t t-esc="f.initials"/>
+                                            <img t-attf-src="/web/image/hr.employee/{{ f.id }}/avatar_128" t-att-alt="f.name" loading="lazy"/>
+                                        </span>
+                                        <span t-esc="f.name"/>
+                                    </div>
+                                    <div class="lane" t-attf-style="--cols:{{ state.tl.cols }}">
+                                        <t t-foreach="f.shift" t-as="s" t-key="s_index"><span class="shift" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%"/></t>
+                                        <t t-foreach="f.segs" t-as="s" t-key="s_index"><span t-attf-class="seg {{ s.k }}" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%" t-att-title="s.titulo"/></t>
+                                        <t t-foreach="f.pins" t-as="m" t-key="m_index"><span t-attf-class="pin {{ m.k }}" t-attf-style="left:{{ m.left }}%" t-att-title="m.titulo"/></t>
+                                        <t t-if="state.tl.ahora !== null"><span class="now" t-attf-style="left:{{ state.tl.ahora }}%"/></t>
+                                    </div>
                                 </t>
                             </div>
-                            <div t-attf-class="fd_kpi_v {{ state.team.iaSospechosos ? 'warn' : '' }}">
-                                <t t-esc="state.team.iaSospechosos"/><span class="u">/<t t-esc="state.team.iaAnalizados"/></span>
-                            </div>
-                            <div class="fd_kpi_foot">episodios donde la IA no vio trabajo, de los analizados</div>
                         </div>
-                    </t>
-
-                    <!-- Justificaciones que la IA leyó y marcó como vagas o sin
-                         relación con el trabajo (p.ej. «Otro» con nota «.») y que
-                         nadie ha revisado. Lleva a su ventana. Ámbar de revisar. -->
-                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirRevisar"
-                         title="Abrir Actividad › Periodos a revisar: justificaciones vagas que la IA marcó.">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Justificaciones a revisar</span>
-                        </div>
-                        <div t-attf-class="fd_kpi_v {{ state.revisar ? 'warn' : '' }}"><t t-esc="state.revisar"/></div>
-                        <div class="fd_kpi_foot">la IA las marcó como vagas · sin revisar</div>
-                    </div>
-
-                    <!-- Dias en que alguien checó ENTRADA y nunca cerró SALIDA.
-                         Puede ser un olvido, no una falta: ámbar, no rojo. Lleva
-                         a la lista de jornadas filtrada a esos dias. -->
-                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirSinSalida"
-                         title="Abrir Jornadas › Salidas sin cerrar: checó entrada y no cerró salida.">
-                        <div class="fd_kpi_top">
-                            <span class="fd_kpi_label">Sin cerrar salida</span>
-                        </div>
-                        <div t-attf-class="fd_kpi_v {{ state.team.sinSalida ? 'warn' : '' }}"><t t-esc="state.team.sinSalida or 0"/></div>
-                        <div class="fd_kpi_foot">checó entrada y no cerró salida</div>
-                    </div>
-                </section>
-
-                <!-- ================================================ TENDENCIA
-                     Va inmediatamente despues de los numeros y ocupa el ancho
-                     completo. Es la unica pregunta que un administrador se hace
-                     TODOS los dias -vamos mejor o peor- y por eso no comparte
-                     renglon con nada. -->
-                <section class="fd_card fd_grafica">
-                    <div class="fd_card_head">
-                        <h2 t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo viene el equipo'"/>
-                        <span class="fd_card_hint"
-                              t-esc="state.days === 1 ? 'reparto del tiempo de cada persona' : 'índice de productividad, día por día'"/>
-                    </div>
-                    <div class="fd_lienzo alto">
-                        <canvas t-ref="cTendencia"/>
-                    </div>
-                    <p class="fd_pie"
-                       t-if="state.days === 1 ? !state.porPersona.length : !state.serie.length">
-                        <t t-if="state.days === 1">Todavía nadie ha registrado actividad hoy.</t>
-                        <t t-else="">Todavía no hay días con dato en este periodo.</t>
-                    </p>
-                </section>
-
-                <div class="fd_duo">
-                    <!-- La dona: de qué está hecho el tiempo del equipo, con el
-                         índice al centro. El desglose por persona vive en la
-                         tabla de Empleados, así que aquí basta el total. -->
-                    <section class="fd_card fd_grafica">
-                        <div class="fd_card_head">
-                            <h2>En qué se va el tiempo</h2>
-                            <span class="fd_card_hint">del tiempo activo del equipo</span>
-                        </div>
-                        <div class="fd_lienzo">
-                            <canvas t-ref="cDonut"/>
+                        <div class="fd_tl_leg">
+                            <span><i class="activo"/>activo</span><span><i class="llamada"/>en llamada</span><span><i class="sin_input"/>sin teclear</span>
+                            <span><i class="bloqueado"/>bloqueado</span><span><i class="apagado"/>apagado / suspendido</span><span><i class="sin_explicar"/>sin explicar</span>
                         </div>
                     </section>
+                </t>
 
-                    <section class="fd_card fd_grafica">
-                        <div class="fd_card_head">
-                            <h2>¿Trabajó dentro de su jornada?</h2>
-                            <span class="fd_card_hint">jornada = entrada y salida checadas</span>
-                        </div>
-                        <div class="fd_lienzo">
-                            <canvas t-ref="cJornada"/>
-                        </div>
-                        <p class="fd_pie">
-                            <t t-if="fuentesTexto"><t t-esc="fuentesTexto"/> </t>
-                            Fuera de su jornada es activo sin checar: antes de la
-                            entrada, después de la salida o un día sin registro.
-                            Jornada sin señal es checado sin que el equipo diera
-                            señal alguna, ni teclado ni una ventana al frente: una
-                            junta lejos de él o una salida sin checar. El sistema
-                            no distingue: solo dice dónde cayó.
-                        </p>
-                    </section>
-                </div>
-
+                <!-- ================================================= EMPLEADOS -->
                 <section class="fd_card fd_table_card">
                     <div class="fd_card_head">
                         <h2>Empleados</h2>
-                        <span class="fd_card_hint">ordenado por índice · cada renglón se despliega para ver en qué se fue el tiempo</span>
-                        <!-- La exportacion vive JUNTO a la tabla que exporta, no
-                             en la barra de arriba: asi se ve que baja esto y no
-                             «el tablero». -->
+                        <span class="fd_card_hint">por departamento, ordenado por índice · cada renglón se despliega para ver en qué se fue el tiempo</span>
                         <div class="fd_export">
-                            <select class="fd_exp_sel" t-model="state.expEmpleado"
-                                    aria-label="Empleado a exportar">
+                            <select class="fd_exp_sel" t-model="state.expEmpleado" aria-label="Empleado a exportar">
                                 <option value="">Todo el equipo</option>
                                 <t t-foreach="state.employees" t-as="e" t-key="e.id">
                                     <option t-att-value="e.id" t-esc="e.name"/>
                                 </t>
                             </select>
-                            <select class="fd_exp_sel" t-model="state.expGrano"
-                                    aria-label="Agrupar por">
+                            <select class="fd_exp_sel" t-model="state.expGrano" aria-label="Agrupar por">
                                 <option value="dia">por día</option>
                                 <option value="semana">por semana</option>
                                 <option value="mes">por mes</option>
                             </select>
                             <button class="fd_exp_btn" t-on-click="() => this.exportar()"
-                                    title="Descarga el detalle del periodo en CSV, listo para Excel">
-                                Exportar CSV
-                            </button>
+                                    title="Descarga el detalle del periodo en CSV, listo para Excel">Exportar CSV</button>
                         </div>
                     </div>
+                    <!-- La tabla se AJUSTA al marco: anchos fijos por columna y
+                         recorte con puntos suspensivos, sin desplazamiento lateral
+                         en escritorio. Solo por debajo de 980 px se permite
+                         desplazar, porque ahi ya no cabe nada legible. -->
                     <div class="fd_table_wrap" t-ref="tablaWrap">
                         <table class="fd_table">
+                            <colgroup>
+                                <col class="w_tog"/><col class="w_emp"/><col class="w_asi"/><col class="w_jor"/>
+                                <col class="w_num"/><col class="w_num"/><col class="w_num"/><col class="w_idx"/>
+                                <col class="w_app"/><col class="w_st"/><col class="w_ficha"/>
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th class="c_tog"><span class="sr">Desplegar</span></th>
                                     <th class="c_emp">Empleado</th>
-                                    <th class="c_idx">Índice</th>
-                                    <th class="c_jor" title="Lo que marcó el checador (lo real) frente a su horario. El horario es la guía; el checador manda, y el extra es lo que se quedó de más.">Jornada</th>
+                                    <th class="c_asi" title="Cómo llegó contra la primera franja de su horario, con la tolerancia configurada.">Asistencia</th>
+                                    <th class="c_jor" title="Lo que marcó el checador (lo real) frente a su horario. El checador manda; el horario es la guía.">Jornada</th>
                                     <th class="c_num">Activo</th>
                                     <th class="c_num">Productivo</th>
                                     <th class="c_num">Distracción</th>
+                                    <th class="c_idx">Índice</th>
                                     <th class="c_app">En qué</th>
                                     <th class="c_st">Estado</th>
                                     <th class="c_ficha"><span class="sr">Ficha</span></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <t t-foreach="state.employees" t-as="e" t-key="e.id">
-                                    <!-- El renglon se DESPLIEGA; no abre un cajon. La
-                                         pregunta mas frecuente -en que se le fue el
-                                         tiempo- se contesta sin taparle la tabla al
-                                         que la hace. La ficha completa queda a un
-                                         clic, en el boton del final y en el panel. -->
-                                    <tr t-attf-class="fd_row {{ e.attention ? 'attn' : '' }} {{ state.abiertos[e.id] ? 'abierta' : '' }}"
-                                        t-attf-style="animation-delay:{{ e_index * 28 }}ms"
-                                        role="button" tabindex="0"
-                                        t-att-aria-expanded="state.abiertos[e.id] ? 'true' : 'false'"
-                                        t-on-click="() => this.toggleFila(e)"
-                                        t-on-keydown="(ev) => this.teclaFila(ev, e)">
-                                        <td class="c_tog">
-                                            <span class="fd_caret" aria-hidden="true"><i class="fa fa-chevron-right"/></span>
-                                        </td>
-                                        <td class="c_emp">
-                                            <span class="fd_emp">
-                                                <!-- La foto del empleado (RRHH). Odoo devuelve un avatar con
-                                                     iniciales cuando no hay foto, asi que nunca queda vacio;
-                                                     las iniciales de abajo son el respaldo si la imagen falla. -->
-                                                <span class="fd_ava" t-attf-style="--h:{{ e.hue }}">
-                                                    <t t-esc="e.initials"/>
-                                                    <img t-attf-src="/web/image/hr.employee/{{ e.id }}/avatar_128" t-att-alt="e.name" loading="lazy"/>
-                                                </span>
-                                                <span class="fd_emp_txt">
-                                                    <span class="fd_emp_name" t-esc="e.name"/>
-                                                    <!-- Adherencia al turno: solo cuando hay algo que decir
-                                                         (tarde, sin registro, permiso, salio antes). A tiempo
-                                                         no es noticia y no ocupa lugar. -->
-                                                    <t t-if="e.adhChip">
-                                                        <span t-attf-class="fd_tag adh {{ e.adhEstado }}"
-                                                              t-attf-title="{{ e.adhTexto }}{{ e.adhEntrada ? ' · entró ' + e.adhEntrada : '' }}{{ e.adhFuente === 'equipo' ? ' (según su equipo)' : '' }}">
-                                                            <t t-esc="e.adhChip"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-if="e.adhSalioAntes">
-                                                        <span class="fd_tag adh salio_antes"
-                                                              t-attf-title="Checó salida {{ e.adhSalida }}, {{ e.adhAntesMin }} min antes del fin de su horario.">
-                                                            salió <t t-esc="e.adhAntesMin"/> min antes
-                                                        </span>
-                                                    </t>
-                                                    <t t-if="e.adhNoCheco">
-                                                        <span class="fd_tag adh no_checo"
-                                                              t-attf-title="Su equipo prueba que estuvo (primera señal {{ e.adhEntrada }}), pero no checó entrada.">
-                                                            no checó entrada
-                                                        </span>
-                                                    </t>
-                                                    <t t-if="e.sinSenal">
-                                                        <span class="fd_tag sin_senal"
-                                                              t-attf-title="El agente dejó de reportar ({{ e.sinSenalLabel }}). Los números están incompletos.">
-                                                            sin señal · <t t-esc="e.sinSenalLabel"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="e.attention"><span class="fd_tag">baja productividad</span></t>
-                                                    <t t-if="e.cobParcial">
-                                                        <span class="fd_tag cobertura"
-                                                              t-attf-title="Reportó {{ e.cobDias }} de {{ e.cobEsperados }} días {{ e.cobFuente === 'calendario' ? 'laborables de su calendario' : 'del periodo (no tiene calendario asignado)' }}. Sus números salen de menos días que los del resto.">
-                                                            <t t-esc="e.cobDias"/>/<t t-esc="e.cobEsperados"/> d
-                                                        </span>
-                                                    </t>
-                                                    <!-- Hechos de integridad: cuántos y cuáles, en el
-                                                         título. Es evidencia con medida, no una alarma:
-                                                         el color es neutro a propósito. -->
-                                                    <t t-if="e.hechosN">
-                                                        <span class="fd_tag integridad" t-att-title="e.hechosTitulo">
-                                                            <t t-esc="e.hechosN"/> <t t-esc="e.hechosN === 1 ? 'hecho' : 'hechos'"/>
-                                                        </span>
-                                                    </t>
-                                                    <!-- Episodios que la IA no explicó como trabajo. Ámbar
-                                                         de "revisar": el detalle y las capturas están en
-                                                         Actividad › Veredictos de la IA. -->
-                                                    <t t-if="e.iaN">
-                                                        <span class="fd_tag ia" t-att-title="e.iaTitulo">
-                                                            IA: <t t-esc="e.iaN"/><t t-if="e.iaSinRevisar"> · <t t-esc="e.iaSinRevisar"/> sin revisar</t>
-                                                        </span>
-                                                    </t>
-                                                    <!-- Tardó en sentarse al equipo tras checar entrada.
-                                                         Solo cuando es notable (≥ 10 min): dato, no alarma. -->
-                                                    <t t-if="e.lagMin >= 10">
-                                                        <span class="fd_tag lag"
-                                                              t-attf-title="Checó entrada y su primera señal en la computadora fue {{ fmtMinutos(e.lagMin) }} después.">
-                                                            <i class="fa fa-clock-o"/> +<t t-esc="fmtMinutos(e.lagMin)"/> al PC
-                                                        </span>
-                                                    </t>
-                                                    <!-- Checó entrada y no cerró salida. Puede ser un
-                                                         olvido: ámbar de revisar, no rojo de falta. -->
-                                                    <t t-if="e.sinSalida">
-                                                        <span class="fd_tag lag"
-                                                              t-attf-title="{{ e.sinSalida === 1 ? 'Un día' : e.sinSalida + ' días' }} del periodo en que checó entrada y no cerró salida.">
-                                                            <i class="fa fa-sign-out"/> no cerró salida<t t-if="e.sinSalida > 1"> (<t t-esc="e.sinSalida"/>)</t>
-                                                        </span>
-                                                    </t>
-                                                </span>
-                                            </span>
-                                        </td>
-                                        <td class="c_idx">
-                                            <!-- Sin un solo renglon de uso no hay indice que dibujar: un
-                                                 0% rojo afirmaria que trabajo mal, y lo que pasa es que
-                                                 no hay dato (falto, permiso, equipo apagado). -->
-                                            <t t-if="e.sinUso">
-                                                <span class="fd_jor_na" title="Sin actividad registrada en el periodo.">—</span>
-                                            </t>
-                                            <t t-else="">
-                                                <div class="fd_idx">
-                                                    <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
-                                                    <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
-                                                </div>
-                                            </t>
-                                        </td>
-                                        <td class="c_jor">
-                                            <t t-if="e.usaChecador">
-                                                <div class="fd_jor" t-attf-title="Checó {{ fmt(e.checado) }} de su horario de {{ fmt(e.expected) }}. El checador manda; el horario es la guía. {{ e.extra > 0.016 ? 'Se quedó ' + fmt(e.extra) + ' de más.' : (e.faltante > 0.016 ? 'Checó ' + fmt(e.faltante) + ' menos.' : '') }}">
-                                                    <!-- En un dia, la entrada y la salida checadas van aqui: es
-                                                         la pregunta que se hace el jefe antes que las horas. -->
-                                                    <t t-if="state.days === 1 and e.adhEntrada">
-                                                        <span class="fd_jor_hhmm">
-                                                            <t t-esc="e.adhEntrada"/><t t-if="e.adhSalida"> → <t t-esc="e.adhSalida"/></t>
-                                                        </span>
-                                                    </t>
-                                                    <span class="fd_jor_v"><t t-esc="fmt(e.checado)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
-                                                    <div class="fd_meter"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - e.checadoPct }}% 0 0)"/></div>
-                                                    <t t-if="e.extra > 0.016">
-                                                        <span class="fd_extra"><i class="fa fa-arrow-up"/> +<t t-esc="fmt(e.extra)"/></span>
-                                                    </t>
-                                                    <t t-elif="e.faltante > 0.016">
-                                                        <span class="fd_falta">−<t t-esc="fmt(e.faltante)"/></span>
-                                                    </t>
-                                                </div>
-                                            </t>
-                                            <t t-elif="e.hasExpected">
-                                                <div class="fd_jor" title="Horario configurado (esta persona no usa el checador).">
-                                                    <span class="fd_jor_v"><t t-esc="fmt(e.expected)"/></span>
-                                                    <span class="fd_jor_guia">según horario</span>
-                                                </div>
-                                            </t>
-                                            <t t-else="">
-                                                <span class="fd_jor_na" title="Sin jornada esperada este día (fin de semana o sin calendario).">—</span>
-                                            </t>
-                                        </td>
-                                        <td class="c_num" t-esc="e.sinUso ? '—' : fmt(e.active)"/>
-                                        <td class="c_num good" t-esc="e.sinUso ? '—' : fmt(e.prod)"/>
-                                        <td class="c_num warn" t-esc="e.sinUso ? '—' : fmt(e.distr)"/>
-                                        <td class="c_app">
-                                            <!-- Dos chips, no una: la app donde mas
-                                                 tiempo paso y, si la hay, la distraccion
-                                                 con nombre. «youtube.com 32m» se lee sin
-                                                 desplegar nada. -->
-                                            <span class="fd_chips">
-                                                <span class="fd_chip" t-esc="e.topApp"
-                                                      t-attf-title="Donde más tiempo activo pasó: {{ e.topApp }}"/>
-                                                <t t-if="e.hasTopDistr">
-                                                    <span class="fd_chip dis"
-                                                          t-attf-title="La distracción con más tiempo activo: {{ e.topDistr.name }}">
-                                                        <span class="fd_dot distraccion"/>
-                                                        <t t-esc="e.topDistr.name"/>
-                                                        <b t-esc="fmt(e.topDistr.hours)"/>
-                                                    </span>
-                                                </t>
-                                            </span>
-                                        </td>
-                                        <td class="c_st">
-                                            <span t-attf-class="fd_presencia {{ e.presencia }}"
-                                                  t-attf-title="{{ e.presenciaTxt }} - ultimo reporte {{ e.since }}">
-                                                <span t-attf-class="fd_pdot {{ e.presencia }}"/>
-                                                <t t-esc="e.presenciaTxt or e.since"/>
-                                            </span>
-                                        </td>
-                                        <td class="c_ficha">
-                                            <button class="fd_ficha" t-on-click.stop="() => this.openDetail(e)"
-                                                    title="Ficha completa: jornada, ausencias y anomalías"
-                                                    aria-label="Ficha completa">
-                                                <i class="fa fa-id-card-o"/>
-                                            </button>
+                                <t t-foreach="state.grupos" t-as="g" t-key="g.nombre">
+                                    <tr class="fd_dep">
+                                        <td colspan="11">
+                                            <span class="dn" t-esc="g.nombre"/>
+                                            <span class="dm"><t t-esc="g.personas.length"/> · <t t-if="g.index !== null">índice <b t-esc="g.index"/>%</t><t t-else="">sin jornada esperada</t></span>
                                         </td>
                                     </tr>
-                                    <t t-if="state.abiertos[e.id]">
-                                        <tr class="fd_exp">
-                                            <td colspan="10">
-                                                <div class="fd_exp_in"><div>
-                                                    <div class="fd_exp_box">
-                                                        <t t-set="ar" t-value="arbolDe(e)"/>
-                                                        <div class="fd_exp_head">
-                                                            <div class="t">
-                                                                <b>En qué se le fue el tiempo</b>
-                                                                <t t-if="ar and !ar.cargando and !ar.error">
-                                                                    <span class="m">
-                                                                        · <t t-esc="ar.dias"/> día<t t-if="ar.dias != 1">s</t> con dato
-                                                                        · <b t-esc="fmt(ar.activo)"/> activas
-                                                                        <t t-if="ar.sin_input > 0.008">
-                                                                            · <span title="La ventana estaba al frente pero no hubo teclado ni mouse. No cuenta como activo; leer o revisar cae aquí."><t t-esc="fmt(ar.sin_input)"/> sin teclear</span>
-                                                                        </t>
-                                                                    </span>
-                                                                </t>
-                                                            </div>
-                                                            <div class="acts">
-                                                                <button class="fd_link" t-on-click.stop="() => this.abrirUso(e)"
-                                                                        title="La misma persona y el mismo periodo en la pantalla de Detalle de uso">Detalle de uso</button>
-                                                                <button class="fd_link" t-on-click.stop="() => this.openDetail(e)"
-                                                                        title="Jornada explicada, ausencias y anomalías">Ficha completa</button>
-                                                            </div>
-                                                        </div>
-                                                        <t t-call="foco_monitor.DashArbol"/>
+                                    <t t-foreach="g.personas" t-as="e" t-key="e.id">
+                                        <tr t-attf-class="fd_row {{ e.attention ? 'attn' : '' }} {{ state.abiertos[e.id] ? 'abierta' : '' }}"
+                                            role="button" tabindex="0"
+                                            t-att-aria-expanded="state.abiertos[e.id] ? 'true' : 'false'"
+                                            t-on-click="() => this.toggleFila(e)"
+                                            t-on-keydown="(ev) => this.teclaFila(ev, e)">
+                                            <td class="c_tog">
+                                                <span class="fd_caret" aria-hidden="true"><i class="fa fa-chevron-right"/></span>
+                                            </td>
+                                            <td class="c_emp">
+                                                <span class="fd_emp">
+                                                    <span class="fd_avawrap">
+                                                        <span class="fd_ava" t-attf-style="--h:{{ e.hue }}">
+                                                            <t t-esc="e.initials"/>
+                                                            <img t-attf-src="/web/image/hr.employee/{{ e.id }}/avatar_128" t-att-alt="e.name" loading="lazy"/>
+                                                        </span>
+                                                        <i t-attf-class="fd_pdot2 {{ e.presencia }}"/>
+                                                    </span>
+                                                    <span class="fd_emp_txt">
+                                                        <span class="fd_emp_name" t-esc="e.name" t-att-title="e.name"/>
+                                                        <span class="fd_emp_sub">
+                                                            <t t-if="e.sinSenal">
+                                                                <span class="fd_tag sin_senal" t-attf-title="El agente dejó de reportar ({{ e.sinSenalLabel }}). Los números están incompletos.">sin señal · <t t-esc="e.sinSenalLabel"/></span>
+                                                            </t>
+                                                            <t t-elif="e.attention"><span class="fd_tag">baja productividad</span></t>
+                                                            <t t-if="e.cobParcial">
+                                                                <span class="fd_tag cobertura" t-attf-title="Reportó {{ e.cobDias }} de {{ e.cobEsperados }} días. Sus números salen de menos días que los del resto."><t t-esc="e.cobDias"/>/<t t-esc="e.cobEsperados"/> d</span>
+                                                            </t>
+                                                            <t t-if="e.hechosN"><span class="fd_tag integridad" t-att-title="e.hechosTitulo"><t t-esc="e.hechosN"/> <t t-esc="e.hechosN === 1 ? 'hecho' : 'hechos'"/></span></t>
+                                                            <t t-if="e.iaN"><span class="fd_tag ia" t-att-title="e.iaTitulo">IA: <t t-esc="e.iaN"/><t t-if="e.iaSinRevisar"> · <t t-esc="e.iaSinRevisar"/> sin revisar</t></span></t>
+                                                            <t t-if="e.lagMin >= 10"><span class="fd_tag lag" t-attf-title="Checó entrada y su primera señal en la computadora fue {{ fmtMinutos(e.lagMin) }} después."><i class="fa fa-clock-o"/> +<t t-esc="fmtMinutos(e.lagMin)"/> al PC</span></t>
+                                                            <t t-if="!e.sinSenal and !e.attention and !e.cobParcial and !e.hechosN and !e.iaN and e.lagMin &lt; 10">
+                                                                <span class="fd_emp_pc" t-esc="e.dept || e.pc"/>
+                                                            </t>
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td class="c_asi">
+                                                <span class="fd_chips wrap">
+                                                    <t t-if="e.adh and e.adhEstado">
+                                                        <span t-attf-class="fd_chip2 {{ e.adhEstado }}"
+                                                              t-attf-title="{{ e.adhTexto }}{{ e.adhEntrada ? ' · entró ' + e.adhEntrada : '' }}{{ e.adhFuente === 'equipo' ? ' (según su equipo)' : '' }}">
+                                                            <t t-esc="etqAdh(e.adhEstado) || e.adhTexto"/><t t-if="e.adhEstado === 'tarde'"> +<t t-esc="e.adh.tarde_min"/> min</t><t t-if="e.adhFuente === 'equipo' and (e.adhEstado === 'a_tiempo' or e.adhEstado === 'tarde')"> · PC</t>
+                                                        </span>
+                                                    </t>
+                                                    <t t-if="state.days > 1 and e.adhDias and (e.adhDias.tarde or e.adhDias.falto)">
+                                                        <span class="fd_chip2 muted" title="Días del periodo"><t t-if="e.adhDias.tarde"><t t-esc="e.adhDias.tarde"/> tarde</t><t t-if="e.adhDias.tarde and e.adhDias.falto"> · </t><t t-if="e.adhDias.falto"><t t-esc="e.adhDias.falto"/> sin registro</t></span>
+                                                    </t>
+                                                    <t t-if="e.adhSalioAntes"><span class="fd_chip2 salio_antes" t-attf-title="Checó salida {{ e.adhSalida }}, {{ e.adhAntesMin }} min antes del fin de su horario.">salió <t t-esc="e.adhAntesMin"/> min antes</span></t>
+                                                    <t t-if="e.adhNoCheco"><span class="fd_chip2 no_checo" t-attf-title="Su equipo prueba que estuvo (primera señal {{ e.adhEntrada }}), pero no checó entrada.">no checó</span></t>
+                                                    <t t-if="e.sinSalida"><span class="fd_chip2 no_checo" t-attf-title="{{ e.sinSalida === 1 ? 'Un día' : e.sinSalida + ' días' }} del periodo en que checó entrada y no cerró salida.">sin salida<t t-if="e.sinSalida > 1"> (<t t-esc="e.sinSalida"/>)</t></span></t>
+                                                    <t t-if="!e.adh or !e.adhEstado"><span class="fd_jor_na">—</span></t>
+                                                </span>
+                                            </td>
+                                            <td class="c_jor">
+                                                <t t-if="e.usaChecador">
+                                                    <div class="fd_jor" t-attf-title="Checó {{ fmt(e.checado) }} de su horario de {{ fmt(e.expected) }}. El checador manda; el horario es la guía. {{ e.extra > 0.016 ? 'Se quedó ' + fmt(e.extra) + ' de más.' : (e.faltante > 0.016 ? 'Checó ' + fmt(e.faltante) + ' menos.' : '') }}">
+                                                        <t t-if="state.days === 1 and e.adhEntrada">
+                                                            <span class="fd_jor_hhmm"><t t-esc="e.adhEntrada"/> → <t t-esc="e.adhSalida || '…'"/></span>
+                                                        </t>
+                                                        <span class="fd_jor_v"><t t-esc="fmt(e.checado)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
+                                                        <div class="fd_meter"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - e.checadoPct }}% 0 0)"/></div>
+                                                        <t t-if="e.extra > 0.016"><span class="fd_extra"><i class="fa fa-arrow-up"/> +<t t-esc="fmt(e.extra)"/></span></t>
+                                                        <t t-elif="e.faltante > 0.016"><span class="fd_falta">−<t t-esc="fmt(e.faltante)"/></span></t>
                                                     </div>
-                                                </div></div>
+                                                </t>
+                                                <t t-elif="e.hasExpected">
+                                                    <div class="fd_jor" title="Horario configurado (esta persona no usa el checador).">
+                                                        <span class="fd_jor_v"><t t-esc="fmt(e.expected)"/></span>
+                                                        <span class="fd_jor_guia">según horario</span>
+                                                    </div>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="fd_jor_na" title="Sin jornada esperada este día (fin de semana o sin calendario).">—</span>
+                                                </t>
+                                            </td>
+                                            <td class="c_num" t-esc="e.sinUso ? '—' : fmt(e.active)"/>
+                                            <td class="c_num good" t-esc="e.sinUso ? '—' : fmt(e.prod)"/>
+                                            <td class="c_num warn" t-esc="e.sinUso ? '—' : fmt(e.distr)"/>
+                                            <td class="c_idx">
+                                                <t t-if="e.sinUso">
+                                                    <span class="fd_jor_na" title="Sin actividad registrada en el periodo.">—</span>
+                                                </t>
+                                                <t t-else="">
+                                                    <div class="fd_idx">
+                                                        <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
+                                                        <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
+                                                    </div>
+                                                </t>
+                                            </td>
+                                            <td class="c_app">
+                                                <span class="fd_chips col">
+                                                    <t t-if="!e.sinUso"><span class="fd_chip" t-esc="e.topApp" t-attf-title="Donde más tiempo activo pasó: {{ e.topApp }}"/></t>
+                                                    <t t-if="e.hasTopDistr">
+                                                        <span class="fd_chip dis" t-attf-title="La distracción con más tiempo activo: {{ e.topDistr.name }}">
+                                                            <span class="fd_dot distraccion"/><t t-esc="e.topDistr.name"/> <b t-esc="fmt(e.topDistr.hours)"/>
+                                                        </span>
+                                                    </t>
+                                                </span>
+                                            </td>
+                                            <td class="c_st">
+                                                <span t-attf-class="fd_presencia {{ e.presencia }}"
+                                                      t-attf-title="{{ e.presenciaTxt }} - ultimo reporte {{ e.since }}">
+                                                    <span t-attf-class="fd_pdot {{ e.presencia }}"/>
+                                                    <span class="txt" t-esc="e.presenciaTxt or e.since"/>
+                                                </span>
+                                            </td>
+                                            <td class="c_ficha">
+                                                <button class="fd_ficha" t-on-click.stop="() => this.openDetail(e)"
+                                                        title="Ficha completa: jornada, ausencias y anomalías" aria-label="Ficha completa">
+                                                    <i class="fa fa-id-card-o"/>
+                                                </button>
                                             </td>
                                         </tr>
+                                        <t t-if="state.abiertos[e.id]">
+                                            <tr class="fd_exp">
+                                                <td colspan="11">
+                                                    <div class="fd_exp_in"><div>
+                                                        <div class="fd_exp_box">
+                                                            <t t-set="ar" t-value="arbolDe(e)"/>
+                                                            <div class="fd_exp_head">
+                                                                <div class="t">
+                                                                    <b>En qué se le fue el tiempo</b>
+                                                                    <t t-if="ar and !ar.cargando and !ar.error">
+                                                                        <span class="m">
+                                                                            · <t t-esc="ar.dias"/> día<t t-if="ar.dias != 1">s</t> con dato
+                                                                            · <b t-esc="fmt(ar.activo)"/> activas
+                                                                            <t t-if="ar.sin_input > 0.008">
+                                                                                · <span title="La ventana estaba al frente pero no hubo teclado ni mouse. No cuenta como activo; leer o revisar cae aquí."><t t-esc="fmt(ar.sin_input)"/> sin teclear</span>
+                                                                            </t>
+                                                                        </span>
+                                                                    </t>
+                                                                </div>
+                                                                <div class="acts">
+                                                                    <button class="fd_link" t-on-click.stop="() => this.abrirUso(e)"
+                                                                            title="La misma persona y el mismo periodo en la pantalla de Detalle de uso">Detalle de uso</button>
+                                                                    <button class="fd_link" t-on-click.stop="() => this.openDetail(e)"
+                                                                            title="Jornada explicada, ausencias y anomalías">Ficha completa</button>
+                                                                </div>
+                                                            </div>
+                                                            <t t-call="foco_monitor.DashArbol"/>
+                                                        </div>
+                                                    </div></div>
+                                                </td>
+                                            </tr>
+                                        </t>
                                     </t>
                                 </t>
                                 <t t-if="!state.employees.length">
-                                    <tr><td colspan="10" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
+                                    <tr><td colspan="11" class="fd_empty">Sin actividad registrada en este rango.</td></tr>
                                 </t>
                             </tbody>
                         </table>
                     </div>
                 </section>
 
+                <!-- ====================================== EN QUE SE VA EL TIEMPO -->
                 <section class="fd_cols">
                     <div class="fd_card">
-                        <div class="fd_card_head"><h2>En qué se va el tiempo</h2></div>
+                        <div class="fd_card_head"><h2>En qué se va el tiempo</h2><span class="fd_card_hint">del tiempo activo del equipo</span></div>
                         <div class="fd_stack">
                             <t t-foreach="state.composition" t-as="c" t-key="c.key">
                                 <div t-if="c.pct > 0" t-attf-class="fd_seg_bar {{ c.key }}"
@@ -531,24 +544,19 @@
                         </div>
                         <div class="fd_legend">
                             <t t-foreach="state.composition" t-as="c" t-key="c.key">
-                                <span class="fd_leg">
-                                    <span t-attf-class="fd_dot {{ c.key }}"/>
-                                    <t t-esc="c.label"/>
-                                    <b><t t-esc="fmt(c.hours)"/></b>
-                                </span>
+                                <span class="fd_leg"><span t-attf-class="fd_dot {{ c.key }}"/><t t-esc="c.label"/><b><t t-esc="fmt(c.hours)"/></b></span>
                             </t>
                         </div>
                         <t t-if="state.team.hasIdle">
                             <p class="fd_note">
-                                Además, <b t-esc="fmt(state.team.idle)"/> con una ventana al
-                                frente sin teclado ni mouse. No cuenta como productivo y
-                                tampoco es automáticamente ociosidad: leer o revisar cae ahí.
+                                Además, <b t-esc="fmt(state.team.idle)"/> con una ventana al frente sin teclado ni mouse.
+                                No cuenta como productivo y tampoco es automáticamente ociosidad: leer o revisar cae ahí.
                             </p>
                         </t>
                     </div>
 
                     <div class="fd_card">
-                        <div class="fd_card_head"><h2>Top distracciones</h2></div>
+                        <div class="fd_card_head"><h2>Top distracciones</h2><span class="fd_card_hint">tiempo activo con nombre</span></div>
                         <t t-foreach="state.distractions" t-as="d" t-key="d.name">
                             <div class="fd_drow">
                                 <span class="n" t-esc="d.name"/>
@@ -556,9 +564,7 @@
                                 <span class="v" t-esc="fmt(d.hours)"/>
                             </div>
                         </t>
-                        <t t-if="!state.distractions.length">
-                            <div class="fd_empty small">Sin distracciones clasificadas.</div>
-                        </t>
+                        <t t-if="!state.distractions.length"><div class="fd_empty small">Sin distracciones clasificadas.</div></t>
                     </div>
 
                     <div class="fd_card">
@@ -574,18 +580,11 @@
                                 <span class="v" t-esc="fmt(s.hours)"/>
                             </div>
                         </t>
-                        <t t-if="!state.sites.length">
-                            <div class="fd_empty small">Sin navegación registrada en este rango.</div>
-                        </t>
-
-                        <!-- La cola que de verdad mueve el número: mientras un
-                             sitio no esté clasificado, sus horas pesan como el
-                             navegador entero y no como lo que realmente son. -->
+                        <t t-if="!state.sites.length"><div class="fd_empty small">Sin navegación registrada en este rango.</div></t>
                         <t t-if="state.team.pendCount">
                             <div class="fd_pend">
                                 <div class="fd_pend_head">
-                                    <span><b t-esc="state.team.pendCount"/> sitios sin clasificar
-                                        · <t t-esc="fmt(state.team.pendHours)"/></span>
+                                    <span><b t-esc="state.team.pendCount"/> sitios sin clasificar · <t t-esc="fmt(state.team.pendHours)"/> que no cuentan al índice</span>
                                     <button class="fd_link" t-on-click="() => this.abrirSitios()">Clasificar</button>
                                 </div>
                                 <div class="fd_pend_list">
@@ -595,6 +594,34 @@
                                 </div>
                             </div>
                         </t>
+                    </div>
+                </section>
+
+                <!-- ================================================= TENDENCIA -->
+                <section t-attf-class="fd_duo {{ state.days === 1 ? 'solo' : '' }}">
+                    <t t-if="state.days > 1">
+                        <div class="fd_card fd_grafica">
+                            <div class="fd_card_head">
+                                <h2>Cómo viene el equipo</h2>
+                                <span class="fd_card_hint">índice de productividad, día por día</span>
+                            </div>
+                            <div class="fd_lienzo"><canvas t-ref="cTendencia"/></div>
+                            <p class="fd_pie" t-if="!state.serie.length">Todavía no hay días con dato en este periodo.</p>
+                        </div>
+                    </t>
+                    <div class="fd_card fd_grafica">
+                        <div class="fd_card_head">
+                            <h2>¿Trabajó dentro de su jornada?</h2>
+                            <span class="fd_card_hint">jornada = entrada y salida checadas</span>
+                        </div>
+                        <div class="fd_lienzo"><canvas t-ref="cJornada"/></div>
+                        <p class="fd_pie">
+                            <t t-if="fuentesTexto"><t t-esc="fuentesTexto"/> </t>
+                            Fuera de su jornada es activo sin checar: antes de la entrada, después de la salida
+                            o un día sin registro. Jornada sin señal es checado sin que el equipo diera señal
+                            alguna: una junta lejos de él o una salida sin checar. El sistema no distingue:
+                            solo dice dónde cayó.
+                        </p>
                     </div>
                 </section>
             </t>
@@ -612,8 +639,12 @@
                             <div class="fd_dw_meta">
                                 <t t-if="state.detail.dept"><span t-esc="state.detail.dept"/><span class="sep">·</span></t>
                                 <span t-attf-class="fd_status {{ state.detail.online ? 'on' : 'off' }}">
-                                    <span t-attf-class="fd_dot {{ state.detail.online ? 'on' : 'off' }}"/><t t-esc="state.detail.since"/>
+                                    <span t-attf-class="fd_dot {{ state.detail.online ? 'on' : 'off' }}"/><t t-esc="state.detail.presenciaTxt or state.detail.since"/>
                                 </span>
+                                <t t-if="state.detail.adh and state.detail.adhEstado">
+                                    <span class="sep">·</span>
+                                    <span t-attf-class="fd_chip2 {{ state.detail.adhEstado }}" t-esc="state.detail.adhTexto"/>
+                                </t>
                             </div>
                         </div>
                         <button class="fd_close" t-on-click="() => this.closeDetail()" aria-label="Cerrar">×</button>
@@ -662,24 +693,24 @@
                                 <span class="l"><span class="fd_dot neutral"/>Justificado <small>(cuenta como productivo)</small></span>
                                 <span class="v" t-esc="fmt(state.detail.justified)"/>
                             </div>
-                            <!-- El índice vive AQUÍ: cubierto (productivo +
-                                 justificado) sobre la jornada de 8:30. -->
                             <div class="r total">
                                 <span class="l">Cubierto de su jornada</span>
                                 <span t-attf-class="v idx {{ state.detail.meter }}">
                                     <t t-esc="fmt(state.detail.covered)"/> · <t t-esc="state.detail.index"/>%
                                 </span>
                             </div>
-                            <!-- Rezago del checador a la PC: checó entrada pero
-                                 tardó en sentarse al equipo. Métrica pedida. -->
+                            <div class="r sub" t-if="state.detail.adhEntrada">
+                                <span class="l" title="Entrada y salida checadas el día ancla (o la primera señal de su equipo, si no checó).">
+                                    <span class="fd_dot neutral"/>Entrada → salida
+                                </span>
+                                <span class="v"><t t-esc="state.detail.adhEntrada"/> → <t t-esc="state.detail.adhSalida || '…'"/></span>
+                            </div>
                             <div class="r sub" t-if="state.detail.lagMin !== null">
                                 <span class="l" title="Entre que checó entrada en el checador y su primera señal en la computadora. El checador marca la llegada a la empresa, no al equipo.">
                                     <span class="fd_dot neutral"/>Del checador a la PC
                                 </span>
                                 <span class="v" t-esc="fmtMinutos(state.detail.lagMin)"/>
                             </div>
-                            <!-- Checó entrada y no cerró salida en el periodo.
-                                 Dato para RRHH, no castigo: puede ser un olvido. -->
                             <div class="r sub" t-if="state.detail.sinSalida">
                                 <span class="l" title="Días del periodo en que checó entrada en el checador y terminó el día sin checar salida. Se le avisa una vez por día.">
                                     <span class="fd_dot neutral"/>Días sin cerrar salida
@@ -690,10 +721,6 @@
                                 <span class="l"><span class="fd_dot navegador"/>Activo, de eso en llamadas</span>
                                 <span class="v" t-esc="fmt(state.detail.call)"/>
                             </div>
-                            <!-- Fuera de la resta a propósito: se traslapa con
-                                 las ausencias justificadas (quien sale al médico
-                                 deja su ventana enfocada). Restarlo contaría dos
-                                 veces el mismo rato. -->
                             <div class="r sub" t-if="state.detail.hasIdle">
                                 <span class="l" title="La aplicación tenía el foco pero no hubo teclado ni mouse. Leer, revisar o pensar cae aquí; también salir un momento.">
                                     <span class="fd_dot neutral"/>aparte: pantalla al frente sin teclear
@@ -722,9 +749,6 @@
                         </div>
                     </div>
 
-                    <!-- El MISMO arbol que despliega el renglon de la tabla, con la
-                         misma fuente: aplicacion, sitio o archivo, y pagina. Dos
-                         listas planas aqui contaban otra version de lo mismo. -->
                     <div class="fd_dw_sec fd_dw_arbol">
                         <h3>En qué se le fue el tiempo</h3>
                         <t t-set="e" t-value="state.detail"/>
@@ -737,8 +761,6 @@
                 </aside>
             </t>
 
-            <!-- Tomy sabe que periodo esta viendo el usuario: si pregunta
-                 "y esta semana?" con el tablero en 7 dias, se lo pasa. -->
             <TomyPanel dark="state.dark" rango="state.rango" days="state.days"/>
         </div>
     </t>
@@ -752,7 +774,6 @@
     <t t-name="foco_monitor.DashArbol">
         <t t-set="arbol" t-value="arbolDe(e)"/>
         <t t-if="!arbol or arbol.cargando">
-            <!-- Esqueleto con la forma de lo que viene, no un giro en medio. -->
             <div class="fd_skel" aria-busy="true" aria-label="Cargando el detalle">
                 <span style="--w:72%"/><span style="--w:54%"/><span style="--w:38%"/>
             </div>
@@ -800,9 +821,6 @@
                 <t t-if="arbol.cola">
                     <div class="fd_cola n1">y <t t-esc="arbol.cola.n"/> aplicaciones más por debajo de un minuto <b t-esc="fmt(arbol.cola.horas)"/></div>
                 </t>
-                <!-- El sistema (explorador, pantalla de bloqueo...) va aparte y
-                     cerrado: es tiempo medido, no trabajo, y NO entra en el total
-                     ni en los porcentajes. Se puede abrir para ver que fue. -->
                 <t t-if="arbol.sistema.length">
                     <div t-attf-class="fd_nodo n1 sistema abrible {{ arbol.sistemaAbierto ? 'abierta' : '' }}"
                          role="button" tabindex="0" t-att-aria-expanded="arbol.sistemaAbierto ? 'true' : 'false'"
