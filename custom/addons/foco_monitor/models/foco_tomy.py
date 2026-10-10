@@ -649,6 +649,13 @@ class FocoTomy(models.AbstractModel):
         ausencias = self._ausencias_resumen(emp, d, h)
         jornada = self._jornada_resumen(emp, d, h)
         salud = (self.env['foco.computer'].health_summary() or {}).get(str(emp.id)) or {}
+        # El MISMO indice que el tablero (10-oct-2026): cubierto entre la jornada
+        # esperada de la persona en el rango. Tomy decia 80.5 (productivo entre
+        # activo) donde la tabla decia 63 (cubierto entre jornada): un solo numero.
+        cub = Usage._suma_cubierto(
+            (self.env['foco.absence'].cubierto_por_dia(d, h).get('empleados') or {}).get(str(emp.id)))
+        indice = Usage._indice(productivo, cub, activo)
+        con_jornada = cub['expected'] > 0
 
         if apps:
             self._tabla(artefactos, 'En que se fue el tiempo de %s (%s a %s)' % (emp.name, d, h),
@@ -663,7 +670,12 @@ class FocoTomy(models.AbstractModel):
             'totales': {
                 'activo': _hm(activo), 'activo_h': _h(activo),
                 'productivo': _hm(productivo), 'productivo_h': _h(productivo),
-                'indice_pct': round(100.0 * productivo / activo, 1) if activo else None,
+                'indice_pct': indice,
+                'formula_indice': ('(productivo + justificado) entre la jornada esperada, tope 100'
+                                   if con_jornada else 'productivo entre activo (sin jornada esperada en el periodo)'),
+                'jornada_esperada': _hm(cub['expected']), 'justificado': _hm(cub['justified']),
+                'cubierto': _hm(productivo + cub['justified']),
+                'productivo_entre_activo_pct': round(100.0 * productivo / activo, 1) if activo else None,
                 'sin_input': _hm(sin_input), 'en_llamada': _hm(en_llamada),
                 # Hechos de integridad, con su significado escrito.
                 'sintetico_sin_input_real': _hm(inyectado) if inyectado else None,
