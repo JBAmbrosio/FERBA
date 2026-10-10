@@ -80,13 +80,21 @@ export class FocoMovil extends Component {
             });
             this.observador.observe(document.body,
                 { attributes: true, attributeFilter: ["class", "style", "data-color-scheme"] });
-            this.tecla = (ev) => { if (ev.key === "Escape" && this.state.open) this.closeDetail(); };
-            window.addEventListener("keydown", this.tecla);
+            // En CAPTURA: el servicio de atajos de Odoo escucha el keydown en
+            // window y, en produccion (con mas modulos instalados), alguien se
+            // queda con Escape y corta la propagacion antes de que llegue aqui.
+            // Con la ficha abierta, Escape es para cerrarla y nada mas.
+            this.tecla = (ev) => {
+                if (ev.key !== "Escape" || !this.state.open) return;
+                ev.stopPropagation();
+                this.closeDetail();
+            };
+            window.addEventListener("keydown", this.tecla, true);
         });
         onWillUnmount(() => {
             clearInterval(this.temporizador);
             if (this.observador) this.observador.disconnect();
-            window.removeEventListener("keydown", this.tecla);
+            window.removeEventListener("keydown", this.tecla, true);
             if (this.cierre) clearTimeout(this.cierre);
             this.tirarGraficas();
             if (this.map) { try { this.map.remove(); } catch (e) { /* */ } this.map = null; }
