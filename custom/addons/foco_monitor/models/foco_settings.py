@@ -439,6 +439,79 @@ class FocoSettings(models.Model):
              'rebasa. No recorta ni bloquea nada: la cifra la fija el area legal '
              '(hoy el limite va camino a 40/38 h).')
 
+    # ---- adherencia al turno y reporte diario (10-oct-2026) ---------------
+    adherencia_gracia_min = fields.Integer(
+        string='Tolerancia de entrada (min)', default=10,
+        help='Minutos despues de su hora de entrada a partir de los cuales una '
+             'llegada se marca "tarde". Medido con 30 dias de checadas de FERBA: '
+             'con 10 min, el 39 por ciento de las entradas salen tarde, casi todas de 4 '
+             'personas cuyo horario real no es el del calendario estandar. '
+             'Corregir SU horario en Horarios laborales es lo correcto; subir '
+             'esta tolerancia a todos, no. Se puede dar una tolerancia distinta '
+             'a una persona en su ficha de empleado.')
+    reporte_diario_activo = fields.Boolean(
+        string='Enviar el reporte diario', default=False,
+        help='Cada dia laborable, a la hora indicada, se arma el reporte del dia '
+             'con los numeros reales del tablero y se manda a los destinatarios.')
+    reporte_diario_hora = fields.Float(
+        string='Hora de envio', default=17.75,
+        help='Hora local de la empresa (la del calendario laboral). 17:45 de '
+             'fabrica: despues de la salida de las 17:30 y antes de la revision '
+             'de las 18:00.')
+    reporte_diario_user_ids = fields.Many2many(
+        'res.users', 'foco_reporte_diario_user_rel', 'settings_id', 'user_id',
+        string='Destinatarios',
+        help='Usuarios de Odoo que lo reciben, por su correo.')
+    reporte_diario_emails = fields.Char(
+        string='Otros correos',
+        help='Correos adicionales separados por coma, para quien no tiene usuario.')
+    reporte_diario_ultimo = fields.Date(
+        string='Ultimo enviado', readonly=True,
+        help='El dia del ultimo reporte enviado por el proceso automatico. Se '
+             'envia una vez por dia.')
+
+    @api.constrains('adherencia_gracia_min', 'reporte_diario_hora')
+    def _check_adherencia(self):
+        for r in self:
+            if r.adherencia_gracia_min < 0 or r.adherencia_gracia_min > 120:
+                raise ValidationError('La tolerancia de entrada va de 0 a 120 minutos.')
+            if r.reporte_diario_hora < 0 or r.reporte_diario_hora >= 24:
+                raise ValidationError('La hora de envio debe estar entre 00:00 y 23:59.')
+
+    def action_asistencia(self):
+        """Abre la configuracion de asistencia y reporte diario."""
+        rec = self.get_settings()
+        return {
+            'type': 'ir.actions.act_window', 'name': 'Asistencia y reporte diario',
+            'res_model': 'foco.settings', 'res_id': rec.id,
+            'view_mode': 'form', 'target': 'current',
+            'view_id': self.env.ref('foco_monitor.foco_settings_view_form_asistencia').id,
+        }
+
+    def action_enviar_reporte_ahora(self):
+        """Genera el reporte de HOY y lo manda a los destinatarios configurados.
+        Es el boton de prueba: no espera a la hora programada."""
+        self.ensure_one()
+        rep = self.env['foco.daily.report'].sudo().generar(fields.Date.context_today(self))
+        enviados = rep.enviar()
+        return {
+            'type': 'ir.actions.client', 'tag': 'display_notification',
+            'params': {'type': 'success' if enviados else 'warning', 'sticky': False,
+                       'title': 'Reporte diario',
+                       'message': ('Enviado a %s' % enviados) if enviados
+                                  else 'Generado, pero no hay destinatarios con correo.'},
+        }
+
+    def action_ver_reporte_hoy(self):
+        """Arma (o rearma) el reporte de hoy y lo abre, sin enviarlo."""
+        self.ensure_one()
+        rep = self.env['foco.daily.report'].sudo().generar(fields.Date.context_today(self))
+        return {
+            'type': 'ir.actions.act_window', 'name': rep.display_name,
+            'res_model': 'foco.daily.report', 'res_id': rep.id,
+            'view_mode': 'form', 'target': 'current',
+        }
+
     @api.constrains('vision_umbral_minutos', 'vision_max_capturas', 'vision_capturas_cada_min')
     def _check_vision(self):
         for r in self:

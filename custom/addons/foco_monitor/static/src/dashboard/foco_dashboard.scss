@@ -11,7 +11,8 @@
     --mid: #b45309;  --mid-fill: #f59e0b;
     --low: #c0341d;  --low-fill: #dc3545;
     --prod: #16a34a; --nav: #8b5cf6; --neu: #64748b; --dis: #dc3545; --sis: #94a3b8;
-    --sin: #cbd3df;
+    --sin: #cbd3df; --jus: #7cc69a;
+    --brand: #e30613;
     --raise: 0 1px 2px rgba(16, 21, 31, .06);
     --ease: cubic-bezier(0.23, 1, 0.32, 1);
     --drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -28,189 +29,367 @@
         --mid: #fbbf24;  --mid-fill: #f59e0b;
         --low: #f87171;  --low-fill: #ef4444;
         --prod: #22c55e; --nav: #a78bfa; --neu: #94a3b8; --dis: #ef4444; --sis: #64748b;
-        --sin: #3a4353;
+        --sin: #3a4353; --jus: #3f8f5f;
         --raise: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
-    // Mismo arreglo que en Jornada y en Detalle de uso: el contenedor de
-    // acciones de Odoo tiene alto fijo y `overflow: hidden`, asi que una accion
-    // de cliente que no traiga su propio scroll pierde todo lo que se salga. En
-    // este tablero era lo mas grave de los tres, porque la mitad inferior
-    // -el reparto, las distracciones, los sitios- quedaba fuera del alcance.
-    // El cajon de detalle no se ve afectado: es `fixed`.
+    // El contenedor de acciones de Odoo tiene alto fijo y `overflow: hidden`:
+    // una accion de cliente sin su propio scroll pierde lo que se salga.
     height: 100%;
     overflow-y: auto;
     padding: 22px clamp(16px, 3vw, 32px) 40px;
     > *:not(.fd_scrim):not(.fd_drawer) {
-        max-width: 1280px; margin-left: auto; margin-right: auto; }
+        max-width: 1360px; margin-left: auto; margin-right: auto; }
     color: var(--ink);
     font-variant-numeric: tabular-nums;
     * { box-sizing: border-box; }
+    // Un hijo de grid mide min-content por omision: un nombre sin cortar o
+    // una linea sin envolver ensanchaban la pagina entera (medido en 1376 px).
+    .fd_widgets > *, .fd_trio > *, .fd_cols > *, .fd_duo > * { min-width: 0; }
 
-    .fd_head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;
-        // `color` EXPLICITO, no heredado. Odoo/Bootstrap le fijan a los <h1..h3>
-        // su propio color de encabezado -un casi-negro-, y una regla con color
-        // gana siempre a la herencia, sin importar especificidad. Sin esto el
-        // titulo ignora `--ink` y sale NEGRO: invisible sobre el fondo oscuro
-        // -era el reporte de "letras negras"-, y en claro pasaba por bueno de
-        // pura casualidad. Mismo motivo en los <h2> de las tarjetas.
+    // ------------------------------------------------------------ cabecera
+    .fd_head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;
+        // `color` EXPLICITO: Odoo/Bootstrap fijan su propio color a <h1..h3> y
+        // sin esto el titulo sale NEGRO sobre el fondo oscuro.
         h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
-        .fd_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+        .fd_sub { margin: 4px 0 0; color: var(--ink2); font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
         .fd_on { display: inline-flex; align-items: center; gap: 5px; }
     }
-    // flex-wrap: en un telefono los controles bajan de renglon en vez de
-    // empujar la pagina a un scroll horizontal (medido: 463 px en 375).
-    .fd_head_r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .fd_head_r { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .fd_attn { font-size: 12.5px; font-weight: 600; color: var(--low);
         background: color-mix(in srgb, var(--low-fill) 12%, transparent);
         border: 1px solid color-mix(in srgb, var(--low-fill) 30%, transparent);
         padding: 5px 11px; border-radius: 999px;
-        // "Sin senal" NO es una falta del empleado: es dato faltante. Va en
-        // ambar de aviso tecnico, nunca en el rojo que acusa a una persona.
+        // "Sin senal" NO es una falta del empleado: es dato faltante. Ambar.
         &.sin_senal { color: var(--mid); border-color: color-mix(in srgb, var(--mid-fill) 35%, transparent);
             background: color-mix(in srgb, var(--mid-fill) 12%, transparent); }
     }
-
-    .fd_seg { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
-        button { border: 0; background: transparent; color: var(--ink2); font-size: 13px; font-weight: 550;
-            padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    .fd_seg, .fd_switch { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
+        button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--ink2);
+            font: inherit; font-size: 13px; font-weight: 550; padding: 6px 13px; border-radius: 8px; cursor: pointer;
             transition: color .15s var(--ease), transform .12s var(--ease);
+            i { font-size: 13px; }
             &:hover { color: var(--ink); }
             &:active { transform: scale(0.96); }
             &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); }
         }
     }
-
-    // Salto PC <-> Móvil sin pasar por el menu. Mismo lenguaje que el segmento
-    // de periodo -pastilla, activo en blanco-, con icono + etiqueta.
-    .fd_switch { display: inline-flex; background: var(--track); border-radius: 10px; padding: 3px;
-        button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
-            color: var(--ink2); font: inherit; font-size: 13px; font-weight: 550; padding: 6px 12px;
-            border-radius: 8px; cursor: pointer;
-            transition: color .15s var(--ease), transform .12s var(--ease);
-            i { font-size: 13px; }
-            &:hover { color: var(--ink); }
-            &:active { transform: scale(0.97); }
-            &.on { background: var(--card); color: var(--ink); box-shadow: var(--raise); }
-        }
+    // Las flechas de dia y el selector de fecha, en una sola pieza.
+    .fd_datenav { display: inline-flex; align-items: center; gap: 2px; background: var(--card); border: 1px solid var(--line);
+        border-radius: 10px; padding: 2px 4px;
+        > button { border: 0; background: transparent; color: var(--ink2); width: 28px; height: 28px; border-radius: 7px;
+            cursor: pointer; font: inherit; font-size: 17px; line-height: 1;
+            transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);
+            &:hover:not(:disabled) { background: var(--track); color: var(--ink); }
+            &:active:not(:disabled) { transform: scale(0.94); }
+            &:disabled { opacity: .35; cursor: default; } }
     }
+    .fd_fecha { display: inline-flex; align-items: center; gap: 7px; color: var(--ink2); font-size: 13px; padding: 0 6px; margin: 0;
+        input { border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+            &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; } }
+        i { color: var(--ink3); }
+    }
+    .fd_refrescar { display: inline-flex; align-items: center; gap: 7px;
+        background: var(--card); border: 1px solid var(--line); color: var(--ink2);
+        border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px;
+        font-weight: 550; cursor: pointer;
+        transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);
+        .ico { font-size: 15px; line-height: 1; display: inline-block; }
+        &:hover:not(:disabled) { background: var(--track); color: var(--ink); }
+        &:active:not(:disabled) { transform: scale(0.97); }
+        &:disabled { opacity: .6; cursor: default; }
+        &.girando .ico { animation: fd_girar .9s linear infinite; }
+    }
+    @keyframes fd_girar { to { transform: rotate(360deg); } }
+    .fd_ultimo { color: var(--ink3); }
+    .fd_sub .sep { color: var(--ink3); margin: 0 2px; }
 
-    // Cinco tarjetas: se reparten solas y bajan a dos y a una columna sin
-    // que haya que tocar el numero en dos lados cada vez que se agrega una.
-    .fd_kpis { display: grid; gap: 14px; margin-bottom: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
-    .fd_kpi { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
-        box-shadow: var(--raise); display: flex; flex-direction: column; gap: 8px;
-        .fd_kpi_top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .fd_kpi_label { font-size: 12.5px; color: var(--ink2); font-weight: 550; }
-        .fd_kpi_v { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink);
-            .u { font-size: 16px; font-weight: 600; color: var(--ink3); margin-left: 2px; }
-            &.warn { color: var(--low); }
-        }
-        .fd_kpi_foot { font-size: 12px; color: var(--ink3);
-            &.warn { color: var(--mid); }   // dato faltante, no mal desempeno
-        }
+    // ------------------------------------------------------- las tarjetas
+    .fd_card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--raise); padding: 4px 4px 8px; }
+    .fd_card_head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 18px 10px; flex-wrap: wrap;
+        h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }
+        .fd_card_hint { font-size: 12px; color: var(--ink3); min-width: 0; }
+    }
+    .fd_kpi_click { cursor: pointer; }
+    .fd_kpi_hint { font-size: 11px; color: var(--ink3); white-space: nowrap; }
+
+    // ----------------------------------------------------- cuatro cifras
+    .fd_widgets { display: grid; gap: 14px; margin-bottom: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(236px, 1fr)); }
+    .fd_w { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px 12px;
+        box-shadow: var(--raise); display: flex; flex-direction: column; gap: 6px; min-height: 128px; position: relative; overflow: hidden;
+        .fd_w_top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .fd_w_lbl { font-size: 12.5px; color: var(--ink2); font-weight: 600; }
+        .fd_w_v { font-size: 31px; font-weight: 700; line-height: 1; letter-spacing: -0.025em; color: var(--ink);
+            .u { font-size: 15px; font-weight: 600; color: var(--ink3); margin-left: 2px; }
+            &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
+        .fd_w_foot { font-size: 12px; color: var(--ink3);
+            b { color: var(--ink2); font-weight: 650; &.warn { color: var(--low); } }
+            &.muted { font-size: 11.5px; } }
+        // Con chispa, el pie deja sitio a la derecha para que no se monten.
+        &.spk .fd_w_foot { padding-right: 112px; }
+        .fd_spark { position: absolute; right: 12px; bottom: 10px; width: 108px; height: 34px; }
     }
     .fd_pill { font-size: 11.5px; font-weight: 650; padding: 3px 8px; border-radius: 999px; white-space: nowrap;
         &.up { color: var(--good); background: color-mix(in srgb, var(--good-fill) 14%, transparent); }
         &.down { color: var(--low); background: color-mix(in srgb, var(--low-fill) 14%, transparent); }
+        &.flat { color: var(--ink2); background: var(--track); }
     }
-
     .fd_meter { background: var(--track); border-radius: 999px; height: 7px; overflow: hidden; flex: 1;
         &.big { height: 9px; margin-top: 2px; }
-        // Se dibuja ENTERA y se recorta desde la derecha, igual que en «Detalle
-        // de uso». Animar `width` recalcula el layout en cada fotograma;
-        // `clip-path` va en el compositor y ademas conserva el radio -un
-        // `scaleX` lo deformaria justo en las barras cortas, que son la mayoria-.
+        &.mini { height: 5px; width: 64px; flex: none; display: block; }
+        // Se dibuja ENTERA y se recorta desde la derecha: `clip-path` va en el
+        // compositor y conserva el radio en las barras cortas.
         .fill { display: block; width: 100%; height: 100%; border-radius: 999px;
             background: var(--accent);
             transition: clip-path .55s var(--ease);
             &.good { background: var(--good-fill); } &.mid { background: var(--mid-fill); } &.low { background: var(--low-fill); }
-        }
+            &.chk { background: var(--accent); } }
+    }
+    // Asistencia: cuatro cifras en fila con su palabra debajo. Solo toma color
+    // la cifra que no es cero y que pide algo.
+    .fd_asis { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px;
+        .a { display: flex; flex-direction: column; gap: 1px; min-width: 52px;
+            b { font-size: 23px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink2); }
+            small { font-size: 10.5px; color: var(--ink3); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
+            &.good b { color: var(--good); } &.mid b { color: var(--mid); } &.low b { color: var(--low); } }
+    }
+    .fd_attn_list { display: flex; flex-direction: column; gap: 5px; margin-top: 2px;
+        .r { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink2); cursor: pointer; border-radius: 6px;
+            min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+            &:hover { color: var(--ink); }
+            b { min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; flex: none;
+                font-size: 11.5px; font-weight: 700; background: var(--track); color: var(--ink); }
+            &.mid b { background: color-mix(in srgb, var(--mid-fill) 16%, transparent); color: var(--mid); }
+            &.low b { background: color-mix(in srgb, var(--low-fill) 14%, transparent); color: var(--low); }
+            &.info b { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+            &.muted { cursor: default; color: var(--ink3); } }
     }
 
-    .fd_card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--raise); padding: 4px 4px 8px; }
-    .fd_card_head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 18px 10px;
-        h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }  // ver nota en .fd_head h1
-        .fd_card_hint { font-size: 12px; color: var(--ink3); }
+    // ----------------------------------------------- las tres preguntas
+    .fd_trio { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 1100px) { .fd_trio { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .fd_trio { grid-template-columns: 1fr; } }
+
+    // La foto encima de las iniciales: si la imagen no carga, se ven las
+    // iniciales de siempre; si carga, la tapa. Nunca un circulo vacio.
+    .fd_ava { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: grid; place-items: center;
+        font-size: 12.5px; font-weight: 650; position: relative; overflow: hidden;
+        background: hsl(var(--h), 62%, 90%); color: hsl(var(--h), 55%, 30%); border: 1px solid hsl(var(--h), 45%, 82%);
+        img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        &.sm { width: 26px; height: 26px; flex-basis: 26px; font-size: 10px; }
+        &.lg { width: 48px; height: 48px; flex-basis: 48px; font-size: 17px; }
     }
+    .fd_avawrap { position: relative; flex: none; display: inline-block; }
+    .fd_pdot2 { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%;
+        border: 2px solid var(--card); background: var(--ink3);
+        &.activo { background: var(--good-fill); } &.en_llamada { background: var(--nav); } &.ausente { background: var(--mid-fill); }
+        &.bloqueado { background: var(--neu); } &.apagado, &.suspendido { background: var(--sis); }
+        &.sin_senal { background: var(--low-fill); } &.nunca { background: var(--sin); }
+    }
+
+    .fd_online, .fd_late { display: flex; flex-direction: column; max-height: 560px; overflow-y: auto; }
+    .fd_online .grp { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--ink3); padding: 10px 18px 4px; }
+    .fd_online .p, .fd_late .p { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 11px;
+        padding: 8px 18px; border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); cursor: pointer;
+        animation: fd_in .26s var(--ease) both; animation-delay: calc(var(--i, 0) * 22ms);
+        &:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .nm { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-size: 13px; }
+    }
+    .fd_online .st { font-size: 12px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        &.activo, &.en_llamada { color: var(--ink2); } &.sin_senal { color: var(--mid); font-weight: 600; } }
+    .fd_online .hrs { text-align: right; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; min-width: 70px;
+        b { font-weight: 700; font-size: 13.5px; color: var(--ink); } }
+    .fd_late .ev { font-size: 12px; color: var(--ink3); line-height: 1.35; }
+    @keyframes fd_in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    // Las etiquetas de estado (asistencia). Tarde y "sin entrada" en ambar;
+    // sin registro en rojo; permiso, checada abierta y no checo en tinta
+    // secundaria (son dato, no falta). "A tiempo" en verde discreto.
+    .fd_chip2 { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; padding: 3px 9px;
+        border-radius: 999px; white-space: nowrap; background: var(--track); color: var(--ink2); max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+        &.a_tiempo { color: var(--good); background: color-mix(in srgb, var(--good-fill) 13%, transparent); }
+        &.tarde, &.sin_entrada, &.salio_antes { color: var(--mid); background: color-mix(in srgb, var(--mid-fill) 15%, transparent); }
+        &.falto, &.sin_senal { color: var(--low); background: color-mix(in srgb, var(--low-fill) 13%, transparent); }
+        &.permiso, &.festivo, &.sin_dato, &.sin_checada, &.no_checo, &.no_iniciado, &.muted { color: var(--ink2); background: var(--track); }
+    }
+
+    // `.fd_atn` y no `.fd_attn`: ese nombre ya es la pastilla "sin senal" de la
+    // cabecera (rosa, redonda) y la tarjeta heredaba su fondo.
+    .fd_atn { display: flex; flex-direction: column; gap: 10px; padding: 6px 18px 16px; max-height: 560px; overflow-y: auto;
+        .it { border-left: 3px solid var(--mid-fill); padding: 6px 0 6px 12px; border-radius: 0 8px 8px 0;
+            &.low { border-color: var(--low-fill); } &.info { border-color: var(--accent); }
+            &.abrible { cursor: pointer; &:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); } }
+            &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; } }
+        .t { font-weight: 650; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink);
+            b { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--track); color: var(--ink2); } }
+        .d { font-size: 12.5px; color: var(--ink2); margin-top: 3px; line-height: 1.5;
+            span { display: block; overflow: hidden; text-overflow: ellipsis; }
+            .mas { color: var(--ink3); } }
+    }
+
+    // ---------------------------------------------- contra su jornada
+    .fd_bars { display: grid; gap: 7px; padding: 6px 18px 10px; }
+    .brow { display: grid; grid-template-columns: 200px minmax(0, 1fr) 54px; align-items: center; gap: 12px;
+        animation: fd_in .3s var(--ease) both; animation-delay: calc(var(--i, 0) * 16ms);
+        .nm { display: flex; align-items: center; gap: 9px; min-width: 0; font-weight: 650; font-size: 13px; color: var(--ink);
+            span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+        .pct { text-align: right; font-weight: 700; font-size: 13px;
+            &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
+    }
+    @media (max-width: 760px) { .brow { grid-template-columns: 120px minmax(0, 1fr) 46px; } }
+    .track { position: relative; height: 18px; background: var(--track); border-radius: 6px; overflow: hidden;
+        .s { position: absolute; top: 0; bottom: 0;
+            &.productiva { background: var(--prod); }
+            &.justificado { background: repeating-linear-gradient(135deg, var(--jus) 0 4px, color-mix(in srgb, var(--jus) 55%, transparent) 4px 8px); }
+            &.otro { background: var(--neu); } &.distraccion { background: var(--dis); } &.sin { background: var(--sin); } }
+        .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: .55;
+            &.fin { opacity: .25; }
+            &::after { content: attr(data-l); position: absolute; top: 0; left: 5px; font-size: 9.5px; color: var(--ink3); font-weight: 700; white-space: nowrap; } }
+    }
+    .fd_dot.justificado { background: var(--jus); }
+
+    // ------------------------------------------------- la linea del dia
+    .fd_tl { padding: 4px 18px 10px; overflow-x: auto; }
+    .fd_tl_h, .fd_tl_grid { display: grid; grid-template-columns: 180px minmax(560px, 1fr); gap: 0 12px; }
+    .fd_tl_h { position: sticky; top: 0; background: var(--card); z-index: 2;
+        .hours { position: relative; height: 22px;
+            span { position: absolute; top: 2px; transform: translateX(-50%); font-size: 10.5px; color: var(--ink3); font-weight: 600; } } }
+    .fd_tl_grid .nm { display: flex; align-items: center; gap: 9px; height: 34px; font-weight: 650; font-size: 12.5px; min-width: 0; color: var(--ink);
+        span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+    .lane { position: relative; height: 34px; border-top: 1px dashed color-mix(in srgb, var(--line) 80%, transparent);
+        background-image: linear-gradient(to right, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px);
+        background-size: calc(100% / var(--cols, 12)) 100%;
+        .shift { position: absolute; top: 5px; bottom: 5px; background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 4px; }
+        .seg { position: absolute; top: 9px; height: 16px; border-radius: 3px;
+            &.activo { background: var(--prod); }
+            &.llamada { background: var(--nav); top: 6px; height: 7px; border-radius: 2px; }
+            &.sin_input { background: repeating-linear-gradient(135deg, var(--mid-fill) 0 3px, color-mix(in srgb, var(--mid-fill) 45%, transparent) 3px 6px); }
+            &.bloqueado { background: var(--neu); }
+            &.apagado, &.suspendido { background: var(--sis); opacity: .6; }
+            &.sin_explicar { background: var(--dis); } }
+        .pin { position: absolute; top: 3px; bottom: 3px; width: 2px; background: var(--ink); opacity: .7;
+            &::after { content: ""; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+            &.checada_salida::after { background: var(--card); border: 2px solid var(--ink); left: -4px; width: 6px; height: 6px; } }
+        .now { position: absolute; top: 0; bottom: 0; width: 1.5px; background: var(--brand); }
+    }
+    .fd_tl_leg { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 6px 18px 12px; font-size: 11.5px; color: var(--ink3);
+        i { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: middle;
+            &.activo { background: var(--prod); } &.llamada { background: var(--nav); }
+            &.sin_input { background: repeating-linear-gradient(135deg, var(--mid-fill) 0 3px, transparent 3px 6px); }
+            &.bloqueado { background: var(--neu); } &.apagado { background: var(--sis); opacity: .6; } &.sin_explicar { background: var(--dis); } }
+    }
+
+    // ------------------------------------------------------ la tabla
+    //
+    // Se AJUSTA al marco: `table-layout: fixed` con un ancho por columna, y
+    // lo que no cabe se recorta con puntos suspensivos (el titulo completo
+    // esta en el `title`). Antes la tabla crecia con su contenido y en un
+    // monitor de 1376 px se salia de la tarjeta con la ultima columna cortada.
+    // Solo por debajo de 980 px se permite desplazar de lado.
     .fd_table_card { margin-bottom: 16px;
-        // La cabecera de esta tarjeta lleva ademas los controles de exportar:
-        // en angosto bajan de renglon y la nota toma el ancho, en vez de
-        // quedar apretada en una columna de una palabra.
         .fd_card_head { flex-wrap: wrap;
             .fd_card_hint { flex: 1 1 240px; min-width: 0; } }
     }
-
     .fd_table_wrap { overflow-x: auto; }
-    .fd_table { width: 100%; border-collapse: collapse; font-size: 13.5px;
-        thead th { text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
-            color: var(--ink3); padding: 6px 12px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .fd_table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: 13px; table-layout: fixed;
+        col.w_tog { width: 30px; } col.w_emp { width: 20%; } col.w_asi { width: 13%; } col.w_jor { width: 12.5%; }
+        col.w_num { width: 8%; } col.w_idx { width: 10%; } col.w_app { width: 12%; } col.w_st { width: 8.5%; } col.w_ficha { width: 40px; }
+        thead th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--ink3); padding: 6px 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         th.c_num, td.c_num { text-align: right; }
-        th.c_idx { width: 190px; }
-        tbody td { padding: 11px 12px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); vertical-align: middle; }
+        tbody td { padding: 10px 10px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); vertical-align: middle; overflow: hidden; }
         tbody tr:last-child td { border-bottom: 0; }
-        .c_num { color: var(--ink2); font-weight: 550; &.good { color: var(--good); } &.warn { color: var(--low); } }
+        .c_num { color: var(--ink2); font-weight: 550; white-space: nowrap; &.good { color: var(--good); } &.warn { color: var(--low); } }
+        // Cabecera de departamento: nombre, cuantos y el indice del grupo.
+        tr.fd_dep td { padding: 14px 10px 4px; border-bottom: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3);
+            .dm { margin-left: 8px; text-transform: none; letter-spacing: 0; font-size: 11.5px; font-weight: 600; color: var(--ink2);
+                b { font-weight: 700; color: var(--ink); } } }
     }
     .fd_row { cursor: pointer; transition: background .15s var(--ease);
         &:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
         &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         &.attn { box-shadow: inset 3px 0 0 var(--low-fill); }
-        // Abierto: el renglon y su panel son UNA pieza. Se quita la linea de
-        // abajo para que el ojo baje sin tropezar, y el tinte se queda.
         &.abierta { background: color-mix(in srgb, var(--accent) 5%, transparent);
             td { border-bottom-color: transparent; } }
     }
-
-    // ------------------------------------------------ desplegar el renglon
-    //
-    // El caret es el UNICO icono de la fila y dice una cosa: que hay mas
-    // abajo. Gira a 90 grados al abrir -misma pieza, otro estado-, no cambia
-    // de icono. Mismo caret en los nodos del arbol, para que "esto se abre"
-    // se lea igual en los tres niveles.
-    th.c_tog, td.c_tog { width: 30px; padding-right: 0; }
-    th.c_ficha, td.c_ficha { width: 42px; text-align: right; }
+    th.c_tog, td.c_tog { padding-right: 0; }
+    th.c_ficha, td.c_ficha { text-align: right; padding-left: 0; }
     .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .fd_caret { display: inline-grid; place-items: center; width: 20px; height: 20px;
         border-radius: 6px; color: var(--ink3); flex: none;
         i { font-size: 10px; line-height: 1; transition: transform .18s var(--ease); }
     }
     .fd_row:hover .fd_caret { color: var(--ink2); background: color-mix(in srgb, var(--ink) 6%, transparent); }
-    .fd_row.abierta .fd_caret { color: var(--accent);
-        i { transform: rotate(90deg); } }
-
-    // La ficha completa, a un clic pero sin competir con el renglon: un boton
-    // fantasma que solo toma cuerpo al pasar por encima.
+    .fd_row.abierta .fd_caret { color: var(--accent); i { transform: rotate(90deg); } }
     .fd_ficha { border: 1px solid transparent; background: transparent; color: var(--ink3);
         width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 14px;
         display: inline-grid; place-items: center;
-        transition: background .15s var(--ease), color .15s var(--ease),
-                    border-color .15s var(--ease), transform .12s var(--ease);
+        transition: background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease), transform .12s var(--ease);
         &:hover { color: var(--ink); background: var(--card); border-color: var(--line); }
         &:active { transform: scale(0.94); }
         &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     }
-    .fd_chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .fd_chip.dis { display: inline-flex; align-items: center; gap: 6px;
-        color: var(--low); background: color-mix(in srgb, var(--low-fill) 10%, transparent);
-        .fd_dot { width: 6px; height: 6px; flex-basis: 6px; }
-        b { font-weight: 650; }
+    .fd_emp { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .fd_emp_txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .fd_emp_name { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fd_emp_sub { display: flex; flex-wrap: wrap; gap: 3px 8px; min-width: 0; line-height: 1.3; }
+    .fd_emp_pc { font-size: 11px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fd_tag { font-size: 10.5px; font-weight: 600; color: var(--low); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
+        &.sin_senal { color: var(--mid); }
+        &.cobertura { color: var(--mid); text-transform: none; letter-spacing: 0; }
+        &.integridad { color: var(--ink2); text-transform: none; letter-spacing: 0; cursor: help; }
+        &.ia { color: var(--mid); text-transform: none; letter-spacing: 0; cursor: help; }
+        &.lag { color: var(--ink2); text-transform: none; letter-spacing: 0; }
+    }
+    .fd_chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; max-width: 100%;
+        &.wrap { gap: 4px; }
+        &.col { flex-direction: column; align-items: flex-start; gap: 4px; } }
+    .fd_chip { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        vertical-align: middle; font-size: 12px; color: var(--ink2); background: var(--track); border-radius: 7px; padding: 3px 8px;
+        &.pend { font-size: 12px; b { color: var(--ink3); font-weight: 600; margin-left: 4px; } }
+        &.dis { display: inline-flex; align-items: center; gap: 6px; color: var(--low); background: color-mix(in srgb, var(--low-fill) 10%, transparent);
+            .fd_dot { width: 6px; height: 6px; flex-basis: 6px; }
+            b { font-weight: 650; } }
+    }
+    .fd_idx { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .fd_idx_v { font-weight: 700; font-size: 13px; width: 40px; text-align: right; flex: none;
+        &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
+    .fd_jor { display: flex; flex-direction: column; gap: 3px; min-width: 0;
+        .fd_meter { height: 5px; width: 100%; max-width: 110px; } }
+    .fd_jor_hhmm { font-size: 12px; color: var(--ink); font-weight: 650; white-space: nowrap; }
+    .fd_jor_v { font-size: 12.5px; color: var(--ink); font-weight: 600; white-space: nowrap;
+        small { color: var(--ink3); font-weight: 500; } }
+    .fd_jor_guia { font-size: 11px; color: var(--ink3); }
+    .fd_extra { font-size: 11px; color: var(--good); font-weight: 650; white-space: nowrap; }
+    .fd_falta { font-size: 11px; color: var(--mid); font-weight: 650; white-space: nowrap; }
+    .fd_jor_na { color: var(--ink3); }
+    // Presencia: lo explicado va en tinta secundaria y solo "sin senal" toma color.
+    .fd_presencia { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink3); min-width: 0; max-width: 100%;
+        .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        &.activo, &.en_llamada { color: var(--ink2); }
+        &.sin_senal { color: var(--mid); font-weight: 550; }
+    }
+    .fd_pdot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ink3);
+        &.activo { background: var(--good-fill); }
+        &.en_llamada { background: transparent; box-shadow: inset 0 0 0 2px var(--good-fill); }
+        &.ausente { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink3); }
+        &.bloqueado { background: var(--ink3); border-radius: 2px; }
+        &.suspendido, &.apagado { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+        &.sin_senal { background: var(--mid-fill); }
+        &.nunca { background: transparent; box-shadow: inset 0 0 0 1px var(--ink3); opacity: .5; }
     }
 
-    // El panel. Sin borde propio ni tarjeta anidada: es la continuacion del
-    // renglon, sobre un segundo neutro apenas mas hundido que la tabla.
+    // ------------------------------------------------ desplegar el renglon
     .fd_exp td { padding: 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--track) 55%, transparent); }
-    // La celda abarca TODA la tabla, que en angosto es mas ancha que su
-    // marco y se desplaza de lado. El panel se pega al borde visible y mide
-    // lo que mide el marco (`--fd-wrap-w`, que pone el componente al medir
-    // el marco): asi el arbol siempre cabe en lo que se ve, aunque la tabla
-    // de arriba siga pudiendo desplazarse.
     .fd_exp_in { display: grid; grid-template-rows: 1fr;
         position: sticky; left: 0; width: var(--fd-wrap-w, auto); max-width: 100%;
         transition: grid-template-rows .22s var(--ease), opacity .18s var(--ease);
         > div { overflow: hidden; min-height: 0; }
     }
-    .fd_exp_box { padding: 10px 18px 14px 54px; }
+    .fd_exp_box { padding: 10px 18px 14px 50px; }
     .fd_exp_head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px 18px;
         flex-wrap: wrap; padding: 4px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px;
         .t { font-size: 13px; color: var(--ink2); min-width: 0;
@@ -218,11 +397,7 @@
             .m { color: var(--ink3); b { color: var(--ink2); font-weight: 650; } } }
         .acts { display: flex; gap: 4px; margin-left: auto; }
     }
-    .fd_exp_msg { font-size: 13px; color: var(--ink3); padding: 12px 0 8px;
-        .fd_link { margin-left: 4px; } }
-
-    // Esqueleto con la forma de los renglones que vienen: tres barras que
-    // respiran. Nada gira en medio de la tabla.
+    .fd_exp_msg { font-size: 13px; color: var(--ink3); padding: 12px 0 8px; .fd_link { margin-left: 4px; } }
     .fd_skel { display: grid; gap: 10px; padding: 12px 0 10px;
         span { display: block; height: 10px; width: var(--w, 60%); border-radius: 5px;
             background: color-mix(in srgb, var(--ink) 8%, transparent);
@@ -232,11 +407,6 @@
     @keyframes fd_respira { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
     // ------------------------------------------------------------ el arbol
-    //
-    // Tres niveles con la MISMA rejilla: caret, punto de categoria, nombre,
-    // barra, horas, porcentaje. Lo que cambia por nivel es la sangria y el
-    // peso de la letra, nunca la posicion de las cifras: asi se pueden leer
-    // en columna aunque el arbol este abierto por varios lados.
     .fd_tree { padding-top: 4px; }
     .fd_nodo { display: grid; align-items: center; gap: 8px; padding: 5px 6px 5px 0; border-radius: 8px;
         grid-template-columns: 20px 8px minmax(0, 1fr) clamp(80px, 22%, 200px) 58px 44px;
@@ -250,9 +420,6 @@
             &.abierta .fd_caret i { transform: rotate(90deg); }
             &.abierta .fd_caret { color: var(--accent); }
         }
-        // El nombre manda: cuando falta ancho, la categoria y el conteo se
-        // encogen primero (shrink 4 contra 1) y el nombre conserva al menos
-        // nueve caracteres. Sin esto, en la ficha se leia «S.» y «you…».
         .nm { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; }
         .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             flex: 0 1 auto; min-width: 9ch; }
@@ -265,15 +432,12 @@
             &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); } }
         .h { text-align: right; font-size: 12.5px; color: var(--ink); font-weight: 600; white-space: nowrap; }
         .p { text-align: right; font-size: 11.5px; color: var(--ink3); white-space: nowrap; }
-        // Segundo y tercer nivel: la letra baja un paso y la barra se afina.
         &.n2 .n { font-size: 12.5px; color: var(--ink2); }
         &.n2 .h { font-weight: 550; color: var(--ink2); }
         &.n3 { min-height: 26px; padding-top: 3px; padding-bottom: 3px;
             .n { font-size: 12px; color: var(--ink2); } .bar { height: 5px; } .h { font-weight: 500; color: var(--ink2); font-size: 12px; } }
         &.sistema .n { color: var(--ink2); }
     }
-    // Los hijos se sangran con una guia de un pixel: dice de quien cuelgan
-    // sin dibujar un arbol de conectores.
     .fd_hijos { margin: 0 0 4px 9px; padding-left: 18px; border-left: 1px solid var(--line); }
     .fd_cola { font-size: 11.5px; color: var(--ink3); padding: 4px 6px 6px 28px;
         b { color: var(--ink3); font-weight: 600; margin-left: 4px; }
@@ -293,147 +457,15 @@
         .fd_dot { width: 7px; height: 7px; flex-basis: 7px; }
         .der { margin-left: auto; }
     }
-    // En la ficha (440 px) el nombre necesita el ancho: la barra se acorta y
-    // la etiqueta de categoria se va -el punto ya la dice-.
-    // El conteo («5 sitios») tambien se va: el caret ya dice que se abre, y
-    // con el conteo el nombre quedaba en «SOLIDWORKS 20…» y el boton de
-    // clasificar, recortado.
-    // Y la barra tambien: en 440 px la longitud no cabe junto al nombre y el
-    // boton de clasificar; las horas y el porcentaje ya llevan el numero.
-    // Medido: con barra y boton, «Explorador de Windows» quedaba en «Explorado…».
     .fd_dw_arbol { .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 54px 38px;
             .c, .k, .bar { display: none; }
             .fd_mini { font-size: 10px; padding: 1px 6px; } }
         .fd_tree_leg .der { display: none; } }
 
-    .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
-    .fd_ava { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: grid; place-items: center;
-        font-size: 12.5px; font-weight: 650;
-        background: hsl(var(--h), 62%, 90%); color: hsl(var(--h), 55%, 30%); border: 1px solid hsl(var(--h), 45%, 82%);
-        &.lg { width: 48px; height: 48px; flex-basis: 48px; font-size: 17px; }
-    }
-    .fd_emp_txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .fd_emp_name { font-weight: 600; color: var(--ink); }
-    .fd_tag { font-size: 10.5px; font-weight: 600; color: var(--low); text-transform: uppercase; letter-spacing: .03em;
-        &.sin_senal { color: var(--mid); }   // aviso tecnico, no acusacion
-        // Cobertura parcial: mismo tono que "sin senal" porque es la misma
-        // clase de aviso -falta dato-, y nunca el rojo de bajo desempeno.
-        &.cobertura { color: var(--mid); text-transform: none; letter-spacing: 0;
-            font-variant-numeric: tabular-nums; }
-        // Hechos de integridad: tinta secundaria, sin rojo ni ambar. Es un
-        // conteo de evidencia para revisar, no una alarma; el detalle va en el
-        // titulo y en Actividad > Integridad.
-        &.integridad { color: var(--ink2); text-transform: none; letter-spacing: 0;
-            font-variant-numeric: tabular-nums; cursor: help; }
-        // Veredictos de la IA que no parecen trabajo: ambar de "revisar" (es lo
-        // unico de la fila que pide una accion de alguien), nunca el rojo de
-        // culpable. Las capturas estan a un clic en la tarjeta de arriba.
-        &.ia { color: var(--mid); text-transform: none; letter-spacing: 0;
-            font-variant-numeric: tabular-nums; cursor: help; }
-    }
-    .fd_kpi_click { cursor: pointer; }
-
-    // Presencia. Regla de color: lo explicado va en tinta secundaria -apagar el
-    // equipo e irse a casa es normalidad, no una alerta- y solo lo que nadie
-    // explica toma color. Hoy el punto gris grita lo mismo a las 3 de la manana
-    // que a media jornada.
-    .fd_presencia { display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; color: var(--ink3); white-space: nowrap;
-        &.activo, &.en_llamada { color: var(--ink2); }
-        &.sin_senal { color: var(--mid); font-weight: 550; }
-    }
-    .fd_pdot { width: 7px; height: 7px; border-radius: 50%; flex: none;
-        background: var(--ink3);
-        &.activo { background: var(--good-fill); }
-        // En llamada tiene su propia forma, no solo su color: un anillo se
-        // distingue de un punto aunque el monitor este mal calibrado.
-        &.en_llamada { background: transparent; box-shadow: inset 0 0 0 2px var(--good-fill); }
-        &.ausente { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink3); }
-        &.bloqueado { background: var(--ink3); border-radius: 2px; }
-        &.suspendido, &.apagado { background: transparent;
-            box-shadow: inset 0 0 0 1px var(--line); }
-        &.sin_senal { background: var(--mid-fill); }
-        &.nunca { background: transparent; box-shadow: inset 0 0 0 1px var(--ink3); opacity: .5; }
-    }
-
-    .fd_idx { display: flex; align-items: center; gap: 10px; }
-    .fd_idx_v { font-weight: 700; font-size: 13px; width: 40px; text-align: right;
-        &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
-
-    .fd_ultimo { color: var(--ink3); }
-    .fd_sub .sep { color: var(--ink3); margin: 0 2px; }
-
-    .fd_refrescar { display: inline-flex; align-items: center; gap: 7px;
-        background: var(--card); border: 1px solid var(--line); color: var(--ink2);
-        border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 13px;
-        font-weight: 550; cursor: pointer;
-        transition: background .15s var(--ease), color .15s var(--ease), transform .12s var(--ease);
-        .ico { font-size: 15px; line-height: 1; display: inline-block; }
-        &:hover:not(:disabled) { background: var(--track); color: var(--ink); }
-        &:active:not(:disabled) { transform: scale(0.97); }
-        &:disabled { opacity: .6; cursor: default; }
-        &.girando .ico { animation: fd_girar .9s linear infinite; }
-    }
-    @keyframes fd_girar { to { transform: rotate(360deg); } }
-
-    .fd_chip { display: inline-block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        vertical-align: middle; font-size: 12.5px; color: var(--ink2); background: var(--track); border-radius: 7px; padding: 3px 9px;
-        &.pend { font-size: 12px; b { color: var(--ink3); font-weight: 600; margin-left: 4px; } } }
-
-    .fd_status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink2); &.off { color: var(--ink3); } }
-    .fd_dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; background: var(--ink3);
-        &.on { background: #22c55e; box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 22%, transparent); }
-        &.off { background: var(--sin); }
-        &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
-        &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); }
-    }
-
-    // ------------------------------------------------------------ graficas
-    //
-    // El lienzo lleva ALTO EXPLICITO. Chart.js con `maintainAspectRatio: false`
-    // mide el contenedor, y un contenedor sin alto mide cero: la grafica se
-    // dibuja de 0 px y la tarjeta se ve vacia, sin error en ningun lado.
-    .fd_grafica { padding-bottom: 14px; }
-    .fd_lienzo { position: relative; height: 210px; margin: 2px 16px 0;
-        &.alto { height: 280px; } }
-    .fd_pie { margin: 10px 18px 2px; font-size: 11.5px; color: var(--ink3);
-        line-height: 1.6; max-width: 62ch; }
-
-    // Dos tarjetas, no tres: cada una necesita ancho para que las barras se
-    // puedan comparar, y a 300 px las etiquetas se amontonan.
-    // margin-bottom ademas del top: sin el, la fila de la dona y las columnas
-    // quedaba pegada a la tarjeta de Empleados de abajo, sin aire entre ambas.
-    .fd_duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-        gap: 16px; margin-top: 16px; margin-bottom: 16px; }
-
-    // ----------------------------------------------------------- exportar
-    .fd_export { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-    .fd_exp_sel { background: transparent; color: var(--ink2); font-size: 12px;
-        border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px;
-        cursor: pointer; font-family: inherit;
-        &:hover { color: var(--ink); }
-        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
-    .fd_exp_btn { background: transparent; color: var(--ink2); font-size: 12px;
-        font-weight: 550; border: 1px solid var(--line); border-radius: 8px;
-        padding: 4px 11px; cursor: pointer; font-family: inherit;
-        // Sin esto el boton se angosta y parte «Exportar CSV» en dos renglones,
-        // que deja la cabecera de la tarjeta desalineada.
-        white-space: nowrap;
-        transition: color .15s var(--ease), border-color .15s var(--ease),
-                    transform .12s var(--ease);
-        &:hover { color: var(--ink); border-color: var(--ink3); }
-        &:active { transform: scale(0.97); }
-        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
-
-    // auto-fit: la seccion pasó de dos tarjetas a tres. Dejar que el ancho
-    // decida cuantas caben evita fijar un numero que se rompe al agregar otra.
-    .fd_cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    // -------------------------------------------- en que se va el tiempo
+    .fd_cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px; }
     .fd_stack { display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 4px 18px 14px; background: var(--track);
         &.sm { margin: 2px 0 10px; height: 14px; }
-        // Sin transicion: aqui el ancho ES la proporcion de cada tramo, o sea
-        // no hay forma de animarlo sin recalcular el layout. Y tampoco hace
-        // falta: el reparto se repinta cada diez minutos y nadie lo esta
-        // mirando en ese instante.
         .fd_seg_bar { height: 100%;
             &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
             &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); }
@@ -442,7 +474,7 @@
     .fd_legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0 18px 12px;
         &.sm { padding: 0; }
         .fd_leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink2);
-            b { color: var(--ink); font-weight: 650; } }
+            b { color: var(--ink); font-weight: 650; margin-left: 2px; } }
     }
     .fd_drow { display: grid; grid-template-columns: 1fr 40% 56px; align-items: center; gap: 12px; padding: 7px 18px;
         .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -452,10 +484,6 @@
     }
     .fd_note { margin: 0; padding: 0 18px 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink3);
         b { color: var(--ink2); font-weight: 650; } }
-
-    // Cola de clasificacion: va DENTRO de la tarjeta de sitios, pegada al dato
-    // que la justifica. Separarla en otra tarjeta la vuelve una lista que nadie
-    // mira.
     .fd_pend { border-top: 1px solid var(--line); margin-top: 8px; padding: 12px 18px 16px;
         .fd_pend_head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
             font-size: 12.5px; color: var(--ink2); margin-bottom: 9px;
@@ -467,10 +495,51 @@
         transition: background .15s var(--ease), transform .12s var(--ease);
         &:hover { background: var(--track); }
         &:active { transform: scale(0.97); } }
+    .fd_app { display: grid; grid-template-columns: 10px 1fr 30% 54px; align-items: center; gap: 10px; padding: 6px 0;
+        .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bar { background: var(--track); border-radius: 6px; height: 8px; overflow: hidden; }
+        .bar .fill { display: block; width: 100%; height: 100%; border-radius: 6px; background: var(--accent); transition: clip-path .5s var(--ease);
+            &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
+            &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); } }
+        .v { text-align: right; font-size: 12.5px; color: var(--ink2); font-weight: 550; }
+        &.site { padding: 6px 18px; }
+    }
+    .fd_dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; background: var(--ink3); display: inline-block;
+        &.on { background: #22c55e; box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 22%, transparent); }
+        &.off { background: var(--sin); }
+        &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
+        &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); }
+    }
+    .fd_status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink2); &.off { color: var(--ink3); } }
+
+    // --------------------------------------------------------- tendencia
+    .fd_duo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 16px;
+        &.solo { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .fd_duo { grid-template-columns: 1fr; } }
+    .fd_grafica { padding-bottom: 14px; }
+    // El lienzo lleva ALTO EXPLICITO: Chart.js con `maintainAspectRatio: false`
+    // mide el contenedor, y un contenedor sin alto mide cero.
+    .fd_lienzo { position: relative; height: 230px; margin: 2px 16px 0; }
+    .fd_pie { margin: 10px 18px 2px; font-size: 11.5px; color: var(--ink3); line-height: 1.6; max-width: 70ch; }
+
+    // ---------------------------------------------------------- exportar
+    .fd_export { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .fd_exp_sel { background: transparent; color: var(--ink2); font-size: 12px;
+        border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; cursor: pointer; font-family: inherit;
+        &:hover { color: var(--ink); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
+    .fd_exp_btn { background: transparent; color: var(--ink2); font-size: 12px;
+        font-weight: 550; border: 1px solid var(--line); border-radius: 8px;
+        padding: 4px 11px; cursor: pointer; font-family: inherit; white-space: nowrap;
+        transition: color .15s var(--ease), border-color .15s var(--ease), transform .12s var(--ease);
+        &:hover { color: var(--ink); border-color: var(--ink3); }
+        &:active { transform: scale(0.97); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; } }
 
     .fd_empty { color: var(--ink3); font-size: 13px; text-align: center; padding: 22px 0; &.small { padding: 14px 18px; text-align: left; } }
     .fd_loading { color: var(--ink3); padding: 60px 0; text-align: center; }
 
+    // ----------------------------------------------------------- la ficha
     .fd_scrim { position: fixed; inset: 0; z-index: 1090; background: rgba(9, 12, 18, .42);
         opacity: 0; transition: opacity .28s var(--ease);
         &.open { opacity: 1; }
@@ -502,8 +571,6 @@
         h3 { font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; color: var(--ink3); margin: 0 0 10px;
             .cnt { color: var(--ink3); font-weight: 550; margin-left: 4px; } }
     }
-    // Anomalias de integridad. Ambar de "revisar", NUNCA el rojo de "culpable":
-    // el tablero entrega evidencia, no dicta veredictos.
     .fd_anom {
         border: 1px solid color-mix(in srgb, var(--mid-fill) 35%, transparent);
         background: color-mix(in srgb, var(--mid-fill) 8%, transparent);
@@ -513,7 +580,6 @@
             .v { font-weight: 650; color: var(--mid); font-variant-numeric: tabular-nums; } }
         .fd_anom_nota { margin: 8px 0 0; font-size: 11.5px; color: var(--ink3); line-height: 1.45; }
     }
-
     .fd_acct {
         font-size: 13px;
         .r { display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -527,113 +593,12 @@
             .l { color: var(--ink); font-weight: 600; }
             .v { font-size: 15px; } }
         .r.attn .v { color: var(--low); }
-        // Renglon subordinado: es un SUBCONJUNTO del de arriba, no un sumando
-        // aparte. Se sangra para que nadie lo sume dos veces al leer.
         .r.sub { padding-left: 18px; border-bottom: 0; padding-top: 2px; padding-bottom: 7px;
             .l { color: var(--ink3); font-size: 12.5px; }
             .v { color: var(--ink2); font-weight: 550; } }
     }
-
-    .fd_app { display: grid; grid-template-columns: 10px 1fr 30% 54px; align-items: center; gap: 10px; padding: 6px 0;
-        .n { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .bar { background: var(--track); border-radius: 6px; height: 8px; overflow: hidden; }
-        .bar .fill { display: block; width: 100%; height: 100%; border-radius: 6px; background: var(--accent); transition: clip-path .5s var(--ease);
-            &.productiva { background: var(--prod); } &.navegador { background: var(--nav); } &.neutral { background: var(--neu); }
-            &.distraccion { background: var(--dis); } &.sistema { background: var(--sis); } &.sin { background: var(--sin); } }
-        .v { text-align: right; font-size: 12.5px; color: var(--ink2); font-weight: 550; }
-        // el mismo renglon, reutilizado dentro de una tarjeta que si tiene margenes
-        &.site { padding: 6px 18px; }
-    }
     .fd_dw_foot { font-size: 12px; color: var(--ink3); padding-top: 8px; border-top: 1px solid var(--line);
         b { color: var(--ink2); } }
 
-    .fd_row { animation: fd_in .32s var(--ease) both; }
-    @keyframes fd_in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
-    // ------------------------------------------- selector de fecha y jornada
-    // Selector de fecha para ver el tablero de dias anteriores. Mismo lenguaje
-    // que los segmentos de periodo: pastilla con icono y el input nativo dentro.
-    .fd_fecha { display: inline-flex; align-items: center; gap: 6px;
-        background: var(--track); border-radius: 10px; padding: 6px 10px;
-        color: var(--ink2); font-size: 13px; cursor: pointer;
-        i { color: var(--ink3); }
-        input[type="date"] { border: 0; background: transparent; color: var(--ink);
-            font: inherit; font-weight: 550; cursor: pointer; color-scheme: light dark;
-            padding: 0; outline: 0; min-width: 0; }
-    }
-    .fd_periodo { color: var(--ink); font-weight: 700; }
-
-    // Columna Jornada: cuanto de la 8:30 se cubrio, con su barra de avance.
-    .fd_table th.c_jor { width: 150px; }
-    .fd_jor { display: flex; flex-direction: column; gap: 5px; min-width: 108px;
-        .fd_jor_v { font-size: 13px; font-weight: 600; color: var(--ink);
-            font-variant-numeric: tabular-nums;
-            small { color: var(--ink3); font-weight: 450; } }
-        // Horas de MÁS que marcó el checador sobre el horario: se reconoce en
-        // verde. El faltante va en tinta neutra, es un dato, no un reproche.
-        .fd_extra { display: inline-flex; align-items: center; gap: 3px; align-self: flex-start;
-            font-size: 11px; font-weight: 650; color: var(--good);
-            .fa { font-size: 9px; } }
-        .fd_falta { align-self: flex-start; font-size: 11px; font-weight: 600; color: var(--ink3); }
-        .fd_jor_guia { font-size: 10.5px; color: var(--ink3); }
-    }
-    .fd_jor_na { color: var(--ink3); }
-
-    // Etiqueta del rezago checador -> PC: tinta neutra, es un dato, no una
-    // alarma. Nunca el rojo de "mal".
-    .fd_tag.lag { color: var(--neu); text-transform: none; letter-spacing: 0;
-        font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px;
-        i { font-size: 11px; } }
-
-    // Fila del cubierto en la ficha: es el resultado del calculo, resaltado.
-    .fd_acct .r.total { border-top: 1px solid var(--line); border-bottom: 0;
-        margin-top: 2px; padding-top: 9px;
-        .l { color: var(--ink); font-weight: 700; }
-        .v.idx { font-size: 15px; font-weight: 800;
-            &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } } }
-
-    @media (max-width: 900px) {
-        .fd_kpis { grid-template-columns: repeat(2, 1fr); }
-        .fd_cols { grid-template-columns: 1fr; }
-        // Las dos graficas pedian 420 px cada una tambien en un telefono y
-        // desbordaban la pagina; a una columna caben.
-        .fd_duo { grid-template-columns: 1fr; }
-        // Distraccion es la 7a columna desde que Jornada entro antes que Activo.
-        .fd_table th.c_num:nth-child(7), .fd_table td.c_num:nth-child(7) { display: none; }
-        .fd_exp_box { padding-left: 30px; }
-        .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 96px 56px; .p { display: none; } }
-    }
-    @media (max-width: 560px) {
-        .fd_table th.c_app, .fd_table td.c_app { display: none; }
-        .fd_dw_stats { grid-template-columns: repeat(2, 1fr); }
-        .fd_switch button span { display: none; }   // en angosto, solo iconos
-        .fd_exp_box { padding-left: 12px; padding-right: 12px; }
-        .fd_nodo { grid-template-columns: 20px 8px minmax(0, 1fr) 56px; .bar { display: none; } }
-        .fd_nodo .c, .fd_nodo .k { display: none; }   // en angosto, el nombre y la accion
-        .fd_tree_leg { padding-left: 0; }
-    }
-}
-
-// El panel entra creciendo desde cero alto. `@starting-style` define de donde
-// parte la transicion en el primer fotograma; donde el navegador no lo conoce,
-// el panel aparece sin animar, que es el comportamiento correcto para caer.
-// Va al nivel raiz porque el compilador de SCSS no anida esta regla.
-@starting-style {
-    .foco_dash .fd_exp_in { grid-template-rows: 0fr; opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .foco_dash .fd_row { animation: none; }
-    .foco_dash .fd_nodo { animation: none; }
-    .foco_dash .fd_refrescar.girando .ico { animation: none; }
-    .foco_dash .fd_skel span { animation: none; opacity: .7; }
-    .foco_dash .fd_exp_in { transition: none; }
-    .foco_dash .fd_caret i { transition: none; }
-    .foco_dash .fd_meter .fill,
-    .foco_dash .fd_seg_bar,
-    .foco_dash .fd_app .bar .fill,
-    .foco_dash .fd_nodo .bar .fill,
-    .foco_dash .fd_drow .bar .fill { transition: none; }
-    .foco_dash .fd_drawer { transition: opacity .2s ease; transform: none; opacity: 0;
-        &.open { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 }

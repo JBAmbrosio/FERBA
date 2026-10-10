@@ -36,6 +36,21 @@
                 <field name="check_out_missing" string="No cerro salida" optional="show"
                        decoration-warning="check_out_missing"/>
                 <field name="check_out_notified" optional="hide"/>
+                <field name="adherence" string="Asistencia" widget="badge" optional="show"
+                       decoration-success="adherence == 'a_tiempo'"
+                       decoration-warning="adherence in ('tarde', 'sin_entrada', 'sin_checada')"
+                       decoration-danger="adherence in ('falto', 'sin_senal')"
+                       decoration-muted="adherence in ('no_laborable', 'sin_jornada', 'sin_dato')"/>
+                <field name="check_in_at" string="Entrada checada" widget="datetime" optional="show"/>
+                <field name="check_out_at" string="Salida checada" widget="datetime" optional="show"/>
+                <field name="late_minutes" string="Min. tarde" optional="show"
+                       decoration-warning="late_minutes > 0"/>
+                <field name="left_early" string="Salio antes" optional="show"
+                       decoration-warning="left_early"/>
+                <field name="early_minutes" string="Min. antes" optional="hide"/>
+                <field name="check_in_missing" string="No checo entrada" optional="hide"/>
+                <field name="adherence_source" string="Entrada segun" optional="hide"/>
+                <field name="leave_name" optional="hide"/>
                 <field name="state" widget="badge"
                        decoration-muted="state == 'sin_dato'"
                        decoration-warning="state == 'sin_detalle' or state == 'solo_equipo'"/>
@@ -59,6 +74,17 @@
                 <filter name="f_sin_salida" string="No cerro salida"
                         domain="[('check_out_missing', '=', True)]"/>
                 <separator/>
+                <filter name="f_tarde" string="Llego tarde"
+                        domain="[('adherence', '=', 'tarde')]"/>
+                <filter name="f_falto" string="Sin registro (falto)"
+                        domain="[('adherence', 'in', ('falto', 'sin_senal'))]"/>
+                <filter name="f_salio_antes" string="Salio antes"
+                        domain="[('left_early', '=', True)]"/>
+                <filter name="f_no_checo" string="No checo entrada"
+                        domain="[('check_in_missing', '=', True)]"/>
+                <filter name="f_permiso" string="Permiso o festivo"
+                        domain="[('adherence', 'in', ('permiso', 'festivo'))]"/>
+                <separator/>
                 <filter name="f_hoy" string="Hoy"
                         domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter name="f_sin_detalle" string="Sin detalle de horas"
@@ -69,7 +95,27 @@
                     <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
                     <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
                     <filter name="g_dia" string="Dia" context="{'group_by': 'date'}"/>
+                    <filter name="g_adh" string="Asistencia" context="{'group_by': 'adherence'}"/>
             </search>
+        </field>
+    </record>
+
+    <!-- El KPI "Asistencia" del tablero abre la lista filtrada al dia y agrupada
+         por estado: tarde, falto, salio antes... con la evidencia en columnas. -->
+    <record id="foco_workday_asistencia_action" model="ir.actions.act_window">
+        <field name="name">Asistencia</field>
+        <field name="res_model">foco.workday</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="foco_workday_view_list"/>
+        <field name="search_view_id" ref="foco_workday_view_search"/>
+        <field name="domain">[('adherence', 'not in', ('no_laborable', 'sin_jornada', False))]</field>
+        <field name="context">{'search_default_f_hoy': 1, 'search_default_g_adh': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin jornadas con asistencia medida</p>
+            <p>Cada renglon dice como llego la persona ese dia (a tiempo, tarde,
+               sin registro, permiso) con su entrada y salida checadas, los
+               minutos y la fuente. Se recalcula con cada envio del agente y
+               cada noche.</p>
         </field>
     </record>
 

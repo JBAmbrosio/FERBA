@@ -806,6 +806,33 @@ class FocoUsage(models.Model):
         }
 
     @api.model
+    def serie_indice(self, desde, hasta):
+        """El indice productivo/activo del equipo por dia, y nada mas: la
+        chispa de tendencia de las tarjetas del tablero. `analitica` ya trae
+        la serie, pero calcula ademas hechos, veredictos y reparto; para una
+        linea de 7 puntos eso es trabajo tirado. Dias sin dato van en None."""
+        desde = fields.Date.to_date(desde)
+        hasta = fields.Date.to_date(hasta)
+        if not desde or not hasta or hasta < desde:
+            return []
+        por_dia = {}
+        for dia, activo, productivo in self._read_group(
+                [('date', '>=', desde), ('date', '<=', hasta)],
+                ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
+            por_dia[dia] = (activo or 0.0, productivo or 0.0)
+        salida = []
+        d = desde
+        while d <= hasta:
+            activo, productivo = por_dia.get(d, (0.0, 0.0))
+            salida.append({
+                'date': fields.Date.to_string(d),
+                'activo': round(activo, 3), 'productivo': round(productivo, 3),
+                'indice': round(100.0 * productivo / activo, 1) if activo else None,
+            })
+            d += timedelta(days=1)
+        return salida
+
+    @api.model
     def sitios_por_clasificar(self, dias=30, limite=15):
         """Sitios sin clasificar ordenados por HORAS, no por novedad.
 

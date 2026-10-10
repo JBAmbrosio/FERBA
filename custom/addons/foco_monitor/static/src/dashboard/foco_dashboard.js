@@ -59,6 +59,14 @@ export class FocoDashboard extends Component {
             refrescando: false, ultimo: null,
             // justificaciones que la IA marco a revisar (pendiente global)
             revisar: 0,
+            // adherencia al turno: {personas: {id: {...}}, equipo: {estado: n}, gracia}
+            asistencia: { personas: {}, equipo: {}, gracia: 0 },
+            // lo derivado para el rediseno (10-oct): ver derivar()
+            atencionSrv: { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] },
+            serie7: [], cintas: { dias: [], ventana: [8, 20] },
+            online: [], conectados: 0, asistenciaLista: [], atencion: [], atencionN: 0,
+            barras: [], tl: { horas: [], cols: 1, ahora: null, filas: [] }, grupos: [],
+            spark: { indice: { d: "", fin: null }, prod: { d: "", fin: null } },
             // analitica
             serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
             expEmpleado: "", expGrano: "dia",
@@ -281,9 +289,10 @@ export class FocoDashboard extends Component {
         //    todos los dias -vamos mejor o peor-. El area con gradiente le da
         //    peso; la linea gruesa y el punto final con halo marcan donde
         //    estamos hoy.
-        if (this.cTendencia.el && this.state.days === 1) {
-            this.dibujarPorPersona(Chart, t);
-        } else if (this.cTendencia.el && this.state.serie.length) {
+        //    Desde el rediseno (10-oct) el dia ya no se dibuja con Chart.js:
+        //    la seccion "como viene cada quien" lo cuenta en HTML contra la
+        //    jornada de cada quien, y el lienzo solo existe en un rango.
+        if (this.cTendencia.el && this.state.days > 1 && this.state.serie.length) {
             const s = this.state.serie;
             const ultimoConDato = (() => {
                 for (let i = s.length - 1; i >= 0; i--) if (s[i].activo) return i;
@@ -346,11 +355,10 @@ export class FocoDashboard extends Component {
             });
         }
 
-        // 2) EL REPARTO DEL TIEMPO, como DONA con el indice al centro. Es la
-        //    grafica estrella: de un vistazo dice de que esta hecho el tiempo
-        //    del equipo, y el hueco central lleva el numero que resume todo. La
-        //    comparacion persona-a-persona vive en la tabla de abajo, asi que
-        //    la dona puede quedarse con el total sin perder nada.
+        // 2) EL REPARTO DEL TIEMPO, como DONA con el indice al centro. Desde
+        //    el rediseno (10-oct) la plantilla no trae el lienzo -el reparto
+        //    vive en la barra apilada de "En que se va el tiempo"-; el codigo
+        //    se conserva por si vuelve, y no corre sin su <canvas>.
         if (this.cDonut.el) {
             const r = this.state.reparto || {};
             const partes = [
@@ -635,16 +643,36 @@ export class FocoDashboard extends Component {
 
         // La analitica se pide agregada, no cruda: el servidor devuelve
         // decenas de filas donde antes viajaban cientos de miles.
-        const [analitica, jornada, revisar] = await Promise.all([
+        // La chispa de tendencia de las tarjetas: siempre los 7 dias que
+        // terminan en el ancla, se mire el periodo que se mire.
+        const spark0 = new Date(anchor); spark0.setDate(anchor.getDate() - 6);
+        const idsMonitoreados = comps.filter((c) => c.employee_id).map((c) => c.employee_id[0]);
+        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
                 [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
                 [this.ymd(curStart), this.ymd(anchor)]),
-            // Justificaciones que la IA marco a revisar y nadie ha visto. Es un
-            // pendiente global (no del periodo): un KPI que lleva a su ventana.
-            this.orm.call("foco.absence", "revisar_pendientes", []),
+            // Lo que la IA dejo esperando a alguien: justificaciones vagas sin
+            // revisar (por persona) y devueltas sin respuesta. Pendiente
+            // global, no del periodo.
+            this.orm.call("foco.absence", "pendientes_atencion", []),
+            // Adherencia al turno (10-oct): a tiempo / tarde / sin registro /
+            // permiso, con la entrada y salida checadas y los minutos. Vivo
+            // para el dia ancla; conteos para el rango.
+            this.orm.call("foco.workday", "adherencia",
+                [this.ymd(curStart), this.ymd(anchor)]),
+            this.orm.call("foco.usage", "serie_indice", [this.ymd(spark0), this.ymd(anchor)]),
+            // La linea del dia: solo cuando se mira UN dia (en un rango serian
+            // decenas de renglones por persona y la pregunta ya no es "cuando").
+            days === 1 && idsMonitoreados.length
+                ? this.orm.call("foco.workday", "cintas", [idsMonitoreados, this.ymd(anchor), this.ymd(anchor)])
+                : Promise.resolve({ dias: [], ventana: [8, 20] }),
         ]);
-        this.state.revisar = revisar || 0;
+        this.state.revisar = (atencionSrv && atencionSrv.revisar) || 0;
+        this.state.atencionSrv = atencionSrv || { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] };
+        this.state.asistencia = asistencia || { personas: {}, equipo: {}, gracia: 0 };
+        this.state.serie7 = serie7 || [];
+        this.state.cintas = cintas || { dias: [], ventana: [8, 20] };
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
         // Veredictos de la IA: solo quien puede ver los episodios (administradores)
@@ -732,6 +760,18 @@ export class FocoDashboard extends Component {
             (e.comp[ck] = e.comp[ck] || { key: ck, hours: 0 }).hours += r.active_hours;
         }
 
+        // Quien NO genero un solo renglon de uso tambien tiene fila: es
+        // justamente a quien hay que ver (falto, permiso, equipo apagado).
+        // Antes solo aparecia como un nombre en el pie de "cobertura".
+        for (const c of comps) {
+            if (!c.employee_id) continue;
+            const id = c.employee_id[0];
+            if (!emp[id]) {
+                emp[id] = { id, name: c.employee_id[1], active: 0, prod: 0, distr: 0, call: 0,
+                    injected: 0, idle: 0, apps: {}, sites: {}, comp: {}, distrMap: {}, sinUso: true };
+            }
+        }
+
         let pActive = 0, pProd = 0;
         for (const r of prev) { pActive += r.active_hours; pProd += r.productive_hours; }
 
@@ -783,8 +823,26 @@ export class FocoDashboard extends Component {
             const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
             const topDistr = dList.length && dList[0].hours > 0.008
                 ? { name: this.appLabel(dList[0].name), hours: dList[0].hours } : null;
+            // Adherencia al turno del dia ancla (vivo) y los conteos del rango.
+            const ad = ((asistencia || {}).personas || {})[String(e.id)] || null;
             return {
                 topDistr, hasTopDistr: !!topDistr,
+                sinUso: !!e.sinUso,
+                adh: ad,
+                adhEstado: ad ? ad.estado : "",
+                adhTexto: ad ? ad.texto : "",
+                adhEntrada: ad ? ad.entrada : "",
+                adhSalida: ad ? ad.salida : "",
+                adhFuente: ad ? ad.fuente : "",
+                adhSalioAntes: !!(ad && ad.salio_antes),
+                adhAntesMin: ad ? ad.antes_min : 0,
+                adhNoCheco: !!(ad && ad.no_checo),
+                adhDias: ad ? ad.dias : null,
+                // Una etiqueta en la fila solo cuando hay algo que decir: a
+                // tiempo no es noticia; tarde, sin registro, permiso o salir
+                // antes, si.
+                adhChip: ad && ["tarde", "sin_entrada", "falto", "sin_senal", "sin_checada", "permiso", "festivo"].includes(ad.estado)
+                    ? ad.texto : "",
                 // Que tan completo esta el dato de esta persona. No lleva
                 // umbral: "incompleto" es una igualdad exacta -faltan dias-,
                 // no un corte elegido.
@@ -970,6 +1028,10 @@ export class FocoDashboard extends Component {
         this.state.cobertura = cobertura || {};
         this.state.attention = employees.filter((e) => e.attention).length;
         this.state.sinSenal = employees.filter((e) => e.sinSenal).length;
+        // Lo que el rediseno (10-oct) arma a partir de las filas: quien esta
+        // en linea, la asistencia del dia, la lista de atencion, las barras
+        // contra la jornada, la linea del dia y los grupos por departamento.
+        this.derivar(employees, salud || {});
         this.state.ultimo = new Date();
         this.state.loading = false;
         // Los paneles que estan abiertos se refrescan con el resto del
@@ -978,6 +1040,274 @@ export class FocoDashboard extends Component {
         for (const e of employees) {
             if (this.state.abiertos[e.id]) this.cargarArbol(e, true);
         }
+    }
+
+    // ---------------------------------------------------- el rediseno (10-oct)
+    //
+    // Todo lo que las secciones nuevas necesitan sale de las MISMAS filas
+    // `employees` y de lo ya cargado; aqui solo se reordena para contestar,
+    // en este orden, lo que un jefe pregunta primero: quien esta, quien llego
+    // tarde o no vino, que pide su atencion, y como viene cada quien contra
+    // su jornada. Nada se vuelve a pedir al servidor.
+    derivar(employees, salud) {
+        const dias = this.state.days;
+        const porId = {};
+        for (const e of employees) porId[e.id] = e;
+
+        // 1) Quien esta en linea: por presencia (viva, no del periodo), y
+        //    dentro de cada grupo por horas. "Sin senal EN HORARIO" solo si la
+        //    salud lo dice: un equipo callado a las 10 de la noche es normal.
+        const RANK = { activo: 0, en_llamada: 0, ausente: 1, bloqueado: 2, suspendido: 3, apagado: 3, sin_senal: 4, nunca: 5 };
+        const grupoDe = (e) => {
+            const r = RANK[e.presencia] ?? 9;
+            if (r <= 2) return "Conectados";
+            if (e.health === "stale") return "Sin señal en horario";
+            if (e.health === "never") return "Nunca ha reportado";
+            return "Fuera de horario · apagado o callado";
+        };
+        const online = [...employees]
+            .sort((a, b) => (RANK[a.presencia] ?? 9) - (RANK[b.presencia] ?? 9) || b.active - a.active)
+            .map((e) => ({ id: e.id, name: e.name, presencia: e.presencia, presenciaTxt: e.presenciaTxt,
+                           topApp: e.topApp === "—" ? "" : e.topApp, active: e.active, index: e.index,
+                           meter: e.meter, sinUso: e.sinUso, hue: e.hue, initials: e.initials, grupo: grupoDe(e) }));
+        const gruposOnline = [];
+        for (const o of online) {
+            let g = gruposOnline.find((x) => x.nombre === o.grupo);
+            if (!g) { g = { nombre: o.grupo, personas: [] }; gruposOnline.push(g); }
+            g.personas.push(o);
+        }
+        this.state.online = gruposOnline;
+        this.state.conectados = online.filter((o) => (RANK[o.presencia] ?? 9) <= 2).length;
+
+        // 2) La asistencia: en un dia, quien NO esta "a tiempo y sin mas"
+        //    (tarde, sin registro, permiso, salio antes, no checo, sin dato),
+        //    con su evidencia; en un rango, quien acumulo dias de eso.
+        const ORDEN = ["tarde", "sin_entrada", "falto", "sin_senal", "sin_checada", "sin_dato", "permiso", "festivo", "no_iniciado"];
+        const lista = [];
+        for (const e of employees) {
+            const a = e.adh;
+            if (!a) continue;
+            if (dias === 1) {
+                const raro = ORDEN.includes(a.estado) || a.salio_antes || a.no_checo;
+                if (!raro) continue;
+                let ev = "", chip = a.estado, chipTxt = this.etqAdh(a.estado);
+                if (a.estado === "tarde") ev = `entró ${a.entrada} · su hora ${this.hhmm(a.hora_entrada)} · +${a.tarde_min} min${a.fuente === "equipo" ? " (según su equipo)" : ""}`;
+                else if (a.estado === "sin_entrada") ev = `su hora era ${this.hhmm(a.hora_entrada)} · ${a.tarde_min} min sin rastro`;
+                else if (a.estado === "no_iniciado") ev = `su hora es ${this.hhmm(a.hora_entrada)}`;
+                else if (a.estado === "falto") ev = "ni checada ni señal de su equipo en todo el día";
+                else if (a.estado === "sin_senal") ev = "no usa checador · su equipo no dio señal de persona";
+                else if (a.estado === "sin_dato") ev = "su equipo no reportó (dato incompleto, no falta)";
+                else if (a.estado === "sin_checada") ev = "una checada de otro día sigue abierta";
+                else if (a.estado === "permiso" || a.estado === "festivo") ev = `${a.permiso || ""} validado en RRHH`;
+                else if (a.salio_antes) { ev = `checó salida ${a.salida} · su hora ${this.hhmm(a.hora_salida)} · ${a.antes_min} min antes`; chip = "salio_antes"; chipTxt = "salió antes"; }
+                else if (a.no_checo) { ev = `estuvo (señal ${a.entrada}) pero no checó entrada`; chip = "no_checo"; chipTxt = "no checó"; }
+                lista.push({ id: e.id, name: e.name, hue: e.hue, initials: e.initials, ev, chip, chipTxt,
+                             orden: ORDEN.indexOf(a.estado) < 0 ? 20 : ORDEN.indexOf(a.estado) });
+            } else {
+                const d = a.dias || {};
+                if (!(d.tarde || d.falto || d.salio_antes || d.sin_checada)) continue;
+                const partes = [];
+                if (d.tarde) partes.push(`${d.tarde} ${d.tarde === 1 ? "día" : "días"} tarde (${d.tarde_min} min)`);
+                if (d.falto) partes.push(`${d.falto} sin registro`);
+                if (d.salio_antes) partes.push(`${d.salio_antes} salió antes`);
+                if (d.sin_checada) partes.push(`${d.sin_checada} con checada abierta`);
+                lista.push({ id: e.id, name: e.name, hue: e.hue, initials: e.initials, ev: partes.join(" · "),
+                             chip: d.falto ? "falto" : (d.tarde ? "tarde" : "salio_antes"),
+                             chipTxt: d.falto ? `${d.falto} sin registro` : (d.tarde ? `${d.tarde} tarde` : `${d.salio_antes} antes`),
+                             orden: d.falto ? 0 : 1 });
+            }
+        }
+        lista.sort((a, b) => a.orden - b.orden || a.name.localeCompare(b.name));
+        this.state.asistenciaLista = lista;
+
+        // 3) Requiere atencion: una lista corta de cosas con nombre y numero.
+        //    Cada renglon abre la pantalla donde se actua.
+        const items = [];
+        const agrega = (clave, titulo, filas, fmt, accion, tono) => {
+            if (!filas.length) return;
+            items.push({ clave, titulo, n: filas.length, detalle: filas.slice(0, 5).map(fmt),
+                         mas: Math.max(filas.length - 5, 0), accion, tono: tono || "mid" });
+        };
+        const conAdh = employees.filter((e) => e.adh);
+        if (dias === 1) {
+            agrega("tarde", "Llegaron tarde", conAdh.filter((e) => e.adhEstado === "tarde"),
+                (e) => `${e.name} ${e.adh.entrada} (+${e.adh.tarde_min} min, su hora ${this.hhmm(e.adh.hora_entrada)})`, "abrirAsistencia");
+            agrega("falto", "Sin registro en todo el día", conAdh.filter((e) => ["falto", "sin_senal"].includes(e.adhEstado)),
+                (e) => `${e.name} (${e.adhEstado === "falto" ? "ni checada ni señal de su equipo" : "su equipo no dio señal de persona"})`, "abrirAsistencia", "low");
+            agrega("salio_antes", "Salieron antes de su horario", conAdh.filter((e) => e.adhSalioAntes),
+                (e) => `${e.name} checó salida ${e.adh.salida} (${e.adh.antes_min} min antes de las ${this.hhmm(e.adh.hora_salida)})`, "abrirAsistencia");
+            agrega("no_checo", "Estuvieron pero no checaron entrada", conAdh.filter((e) => e.adhNoCheco),
+                (e) => `${e.name} (primera señal en su equipo ${e.adh.entrada})`, "abrirAsistencia", "info");
+        } else {
+            agrega("tarde", "Días con llegada tarde", conAdh.filter((e) => e.adh.dias && e.adh.dias.tarde),
+                (e) => `${e.name}: ${e.adh.dias.tarde} ${e.adh.dias.tarde === 1 ? "día" : "días"} (${e.adh.dias.tarde_min} min)`, "abrirAsistencia");
+            agrega("falto", "Días sin registro", conAdh.filter((e) => e.adh.dias && e.adh.dias.falto),
+                (e) => `${e.name}: ${e.adh.dias.falto}`, "abrirAsistencia", "low");
+            agrega("salio_antes", "Días que salieron antes", conAdh.filter((e) => e.adh.dias && e.adh.dias.salio_antes),
+                (e) => `${e.name}: ${e.adh.dias.salio_antes} (${e.adh.dias.antes_min} min)`, "abrirAsistencia");
+        }
+        agrega("sin_salida", "No cerraron salida en el checador", employees.filter((e) => e.sinSalida),
+            (e) => `${e.name}${e.sinSalida > 1 ? ` (${e.sinSalida} días)` : ""}`, "abrirSinSalida");
+        const srv = this.state.atencionSrv || {};
+        if (srv.devueltas) {
+            items.push({ clave: "devueltas", titulo: "Justificaciones devueltas por la IA, esperando respuesta", n: srv.devueltas,
+                         detalle: (srv.devueltas_lista || []).slice(0, 5).map((d) => `${d.nombre}: "${d.texto}" (${d.veces} ${d.veces === 1 ? "vez" : "veces"})`),
+                         mas: Math.max(srv.devueltas - 5, 0), accion: "abrirDevueltas", tono: "mid" });
+        }
+        if (srv.revisar) {
+            items.push({ clave: "revisar", titulo: "Justificaciones vagas por revisar (acumulado)", n: srv.revisar,
+                         detalle: (srv.revisar_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
+                         mas: Math.max((srv.revisar_por || []).length - 5, 0), accion: "abrirRevisar", tono: "mid" });
+        }
+        agrega("ia", "Episodios que la IA no vio como trabajo, sin revisar", employees.filter((e) => e.iaSinRevisar),
+            (e) => `${e.name}: ${e.iaSinRevisar} ${e.iaSinRevisar === 1 ? "episodio" : "episodios"}`, "abrirVeredictos");
+        // Solo los hechos FUERTES: sin teclear / pantalla sin cambio / "Otro" le
+        // salen a casi todos casi todos los dias y aqui serian ruido.
+        const FUERTES = ["sintetico_sin_input", "agente_reinicio", "dispositivo_nuevo", "justificacion_repetida",
+                         "navegador_cerrado", "navegador_desconocido", "sin_senal_tras_checar", "admin_local"];
+        const conHechos = employees.map((e) => ({ e, f: (e.hechos || []).filter((h) => FUERTES.includes(h.kind)) })).filter((x) => x.f.length);
+        agrega("hechos", "Hechos de integridad que piden mirar", conHechos,
+            (x) => `${x.e.name}: ${x.f.slice(0, 2).map((h) => `${h.etiqueta} ${h.texto}`).join("; ")}`, "abrirIntegridad", "info");
+        agrega("sin_senal", "Equipos sin señal en horario (dato incompleto)", employees.filter((e) => e.sinSenal),
+            (e) => `${e.name} (${e.sinSenalLabel})`, "abrirComputadoras", "info");
+        agrega("distraccion", "Más de una hora en distracción", employees.filter((e) => e.distr >= 1),
+            (e) => `${e.name} ${this.fmt(e.distr)}${e.topDistr ? ` (${e.topDistr.name} ${this.fmt(e.topDistr.hours)})` : ""}`, "", "low");
+        this.state.atencion = items;
+        this.state.atencionN = items.reduce((a, x) => a + x.n, 0);
+
+        // 4) Como viene cada quien: cubierto contra su jornada esperada. En un
+        //    dia, con la marca del margen de 1h30 (lo que Paco acepta perder);
+        //    en un rango, la jornada es la suma del periodo y la marca no aplica.
+        const conJornada = employees.filter((e) => !e.sinUso && e.expected > 0).sort((a, b) => b.index - a.index);
+        const maxEsp = Math.max(...conJornada.map((e) => e.expected), 0.01);
+        this.state.barras = conJornada.map((e) => {
+            const sin = (e.composition || []).find((c) => c.key === "sin");
+            const sinH = sin ? sin.hours : 0;
+            const otro = Math.max(e.active - e.prod - e.distr - sinH, 0);
+            const segs = [["productiva", e.prod], ["justificado", e.justified], ["otro", otro], ["distraccion", e.distr], ["sin", sinH]];
+            let x = 0; const out = [];
+            for (const [k, v] of segs) {
+                const w = v / maxEsp * 100;
+                if (w > 0.2) out.push({ k, left: x.toFixed(2), width: w.toFixed(2), label: `${CAT_LABEL[k] || (k === "justificado" ? "Justificado" : "Neutral y navegador")}: ${this.fmt(v)}` });
+                x += w;
+            }
+            return { id: e.id, name: e.name, hue: e.hue, initials: e.initials, index: e.index, meter: e.meter,
+                     segs: out, fin: (e.expected / maxEsp * 100).toFixed(2), finTxt: this.fmt(e.expected),
+                     marca: dias === 1 ? (Math.max(e.expected - 1.5, 0) / maxEsp * 100).toFixed(2) : null,
+                     titulo: `jornada esperada ${this.fmt(e.expected)} · cubierto ${this.fmt(e.covered)}` };
+        });
+
+        // 5) La linea del dia (solo en un dia), lista para dibujar: cada
+        //    segmento y cada checada ya en porcentaje de la ventana comun.
+        const cin = this.state.cintas || { dias: [], ventana: [8, 20] };
+        const [lo, hi] = cin.ventana || [8, 20];
+        const span = Math.max(hi - lo, 1);
+        const pos = (t) => ((t - lo) / span * 100).toFixed(2);
+        const horas = [];
+        for (let t = Math.ceil(lo); t <= Math.floor(hi); t++) horas.push({ t, label: `${String(t).padStart(2, "0")}:00`, left: pos(t) });
+        const ahora = new Date();
+        const nowH = ahora.getHours() + ahora.getMinutes() / 60;
+        this.state.tl = {
+            horas, cols: Math.max(Math.floor(hi) - Math.ceil(lo), 1),
+            ahora: (this.esHoy && nowH >= lo && nowH <= hi) ? pos(nowH) : null,
+            filas: [...(cin.dias || [])]
+                .sort((a, b) => ((porId[b.employee_id] || {}).active || 0) - ((porId[a.employee_id] || {}).active || 0))
+                .map((d) => {
+                    const e = porId[d.employee_id] || { id: d.employee_id, name: d.employee, hue: this.hue(d.employee), initials: this.initials(d.employee) };
+                    return {
+                        id: e.id, name: e.name, hue: e.hue, initials: e.initials,
+                        shift: (d.shift || []).map(([a, b]) => ({ left: pos(a), width: ((b - a) / span * 100).toFixed(2) })),
+                        segs: (d.segments || []).map((s) => ({ k: s.k, left: pos(s.a), width: Math.max((s.b - s.a) / span * 100, 0.15).toFixed(2),
+                                                                titulo: `${this.hhmm(s.a)}–${this.hhmm(s.b)} ${s.k.replace("_", " ")}${s.motivo ? " · " + s.motivo : ""}` })),
+                        pins: (d.pins || []).filter((m) => m.k === "checada_entrada" || m.k === "checada_salida")
+                            .map((m) => ({ k: m.k, left: pos(m.h), titulo: m.texto })),
+                    };
+                }),
+        };
+
+        // 6) La tabla por departamento, con el indice del grupo en su cabecera.
+        const grupos = {};
+        for (const e of employees) {
+            const k = e.dept || "Sin departamento";
+            (grupos[k] = grupos[k] || { nombre: k, personas: [], esperado: 0, cubierto: 0 }).personas.push(e);
+            grupos[k].esperado += e.expected; grupos[k].cubierto += e.covered;
+        }
+        this.state.grupos = Object.values(grupos)
+            .map((g) => ({ ...g, index: g.esperado > 0 ? Math.min(100, Math.round(g.cubierto / g.esperado * 100)) : null,
+                           personas: g.personas.sort((a, b) => (a.sinUso - b.sinUso) || b.index - a.index) }))
+            .sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+
+        // 7) Las chispas de las tarjetas: 7 dias, como trazo SVG.
+        this.state.spark = {
+            indice: this.trazo((this.state.serie7 || []).map((s) => s.indice), 100),
+            prod: this.trazo((this.state.serie7 || []).map((s) => s.productivo)),
+        };
+    }
+
+    /** Un trazo SVG de 108x34 con los puntos dados; null deja un hueco. */
+    trazo(valores, maxFijo) {
+        const w = 108, h = 34;
+        const ok = valores.filter((v) => v != null);
+        if (ok.length < 2) return { d: "", fin: null };
+        const min = Math.min(...ok, 0), max = maxFijo || Math.max(...ok, 1);
+        const px = (i) => 3 + i * (w - 6) / (valores.length - 1);
+        const py = (v) => h - 3 - (v - min) / (max - min || 1) * (h - 8);
+        let d = "", previo = null, fin = null;
+        valores.forEach((v, i) => {
+            if (v == null) { previo = null; return; }
+            d += `${previo == null ? "M" : "L"}${px(i).toFixed(1)} ${py(v).toFixed(1)} `;
+            previo = v; fin = { x: px(i).toFixed(1), y: py(v).toFixed(1) };
+        });
+        return { d, fin };
+    }
+
+    /** La fila completa de una persona a partir de su id: las listas de
+     *  "quien esta" y "asistencia" guardan solo lo que dibujan, y la ficha
+     *  necesita todo. */
+    empleadoDe(id) {
+        return (this.state.employees || []).find((e) => e.id === id) || null;
+    }
+
+    etqAdh(estado) {
+        return ({ a_tiempo: "A tiempo", tarde: "Tarde", no_iniciado: "Aún no empieza", sin_entrada: "Sin entrada aún",
+                  sin_checada: "Checada abierta de otro día", falto: "Sin registro", sin_senal: "Sin señal todo el día",
+                  sin_dato: "Equipo sin reportar", permiso: "Permiso", festivo: "Festivo", no_laborable: "No laborable",
+                  sin_jornada: "Sin horario" })[estado] || "";
+    }
+
+    hhmm(x) {
+        const m = Math.round((x || 0) * 60);
+        return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    }
+
+    /** Un renglon de «Requiere atencion» abre la pantalla donde se actua. */
+    clickAtencion(item) {
+        if (item.accion && typeof this[item.accion] === "function") this[item.accion]();
+    }
+
+    abrirDevueltas() {
+        this.action.doAction("foco_monitor.foco_absence_review_action", {
+            additionalContext: { search_default_devueltas: 1, search_default_sin_revisar: 0 },
+        });
+    }
+
+    abrirIntegridad() {
+        this.action.doAction("foco_monitor.foco_integrity_fact_action");
+    }
+
+    abrirComputadoras() {
+        this.action.doAction("foco_monitor.foco_computer_action");
+    }
+
+    /** Un dia atras o adelante con las flechas; nunca mas alla de hoy. */
+    cambiarDia(delta) {
+        const d = this.fechaAncla();
+        d.setDate(d.getDate() + delta);
+        let v = this.ymd(d);
+        if (v > this.hoyYmd) v = this.hoyYmd;
+        if (v === this.state.fecha) return;
+        this.state.fecha = v;
+        this.load();
     }
 
     // ------------------------------------------------- que hizo cada quien
@@ -1108,6 +1438,45 @@ export class FocoDashboard extends Component {
         this.action.doAction("foco_monitor.foco_workday_sin_salida_action");
     }
 
+    /** La asistencia del periodo, renglon por renglon, agrupada por estado:
+     *  la evidencia (entrada, salida, minutos, fuente) esta en las columnas. */
+    abrirAsistencia() {
+        const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
+        this.action.doAction({
+            type: "ir.actions.act_window", name: "Asistencia",
+            res_model: "foco.workday", views: [[false, "list"]],
+            domain: [["date", ">=", desde], ["date", "<=", hasta],
+                     ["adherence", "not in", ["no_laborable", "sin_jornada", false]]],
+            context: { search_default_g_adh: 1 },
+        });
+    }
+
+    /** Los conteos de asistencia que muestra la tarjeta: los de HOY (vivos)
+     *  cuando se ve un dia; la suma de dias del rango cuando se ve mas. */
+    get asis() {
+        const a = this.state.asistencia || {};
+        if (this.state.days === 1) {
+            const q = a.equipo || {};
+            return {
+                aTiempo: q.a_tiempo || 0, tarde: q.tarde || 0,
+                falto: (q.falto || 0) + (q.sin_senal || 0),
+                permiso: (q.permiso || 0) + (q.festivo || 0),
+                salioAntes: q.salio_antes || 0,
+                enCurso: (q.no_iniciado || 0) + (q.sin_entrada || 0),
+                sinChecada: q.sin_checada || 0,
+                dias: false,
+            };
+        }
+        const t = { aTiempo: 0, tarde: 0, falto: 0, permiso: 0, salioAntes: 0, enCurso: 0, sinChecada: 0, dias: true };
+        for (const p of Object.values(a.personas || {})) {
+            const d = p.dias || {};
+            t.aTiempo += d.a_tiempo || 0; t.tarde += d.tarde || 0; t.falto += d.falto || 0;
+            t.permiso += d.permiso || 0; t.salioAntes += d.salio_antes || 0;
+            t.sinChecada += d.sin_checada || 0;
+        }
+        return t;
+    }
+
     /** Los episodios que la IA no explico como trabajo, con los que faltan
      *  por revisar al frente: la tarjeta es la puerta a las capturas. */
     abrirVeredictos() {
@@ -1162,6 +1531,7 @@ export class FocoDashboard extends Component {
     }
 
     openDetail(e) {
+        if (!e) return;
         this.state.detail = e;
         this.state.open = false;
         // La ficha muestra el mismo arbol que el renglon: una sola verdad.

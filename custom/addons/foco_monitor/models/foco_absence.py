@@ -694,3 +694,24 @@ class FocoAbsence(models.Model):
         KPI del tablero; respeta el alcance de quien pregunta (sin sudo)."""
         return self.search_count([('ai_requiere_revision', '=', True),
                                   ('review_visto', '=', False)])
+
+    @api.model
+    def pendientes_atencion(self):
+        """Lo que la IA dejo esperando a alguien, con nombres, para la lista
+        «Requiere atencion» del tablero: justificaciones vagas sin revisar
+        (por persona) y las devueltas al empleado que siguen sin respuesta.
+        Sin sudo: el alcance de quien pregunta manda."""
+        revisar = []
+        for emp, n in self._read_group(
+                [('ai_requiere_revision', '=', True), ('review_visto', '=', False)],
+                ['employee_id'], ['__count']):
+            revisar.append({'id': emp.id if emp else 0,
+                            'nombre': emp.name if emp else 'Sin empleado', 'n': n})
+        revisar.sort(key=lambda r: -r['n'])
+        devueltas = []
+        for rec in self.search([('rebote_pendiente', '=', True)], order='start desc', limit=20):
+            devueltas.append({'id': rec.employee_id.id, 'nombre': rec.employee_id.name,
+                              'texto': (rec.nota_rechazada or '')[:40], 'veces': rec.rebotes})
+        return {'revisar': sum(r['n'] for r in revisar), 'revisar_por': revisar[:8],
+                'devueltas': self.search_count([('rebote_pendiente', '=', True)]),
+                'devueltas_lista': devueltas}

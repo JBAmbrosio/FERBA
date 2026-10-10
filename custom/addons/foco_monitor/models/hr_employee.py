@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class HrEmployee(models.Model):
@@ -17,6 +18,20 @@ class HrEmployee(models.Model):
              'sin actividad, sin necesidad de usuario de Odoo.')
     foco_token_expiry = fields.Datetime(
         string='Vence el', copy=False, readonly=True)
+
+    # Tolerancia de entrada POR PERSONA (10-oct-2026). 0 = la global de Foco
+    # (Configuracion > Asistencia y reporte diario). Sirve para la excepcion
+    # acordada con alguien, no para ablandar la regla a todos.
+    foco_gracia_min = fields.Integer(
+        string='Tolerancia de entrada (min)', default=0,
+        help='Minutos de tolerancia para marcar "tarde" a esta persona. 0 usa '
+             'la tolerancia global de Foco. Entre 0 y 120.')
+
+    @api.constrains('foco_gracia_min')
+    def _check_foco_gracia(self):
+        for r in self:
+            if r.foco_gracia_min < 0 or r.foco_gracia_min > 120:
+                raise ValidationError('La tolerancia de entrada va de 0 a 120 minutos.')
 
     def foco_justify_url(self, days=7):
         """Liga personal para justificar. Se renueva si caduco."""
