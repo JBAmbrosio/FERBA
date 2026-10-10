@@ -457,7 +457,7 @@ class FocoWorkday(models.Model):
             return ctx
         global_gracia = max(int(ajustes.adherencia_gracia_min or 0), 0)
         for emp in empleados:
-            ctx['zona'][emp.id] = Ajustes._tzinfo_for(emp)
+            ctx['zona'][emp.id] = self._zona_turno(emp)
             ctx['intervalos'][emp.id] = Ajustes.calendar_intervals(emp.resource_calendar_id)
             propia = int(getattr(emp, 'foco_gracia_min', 0) or 0)
             ctx['gracia'][emp.id] = propia if propia > 0 else global_gracia
@@ -520,6 +520,29 @@ class FocoWorkday(models.Model):
             if not ctx['vivo'].get(eid) or pc.last_seen > ctx['vivo'][eid]:
                 ctx['vivo'][eid] = pc.last_seen
         return ctx
+
+    @api.model
+    def _zona_turno(self, emp):
+        """La zona en que se mide el turno: la del horario laboral, que es el
+        reloj de la oficina donde esta el checador.
+
+        No la de la persona ni la que reporta su equipo. El 9-oct-2026 dos
+        personas checaron en el mismo aparato con 29 segundos de diferencia
+        (15:04 UTC) y una salio "A tiempo 08:04" y la otra "Tarde +64 min
+        09:04", solo porque su ficha de RRHH y el reloj de su Windows estaban
+        en America/Mexico_City. El checador no se mueve con la ficha: la hora
+        de entrada se compara con el turno en la zona del turno. La zona de la
+        persona sigue mandando para fechar su actividad (`_tz`), que si sale
+        de su equipo.
+        """
+        nombre = (emp.resource_calendar_id.tz
+                  or self.env.company.resource_calendar_id.tz)
+        if nombre:
+            try:
+                return pytz.timezone(nombre)
+            except Exception:
+                pass
+        return self.env['foco.settings'].sudo()._tzinfo_for(emp)
 
     @api.model
     def _adherencia_de(self, ctx, emp, dia, primera_senal=None, con_persona=False):
