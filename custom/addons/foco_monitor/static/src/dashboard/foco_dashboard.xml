@@ -171,8 +171,8 @@
                                 <div class="grp" t-esc="g.nombre"/>
                                 <t t-foreach="g.personas" t-as="o" t-key="o.id">
                                     <div class="p" t-attf-style="--i:{{ Math.min(o_index, 12) }}" role="button" tabindex="0"
-                                         t-on-click="() => this.openDetail(empleadoDe(o.id))"
-                                         t-on-keydown="(ev) => this.teclaFila(ev, empleadoDe(o.id))">
+                                         t-on-click="() => this.openDetail(this.empleadoDe(o.id))"
+                                         t-on-keydown="(ev) => this.teclaFicha(ev, this.empleadoDe(o.id))">
                                         <span class="fd_avawrap">
                                             <span class="fd_ava" t-attf-style="--h:{{ o.hue }}">
                                                 <t t-esc="o.initials"/>
@@ -205,8 +205,8 @@
                         <div class="fd_late">
                             <t t-foreach="state.asistenciaLista" t-as="p" t-key="p.id">
                                 <div class="p" t-attf-style="--i:{{ Math.min(p_index, 12) }}" role="button" tabindex="0"
-                                     t-on-click="() => this.openDetail(empleadoDe(p.id))"
-                                     t-on-keydown="(ev) => this.teclaFila(ev, empleadoDe(p.id))">
+                                     t-on-click="() => this.openDetail(this.empleadoDe(p.id))"
+                                     t-on-keydown="(ev) => this.teclaFicha(ev, this.empleadoDe(p.id))">
                                     <span class="fd_ava" t-attf-style="--h:{{ p.hue }}">
                                         <t t-esc="p.initials"/>
                                         <img t-attf-src="/web/image/hr.employee/{{ p.id }}/avatar_128" t-att-alt="p.name" loading="lazy"/>
