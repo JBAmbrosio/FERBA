@@ -236,21 +236,62 @@ class FocoTomy(models.AbstractModel):
             nota = 'El periodo se acoto a %d dias (%s a %s).' % (MAX_DIAS, d, h)
         return d, h, nota
 
-    def _utc(self, dia, fin=False):
-        """Medianoche local (o fin del dia) en UTC naive, como guarda Odoo."""
-        tz = self._tz()
+    def _zona_de(self, emp=None, computer=None):
+        """La zona de ESA persona (la que reporta su equipo o la de RRHH), no
+        la de quien pregunta. Sin persona ni equipo, la de quien pregunta.
+
+        Tomy decia que la primera senal de Isaura fue a las 09:13 cuando en
+        su reloj fueron las 08:13: convertia con la zona del administrador que
+        preguntaba. Las horas de una persona se dicen en su zona, igual que
+        la jornada, la asistencia y el tablero movil.
+        """
+        if emp or computer:
+            return self.env['foco.settings']._tzinfo_for(emp, computer)
+        return self._tz()
+
+    def _zonificador(self):
+        """zona(emp, computer) que resuelve la zona de cada persona UNA vez
+        por llamada: _tzinfo_for busca el equipo de la persona y una lista de
+        90 dias o 200 eventos no debe repetir esa busqueda por renglon."""
+        memo = {}
+
+        def zona(emp=None, computer=None):
+            clave = (emp.id if emp else 0, computer.id if computer else 0)
+            if clave not in memo:
+                memo[clave] = self._zona_de(emp, computer)
+            return memo[clave]
+        return zona
+
+    @staticmethod
+    def _zona_txt(zona):
+        """Nombre legible de la zona para que Tomy diga de quien es la hora."""
+        nombre = getattr(zona, 'zone', None)
+        if nombre:
+            return nombre
+        off = zona.utcoffset(datetime.utcnow())
+        if off is None:
+            return 'UTC'
+        minutos = int(off.total_seconds() // 60)
+        signo = '+' if minutos >= 0 else '-'
+        minutos = abs(minutos)
+        return 'UTC%s%02d:%02d' % (signo, minutos // 60, minutos % 60)
+
+    def _utc(self, dia, fin=False, zona=None):
+        """Medianoche local (o fin del dia) en UTC naive, como guarda Odoo.
+        Con `zona`, el dia se corta en la zona de la persona."""
+        tz = zona or self._tz()
         base = datetime.combine(dia, datetime.max.time() if fin else datetime.min.time())
         return tz.localize(base).astimezone(pytz.UTC).replace(tzinfo=None, microsecond=0)
 
-    def _local(self, dt):
+    def _local(self, dt, zona=None):
         if not dt:
             return ''
-        return pytz.UTC.localize(dt).astimezone(self._tz()).strftime('%Y-%m-%d %H:%M')
+        return pytz.UTC.localize(dt).astimezone(zona or self._tz()).strftime('%Y-%m-%d %H:%M')
 
-    def _hora_local(self, dt):
+    def _hora_local(self, dt, zona=None):
         if not dt:
             return ''
-        return pytz.UTC.localize(dt).astimezone(self._tz()).strftime('%H:%M')
+        return pytz.UTC.localize(dt).astimezone(zona or self._tz()).strftime('%H:%M')
 
     def _system(self, contexto):
         hoy = self._hoy()
@@ -287,7 +328,9 @@ class FocoTomy(models.AbstractModel):
             "7. Formato: texto plano en parrafos cortos; usa guiones '- ' para listas; usa **negritas** para los "
             "numeros clave. Da las horas como '3 h 20 min' (las herramientas ya te las dan asi). Menciona siempre el "
             "periodo que usaste. No repitas tablas que ya devolviste con una herramienta: la interfaz las muestra; "
-            "resume lo importante.\n"
+            "resume lo importante. Las horas del dia (primera y ultima senal, inicio de una llamada, ausencia o "
+            "evento) vienen en la zona horaria de la PERSONA, la de su equipo, no en la tuya: no las conviertas "
+            "ni las corrijas; si la herramienta dice en que zona van, dilo una vez.\n"
             "8. Si el usuario pide una grafica, un tablero o un reporte: consulta primero los datos y luego usa la "
             "herramienta 'grafica' (una o varias) con esos datos; para un reporte escribe secciones con titulos "
             "cortos (Resumen, Por persona, Distracciones, Llamadas, Ausencias, Observaciones). La grafica la "
@@ -561,8 +604,12 @@ class FocoTomy(models.AbstractModel):
         # AccessError y _ejecutar contesta "no tienes permiso".
         Ver = self.env['foco.integrity.verdict']
         gente = self._empleado(employee_id) if employee_id else self._alcance()
+        zona_de = self._zonificador()
+        # Con una persona, el dia se corta en SU zona; con todas, en la de quien pregunta.
+        corte = zona_de(gente) if employee_id else None
         regs = Ver.search([('employee_id', 'in', gente.ids),
-                           ('started_at', '>=', self._utc(d)), ('started_at', '<=', self._utc(h, fin=True))],
+                           ('started_at', '>=', self._utc(d, zona=corte)),
+                           ('started_at', '<=', self._utc(h, fin=True, zona=corte))],
                           order='started_at desc')
         if solo_sospechosos:
             regs = regs.filtered(lambda v: v.sospechoso)
@@ -583,7 +630,8 @@ class FocoTomy(models.AbstractModel):
             rev = etiq_r.get(v.review_outcome, v.review_outcome)
             episodios.append({
                 'persona': v.employee_id.name, 'employee_id': v.employee_id.id,
-                'inicio': self._local(v.started_at), 'duracion_min': round(v.duration_min or 0.0),
+                'inicio': self._local(v.started_at, zona_de(v.employee_id)),
+                'duracion_min': round(v.duration_min or 0.0),
                 'patron': etiq_p.get(v.pattern, v.pattern), 'app': v.app_name or v.exe or '',
                 'veredicto': ver, 'no_parece_trabajo': bool(v.sospechoso),
                 'confianza_pct': int(round((v.confianza or 0.0) * 100)),
@@ -592,7 +640,8 @@ class FocoTomy(models.AbstractModel):
                 'revision': rev, 'ajustado_por_regla': bool(v.ajustado),
                 'estado': v.state,
             })
-            filas.append([v.employee_id.name, self._local(v.started_at), round(v.duration_min or 0.0),
+            filas.append([v.employee_id.name, self._local(v.started_at, zona_de(v.employee_id)),
+                          round(v.duration_min or 0.0),
                           v.app_name or v.exe or '', ver, '%d%%' % int(round((v.confianza or 0.0) * 100)),
                           rev])
         if filas:
@@ -667,6 +716,7 @@ class FocoTomy(models.AbstractModel):
         return {
             'persona': emp.name, 'periodo': {'desde': str(d), 'hasta': str(h), 'dias_con_dato': dias_con_dato},
             'nota': nota or None,
+            'zona_horaria_de_la_persona': self._zona_txt(self._zona_de(emp)),
             'totales': {
                 'activo': _hm(activo), 'activo_h': _h(activo),
                 'productivo': _hm(productivo), 'productivo_h': _h(productivo),
@@ -702,10 +752,13 @@ class FocoTomy(models.AbstractModel):
         }
 
     def _llamadas_resumen(self, emp, d, h, lista=False):
+        zona_de = self._zonificador()
+        corte = zona_de(emp) if emp else None
         try:
             Rev = self.env['foco.call.review']
             regs = Rev.search([('employee_id', '=', emp.id) if emp else ('id', '!=', 0),
-                               ('started_at', '>=', self._utc(d)), ('started_at', '<=', self._utc(h, fin=True))],
+                               ('started_at', '>=', self._utc(d, zona=corte)),
+                               ('started_at', '<=', self._utc(h, fin=True, zona=corte))],
                               order='started_at desc')
         except AccessError:
             return {'nota': 'no tienes permiso para ver las llamadas analizadas'}
@@ -718,7 +771,7 @@ class FocoTomy(models.AbstractModel):
         salida = {'total': len(regs), 'por_veredicto': por}
         if lista:
             salida['detalle'] = [{
-                'persona': r.employee_id.name, 'inicio': self._local(r.started_at),
+                'persona': r.employee_id.name, 'inicio': self._local(r.started_at, zona_de(r.employee_id)),
                 'duracion': '%d min' % int(round((r.duration_seconds or 0) / 60.0)),
                 'veredicto': r.clasificacion or r.state, 'rol': r.con_quien or '', 'motivo': r.motivo or '',
                 'confianza': r.confianza} for r in regs[:15]]
@@ -726,7 +779,9 @@ class FocoTomy(models.AbstractModel):
 
     def _ausencias_resumen(self, emp, d, h, estado=None):
         Abs = self.env['foco.absence']
-        dominio = [('start', '>=', self._utc(d)), ('start', '<=', self._utc(h, fin=True))]
+        zona_de = self._zonificador()
+        corte = zona_de(emp) if emp else None
+        dominio = [('start', '>=', self._utc(d, zona=corte)), ('start', '<=', self._utc(h, fin=True, zona=corte))]
         if emp:
             dominio.append(('employee_id', '=', emp.id))
         if estado in ('pendiente', 'justificada', 'auto'):
@@ -746,7 +801,8 @@ class FocoTomy(models.AbstractModel):
             'por_motivo': {k: _hm(v) for k, v in por_motivo.items()},
             # fin con fecha completa: una ausencia que cruza la noche (18:38 -> 09:17)
             # obligaba al modelo a adivinar el dia del fin.
-            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start), 'fin': self._local(r.stop),
+            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start, zona_de(r.employee_id)),
+                         'fin': self._local(r.stop, zona_de(r.employee_id)),
                          'duracion': _hm(r.duration), 'tipo': tipos.get(r.kind, r.kind),
                          'estado': r.state, 'motivo': motivos.get(r.reason, '') if r.reason else '',
                          'nota': (r.note or '')[:120]} for r in regs[:8]],
@@ -756,17 +812,20 @@ class FocoTomy(models.AbstractModel):
         Wd = self.env['foco.workday']
         regs = Wd.search([('employee_id', '=', emp.id), ('date', '>=', d), ('date', '<=', h)], order='date asc')
         estados = dict(Wd._fields['state'].selection)
-        dias = [{'dia': str(r.date), 'primera_senal': self._hora_local(r.first_signal),
-                 'ultima_senal': self._hora_local(r.last_signal), 'activo': _hm(r.active_hours),
+        zona = self._zona_de(emp)
+        dias = [{'dia': str(r.date), 'primera_senal': self._hora_local(r.first_signal, zona),
+                 'ultima_senal': self._hora_local(r.last_signal, zona), 'activo': _hm(r.active_hours),
                  'esperado': _hm(r.expected_hours), 'sin_explicar_min': r.unexplained_minutes,
                  'huecos': r.gap_count, 'estado': estados.get(r.state, r.state)} for r in regs]
+        horas_en = 'las horas van en la zona de %s (%s), no en la de quien pregunta' % (
+            emp.name, self._zona_txt(zona))
         if len(dias) > 10:
-            return {'dias_con_jornada': len(dias),
+            return {'dias_con_jornada': len(dias), 'horas_en': horas_en,
                     'activo_total': _hm(sum(regs.mapped('active_hours'))),
                     'esperado_total': _hm(sum(regs.mapped('expected_hours'))),
                     'sin_explicar_min_total': sum(regs.mapped('unexplained_minutes')),
                     'primeros_dias': dias[:5], 'ultimos_dias': dias[-5:]}
-        return {'dias': dias}
+        return {'dias': dias, 'horas_en': horas_en}
 
     def _tool_comparar(self, artefactos, desde=None, hasta=None):
         d, h, nota = self._fechas(desde, hasta)
@@ -957,16 +1016,19 @@ class FocoTomy(models.AbstractModel):
     def _tool_eventos(self, artefactos, desde=None, hasta=None, employee_id=None):
         d, h, nota = self._fechas(desde, hasta)
         Ev = self.env['foco.event']
-        dominio = [('at', '>=', self._utc(d)), ('at', '<=', self._utc(h, fin=True))]
-        if employee_id:
-            dominio.append(('employee_id', '=', self._empleado(employee_id).id))
+        zona_de = self._zonificador()
+        emp = self._empleado(employee_id) if employee_id else None
+        corte = zona_de(emp) if emp else None
+        dominio = [('at', '>=', self._utc(d, zona=corte)), ('at', '<=', self._utc(h, fin=True, zona=corte))]
+        if emp:
+            dominio.append(('employee_id', '=', emp.id))
         regs = Ev.search(dominio, order='at desc', limit=200)
         etiquetas = dict(Ev._fields['kind'].selection)
         # Conteo YA ESCRITO por tipo, con sus horas: el modelo copia la frase
         # en vez de contar renglones (conto 4 donde habia 5).
         por_tipo = {}
         for r in regs:
-            por_tipo.setdefault(r.kind, []).append(self._hora_local(r.at))
+            por_tipo.setdefault(r.kind, []).append(self._hora_local(r.at, zona_de(r.employee_id, r.computer_id)))
         resumen = ['%s: %d %s (%s)' % (etiquetas.get(k, k), len(horas),
                                         'vez' if len(horas) == 1 else 'veces',
                                         ', '.join(sorted(horas)[:12]) + (', ...' if len(horas) > 12 else ''))
@@ -977,7 +1039,9 @@ class FocoTomy(models.AbstractModel):
                 'resumen': resumen,
                 'significado': {etiquetas.get(k, k): self.SIGNIFICADO_EVENTO[k]
                                 for k in por_tipo if k in self.SIGNIFICADO_EVENTO},
-                'ultimos': [{'persona': r.employee_id.name or r.computer_id.name, 'cuando': self._local(r.at),
+                'nota_horas': 'cada hora va en la zona del equipo de esa persona, no en la de quien pregunta',
+                'ultimos': [{'persona': r.employee_id.name or r.computer_id.name,
+                             'cuando': self._local(r.at, zona_de(r.employee_id, r.computer_id)),
                              'que': etiquetas.get(r.kind, r.kind), 'proceso': r.process or ''}
                             for r in regs[:25]]}
 
