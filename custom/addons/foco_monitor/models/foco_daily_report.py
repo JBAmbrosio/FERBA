@@ -153,6 +153,12 @@ class FocoDailyReport(models.Model):
             e['checado'] = res.get('checado_h') or 0.0
             e['extra'] = res.get('extra_h') or 0.0
             e['faltante'] = res.get('faltante_h') or 0.0
+            # Un dia sin checar salida no se mide (10-oct): se dice, no se
+            # deja un cero que se lee como "no checo".
+            e['checado_no_medible'] = res.get('checado_no_medible') or 0
+            # Pausas sin teclear dentro de la jornada, una sola linea de tiempo;
+            # el `fg_idle` sumado por renglon se encima entre ventanas.
+            e['idle'] = res.get('sin_teclear_h') or 0.0
             e['cubierto'] = e['prod'] + e['justificado']
             if e['esperado'] > 0:
                 e['indice'] = min(100, int(round(e['cubierto'] / e['esperado'] * 100)))
@@ -257,7 +263,7 @@ class FocoDailyReport(models.Model):
                 'tarde_min': a.get('tarde_min') or 0, 'antes_min': a.get('antes_min') or 0,
                 'salio_antes': bool(a.get('salio_antes')), 'no_checo': bool(a.get('no_checo')),
                 'permiso': a.get('permiso') or '',
-                'usa_checador': e['usa_checador'],
+                'usa_checador': e['usa_checador'], 'checado_no_medible': e['checado_no_medible'],
                 'checado': round(e['checado'], 3), 'extra': round(e['extra'], 3),
                 'faltante': round(e['faltante'], 3),
                 'esperado': round(e['esperado'], 3), 'cubierto': round(e['cubierto'], 3),

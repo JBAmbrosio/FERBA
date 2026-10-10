@@ -431,15 +431,27 @@
                                                 </span>
                                             </td>
                                             <td class="c_jor">
-                                                <t t-if="e.usaChecador">
-                                                    <div class="fd_jor" t-attf-title="Checó {{ fmt(e.checado) }} de su horario de {{ fmt(e.expected) }}. El checador manda; el horario es la guía. {{ e.extra > 0.016 ? 'Se quedó ' + fmt(e.extra) + ' de más.' : (e.faltante > 0.016 ? 'Checó ' + fmt(e.faltante) + ' menos.' : '') }}">
+                                                <!-- Checada abierta (10-oct): un dia PASADO sin salida no se mide
+                                                     y se dice (antes salia "0m", que se lee como "no checo");
+                                                     HOY sigue checado, contado hasta la ultima senal de su
+                                                     equipo o el fin de su horario, sin extra ni faltante. -->
+                                                <t t-if="e.usaChecador and e.jorNoMedible and state.days === 1">
+                                                    <div class="fd_jor" title="Checó entrada y no checó salida ese día: no hay con qué medir cuánto estuvo. No es una falta de asistencia; la entrada sí cuenta.">
+                                                        <t t-if="e.adhEntrada"><span class="fd_jor_hhmm"><t t-esc="e.adhEntrada"/> → sin salida</span></t>
+                                                        <span class="fd_jor_guia">no medible · no checó salida</span>
+                                                    </div>
+                                                </t>
+                                                <t t-elif="e.usaChecador">
+                                                    <div class="fd_jor" t-att-title="e.jorTitulo">
                                                         <t t-if="state.days === 1 and e.adhEntrada">
-                                                            <span class="fd_jor_hhmm"><t t-esc="e.adhEntrada"/> → <t t-esc="e.adhSalida || '…'"/></span>
+                                                            <span class="fd_jor_hhmm"><t t-esc="e.adhEntrada"/> → <t t-esc="e.adhSalida || (e.jorAbierta ? 'sigue' : '…')"/></span>
                                                         </t>
                                                         <span class="fd_jor_v"><t t-esc="fmt(e.checado)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
                                                         <div class="fd_meter"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - e.checadoPct }}% 0 0)"/></div>
-                                                        <t t-if="e.extra > 0.016"><span class="fd_extra"><i class="fa fa-arrow-up"/> +<t t-esc="fmt(e.extra)"/></span></t>
+                                                        <t t-if="e.jorAbierta"><span class="fd_jor_guia">en curso · sin checar salida</span></t>
+                                                        <t t-elif="e.extra > 0.016"><span class="fd_extra"><i class="fa fa-arrow-up"/> +<t t-esc="fmt(e.extra)"/></span></t>
                                                         <t t-elif="e.faltante > 0.016"><span class="fd_falta">−<t t-esc="fmt(e.faltante)"/></span></t>
+                                                        <t t-if="state.days > 1 and e.jorNoMedible"><span class="fd_jor_guia"><t t-esc="e.jorNoMedible"/> <t t-esc="e.jorNoMedible === 1 ? 'día' : 'días'"/> sin salida, no contados</span></t>
                                                     </div>
                                                 </t>
                                                 <t t-elif="e.hasExpected">
@@ -549,7 +561,8 @@
                         </div>
                         <t t-if="state.team.hasIdle">
                             <p class="fd_note">
-                                Además, <b t-esc="fmt(state.team.idle)"/> con una ventana al frente sin teclado ni mouse.
+                                Además, <b t-esc="fmt(state.team.idle)"/> en pausas sin teclado ni mouse dentro de la jornada
+                                (las que el agente abrió, una sola línea de tiempo por persona).
                                 No cuenta como productivo y tampoco es automáticamente ociosidad: leer o revisar cae ahí.
                             </p>
                         </t>
@@ -722,8 +735,8 @@
                                 <span class="v" t-esc="fmt(state.detail.call)"/>
                             </div>
                             <div class="r sub" t-if="state.detail.hasIdle">
-                                <span class="l" title="La aplicación tenía el foco pero no hubo teclado ni mouse. Leer, revisar o pensar cae aquí; también salir un momento.">
-                                    <span class="fd_dot neutral"/>aparte: pantalla al frente sin teclear
+                                <span class="l" title="Pausas con la computadora prendida y sin teclado ni mouse (del umbral del agente en adelante), solo la parte que cae dentro de su jornada. Una sola línea de tiempo por persona. Leer, revisar o salir un momento caen aquí; se traslapa con lo justificado.">
+                                    <span class="fd_dot neutral"/>aparte: pausas sin teclear en su jornada
                                 </span>
                                 <span class="v" t-esc="fmt(state.detail.idle)"/>
                             </div>

@@ -32,7 +32,10 @@ DEFINICIONES = {
                   '(Productiva 1.0, Navegador 0.5, Neutral 0.3, Distraccion 0, Sistema no cuenta). '
                   'Si el sitio esta clasificado, manda el sitio sobre la app. Una llamada de WhatsApp '
                   'clasificada como trabajo pesa 1.0 y una personal 0, sin importar la app al frente.',
-    'indice': 'Productivo entre activo, en porcentaje. Se calcula sobre horas sumadas, no promediando indices.',
+    'indice': 'Cubierto (productivo + justificado) entre la jornada esperada de cada quien, en porcentaje, '
+              'tope 100. Es el MISMO indice de la tarjeta, la tabla y el reporte diario. Sin jornada esperada '
+              '(fin de semana, sin calendario) es productivo entre activo. Se calcula sobre horas sumadas, no '
+              'promediando indices. Productivo entre activo se llama aparte "productivo entre activo".',
     'distraccion': 'Horas activas en apps o sitios con peso 0 (categoria Distraccion).',
     'sin_clasificar': 'Horas activas en apps o sitios que nadie ha clasificado todavia: no aportan al indice.',
     'llamada': 'Foco detecta una llamada cuando una app toma el microfono. Las de WhatsApp de escritorio '
@@ -761,6 +764,7 @@ class FocoTomy(models.AbstractModel):
             gente.append({'persona': e['nombre'], 'employee_id': e['id'],
                           'activo': _hm(e['activo']), 'activo_h': _h(e['activo']),
                           'productivo': _hm(e['productivo']), 'indice_pct': e['indice'],
+                          'productivo_entre_activo_pct': e.get('indice_actividad'),
                           'distraccion': _hm(e['distraccion']), 'sin_clasificar': _hm(e['sin_clasificar']),
                           'cambio_indice_vs_periodo_anterior': e.get('delta')})
         cob = self.env['foco.usage'].cobertura(d, h) or {}
@@ -797,12 +801,14 @@ class FocoTomy(models.AbstractModel):
                     ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
                 dd = dia.date() if hasattr(dia, 'date') and not isinstance(dia, type(d)) else dia
                 por_dia[str(dd)] = (activo or 0.0, productivo or 0.0)
+            # El mismo indice que el tablero: cubierto entre jornada, por dia.
+            cub = (self.env['foco.absence'].cubierto_por_dia(d, h).get('empleados') or {}).get(str(emp.id)) or {}
             dias = []
             x = d
             while x <= h:
                 a, p = por_dia.get(str(x), (0.0, 0.0))
                 dias.append({'dia': str(x), 'activo_h': _h(a), 'productivo_h': _h(p),
-                             'indice_pct': round(100.0 * p / a, 1) if a else None})
+                             'indice_pct': Usage._indice(p, cub.get(str(x)), a)})
                 x += timedelta(days=1)
         else:
             dias = [{'dia': f['date'], 'activo_h': f['activo'], 'productivo_h': f['productivo'],
