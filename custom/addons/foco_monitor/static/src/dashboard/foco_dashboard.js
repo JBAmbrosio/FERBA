@@ -1400,6 +1400,13 @@ export class FocoDashboard extends Component {
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleFila(e); }
     }
 
+    /** Enter o espacio sobre una persona de las tarjetas abre su ficha,
+     *  lo mismo que el clic. */
+    teclaFicha(ev, e) {
+        if (ev.target !== ev.currentTarget) return;
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.openDetail(e); }
+    }
+
     toggleNodo(n) { if (n.abrible) n.abierto = !n.abierto; }
 
     teclaNodo(ev, n) {
