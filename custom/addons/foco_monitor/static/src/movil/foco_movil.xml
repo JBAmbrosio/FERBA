@@ -1,27 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
+    <!-- El tablero movil (rediseno del 10-oct-2026), con el mismo orden que el
+         de PC: cuatro cifras con su variacion; quien esta en linea, donde
+         estan y que pide atencion; como uso el telefono cada quien; la linea
+         del dia; la tabla por departamento; en que se va el telefono; la
+         tendencia; y la ficha lateral de cada telefono. Pantalla de
+         administracion: nada de esto lo ve el empleado. -->
     <t t-name="foco_monitor.Movil">
         <div class="foco_movil" t-att-class="{ 'fm-dark': state.dark }" t-ref="root">
 
             <header class="fm_head">
-                <div>
-                    <h1>Móvil</h1>
-                    <p class="fm_sub" t-if="!state.loading">
-                        <span t-esc="state.kpis.devices"/> dispositivos ·
-                        <span class="fm_on"><span class="fm_dot on"/><t t-esc="state.kpis.online"/> en línea</span>
-                        <t t-if="state.kpis.retirados">
-                            <span class="sep">·</span>
-                            <span class="fm_alerta"><i class="fa fa-ban"/> <t t-esc="state.kpis.retirados"/> retirado<t t-if="state.kpis.retirados > 1">s</t></span>
+                <div class="fm_head_l">
+                    <h1>Teléfonos del equipo</h1>
+                    <p class="fm_sub">
+                        <t t-if="!state.loading">
+                            <b class="fm_periodo" t-esc="periodoLabel"/> ·
+                            <span t-esc="state.kpis.devices || 0"/> teléfonos ·
+                            <span class="fm_on"><span class="fm_dot on"/><t t-esc="state.conectados"/> en línea</span>
+                            <t t-if="state.ultimo">
+                                <span class="sep">·</span>
+                                <span class="fm_ultimo" title="El tablero se refresca solo cada 10 minutos. Los teléfonos reportan cada 5.">
+                                    actualizado <t t-esc="horaUltimo()"/>
+                                </span>
+                            </t>
                         </t>
-                        <t t-if="state.kpis.sin_senal">
-                            <span class="sep">·</span>
-                            <span class="fm_aviso"><t t-esc="state.kpis.sin_senal"/> sin señal</span>
-                        </t>
-                        <t t-if="state.kpis.con_problemas">
-                            <span class="sep">·</span>
-                            <span class="fm_alerta"><i class="fa fa-heartbeat"/> <t t-esc="state.kpis.con_problemas"/> con problema<t t-if="state.kpis.con_problemas > 1">s</t></span>
-                        </t>
-                        <t t-if="state.ultimo"><span class="sep">·</span> actualizado <t t-esc="horaUltimo()"/></t>
                     </p>
                 </div>
                 <div class="fm_head_r">
@@ -29,161 +31,621 @@
                         <button t-on-click="() => this.verLaptop()"><i class="fa fa-laptop"/><span>PC</span></button>
                         <button class="on"><i class="fa fa-mobile"/><span>Móvil</span></button>
                     </div>
-                    <div class="fm_seg" role="group">
-                        <button t-att-class="{ on: state.days === 1 }" t-on-click="() => this.setDays(1)">Hoy</button>
-                        <button t-att-class="{ on: state.days === 7 }" t-on-click="() => this.setDays(7)">7 días</button>
-                        <button t-att-class="{ on: state.days === 30 }" t-on-click="() => this.setDays(30)">30 días</button>
+                    <div class="fm_datenav" role="group">
+                        <button t-on-click="() => this.cambiarDia(-1)" title="Día anterior" aria-label="Día anterior">‹</button>
+                        <label class="fm_fecha" title="Ver el tablero de otro día">
+                            <i class="fa fa-calendar"/>
+                            <input type="date" t-att-value="state.fecha" t-att-max="hoyYmd"
+                                   t-on-change="(ev) => this.setFecha(ev)"/>
+                        </label>
+                        <button t-on-click="() => this.cambiarDia(1)" t-att-disabled="anclaEsHoy" title="Día siguiente" aria-label="Día siguiente">›</button>
                     </div>
-                    <button class="fm_refrescar" t-on-click="() => this.refrescar()" title="Actualizar ahora">
-                        <i class="fa fa-refresh ico"/><span class="txt">Actualizar</span>
+                    <div class="fm_seg" role="group">
+                        <button t-att-class="esHoy ? 'on' : ''" t-on-click="() => this.verHoy()">Hoy</button>
+                        <button t-att-class="state.days === 7 ? 'on' : ''" t-on-click="() => this.setDays(7)">7 días</button>
+                        <button t-att-class="state.days === 30 ? 'on' : ''" t-on-click="() => this.setDays(30)">30 días</button>
+                    </div>
+                    <t t-if="!state.loading and state.kpis.sin_senal">
+                        <span class="fm_attn sin_senal" title="Teléfonos que alguna vez reportaron y llevan más de 15 minutos callados.">
+                            <t t-esc="state.kpis.sin_senal"/> sin señal
+                        </span>
+                    </t>
+                    <button t-attf-class="fm_refrescar {{ state.refrescando ? 'girando' : '' }}"
+                            t-on-click="() => this.refrescar()" t-att-disabled="state.refrescando" title="Actualizar ahora">
+                        <span class="ico">&#8635;</span>
+                        <span class="txt"><t t-esc="state.refrescando ? 'Actualizando' : 'Actualizar'"/></span>
                     </button>
                 </div>
             </header>
 
-            <!-- KPIs -->
-            <section class="fm_kpis">
-                <div class="fm_kpi">
-                    <div class="fm_kpi_top">
-                        <span class="fm_kpi_label">Dispositivos</span>
-                        <span class="fm_kpi_ico"><i class="fa fa-mobile"/></span>
+            <t t-if="state.loading">
+                <div class="fm_loading">Cargando…</div>
+            </t>
+            <t t-else="">
+                <!-- ============================================ CUATRO CIFRAS -->
+                <section class="fm_widgets">
+                    <div class="fm_w fm_kpi_click" t-on-click="() => this.abrirDispositivos()"
+                         title="Abrir la lista de teléfonos">
+                        <div class="fm_w_top">
+                            <span class="fm_w_lbl">Teléfonos en línea</span>
+                            <span class="fm_kpi_hint">ahora</span>
+                        </div>
+                        <div t-attf-class="fm_w_v {{ state.kpis.devices and state.kpis.online === state.kpis.devices ? 'good' : (state.kpis.online ? '' : 'low') }}">
+                            <t t-esc="state.kpis.online || 0"/><span class="u"> de <t t-esc="state.kpis.devices || 0"/></span>
+                        </div>
+                        <div class="fm_meter big">
+                            <div t-attf-class="fill {{ state.kpis.devices and state.kpis.online === state.kpis.devices ? 'good' : 'mid' }}"
+                                 t-attf-style="clip-path: inset(0 {{ state.kpis.devices ? 100 - Math.round((state.kpis.online || 0) / state.kpis.devices * 100) : 100 }}% 0 0)"/>
+                        </div>
+                        <div class="fm_w_foot">
+                            <t t-if="state.kpis.sin_senal"><b class="warn" t-esc="state.kpis.sin_senal"/> sin señal · </t>
+                            <t t-if="state.kpis.retirados"><b class="warn" t-esc="state.kpis.retirados"/> retirado<t t-if="state.kpis.retirados !== 1">s</t> · </t>
+                            <t t-if="state.kpis.nunca"><b t-esc="state.kpis.nunca"/> sin reportar nunca · </t>
+                            <t t-if="state.kpis.con_problemas"><b class="warn" t-esc="state.kpis.con_problemas"/> con problema<t t-if="state.kpis.con_problemas !== 1">s</t></t>
+                            <t t-else="">salud en orden</t>
+                        </div>
                     </div>
-                    <div class="fm_kpi_v"><t t-esc="state.kpis.devices || 0"/></div>
-                    <div class="fm_kpi_foot"><span class="fm_dot on"/> <t t-esc="state.kpis.online || 0"/> en línea ahora</div>
-                </div>
-                <div class="fm_kpi">
-                    <div class="fm_kpi_top">
-                        <span class="fm_kpi_label">Puntos de ubicación</span>
-                        <span class="fm_kpi_ico"><i class="fa fa-map-marker"/></span>
-                    </div>
-                    <div class="fm_kpi_v"><t t-esc="state.kpis.points || 0"/></div>
-                    <div class="fm_kpi_foot">en el periodo</div>
-                </div>
-                <div class="fm_kpi">
-                    <div class="fm_kpi_top">
-                        <span class="fm_kpi_label">Llamadas</span>
-                        <span class="fm_kpi_ico"><i class="fa fa-phone"/></span>
-                    </div>
-                    <div class="fm_kpi_v"><t t-esc="state.kpis.calls || 0"/></div>
-                    <div class="fm_kpi_foot">
-                        <span class="fm_in"><i class="fa fa-arrow-down"/> <t t-esc="state.kpis.calls_in || 0"/></span>
-                        <span class="fm_out"><i class="fa fa-arrow-up"/> <t t-esc="state.kpis.calls_out || 0"/></span>
-                        <span class="fm_miss"><i class="fa fa-times"/> <t t-esc="state.kpis.calls_missed || 0"/></span>
-                    </div>
-                </div>
-                <div class="fm_kpi">
-                    <div class="fm_kpi_top">
-                        <span class="fm_kpi_label">Tiempo en llamada</span>
-                        <span class="fm_kpi_ico"><i class="fa fa-clock-o"/></span>
-                    </div>
-                    <div class="fm_kpi_v"><t t-esc="fmtMin(state.kpis.minutes || 0)"/></div>
-                    <div class="fm_kpi_foot">en el periodo</div>
-                </div>
-            </section>
 
-            <!-- MAPA + EQUIPOS -->
-            <section class="fm_main">
-                <div class="fm_card fm_map_card">
-                    <div class="fm_card_head">
-                        <h2>Dónde están</h2>
-                        <span class="fm_card_hint">última posición y recorrido del periodo</span>
+                    <div class="fm_w">
+                        <div class="fm_w_top">
+                            <span class="fm_w_lbl">Pantalla</span>
+                            <t t-if="state.days > 1">
+                                <!-- Sin color: mas pantalla en el telefono no es bueno ni malo
+                                     por si solo (en campo, el telefono ES la herramienta). -->
+                                <span class="fm_pill flat" title="Contra el periodo anterior igual de largo.">
+                                    <t t-esc="pantallaDelta >= 0 ? '▲' : '▼'"/> <t t-esc="fmtDelta(pantallaDelta)"/>
+                                </span>
+                            </t>
+                        </div>
+                        <div class="fm_w_v"><t t-esc="fmt(state.kpis.screen_hours)"/></div>
+                        <div class="fm_meter big"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - trabajoPct }}% 0 0)"/></div>
+                        <div class="fm_w_foot" title="Las apps registradas como herramienta de trabajo en Catálogo › Apps del teléfono.">
+                            <b t-esc="trabajoPct"/>% en apps de trabajo · <b t-esc="fmt(state.kpis.work_hours)"/>
+                        </div>
                     </div>
-                    <div class="fm_map" t-ref="map"/>
-                    <p class="fm_empty small" t-if="!state.loading and !state.markers.length">
-                        Todavía no hay ubicaciones en este periodo.
-                    </p>
-                </div>
 
-                <div class="fm_card fm_dev_card">
-                    <div class="fm_card_head">
-                        <h2>Equipos</h2>
-                        <span class="fm_card_hint">toca uno para verlo en el mapa</span>
+                    <div class="fm_w">
+                        <div class="fm_w_top">
+                            <span class="fm_w_lbl">Llamadas</span>
+                            <t t-if="state.days > 1">
+                                <span t-attf-class="fm_pill {{ llamadasDelta > 0 ? 'up' : llamadasDelta &lt; 0 ? 'down' : 'flat' }}" title="Contra el periodo anterior igual de largo.">
+                                    <t t-esc="llamadasDelta >= 0 ? '▲' : '▼'"/> <t t-esc="Math.abs(llamadasDelta)"/>
+                                </span>
+                            </t>
+                        </div>
+                        <div class="fm_w_v"><t t-esc="state.kpis.calls || 0"/></div>
+                        <div class="fm_asis">
+                            <span class="a good" title="Entrantes"><b t-esc="state.kpis.calls_in || 0"/><small>entrantes</small></span>
+                            <span class="a" title="Salientes"><b t-esc="state.kpis.calls_out || 0"/><small>salientes</small></span>
+                            <span t-attf-class="a {{ state.kpis.calls_missed ? 'mid' : '' }}" title="Perdidas"><b t-esc="state.kpis.calls_missed || 0"/><small>perdidas</small></span>
+                        </div>
+                        <div class="fm_w_foot"><b t-esc="fmtMinutos(state.kpis.minutes)"/> en llamada</div>
                     </div>
-                    <div class="fm_dev_list">
-                        <t t-foreach="state.devices" t-as="d" t-key="d.id">
-                            <div class="fm_dev" t-att-class="{ sel: state.sel === d.id }"
-                                 t-on-click="() => this.seleccionar(d.id)">
-                                <span class="fm_pdot" t-att-class="{ on: d.online, retirado: d.estado === 'removed' }"/>
-                                <div class="fm_dev_txt">
-                                    <div class="fm_dev_emp" t-esc="d.employee"/>
-                                    <div class="fm_dev_meta" t-esc="d.name"/>
-                                    <div class="fm_dev_estado retirado" t-if="d.estado === 'removed'">
-                                        <i class="fa fa-ban"/> Retirado
+
+                    <div class="fm_w fm_kpi_click" t-on-click="() => this.abrirVisitas()" title="Abrir las visitas de campo del periodo">
+                        <div class="fm_w_top">
+                            <span class="fm_w_lbl">Visitas de campo</span>
+                            <t t-if="state.days > 1">
+                                <span t-attf-class="fm_pill {{ visitasDelta > 0 ? 'up' : visitasDelta &lt; 0 ? 'down' : 'flat' }}" title="Contra el periodo anterior igual de largo.">
+                                    <t t-esc="visitasDelta >= 0 ? '▲' : '▼'"/> <t t-esc="Math.abs(visitasDelta)"/>
+                                </span>
+                            </t>
+                        </div>
+                        <div class="fm_w_v"><t t-esc="state.kpis.visitas || 0"/></div>
+                        <div class="fm_asis">
+                            <span class="a good" title="El vendedor estaba a menos de 300 m del cliente"><b t-esc="state.kpis.visitas_en_sitio || 0"/><small>en sitio</small></span>
+                            <span t-attf-class="a {{ state.kpis.visitas_lejos ? 'mid' : '' }}" title="Check-in a más de 300 m del cliente"><b t-esc="state.kpis.visitas_lejos || 0"/><small>lejos</small></span>
+                            <span class="a" title="Llegó y todavía no cierra la visita"><b t-esc="state.kpis.visitas_en_curso || 0"/><small>en curso</small></span>
+                        </div>
+                        <div class="fm_w_foot">con GPS del teléfono al llegar</div>
+                    </div>
+                </section>
+
+                <!-- ============================================ TRES PREGUNTAS -->
+                <section class="fm_trio">
+                    <div class="fm_card fm_online_card">
+                        <div class="fm_card_head">
+                            <h2>Quién está en línea</h2>
+                            <span class="fm_card_hint"><t t-esc="state.conectados"/> de <t t-esc="state.equipos.length"/> ahora</span>
+                        </div>
+                        <div class="fm_online">
+                            <t t-foreach="state.online" t-as="g" t-key="g.nombre">
+                                <div class="grp" t-esc="g.nombre"/>
+                                <t t-foreach="g.personas" t-as="o" t-key="o.id">
+                                    <div class="p" t-attf-style="--i:{{ Math.min(o_index, 12) }}" role="button" tabindex="0"
+                                         t-on-click="() => this.openDetail(this.equipoDe(o.id))"
+                                         t-on-keydown="(ev) => this.teclaFicha(ev, this.equipoDe(o.id))">
+                                        <span class="fm_avawrap">
+                                            <span class="fm_ava" t-attf-style="--h:{{ o.hue }}">
+                                                <t t-esc="o.initials"/>
+                                                <t t-if="o.employee_id"><img t-attf-src="/web/image/hr.employee/{{ o.employee_id }}/avatar_128" t-att-alt="o.name" loading="lazy"/></t>
+                                            </span>
+                                            <i t-attf-class="fm_pdot2 {{ o.estado }}"/>
+                                        </span>
+                                        <span class="who">
+                                            <span class="nm" t-esc="o.name"/>
+                                            <span t-attf-class="st {{ o.estado }}">
+                                                <t t-esc="o.estadoTxt"/><t t-if="o.top_app and o.estado !== 'removed'"> · <t t-esc="o.top_app"/></t>
+                                            </span>
+                                        </span>
+                                        <span class="hrs">
+                                            <b t-esc="o.screen ? fmt(o.screen) : '—'" title="Pantalla en el periodo"/>
+                                            <t t-if="o.last_seen">
+                                                <span t-attf-class="fm_bat sm {{ o.batClase }}" t-attf-title="Batería {{ o.battery }}%">
+                                                    <span class="fm_bat_body"><span class="fm_bat_fill" t-attf-style="width: {{ batPct(o.battery) }}%"/></span>
+                                                </span>
+                                            </t>
+                                        </span>
                                     </div>
-                                    <div class="fm_dev_estado" t-elif="!d.online">
-                                        <i class="fa fa-circle-o"/> Sin señal
-                                    </div>
-                                    <div class="fm_dev_estado"
-                                         t-if="(d.health === 'bad' or d.health === 'warn') and d.health_issues"
-                                         t-attf-style="color: {{ d.health === 'bad' ? '#dc3545' : '#e08e0b' }};"
-                                         t-attf-title="Salud del equipo: {{ d.health_issues }}">
-                                        <i class="fa fa-exclamation-triangle"/> <t t-esc="d.health_issues"/>
-                                    </div>
-                                </div>
-                                <div class="fm_dev_right">
-                                    <div class="fm_bat" t-if="d.battery >= 0" t-att-class="batClase(d.battery)"
-                                         t-attf-title="Batería {{ d.battery }}%">
-                                        <span class="fm_bat_body"><span class="fm_bat_fill"
-                                              t-attf-style="width: {{ batPct(d.battery) }}%"/></span>
-                                        <span class="fm_bat_txt"><t t-esc="d.battery"/>%</span>
-                                    </div>
-                                    <div class="fm_dev_nums">
-                                        <span title="puntos de ubicación"><i class="fa fa-map-marker"/> <t t-esc="d.points"/></span>
-                                        <span title="llamadas"><i class="fa fa-phone"/> <t t-esc="d.calls"/></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </t>
-                        <p class="fm_empty small" t-if="!state.loading and !state.devices.length">
-                            No hay dispositivos en tu alcance.
+                                </t>
+                            </t>
+                            <t t-if="!state.equipos.length"><div class="fm_empty small">Ningún teléfono enrolado todavía.</div></t>
+                        </div>
+                    </div>
+
+                    <div class="fm_card fm_map_card">
+                        <div class="fm_card_head">
+                            <h2>Dónde están</h2>
+                            <span class="fm_card_hint">
+                                <t t-if="state.sel !== 'all'">
+                                    solo un teléfono · <button class="fm_link" t-on-click="() => this.seleccionar('all')">ver todos</button>
+                                </t>
+                                <t t-else="">última posición, recorrido del periodo y visitas · <i class="fm_leg_dot online"/> en línea <i class="fm_leg_dot visita"/> visita</t>
+                            </span>
+                        </div>
+                        <div class="fm_map" t-ref="map"/>
+                        <p class="fm_empty small" t-if="!state.markers.length and !state.visitMarkers.length">
+                            Todavía no hay ubicaciones en este periodo.
                         </p>
                     </div>
-                </div>
-            </section>
 
-            <!-- LLAMADAS -->
-            <section class="fm_duo">
-                <div class="fm_card fm_grafica">
-                    <div class="fm_card_head"><h2>Llamadas</h2>
-                        <span class="fm_card_hint">entrantes · salientes · perdidas</span></div>
-                    <div class="fm_lienzo"><canvas t-ref="cDir"/></div>
-                </div>
-                <div class="fm_card">
-                    <div class="fm_card_head"><h2>Con quién más</h2>
-                        <span class="fm_card_hint">números y contactos más frecuentes</span></div>
-                    <div class="fm_top">
-                        <t t-foreach="state.calls.top or []" t-as="c" t-key="c_index">
-                            <div class="fm_trow">
-                                <div class="fm_tname">
-                                    <t t-esc="c.contact or c.number or '—'"/>
-                                    <small t-if="c.contact and c.number" t-esc="c.number"/>
+                    <div class="fm_card">
+                        <div class="fm_card_head">
+                            <h2>Requiere atención</h2>
+                            <span class="fm_card_hint"><t t-esc="state.atencion.length"/> tema<t t-if="state.atencion.length !== 1">s</t></span>
+                        </div>
+                        <div class="fm_atn">
+                            <t t-foreach="state.atencion" t-as="a" t-key="a.clave">
+                                <div t-attf-class="it {{ a.tono }} {{ a.accion ? 'abrible' : '' }}"
+                                     t-att-role="a.accion ? 'button' : undefined" t-att-tabindex="a.accion ? 0 : undefined"
+                                     t-on-click="() => this.clickAtencion(a)">
+                                    <div class="t"><t t-esc="a.titulo"/><b t-esc="a.n"/></div>
+                                    <div class="d">
+                                        <t t-foreach="a.detalle" t-as="l" t-key="l_index"><span t-att-title="l" t-esc="l"/></t>
+                                        <t t-if="a.mas"><span class="mas">y <t t-esc="a.mas"/> más…</span></t>
+                                    </div>
                                 </div>
-                                <div class="fm_tnums">
-                                    <span class="fm_tc"><t t-esc="c.count"/> ll.</span>
-                                    <span class="fm_tm"><t t-esc="fmtMin(c.minutes)"/></span>
+                            </t>
+                            <t t-if="!state.atencion.length"><div class="fm_empty small">Nada que requiera atención.</div></t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ CADA QUIEN -->
+                <t t-if="state.barras.length">
+                    <section class="fm_card">
+                        <div class="fm_card_head">
+                            <h2><t t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo usó el teléfono cada quien' : 'Cómo usó el teléfono cada quien') : 'Cómo usó el teléfono cada quien en el periodo'"/></h2>
+                            <span class="fm_card_hint">la barra es su tiempo de pantalla · verde lo que fue en apps de trabajo</span>
+                        </div>
+                        <div class="fm_bars">
+                            <t t-foreach="state.barras" t-as="b" t-key="b.id">
+                                <div class="brow" t-attf-style="--i:{{ Math.min(b_index, 14) }}" role="button" tabindex="0"
+                                     t-on-click="() => this.openDetail(this.equipoDe(b.id))"
+                                     t-on-keydown="(ev) => this.teclaFicha(ev, this.equipoDe(b.id))">
+                                    <div class="nm">
+                                        <span class="fm_ava sm" t-attf-style="--h:{{ b.hue }}">
+                                            <t t-esc="b.initials"/>
+                                            <t t-if="b.employee_id"><img t-attf-src="/web/image/hr.employee/{{ b.employee_id }}/avatar_128" t-att-alt="b.name" loading="lazy"/></t>
+                                        </span>
+                                        <span t-esc="b.name"/>
+                                    </div>
+                                    <div class="trk" t-att-title="b.titulo">
+                                        <div class="track">
+                                            <t t-foreach="b.segs" t-as="s" t-key="s.k">
+                                                <span t-attf-class="s {{ s.k }}" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%" t-att-title="s.label"/>
+                                            </t>
+                                        </div>
+                                        <div class="sub" t-esc="b.resumen"/>
+                                    </div>
+                                    <div class="hrs">
+                                        <b t-esc="b.pantalla"/>
+                                        <span t-attf-class="pct {{ b.meter }}" title="Parte de la pantalla que fue en apps de trabajo"><t t-esc="b.pct"/>%</span>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                        <div class="fm_legend">
+                            <span class="fm_leg"><span class="fm_dot trabajo"/>Apps de trabajo (registradas)</span>
+                            <span class="fm_leg"><span class="fm_dot otras"/>Otras apps</span>
+                            <button class="fm_link" t-on-click="() => this.abrirApps()">Registrar apps</button>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- ========================================== LA LINEA DEL DIA -->
+                <t t-if="state.days === 1 and state.tl.filas.length">
+                    <section class="fm_card">
+                        <div class="fm_card_head">
+                            <h2>La línea del día</h2>
+                            <span class="fm_card_hint">dónde dio señal el teléfono, hora por hora · las llamadas encima · las visitas con ● llegada y ○ salida</span>
+                        </div>
+                        <div class="fm_tl">
+                            <div class="fm_tl_h">
+                                <div/>
+                                <div class="hours">
+                                    <t t-foreach="state.tl.horas" t-as="hh" t-key="hh.t"><span t-attf-style="left:{{ hh.left }}%" t-esc="hh.label"/></t>
                                 </div>
                             </div>
-                        </t>
-                        <p class="fm_empty small" t-if="!state.loading and !(state.calls.top and state.calls.top.length)">
-                            Sin llamadas en el periodo.
-                        </p>
+                            <div class="fm_tl_grid">
+                                <t t-foreach="state.tl.filas" t-as="f" t-key="f.id">
+                                    <div class="nm" role="button" tabindex="0"
+                                         t-on-click="() => this.openDetail(this.equipoDe(f.id))"
+                                         t-on-keydown="(ev) => this.teclaFicha(ev, this.equipoDe(f.id))">
+                                        <span class="fm_ava sm" t-attf-style="--h:{{ f.hue }}">
+                                            <t t-esc="f.initials"/>
+                                            <t t-if="f.employee_id"><img t-attf-src="/web/image/hr.employee/{{ f.employee_id }}/avatar_128" t-att-alt="f.name" loading="lazy"/></t>
+                                        </span>
+                                        <span t-esc="f.name"/>
+                                    </div>
+                                    <div class="lane" t-attf-style="--cols:{{ state.tl.cols }}">
+                                        <t t-foreach="f.pings" t-as="p" t-key="p_index"><span class="ping" t-attf-style="left:{{ p.left }}%;width:{{ p.width }}%" t-att-title="p.titulo"/></t>
+                                        <t t-foreach="f.visitas" t-as="v" t-key="v_index">
+                                            <span t-attf-class="visita {{ v.abierta ? 'abierta' : '' }}" t-attf-style="left:{{ v.left }}%;width:{{ v.width }}%" t-att-title="v.titulo"/>
+                                            <span class="pin llegada" t-attf-style="left:{{ v.left }}%" t-att-title="v.titulo"/>
+                                            <t t-if="v.finLeft !== null"><span class="pin salida" t-attf-style="left:{{ v.finLeft }}%" t-att-title="v.titulo"/></t>
+                                        </t>
+                                        <t t-foreach="f.calls" t-as="c" t-key="c_index"><span t-attf-class="call {{ c.k }}" t-attf-style="left:{{ c.left }}%;width:{{ c.width }}%" t-att-title="c.titulo"/></t>
+                                        <t t-if="state.tl.ahora !== null"><span class="now" t-attf-style="left:{{ state.tl.ahora }}%"/></t>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="fm_tl_leg">
+                            <span><i class="ping"/>con señal de ubicación</span><span><i class="call in"/>llamada entrante</span><span><i class="call out"/>saliente</span>
+                            <span><i class="call missed"/>perdida</span><span><i class="visita"/>visita a un cliente</span>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- ================================================= TELEFONOS -->
+                <section class="fm_card fm_table_card">
+                    <div class="fm_card_head">
+                        <h2>Teléfonos</h2>
+                        <span class="fm_card_hint">por departamento · cada renglón abre la ficha del teléfono</span>
                     </div>
-                </div>
-            </section>
+                    <div class="fm_table_wrap">
+                        <table class="fm_table">
+                            <colgroup>
+                                <col class="w_emp"/><col class="w_est"/><col class="w_bat"/><col class="w_sal"/>
+                                <col class="w_pan"/><col class="w_lla"/><col class="w_vis"/><col class="w_ubi"/><col class="w_ficha"/>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Persona</th>
+                                    <th>Estado</th>
+                                    <th>Batería</th>
+                                    <th>Salud</th>
+                                    <th>Pantalla</th>
+                                    <th class="c_num">Llamadas</th>
+                                    <th class="c_num">Visitas</th>
+                                    <th>Ubicación</th>
+                                    <th class="c_ficha"><span class="sr">Ficha</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="state.grupos" t-as="g" t-key="g.nombre">
+                                    <tr class="fm_dep">
+                                        <td colspan="9">
+                                            <t t-esc="g.nombre"/>
+                                            <span class="dm"><b t-esc="g.online"/> de <t t-esc="g.equipos.length"/> en línea · pantalla <b t-esc="fmt(g.screen)"/></span>
+                                        </td>
+                                    </tr>
+                                    <t t-foreach="g.equipos" t-as="e" t-key="e.id">
+                                        <tr t-attf-class="fm_row {{ e.health === 'bad' and e.estado !== 'removed' ? 'attn' : '' }}" role="button" tabindex="0"
+                                            t-on-click="() => this.openDetail(e)"
+                                            t-on-keydown="(ev) => this.teclaFicha(ev, e)">
+                                            <td>
+                                                <div class="fm_emp">
+                                                    <span class="fm_avawrap">
+                                                        <span class="fm_ava" t-attf-style="--h:{{ e.hue }}">
+                                                            <t t-esc="e.initials"/>
+                                                            <t t-if="e.employee_id"><img t-attf-src="/web/image/hr.employee/{{ e.employee_id }}/avatar_128" t-att-alt="e.name" loading="lazy"/></t>
+                                                        </span>
+                                                        <i t-attf-class="fm_pdot2 {{ e.estado }}"/>
+                                                    </span>
+                                                    <div class="fm_emp_txt">
+                                                        <span class="fm_emp_name" t-att-title="e.name" t-esc="e.name"/>
+                                                        <span class="fm_emp_pc" t-att-title="e.name !== e.devname ? e.devname : ''" t-esc="e.tienePersona ? e.devname || '' : 'sin persona asignada'"/>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span t-attf-class="fm_presencia {{ e.estado }}" t-att-title="e.estadoTxt">
+                                                    <span t-attf-class="fm_pdot {{ e.estado }}"/><span class="txt" t-esc="e.estadoTxt"/>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <t t-if="e.last_seen">
+                                                    <span t-attf-class="fm_bat {{ e.batClase }}" t-attf-title="Batería {{ e.battery }}%">
+                                                        <span class="fm_bat_body"><span class="fm_bat_fill" t-attf-style="width: {{ batPct(e.battery) }}%"/></span>
+                                                        <span class="fm_bat_txt"><t t-esc="e.battery"/>%</span>
+                                                    </span>
+                                                </t>
+                                                <t t-else=""><span class="fm_na">—</span></t>
+                                            </td>
+                                            <td>
+                                                <span t-attf-class="fm_chip2 salud_{{ e.health }}" t-att-title="e.health_issues or e.saludTxt" t-esc="e.health === 'ok' ? 'en orden' : e.health === 'unknown' ? 'sin datos' : e.health === 'bad' ? 'problema' : 'ajustar'"/>
+                                            </td>
+                                            <td>
+                                                <div class="fm_jor" t-att-title="e.screen ? 'en apps de trabajo ' + fmt(e.work) + ' de ' + fmt(e.screen) : ''">
+                                                    <span class="fm_jor_v" t-esc="e.screen ? fmt(e.screen) : '—'"/>
+                                                    <t t-if="e.screen">
+                                                        <span class="fm_meter"><span t-attf-class="fill {{ e.workPct >= 70 ? 'good' : e.workPct >= 40 ? 'mid' : 'low' }}" t-attf-style="clip-path: inset(0 {{ 100 - e.workPct }}% 0 0)"/></span>
+                                                        <span class="fm_jor_guia"><t t-esc="e.workPct"/>% trabajo<t t-if="e.top_app"> · <t t-esc="corta(e.top_app, 22)"/></t></span>
+                                                    </t>
+                                                </div>
+                                            </td>
+                                            <td class="c_num">
+                                                <t t-if="e.calls">
+                                                    <span class="fm_jor_v" t-esc="e.calls"/>
+                                                    <div class="fm_jor_guia"><t t-esc="fmtMinutos(e.calls_minutes)"/><t t-if="e.calls_missed"> · <span class="warn"><t t-esc="e.calls_missed"/> perdida<t t-if="e.calls_missed !== 1">s</t></span></t></div>
+                                                </t>
+                                                <t t-else=""><span class="fm_na">—</span></t>
+                                            </td>
+                                            <td class="c_num">
+                                                <t t-if="e.visitas">
+                                                    <span class="fm_jor_v" t-esc="e.visitas"/>
+                                                    <div class="fm_jor_guia">
+                                                        <t t-esc="e.visitas_en_sitio"/> en sitio<t t-if="e.visitas_lejos"> · <span class="warn"><t t-esc="e.visitas_lejos"/> lejos</span></t><t t-if="e.visitas_en_curso"> · <t t-esc="e.visitas_en_curso"/> en curso</t>
+                                                    </div>
+                                                </t>
+                                                <t t-else=""><span class="fm_na">—</span></t>
+                                            </td>
+                                            <td>
+                                                <div class="fm_jor_guia fm_ubi" t-attf-title="{{ e.points }} puntos de ubicación en el periodo · última posición {{ e.fixTxt }}">
+                                                    <t t-if="e.points"><b t-esc="e.points"/> pts · </t><t t-esc="e.fixTxt"/>
+                                                </div>
+                                            </td>
+                                            <td class="c_ficha">
+                                                <button class="fm_ficha" t-on-click.stop="() => this.openDetail(e)" title="Abrir la ficha" aria-label="Abrir la ficha"><i class="fa fa-id-card-o"/></button>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </t>
+                                <t t-if="!state.equipos.length">
+                                    <tr><td colspan="9"><div class="fm_empty">No hay teléfonos en tu alcance.</div></td></tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <section class="fm_duo">
-                <div class="fm_card fm_grafica">
-                    <div class="fm_card_head"><h2>Llamadas por día</h2>
-                        <span class="fm_card_hint">cuántas cada día</span></div>
-                    <div class="fm_lienzo"><canvas t-ref="cDia"/></div>
-                </div>
-                <div class="fm_card fm_grafica">
-                    <div class="fm_card_head"><h2>Apps del teléfono</h2>
-                        <span class="fm_card_hint">más usadas en el periodo</span></div>
-                    <div class="fm_lienzo"><canvas t-ref="cApps"/></div>
-                </div>
-            </section>
+                <!-- ================================== EN QUE SE VA EL TELEFONO -->
+                <section class="fm_cols">
+                    <div class="fm_card fm_grafica">
+                        <div class="fm_card_head"><h2>Llamadas</h2>
+                            <span class="fm_card_hint">entrantes · salientes · perdidas</span></div>
+                        <t t-if="state.kpis.calls">
+                            <div class="fm_lienzo"><canvas t-ref="cDir"/></div>
+                        </t>
+                        <t t-else=""><div class="fm_empty">Sin llamadas en el periodo.</div></t>
+                    </div>
+                    <div class="fm_card">
+                        <div class="fm_card_head"><h2>Con quién más</h2>
+                            <span class="fm_card_hint">números y contactos más frecuentes</span></div>
+                        <div class="fm_top">
+                            <t t-foreach="state.calls.top or []" t-as="c" t-key="c_index">
+                                <div class="fm_trow">
+                                    <div class="fm_tname">
+                                        <t t-esc="c.contact or c.number or '—'"/>
+                                        <small t-if="c.contact and c.number" t-esc="c.number"/>
+                                    </div>
+                                    <div class="fm_tnums">
+                                        <span class="fm_tc"><t t-esc="c.count"/> <t t-esc="c.count === 1 ? 'llamada' : 'llamadas'"/></span>
+                                        <span class="fm_tm" t-esc="fmtMinutos(c.minutes)"/>
+                                    </div>
+                                </div>
+                            </t>
+                            <p class="fm_empty small" t-if="!(state.calls.top and state.calls.top.length)">Sin llamadas en el periodo.</p>
+                        </div>
+                    </div>
+                    <div class="fm_card">
+                        <div class="fm_card_head"><h2>Apps del teléfono</h2>
+                            <span class="fm_card_hint"><t t-esc="fmt(state.kpis.screen_hours)"/> de pantalla en total</span></div>
+                        <t t-foreach="state.appsTop" t-as="a" t-key="a.package or a.label">
+                            <div class="fm_app">
+                                <span t-attf-class="fm_dot {{ a.registrada ? 'trabajo' : 'otras' }}" t-att-title="a.registrada ? 'App de trabajo (registrada)' : 'No registrada como app de trabajo'"/>
+                                <span class="n" t-att-title="a.package" t-esc="a.label"/>
+                                <span class="bar"><span t-attf-class="fill {{ a.registrada ? 'trabajo' : 'otras' }}" t-attf-style="clip-path: inset(0 {{ 100 - a.pct }}% 0 0)"/></span>
+                                <span class="v" t-esc="fmt(a.hours)"/>
+                            </div>
+                        </t>
+                        <t t-if="!state.appsTop.length"><div class="fm_empty small">Sin uso de apps en este periodo.</div></t>
+                        <div class="fm_pend" t-if="state.appsTop.length">
+                            <div class="fm_pend_head">
+                                <span>Una app <b>registrada</b> cuenta como trabajo en la barra de cada quien</span>
+                                <button class="fm_link" t-on-click="() => this.abrirApps()">Registrar apps</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-            <div class="fm_loading" t-if="state.loading">Cargando…</div>
+                <!-- ================================================= TENDENCIA -->
+                <t t-if="state.days > 1">
+                    <section class="fm_duo solo">
+                        <div class="fm_card fm_grafica">
+                            <div class="fm_card_head">
+                                <h2>Llamadas por día</h2>
+                                <span class="fm_card_hint">cuántas hizo y recibió el equipo cada día</span>
+                            </div>
+                            <div class="fm_lienzo"><canvas t-ref="cDia"/></div>
+                            <p class="fm_pie" t-if="!(state.calls.by_day and state.calls.by_day.length)">Todavía no hay llamadas en este periodo.</p>
+                        </div>
+                    </section>
+                </t>
+            </t>
+
+            <!-- ===================================================== LA FICHA -->
+            <t t-if="state.detail">
+                <div t-attf-class="fm_scrim {{ state.open ? 'open' : '' }}" t-on-click="() => this.closeDetail()"/>
+                <aside t-attf-class="fm_drawer {{ state.open ? 'open' : '' }}" role="dialog" aria-modal="true">
+                    <div class="fm_dw_head">
+                        <span class="fm_ava lg" t-attf-style="--h:{{ state.detail.hue }}">
+                            <t t-esc="state.detail.initials"/>
+                            <t t-if="state.detail.employee_id"><img t-attf-src="/web/image/hr.employee/{{ state.detail.employee_id }}/avatar_128" t-att-alt="state.detail.name"/></t>
+                        </span>
+                        <div class="fm_dw_id">
+                            <div class="fm_dw_name" t-esc="state.detail.name"/>
+                            <div class="fm_dw_meta">
+                                <t t-if="state.detail.dept"><span t-esc="state.detail.dept"/><span class="sep">·</span></t>
+                                <t t-if="state.detail.devname and state.detail.devname !== state.detail.name"><span t-esc="state.detail.devname"/><span class="sep">·</span></t>
+                                <span t-attf-class="fm_presencia {{ state.detail.estado }}">
+                                    <span t-attf-class="fm_pdot {{ state.detail.estado }}"/><span class="txt" t-esc="state.detail.estadoTxt"/>
+                                </span>
+                            </div>
+                        </div>
+                        <button class="fm_close" t-on-click="() => this.closeDetail()" aria-label="Cerrar">×</button>
+                    </div>
+
+                    <div class="fm_dw_stats">
+                        <div class="s"><span class="l">Pantalla</span><span class="v" t-esc="state.detail.screen ? fmt(state.detail.screen) : '—'"/></div>
+                        <div class="s"><span class="l">En trabajo</span><span t-attf-class="v {{ state.detail.screen ? (state.detail.workPct >= 70 ? 'good' : state.detail.workPct >= 40 ? 'mid' : 'warn') : '' }}" t-esc="state.detail.screen ? state.detail.workPct + '%' : '—'"/></div>
+                        <div class="s"><span class="l">Llamadas</span><span class="v" t-esc="state.detail.calls"/></div>
+                        <div class="s"><span class="l">Visitas</span><span class="v" t-esc="state.detail.visitas"/></div>
+                    </div>
+
+                    <div class="fm_dw_sec">
+                        <h3>El teléfono</h3>
+                        <div class="fm_acct">
+                            <div class="r">
+                                <span class="l">Batería</span>
+                                <span class="v">
+                                    <t t-if="state.detail.last_seen">
+                                        <span t-attf-class="fm_bat {{ state.detail.batClase }}">
+                                            <span class="fm_bat_body"><span class="fm_bat_fill" t-attf-style="width: {{ batPct(state.detail.battery) }}%"/></span>
+                                            <span class="fm_bat_txt"><t t-esc="state.detail.battery"/>%</span>
+                                        </span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </span>
+                            </div>
+                            <div class="r">
+                                <span class="l">Salud del agente<small t-if="state.detail.health_at"> (<t t-esc="state.detail.health_at"/>)</small></span>
+                                <span t-attf-class="v {{ state.detail.health === 'bad' ? 'warn' : state.detail.health === 'warn' ? 'mid' : state.detail.health === 'ok' ? 'good' : '' }}"
+                                      t-esc="state.detail.health === 'ok' ? 'en orden' : state.detail.health === 'unknown' ? 'sin datos' : state.detail.health === 'bad' ? 'con problema' : 'pide ajuste'"/>
+                            </div>
+                            <t t-if="state.detail.health_issues">
+                                <div class="r sub"><span class="l" t-esc="state.detail.health_issues"/></div>
+                            </t>
+                            <t t-if="state.ficha and state.ficha.salud and state.ficha.salud.checks.length">
+                                <t t-foreach="state.ficha.salud.checks" t-as="k" t-key="k.k">
+                                    <div class="r sub">
+                                        <span class="l"><span t-attf-class="fm_dot {{ k.ok ? 'trabajo' : 'low' }}"/><t t-esc="k.k"/></span>
+                                        <span t-attf-class="v {{ k.ok ? '' : 'warn' }}" t-esc="k.ok ? 'sí' : 'no'"/>
+                                    </div>
+                                </t>
+                                <div class="r sub" t-if="state.ficha.salud.buffered">
+                                    <span class="l">Eventos sin enviar</span><span class="v warn" t-esc="state.ficha.salud.buffered"/>
+                                </div>
+                            </t>
+                            <div class="r sub" t-if="state.detail.removed_at">
+                                <span class="l">Retirado</span>
+                                <span class="v warn"><t t-esc="state.detail.removed_at"/><t t-if="state.detail.removed_reason"> · <t t-esc="state.detail.removed_reason"/></t></span>
+                            </div>
+                            <div class="r sub" t-if="state.ficha and state.ficha.equipo and (state.ficha.equipo.android or state.ficha.equipo.agente)">
+                                <span class="l">Android <t t-esc="state.ficha.equipo.android"/> · agente <t t-esc="state.ficha.equipo.agente"/><t t-if="state.ficha.equipo.numero"> · <t t-esc="state.ficha.equipo.numero"/></t></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <t t-if="state.fichaCargando">
+                        <div class="fm_skel"><span style="--w:70%"/><span style="--w:55%"/><span style="--w:62%"/></div>
+                    </t>
+                    <t t-elif="state.ficha and state.ficha.error">
+                        <div class="fm_dw_sec"><div class="fm_empty small">No se pudo cargar el detalle del teléfono.</div></div>
+                    </t>
+                    <t t-elif="state.ficha">
+                        <div class="fm_dw_sec" t-if="state.ficha.visitas.length or state.detail.visitas">
+                            <h3>Visitas del periodo<span class="cnt" t-esc="state.ficha.visitas.length"/></h3>
+                            <div class="fm_lista">
+                                <t t-foreach="state.ficha.visitas" t-as="v" t-key="v.id">
+                                    <div class="row abrible" role="button" tabindex="0" t-on-click="() => this.abrirVisita(v.id)">
+                                        <div class="a">
+                                            <span class="n" t-esc="v.cliente"/>
+                                            <span class="m">
+                                                <t t-esc="v.llegada"/><t t-if="v.salida"> → <t t-esc="v.salida"/></t><t t-elif="v.estado === 'en_curso'"> · en curso</t>
+                                                <t t-if="v.resultado_txt"> · <t t-esc="v.resultado_txt"/></t>
+                                            </span>
+                                        </div>
+                                        <span t-attf-class="fm_chip2 {{ v.en_sitio === 'si' ? 'a_tiempo' : v.en_sitio === 'lejos' ? 'tarde' : 'muted' }}"
+                                              t-att-title="v.en_sitio === 'lejos' ? v.distancia_m + ' m del cliente' : ''" t-esc="v.en_sitio_txt || 'sin verificar'"/>
+                                    </div>
+                                </t>
+                                <t t-if="!state.ficha.visitas.length"><div class="fm_empty small">Sin visitas en el periodo.</div></t>
+                            </div>
+                        </div>
+
+                        <div class="fm_dw_sec">
+                            <h3>Últimas llamadas<span class="cnt" t-if="state.detail.calls"><t t-esc="state.detail.calls"/> en el periodo</span></h3>
+                            <div class="fm_lista">
+                                <t t-foreach="state.ficha.llamadas" t-as="c" t-key="c_index">
+                                    <div class="row">
+                                        <span t-attf-class="fm_dir {{ c.dir }}" t-att-title="c.dir_txt">
+                                            <i t-attf-class="fa {{ c.dir === 'in' ? 'fa-arrow-down' : c.dir === 'out' ? 'fa-arrow-up' : c.dir === 'missed' ? 'fa-times' : 'fa-minus' }}"/>
+                                        </span>
+                                        <div class="a">
+                                            <span class="n" t-esc="c.quien"/>
+                                            <span class="m"><t t-esc="c.cuando"/> · <t t-esc="c.dir_txt.toLowerCase()"/><t t-if="c.numero and c.numero !== c.quien"> · <t t-esc="c.numero"/></t></span>
+                                        </div>
+                                        <span class="v" t-esc="c.dir === 'missed' ? '' : fmtMinutos(c.minutos)"/>
+                                    </div>
+                                </t>
+                                <t t-if="!state.ficha.llamadas.length"><div class="fm_empty small">Sin llamadas en el periodo.</div></t>
+                            </div>
+                        </div>
+
+                        <div class="fm_dw_sec">
+                            <h3>Apps más usadas</h3>
+                            <t t-foreach="state.ficha.apps" t-as="a" t-key="a.package or a.label">
+                                <div class="fm_app dw">
+                                    <span t-attf-class="fm_dot {{ a.registrada ? 'trabajo' : 'otras' }}"/>
+                                    <span class="n" t-esc="a.label"/>
+                                    <span class="bar"><span t-attf-class="fill {{ a.registrada ? 'trabajo' : 'otras' }}" t-attf-style="clip-path: inset(0 {{ 100 - Math.round(a.hours / Math.max(state.ficha.apps[0].hours, 0.01) * 100) }}% 0 0)"/></span>
+                                    <span class="v" t-esc="fmt(a.hours)"/>
+                                </div>
+                            </t>
+                            <t t-if="!state.ficha.apps.length"><div class="fm_empty small">Sin uso de apps en el periodo.</div></t>
+                        </div>
+
+                        <div class="fm_dw_sec" t-if="state.ficha.play_update">
+                            <h3>Actualización nocturna de apps</h3>
+                            <div class="fm_acct">
+                                <div class="r sub">
+                                    <span class="l"><t t-esc="state.ficha.play_update.cuando"/> · <t t-esc="state.ficha.play_update.modo"/></span>
+                                    <span class="v" t-esc="state.ficha.play_update.resultado"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+
+                    <div class="fm_dw_foot">
+                        <t t-if="state.ficha and state.ficha.ultima_ubicacion">
+                            Última ubicación <b t-esc="state.ficha.ultima_ubicacion.cuando"/> · <b t-esc="state.ficha.ubicaciones"/> puntos en el periodo
+                            <t t-if="state.ficha.capturas"> · <b t-esc="state.ficha.capturas"/> capturas</t>
+                        </t>
+                        <t t-elif="state.ficha">Sin ubicación conocida<t t-if="state.ficha.capturas"> · <b t-esc="state.ficha.capturas"/> capturas</t></t>
+                    </div>
+                    <div class="fm_dw_acts">
+                        <button class="fm_btn" t-if="state.detail.last_lat or state.detail.last_lon" t-on-click="() => this.verEnMapa(state.detail)"><i class="fa fa-map-marker"/> Ver en el mapa</button>
+                        <button class="fm_btn" t-on-click="() => this.abrirUbicaciones(state.detail)"><i class="fa fa-list"/> Ubicaciones</button>
+                        <button class="fm_btn" t-on-click="() => this.abrirCapturas(state.detail)"><i class="fa fa-picture-o"/> Capturas</button>
+                        <button class="fm_btn" t-if="state.detail.estado === 'online'" t-on-click="() => this.pedirCaptura(state.detail)"><i class="fa fa-camera"/> Pedir captura</button>
+                        <button class="fm_btn" t-if="state.detail.visitas" t-on-click="() => this.abrirVisitasDe(state.detail)"><i class="fa fa-briefcase"/> Visitas</button>
+                        <button class="fm_btn" t-on-click="() => this.abrirEquipo(state.detail)"><i class="fa fa-mobile"/> Ficha del equipo</button>
+                    </div>
+                </aside>
+            </t>
         </div>
     </t>
 </templates>

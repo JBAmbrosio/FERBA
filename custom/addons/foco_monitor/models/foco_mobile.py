@@ -21,7 +21,10 @@ APAGADO DE FABRICA
 
 import base64
 import secrets
-from datetime import datetime, timedelta
+import math
+from datetime import datetime, timedelta, time
+
+import pytz
 
 from odoo import api, fields, models
 
@@ -273,69 +276,245 @@ class FocoMobileDevice(models.Model):
             'domain': [('device_id', '=', self.id)],
         }
 
+    # ------------------------------------------------------------ tablero
+    @api.model
+    def _zona_rango(self):
+        """La zona con la que se cortan los DIAS del periodo: la del horario de
+        la empresa (el reloj de la oficina), y si no hay, la del usuario."""
+        nombre = self.env.company.resource_calendar_id.tz or self.env.user.tz or 'UTC'
+        try:
+            return pytz.timezone(nombre)
+        except Exception:
+            return pytz.UTC
+
+    @api.model
+    def _zona_de(self, device):
+        """La zona con la que se fecha lo que hace ESE telefono: la de su
+        persona (RRHH / horario), como el resto de Foco; sin persona, la de la
+        empresa. El telefono no reporta desfase como la PC, asi que aqui no hay
+        reloj de maquina que mande."""
+        if device.employee_id:
+            return self.env['foco.settings'].sudo()._tzinfo_for(device.employee_id) or pytz.UTC
+        return self._zona_rango()
+
+    @staticmethod
+    def _limites_utc(d1, d2, zona):
+        """[dt1, dt2) en UTC naive que cubre los dias LOCALES d1..d2. Antes el
+        corte era la medianoche UTC, que en Mazatlan son las 17:00: una llamada
+        de las seis de la tarde caia en el dia siguiente."""
+        a = zona.localize(datetime.combine(d1, time.min)).astimezone(pytz.UTC)
+        b = zona.localize(datetime.combine(d2 + timedelta(days=1), time.min)).astimezone(pytz.UTC)
+        return a.replace(tzinfo=None), b.replace(tzinfo=None)
+
+    @staticmethod
+    def _hora_local(dt, zona):
+        """Hora del dia como decimal (8.5 = 08:30) de un datetime UTC naive."""
+        loc = pytz.UTC.localize(dt).astimezone(zona)
+        return round(loc.hour + loc.minute / 60.0 + loc.second / 3600.0, 4)
+
+    @staticmethod
+    def _txt_local(dt, zona, con_dia=True):
+        if not dt:
+            return ''
+        loc = pytz.UTC.localize(dt).astimezone(zona)
+        return loc.strftime('%d/%m %H:%M' if con_dia else '%H:%M')
+
     @api.model
     def dashboard(self, desde, hasta):
         """Todo lo que pinta el Tablero movil, agregado en el servidor, en un
-        solo viaje: KPIs, marcadores y recorrido para el mapa, resumen de
-        llamadas y top de apps. `desde`/`hasta` son dias 'YYYY-MM-DD'.
+        solo viaje. `desde`/`hasta` son dias LOCALES 'YYYY-MM-DD'.
 
         Respeta las reglas de registro: quien tiene alcance de un departamento
-        solo ve sus equipos, porque parte de `self.search([])` (no sudo)."""
+        solo ve sus equipos, porque parte de `self.search([])` (no sudo).
+
+        Lo que devuelve, en el orden en que lo lee el tablero:
+          kpis / prev   las cifras del periodo y las mismas del periodo
+                        anterior igual de largo (para las flechas)
+          devices       una fila por telefono: su persona, estado, salud,
+                        bateria, pantalla (total y en apps de trabajo),
+                        llamadas, visitas y puntos
+          markers / track / visit_markers   lo del mapa
+          calls         por direccion, por dia local y con quien mas
+          apps          el top de apps con su marca de "registrada" (trabajo)
+          linea         solo en UN dia: por telefono, las horas locales de sus
+                        pings, llamadas y visitas, para la linea del dia
+        """
         Loc = self.env['foco.location']
         Call = self.env['foco.call']
         Usage = self.env['foco.mobile.usage']
+        Visita = self.env['foco.visita']
+        App = self.env['foco.mobile.app']
 
         d1 = fields.Date.to_date(desde) or fields.Date.context_today(self)
         d2 = fields.Date.to_date(hasta) or d1
         if d2 < d1:
             d1, d2 = d2, d1
-        dt1 = datetime.combine(d1, datetime.min.time())
-        dt2 = datetime.combine(d2 + timedelta(days=1), datetime.min.time())
+        zona = self._zona_rango()
+        dt1, dt2 = self._limites_utc(d1, d2, zona)
+        ndias = (d2 - d1).days + 1
+        p1, p2 = d1 - timedelta(days=ndias), d1 - timedelta(days=1)
+        pt1, pt2 = self._limites_utc(p1, p2, zona)
         ahora = fields.Datetime.now()
-        dom_loc = [('at', '>=', dt1), ('at', '<', dt2)]
-        dom_call = [('at', '>=', dt1), ('at', '<', dt2)]
-        dom_use = [('date', '>=', d1), ('date', '<=', d2)]
 
         devices = self.search([])
         dev_ids = devices.ids
+        emp_ids = devices.mapped('employee_id').ids
+        registradas = set(App.registradas())
 
-        # --- conteos por dispositivo en el rango ---
-        puntos = {}
-        for g in Loc._read_group(dom_loc + [('device_id', 'in', dev_ids)],
-                                 ['device_id'], ['__count']):
-            puntos[g[0].id] = g[1]
-        llam = {}
-        for g in Call._read_group(dom_call + [('device_id', 'in', dev_ids)],
-                                  ['device_id'], ['__count']):
-            llam[g[0].id] = g[1]
+        dom_loc = [('device_id', 'in', dev_ids), ('at', '>=', dt1), ('at', '<', dt2)]
+        dom_call = [('device_id', 'in', dev_ids), ('at', '>=', dt1), ('at', '<', dt2)]
+        dom_use = [('device_id', 'in', dev_ids), ('date', '>=', d1), ('date', '<=', d2)]
+        # Una visita puede venir del telefono (device_id) o capturarse desde la
+        # web por la misma persona (solo employee_id): las dos son suyas.
+        dom_vis = ['|', ('device_id', 'in', dev_ids), ('employee_id', 'in', emp_ids),
+                   ('check_in', '>=', dt1), ('check_in', '<', dt2)]
 
-        # --- filas de dispositivos + marcadores de ultima posicion ---
-        dev_rows, marcadores, en_linea, retirados, sin_senal = [], [], 0, 0, 0
+        # --- puntos de ubicacion por telefono ---
+        puntos = {g[0].id: g[1] for g in Loc._read_group(dom_loc, ['device_id'], ['__count'])}
+
+        # --- llamadas: UNA lectura y todo se cuenta aqui, en dia LOCAL ---
+        llamadas = Call.search_read(
+            dom_call, ['device_id', 'at', 'direction', 'duration_seconds', 'number', 'contact'],
+            order='at', limit=20000)
+        llam = {}            # device -> {'n', 'seg', 'in', 'out', 'missed'}
+        por_dir = {'in': 0, 'out': 0, 'missed': 0, 'rejected': 0, 'blocked': 0, 'other': 0}
+        por_dia = {}
+        top = {}
+        calls_por_dev = {}
+        total_seg = 0
+        for c in llamadas:
+            did = c['device_id'][0]
+            d = llam.setdefault(did, {'n': 0, 'seg': 0, 'in': 0, 'out': 0, 'missed': 0})
+            seg = c['duration_seconds'] or 0
+            direc = c['direction'] if c['direction'] in por_dir else 'other'
+            d['n'] += 1
+            d['seg'] += seg
+            if direc in d:
+                d[direc] += 1
+            por_dir[direc] += 1
+            total_seg += seg
+            dia = fields.Date.to_string(pytz.UTC.localize(c['at']).astimezone(zona).date())
+            por_dia[dia] = por_dia.get(dia, 0) + 1
+            num = c['number'] or '—'
+            t = top.setdefault(num, {'number': c['number'] or '', 'count': 0, 'seg': 0, 'contact': ''})
+            t['count'] += 1
+            t['seg'] += seg
+            if c['contact'] and not t['contact']:
+                t['contact'] = c['contact']
+            calls_por_dev.setdefault(did, []).append(c)
+        top_list = sorted(
+            [{'number': t['number'], 'contact': t['contact'], 'count': t['count'],
+              'minutes': round(t['seg'] / 60.0, 1)} for t in top.values()],
+            key=lambda x: (-x['count'], -x['minutes']))[:8]
+        dias_llam = [{'dia': k, 'n': v} for k, v in sorted(por_dia.items())]
+
+        # --- pantalla por telefono: total, en apps REGISTRADAS y su app mayor ---
+        pantalla, trabajo, top_app = {}, {}, {}
+        apps_tot = {}
+        for g in Usage._read_group(dom_use, ['device_id', 'package', 'app_label'],
+                                   ['foreground_seconds:sum']):
+            did, paquete, etq, seg = g[0].id, g[1] or '', g[2] or g[1] or 'Sin nombre', (g[3] or 0)
+            pantalla[did] = pantalla.get(did, 0) + seg
+            if paquete in registradas:
+                trabajo[did] = trabajo.get(did, 0) + seg
+            if seg > top_app.get(did, ('', 0))[1]:
+                top_app[did] = (etq, seg)
+            a = apps_tot.setdefault(paquete, {'label': etq, 'seg': 0, 'registrada': paquete in registradas,
+                                              'package': paquete})
+            a['seg'] += seg
+            if etq and etq != 'Sin nombre':
+                a['label'] = etq
+        apps = sorted(({'label': a['label'], 'package': a['package'], 'registrada': a['registrada'],
+                        'hours': round(a['seg'] / 3600.0, 2)} for a in apps_tot.values()),
+                      key=lambda x: -x['hours'])[:10]
+
+        # --- visitas de campo del periodo ---
+        res_lbl = dict(Visita._fields['resultado'].selection)
+        vis_rows = Visita.search_read(
+            dom_vis, ['device_id', 'employee_id', 'partner_id', 'check_in', 'check_out',
+                      'estado', 'en_sitio', 'resultado', 'latitude', 'longitude'],
+            order='check_in', limit=4000)
+        dev_por_emp = {}
+        for dv in devices:
+            if dv.employee_id:
+                dev_por_emp.setdefault(dv.employee_id.id, dv.id)
+        vis_dev, vis_por_dev, visit_markers = {}, {}, []
+        vis_tot = {'n': 0, 'en_sitio': 0, 'lejos': 0, 'en_curso': 0}
+        for v in vis_rows:
+            did = (v['device_id'][0] if v['device_id']
+                   else dev_por_emp.get(v['employee_id'][0] if v['employee_id'] else 0))
+            if not did:
+                continue
+            c = vis_dev.setdefault(did, {'n': 0, 'en_sitio': 0, 'lejos': 0, 'en_curso': 0})
+            for cc in (c, vis_tot):
+                cc['n'] += 1
+                if v['en_sitio'] == 'si':
+                    cc['en_sitio'] += 1
+                elif v['en_sitio'] == 'lejos':
+                    cc['lejos'] += 1
+                if v['estado'] == 'en_curso':
+                    cc['en_curso'] += 1
+            vis_por_dev.setdefault(did, []).append(v)
+            if v['latitude'] or v['longitude']:
+                visit_markers.append({
+                    'device_id': did, 'lat': v['latitude'], 'lon': v['longitude'],
+                    'cliente': v['partner_id'][1] if v['partner_id'] else '',
+                    'employee': v['employee_id'][1] if v['employee_id'] else '',
+                    'at': self._txt_local(v['check_in'], zona),
+                    'en_sitio': v['en_sitio'] or '', 'estado': v['estado'] or '',
+                    'resultado': res_lbl.get(v['resultado'], ''),
+                })
+
+        # --- una fila por telefono + marcadores de ultima posicion ---
+        dev_rows, marcadores = [], []
+        en_linea = retirados = sin_senal = nunca = con_problemas = bateria_baja = 0
         for dv in devices:
             online = bool(dv.last_seen and
                           (ahora - dv.last_seen).total_seconds() < MOBILE_ONLINE_SECS)
-            # estado: retirado (aviso del equipo) manda sobre en linea / sin señal.
+            # retirado (aviso del propio equipo) manda sobre en linea / sin señal
             if dv.removed:
                 estado = 'removed'
                 retirados += 1
             elif online:
                 estado = 'online'
                 en_linea += 1
+            elif dv.last_seen:
+                estado = 'silent'       # alguna vez reporto: su silencio importa
+                sin_senal += 1
             else:
-                estado = 'silent'
-                if dv.last_seen:      # alguna vez reporto: su silencio importa
-                    sin_senal += 1
+                estado = 'never'
+                nunca += 1
+            if estado != 'removed' and dv.health_status in ('bad', 'warn'):
+                con_problemas += 1
+            baja = bool(dv.last_seen and estado != 'removed' and (dv.battery or 0) < 20)
+            if baja:
+                bateria_baja += 1
+            ll = llam.get(dv.id, {'n': 0, 'seg': 0, 'in': 0, 'out': 0, 'missed': 0})
+            vc = vis_dev.get(dv.id, {'n': 0, 'en_sitio': 0, 'lejos': 0, 'en_curso': 0})
             dev_rows.append({
-                'estado': estado,
-                'removed_at': fields.Datetime.to_string(dv.removed_at) if dv.removed_at else '',
-                'id': dv.id, 'name': dv.name or '',
-                'employee': dv.employee_id.display_name or 'Sin empleado',
+                'id': dv.id, 'name': dv.name or '', 'estado': estado, 'online': online,
+                'employee_id': dv.employee_id.id or 0,
+                'employee': dv.employee_id.display_name or '',
                 'dept': dv.department_id.display_name or '',
-                'battery': dv.battery, 'online': online,
+                'battery': dv.battery, 'bateria_baja': baja,
+                'since_min': int((ahora - dv.last_seen).total_seconds() // 60) if dv.last_seen else None,
                 'last_seen': fields.Datetime.to_string(dv.last_seen) if dv.last_seen else '',
+                'removed_at': self._txt_local(dv.removed_at, zona),
+                'removed_reason': dv.removed_reason or '',
                 'last_lat': dv.last_lat, 'last_lon': dv.last_lon,
-                'points': puntos.get(dv.id, 0), 'calls': llam.get(dv.id, 0),
+                'last_fix_min': int((ahora - dv.last_fix_at).total_seconds() // 60) if dv.last_fix_at else None,
+                'points': puntos.get(dv.id, 0),
+                'calls': ll['n'], 'calls_minutes': round(ll['seg'] / 60.0, 1),
+                'calls_in': ll['in'], 'calls_out': ll['out'], 'calls_missed': ll['missed'],
+                'screen_hours': round(pantalla.get(dv.id, 0) / 3600.0, 2),
+                'work_hours': round(trabajo.get(dv.id, 0) / 3600.0, 2),
+                'top_app': top_app.get(dv.id, ('', 0))[0],
+                'visitas': vc['n'], 'visitas_en_sitio': vc['en_sitio'],
+                'visitas_lejos': vc['lejos'], 'visitas_en_curso': vc['en_curso'],
                 'health': dv.health_status, 'health_issues': dv.health_issues or '',
+                'health_at': self._txt_local(dv.health_at, zona),
+                'buffered': dv.health_buffered or 0,
+                'app_version': dv.app_version or '', 'os_version': dv.os_version or '',
             })
             if dv.last_lat or dv.last_lon:
                 marcadores.append({
@@ -343,76 +522,211 @@ class FocoMobileDevice(models.Model):
                     'employee': dv.employee_id.display_name or '',
                     'lat': dv.last_lat, 'lon': dv.last_lon, 'online': online,
                     'estado': estado, 'battery': dv.battery,
-                    'at': fields.Datetime.to_string(dv.last_fix_at) if dv.last_fix_at else '',
+                    'at': self._txt_local(dv.last_fix_at, zona),
                 })
 
-        # --- recorrido del rango, por dispositivo (para las lineas del mapa) ---
+        # --- recorrido del periodo, por telefono (las lineas del mapa) ---
         track = {}
-        pts = Loc.search_read(dom_loc + [('device_id', 'in', dev_ids)],
-                              ['device_id', 'lat', 'lon'], order='device_id, at', limit=6000)
-        for p in pts:
-            did = p['device_id'][0]
-            track.setdefault(str(did), []).append([p['lat'], p['lon']])
+        for p in Loc.search_read(dom_loc, ['device_id', 'lat', 'lon'],
+                                 order='device_id, at', limit=6000):
+            track.setdefault(str(p['device_id'][0]), []).append([p['lat'], p['lon']])
 
-        # --- llamadas ---
-        dir_lbl = dict(Call._fields['direction'].selection)
-        por_dir = {'in': 0, 'out': 0, 'missed': 0, 'rejected': 0, 'blocked': 0, 'other': 0}
-        for g in Call._read_group(dom_call + [('device_id', 'in', dev_ids)],
-                                  ['direction'], ['__count']):
-            if g[0]:
-                por_dir[g[0]] = g[1]
-        total_seg = sum(Call.search(dom_call + [('device_id', 'in', dev_ids)]).mapped('duration_seconds'))
-        por_dia = []
-        for g in Call._read_group(dom_call + [('device_id', 'in', dev_ids)],
-                                  ['at:day'], ['__count']):
-            por_dia.append({'dia': fields.Date.to_string(g[0].date() if hasattr(g[0], 'date') else g[0]),
-                            'n': g[1]})
-        # top numeros/contactos
-        top = {}
-        for g in Call._read_group(dom_call + [('device_id', 'in', dev_ids)],
-                                  ['number'], ['__count', 'duration_seconds:sum']):
-            num = g[0] or '—'
-            top[num] = {'number': g[0] or '', 'count': g[1],
-                        'minutes': round((g[2] or 0) / 60.0, 1), 'contact': ''}
-        for c in Call.search_read(
-                dom_call + [('device_id', 'in', dev_ids), ('contact', '!=', False),
-                            ('contact', '!=', '')], ['number', 'contact'], limit=3000):
-            n = c['number'] or '—'
-            if n in top and not top[n]['contact']:
-                top[n]['contact'] = c['contact']
-        top_list = sorted(top.values(), key=lambda x: (-x['count'], -x['minutes']))[:8]
+        # --- el periodo anterior, igual de largo, para las flechas ---
+        prev_call = Call._read_group(
+            [('device_id', 'in', dev_ids), ('at', '>=', pt1), ('at', '<', pt2)],
+            [], ['__count', 'duration_seconds:sum'])
+        prev_use = Usage._read_group(
+            [('device_id', 'in', dev_ids), ('date', '>=', p1), ('date', '<=', p2)],
+            [], ['foreground_seconds:sum'])
+        prev_vis = Visita.search_count(
+            ['|', ('device_id', 'in', dev_ids), ('employee_id', 'in', emp_ids),
+             ('check_in', '>=', pt1), ('check_in', '<', pt2)])
+        prev = {
+            'calls': (prev_call[0][0] if prev_call else 0) or 0,
+            'minutes': round(((prev_call[0][1] if prev_call else 0) or 0) / 60.0, 1),
+            'screen_hours': round(((prev_use[0][0] if prev_use else 0) or 0) / 3600.0, 2),
+            'visitas': prev_vis,
+        }
 
-        # --- top de apps del movil en el rango ---
-        apps = []
-        for g in Usage._read_group(dom_use + [('device_id', 'in', dev_ids)],
-                                   ['app_label'], ['foreground_seconds:sum']):
-            etq = g[0] or 'Sin nombre'
-            apps.append({'label': etq, 'hours': round((g[1] or 0) / 3600.0, 2)})
-        apps = sorted(apps, key=lambda x: -x['hours'])[:8]
+        # --- la linea del dia: solo cuando el periodo es UN dia ---
+        linea = None
+        if d1 == d2:
+            lo, hi = 8.0, 20.0
+            filas = []
+            pings_por_dev = {}
+            for p in Loc.search_read(dom_loc, ['device_id', 'at'], order='at', limit=20000):
+                pings_por_dev.setdefault(p['device_id'][0], []).append(p['at'])
+            for dv in devices:
+                z = self._zona_de(dv)
+                # un ping cada 5 min como mucho: es "con señal", no cada punto
+                pings = sorted({round(self._hora_local(a, z) * 12) / 12.0
+                                for a in pings_por_dev.get(dv.id, [])})
+                cal = []
+                for c in calls_por_dev.get(dv.id, []):
+                    a = self._hora_local(c['at'], z)
+                    cal.append({'a': a, 'b': min(24.0, a + max(c['duration_seconds'] or 0, 60) / 3600.0),
+                                'dir': c['direction'] if c['direction'] in por_dir else 'other',
+                                'quien': c['contact'] or c['number'] or ''})
+                vis = []
+                for v in vis_por_dev.get(dv.id, []):
+                    a = self._hora_local(v['check_in'], z)
+                    b = self._hora_local(v['check_out'], z) if v['check_out'] else None
+                    if b is not None and b < a:      # cerro al dia siguiente
+                        b = 24.0
+                    vis.append({'a': a, 'b': b, 'estado': v['estado'] or '',
+                                'cliente': v['partner_id'][1] if v['partner_id'] else '',
+                                'en_sitio': v['en_sitio'] or '',
+                                'resultado': res_lbl.get(v['resultado'], '')})
+                if not (pings or cal or vis):
+                    continue
+                for h in pings:
+                    lo, hi = min(lo, h), max(hi, h)
+                for s in cal + vis:
+                    lo, hi = min(lo, s['a']), max(hi, s['b'] if s['b'] is not None else s['a'])
+                filas.append({'device_id': dv.id, 'employee_id': dv.employee_id.id or 0,
+                              'pings': pings, 'calls': cal, 'visitas': vis})
+            linea = {'ventana': [int(math.floor(lo)), int(min(24, math.ceil(hi)))], 'dias': filas}
 
         return {
             'kpis': {
                 'devices': len(devices), 'online': en_linea,
-                'retirados': retirados, 'sin_senal': sin_senal,
-                'con_problemas': sum(1 for r in dev_rows
-                                     if r.get('health') in ('bad', 'warn')),
+                'retirados': retirados, 'sin_senal': sin_senal, 'nunca': nunca,
+                'con_problemas': con_problemas, 'bateria_baja': bateria_baja,
                 'points': sum(puntos.values()),
                 'calls': sum(por_dir.values()),
                 'calls_in': por_dir['in'], 'calls_out': por_dir['out'],
                 'calls_missed': por_dir['missed'],
                 'minutes': round(total_seg / 60.0, 1),
+                'screen_hours': round(sum(pantalla.values()) / 3600.0, 2),
+                'work_hours': round(sum(trabajo.values()) / 3600.0, 2),
+                'visitas': vis_tot['n'], 'visitas_en_sitio': vis_tot['en_sitio'],
+                'visitas_lejos': vis_tot['lejos'], 'visitas_en_curso': vis_tot['en_curso'],
             },
+            'prev': prev,
             'devices': dev_rows,
             'markers': marcadores,
+            'visit_markers': visit_markers,
             'track': track,
             'calls': {
                 'in': por_dir['in'], 'out': por_dir['out'], 'missed': por_dir['missed'],
                 'rejected': por_dir['rejected'], 'blocked': por_dir['blocked'],
                 'other': por_dir['other'],
                 'total': sum(por_dir.values()), 'minutes': round(total_seg / 60.0, 1),
-                'by_day': por_dia, 'top': top_list, 'labels': dir_lbl,
+                'by_day': dias_llam, 'top': top_list,
+                'labels': dict(Call._fields['direction'].selection),
             },
             'apps': apps,
+            'linea': linea,
+        }
+
+    @api.model
+    def ficha(self, device_id, desde, hasta):
+        """Lo que la ficha lateral muestra de UN telefono en el periodo y que
+        no viaja en `dashboard` para no cargar el tablero: sus ultimas
+        llamadas, sus visitas, sus apps y la salud del equipo, ya en la zona
+        de su persona. Parte de `self.search` (no sudo): mismas reglas."""
+        Loc = self.env['foco.location']
+        Call = self.env['foco.call']
+        Usage = self.env['foco.mobile.usage']
+        Visita = self.env['foco.visita']
+        Cap = self.env['foco.mobile.capture']
+
+        dv = self.search([('id', '=', int(device_id))], limit=1)
+        if not dv:
+            return {}
+        d1 = fields.Date.to_date(desde) or fields.Date.context_today(self)
+        d2 = fields.Date.to_date(hasta) or d1
+        if d2 < d1:
+            d1, d2 = d2, d1
+        dt1, dt2 = self._limites_utc(d1, d2, self._zona_rango())
+        z = self._zona_de(dv)
+        con_dia = d1 != d2
+        registradas = set(self.env['foco.mobile.app'].registradas())
+
+        dir_lbl = dict(Call._fields['direction'].selection)
+        llamadas = []
+        for c in Call.search_read(
+                [('device_id', '=', dv.id), ('at', '>=', dt1), ('at', '<', dt2)],
+                ['at', 'direction', 'duration_seconds', 'number', 'contact'],
+                order='at desc', limit=12):
+            llamadas.append({
+                'cuando': self._txt_local(c['at'], z, con_dia),
+                'quien': c['contact'] or c['number'] or '—', 'numero': c['number'] or '',
+                'dir': c['direction'] if c['direction'] in dir_lbl else 'other',
+                'dir_txt': dir_lbl.get(c['direction'], 'Otra'),
+                'minutos': round((c['duration_seconds'] or 0) / 60.0, 1),
+            })
+
+        res_lbl = dict(Visita._fields['resultado'].selection)
+        sitio_lbl = dict(Visita._fields['en_sitio'].selection)
+        dom_vis = [('device_id', '=', dv.id)]
+        if dv.employee_id:
+            dom_vis = ['|', ('device_id', '=', dv.id), ('employee_id', '=', dv.employee_id.id)]
+        visitas = []
+        for v in Visita.search_read(
+                dom_vis + [('check_in', '>=', dt1), ('check_in', '<', dt2)],
+                ['partner_id', 'check_in', 'check_out', 'estado', 'en_sitio', 'resultado',
+                 'distancia_m', 'analisis_puntaje', 'audio_estado'],
+                order='check_in desc', limit=30):
+            visitas.append({
+                'id': v['id'], 'cliente': v['partner_id'][1] if v['partner_id'] else '',
+                'llegada': self._txt_local(v['check_in'], z, con_dia),
+                'salida': self._txt_local(v['check_out'], z, False) if v['check_out'] else '',
+                'estado': v['estado'] or '', 'en_sitio': v['en_sitio'] or '',
+                'en_sitio_txt': sitio_lbl.get(v['en_sitio'], ''),
+                'distancia_m': int(v['distancia_m'] or 0),
+                'resultado': v['resultado'] or '', 'resultado_txt': res_lbl.get(v['resultado'], ''),
+                'puntaje': v['analisis_puntaje'] or 0,
+                'analizada': v['audio_estado'] == 'listo',
+            })
+
+        apps = []
+        for g in Usage._read_group(
+                [('device_id', '=', dv.id), ('date', '>=', d1), ('date', '<=', d2)],
+                ['package', 'app_label'], ['foreground_seconds:sum']):
+            apps.append({'label': g[1] or g[0] or 'Sin nombre', 'package': g[0] or '',
+                         'registrada': (g[0] or '') in registradas,
+                         'hours': round((g[2] or 0) / 3600.0, 2)})
+        apps = sorted(apps, key=lambda x: -x['hours'])[:8]
+
+        checks = []
+        if dv.health_at:
+            checks = [
+                {'k': 'Servicio activo', 'ok': dv.health_service_running},
+                {'k': 'Ubicación encendida', 'ok': dv.health_location_on},
+                {'k': 'Permiso de ubicación', 'ok': dv.health_perm_location},
+                {'k': 'Ubicación en segundo plano', 'ok': dv.health_perm_bg_location},
+                {'k': 'Acceso a uso de apps', 'ok': dv.health_usage_access},
+                {'k': 'Batería sin restricción', 'ok': dv.health_battery_unrestricted},
+                {'k': 'Permiso de llamadas', 'ok': dv.health_perm_calls},
+                {'k': 'Accesibilidad activa', 'ok': dv.health_accessibility},
+                {'k': 'Gestionado (Device Owner)', 'ok': dv.health_device_owner},
+            ]
+        return {
+            'llamadas': llamadas,
+            'visitas': visitas,
+            'apps': apps,
+            'ubicaciones': Loc.search_count([('device_id', '=', dv.id), ('at', '>=', dt1), ('at', '<', dt2)]),
+            'capturas': Cap.search_count([('device_id', '=', dv.id), ('at', '>=', dt1), ('at', '<', dt2)]),
+            'ultima_ubicacion': {
+                'lat': dv.last_lat, 'lon': dv.last_lon,
+                'cuando': self._txt_local(dv.last_fix_at, z),
+            } if (dv.last_lat or dv.last_lon) else None,
+            'salud': {
+                'status': dv.health_status, 'issues': dv.health_issues or '',
+                'cuando': self._txt_local(dv.health_at, z), 'checks': checks,
+                'uptime_h': round((dv.health_uptime_s or 0) / 3600.0, 1),
+                'buffered': dv.health_buffered or 0,
+            },
+            'play_update': {
+                'cuando': self._txt_local(dv.play_update_at, z),
+                'modo': dv.play_update_mode or '', 'resultado': dv.play_update_result or '',
+                'segundos': dv.play_update_secs or 0,
+            } if dv.play_update_at else None,
+            'equipo': {
+                'name': dv.name or '', 'numero': dv.phone_number or '',
+                'android': dv.os_version or '', 'agente': dv.app_version or '',
+            },
         }
 
     # ------------------------------------------------------- visitas de campo
