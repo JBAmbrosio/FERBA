@@ -307,11 +307,26 @@
         .fd_tree_leg .der { display: none; } }
 
     .fd_emp { display: flex; align-items: center; gap: 11px; min-width: 190px; }
+    // La foto va ENCIMA de las iniciales: si la imagen no carga, se ven las
+    // iniciales de siempre; si carga, la tapa. Nunca un circulo vacio.
     .fd_ava { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; display: grid; place-items: center;
-        font-size: 12.5px; font-weight: 650;
+        font-size: 12.5px; font-weight: 650; position: relative; overflow: hidden;
         background: hsl(var(--h), 62%, 90%); color: hsl(var(--h), 55%, 30%); border: 1px solid hsl(var(--h), 45%, 82%);
+        img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         &.lg { width: 48px; height: 48px; flex-basis: 48px; font-size: 17px; }
     }
+    // Asistencia en la tarjeta: cuatro cifras en fila, cada una con su palabra
+    // debajo. Solo toma color la cifra que no es cero y que pide algo.
+    .fd_kpi_hint { font-size: 11px; color: var(--ink3); white-space: nowrap; }
+    .fd_asis { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px;
+        .a { display: flex; flex-direction: column; gap: 1px; min-width: 52px;
+            b { font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink2); }
+            small { font-size: 10.5px; color: var(--ink3); text-transform: uppercase; letter-spacing: .03em; }
+            &.good b { color: var(--good); } &.mid b { color: var(--mid); } &.low b { color: var(--low); }
+        }
+    }
+    // Entrada y salida checadas en la celda de Jornada (solo en un dia).
+    .fd_jor_hhmm { display: block; font-size: 12px; color: var(--ink2); font-weight: 600; margin-bottom: 1px; }
     .fd_emp_txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .fd_emp_name { font-weight: 600; color: var(--ink); }
     .fd_tag { font-size: 10.5px; font-weight: 600; color: var(--low); text-transform: uppercase; letter-spacing: .03em;
@@ -330,6 +345,15 @@
         // culpable. Las capturas estan a un clic en la tarjeta de arriba.
         &.ia { color: var(--mid); text-transform: none; letter-spacing: 0;
             font-variant-numeric: tabular-nums; cursor: help; }
+        // Adherencia al turno. Tarde y "sin entrada aun" en ambar (pide
+        // mirar); sin registro en rojo (es una ausencia afirmable); permiso,
+        // checada abierta y "no checo" en tinta secundaria (son dato, no
+        // falta). Nunca se colorea "a tiempo": no se dibuja.
+        &.adh { text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; cursor: help;
+            &.tarde, &.sin_entrada, &.salio_antes { color: var(--mid); }
+            &.falto, &.sin_senal { color: var(--low); }
+            &.permiso, &.festivo, &.sin_checada, &.no_checo { color: var(--ink3); }
+        }
     }
     .fd_kpi_click { cursor: pointer; }
 

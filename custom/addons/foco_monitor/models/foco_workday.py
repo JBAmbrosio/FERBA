@@ -39,6 +39,40 @@ EXPLICA = {
     'suspendido': 'suspendido',
 }
 
+# Adherencia al turno (10-oct-2026): si la persona llego a su hora, tarde, si
+# falto o si tenia permiso. Se compara la ENTRADA real (la checada; si no hay,
+# la primera senal con persona en su equipo) contra la primera franja del
+# calendario laboral de ese dia, con una tolerancia en minutos (global, con
+# excepcion por empleado).
+#
+# Lo que NO hace, a proposito: no inventa horarios. Si el calendario dice
+# 08:00 y la persona entra a las 08:20 todos los dias, el sistema dice "tarde
+# 20 min" todos los dias; la correccion es ponerle su horario real en
+# Configuracion > Horarios laborales, no ablandar la regla.
+#
+# Cada estado va con su evidencia (hora de entrada, minutos, fuente) para que
+# quien lea pueda no confiar en la etiqueta.
+ADHERENCIA = [
+    ('a_tiempo', 'A tiempo'),
+    ('tarde', 'Tarde'),
+    ('no_iniciado', 'Aun no empieza'),         # hoy, antes de su hora + gracia
+    ('sin_entrada', 'Sin entrada aun'),        # hoy, ya paso su hora y no hay rastro
+    ('sin_checada', 'Asistencia abierta de otro dia'),  # no checo ese dia; una checada previa sigue abierta
+    ('falto', 'Falto'),                        # dia cerrado: ni checada ni senal de persona
+    ('sin_senal', 'Sin senal todo el dia'),    # no usa checador y su equipo no dio senal de persona
+    ('sin_dato', 'Equipo sin reportar'),       # no usa checador y su equipo no reporto ese dia
+    ('permiso', 'Permiso'),
+    ('festivo', 'Festivo'),
+    ('no_laborable', 'No laborable'),
+    ('sin_jornada', 'Sin horario'),
+]
+ADHERENCIA_ETQ = dict(ADHERENCIA)
+
+# Los estados que cuentan como "vino" (hay una entrada que medir).
+ADH_CON_ENTRADA = ('a_tiempo', 'tarde')
+# Los que cuentan como ausencia afirmable en un dia laborable cerrado.
+ADH_AUSENCIA = ('falto', 'sin_senal')
+
 
 class FocoWorkday(models.Model):
     """La jornada de una persona en un dia: a que hora empezo, a que hora termino.
@@ -128,6 +162,43 @@ class FocoWorkday(models.Model):
         help='Ya se le recordo al empleado que no cerro salida ese dia. Se '
              'avisa UNA vez por dia, no se insiste.')
 
+    # ---- adherencia al turno (10-oct-2026) ---------------------------------
+    adherence = fields.Selection(
+        ADHERENCIA, string='Asistencia', readonly=True, index=True,
+        help='Como llego ese dia contra la primera franja de su horario: a '
+             'tiempo, tarde (mas alla de la tolerancia), falto, o tenia '
+             'permiso/festivo. Siempre lleva la evidencia al lado (entrada, '
+             'minutos, fuente).')
+    adherence_source = fields.Selection(
+        [('checador', 'Checador'), ('equipo', 'Su equipo')],
+        string='Entrada segun', readonly=True,
+        help='De donde salio la hora de entrada: la checada, o -si no checo- '
+             'la primera senal con persona en su computadora.')
+    check_in_at = fields.Datetime(string='Entrada checada', readonly=True)
+    check_out_at = fields.Datetime(
+        string='Salida checada', readonly=True,
+        help='La ultima salida checada ESE dia. Vacia si no checo salida o si '
+             'la cerro otro dia (salida olvidada).')
+    check_in_missing = fields.Boolean(
+        string='No checo entrada', readonly=True, index=True,
+        help='Usa el checador, ese dia no checo, pero su equipo prueba que '
+             'estuvo. Dato para RRHH; no es una falta.')
+    late_minutes = fields.Integer(
+        string='Minutos tarde', readonly=True,
+        help='Minutos entre su hora de entrada y la entrada real. 0 si llego '
+             'antes. Se guarda aunque quede dentro de la tolerancia.')
+    early_minutes = fields.Integer(
+        string='Minutos antes de su salida', readonly=True,
+        help='Minutos entre su ultima salida checada y el fin de su horario. '
+             '0 si salio a su hora o despues.')
+    left_early = fields.Boolean(
+        string='Salio antes', readonly=True, index=True,
+        help='Checo salida antes del fin de su horario, mas alla de la '
+             'tolerancia. Solo se afirma con una salida checada el mismo dia.')
+    expected_start = fields.Float(string='Hora de entrada (horario)', readonly=True)
+    expected_end = fields.Float(string='Hora de salida (horario)', readonly=True)
+    leave_name = fields.Char(string='Permiso o festivo', readonly=True)
+
     gap_count = fields.Integer(string='Huecos', readonly=True)
     unexplained_minutes = fields.Integer(
         string='Sin explicar (min)', readonly=True,
@@ -194,6 +265,10 @@ class FocoWorkday(models.Model):
         Ajustes = self.env['foco.settings'].sudo()
         ajustes = Ajustes.get_settings()
         salida = self.browse()
+        # Lo que hace falta para la adherencia (checadas, permisos, festivos,
+        # horarios, tolerancias): UNA lectura para todas las personas y dias
+        # de esta llamada, no una por renglon.
+        ctx = self._adherencia_contexto(employees, min(dias), max(dias))
 
         for emp in employees:
             zona = self._tz(emp)
@@ -265,6 +340,10 @@ class FocoWorkday(models.Model):
                 vals['check_out_missing'] = falta
                 if not falta:
                     vals['check_out_notified'] = False
+                # Adherencia al turno: la entrada real (checada, o la primera
+                # senal con PERSONA en el equipo si no checo) contra su horario.
+                vals.update(self._adherencia_de(
+                    ctx, emp, dia, primero, bool(primero_p or usos)))
                 if primero and ultimo and (primero_p or ultimo_p or usos):
                     vals['state'] = 'completo'
                 elif primero and ultimo:
@@ -285,10 +364,14 @@ class FocoWorkday(models.Model):
                                        ('date', '=', dia)], limit=1)
                 if jornada:
                     jornada.write(vals)
-                elif vals['state'] == 'sin_dato':
+                elif vals['state'] == 'sin_dato' and vals.get('adherence') not in (
+                        'falto', 'sin_senal', 'sin_checada', 'permiso', 'festivo'):
                     # Un dia del que no se sabe absolutamente nada no merece un
                     # renglon: crearlos llenaria la base de vacios cada vez que
-                    # alguien mire un mes hacia atras.
+                    # alguien mire un mes hacia atras. La excepcion es un dia
+                    # laborable CERRADO en que si se sabe algo: que falto, que
+                    # tenia permiso o que era festivo. Ese renglon es el que
+                    # permite filtrar "faltas" en la lista de jornadas.
                     continue
                 else:
                     vals.update({'employee_id': emp.id, 'date': dia})
@@ -335,6 +418,320 @@ class FocoWorkday(models.Model):
             ('employee_id', '=', emp.id),
             ('check_in', '>=', ini_utc), ('check_in', '<=', fin_utc),
             ('check_out', '=', False)]))
+
+    # ------------------------------------------------------ adherencia al turno
+    #
+    # La pregunta es "llego a su hora?", y se contesta con tres hechos: su
+    # horario (resource.calendar), su entrada real (la checada; si no checo, la
+    # primera senal con persona en su equipo) y una tolerancia. Cada estado
+    # sale con su evidencia para que la etiqueta no tenga que creerse.
+    #
+    # Reglas que evitan acusar en falso, todas medidas con datos reales de
+    # FERBA el 9-oct-2026:
+    #  - Una checada que quedo abierta de otro dia (salida olvidada que la
+    #    checada siguiente cierra) NO prueba que la persona falto ese dia: si
+    #    su equipo dio senal, la entrada sale del equipo; si no, se dice
+    #    "asistencia abierta de otro dia", no "falto".
+    #  - Una checada de menos de un minuto (doble toque) no es una jornada.
+    #  - "Salio antes" solo se afirma con una SALIDA checada el mismo dia y
+    #    con el dia ya cerrado; una salida sin checar no es una salida.
+    #  - Un permiso validado o un festivo manda sobre todo lo demas.
+    #  - Quien no usa el checador se mide por su equipo, y se dice asi.
+
+    @api.model
+    def _hora_dec(self, dt_local):
+        return dt_local.hour + dt_local.minute / 60.0 + dt_local.second / 3600.0
+
+    @api.model
+    def _adherencia_contexto(self, empleados, d_ini, d_fin):
+        """Todo lo que la regla necesita para esas personas en [d_ini, d_fin],
+        leido UNA vez: checadas (con la ventana de 30 dias que define "usa el
+        checador"), permisos validados, festivos, horarios, zonas, tolerancias
+        y la ultima senal de cada equipo."""
+        Ajustes = self.env['foco.settings'].sudo()
+        ajustes = Ajustes.get_settings()
+        ctx = {'ajustes': ajustes, 'zona': {}, 'intervalos': {}, 'gracia': {},
+               'checadas': {}, 'fechas_checadas': {}, 'permisos': {},
+               'festivos': [], 'vivo': {}}
+        if not empleados:
+            return ctx
+        global_gracia = max(int(ajustes.adherencia_gracia_min or 0), 0)
+        for emp in empleados:
+            ctx['zona'][emp.id] = Ajustes._tzinfo_for(emp)
+            ctx['intervalos'][emp.id] = Ajustes.calendar_intervals(emp.resource_calendar_id)
+            propia = int(getattr(emp, 'foco_gracia_min', 0) or 0)
+            ctx['gracia'][emp.id] = propia if propia > 0 else global_gracia
+        # Ventana ancha en UTC naive: un dia antes y dos despues, mas los 30
+        # dias hacia atras que definen "usa el checador".
+        lo = datetime.combine(d_ini - timedelta(days=Ajustes.CHECADOR_VENTANA_DIAS + 1), time.min)
+        hi = datetime.combine(d_fin + timedelta(days=2), time.min)
+        if 'hr.attendance' in self.env:
+            try:
+                regs = self.env['hr.attendance'].sudo().search_read(
+                    [('employee_id', 'in', empleados.ids),
+                     ('check_in', '>=', lo), ('check_in', '<=', hi)],
+                    ['employee_id', 'check_in', 'check_out'], order='check_in')
+            except Exception:
+                regs = []
+            for r in regs:
+                eid = r['employee_id'][0]
+                z = ctx['zona'].get(eid)
+                if not z:
+                    continue
+                ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(z)
+                co = (pytz.UTC.localize(fields.Datetime.to_datetime(r['check_out'])).astimezone(z)
+                      if r['check_out'] else None)
+                ctx['checadas'].setdefault(eid, []).append((ci, co))
+                ctx['fechas_checadas'].setdefault(eid, set()).add(ci.date())
+        if 'hr.leave' in self.env:
+            try:
+                permisos = self.env['hr.leave'].sudo().search_read(
+                    [('employee_id', 'in', empleados.ids), ('state', '=', 'validate'),
+                     ('date_from', '<=', hi), ('date_to', '>=', lo)],
+                    ['employee_id', 'date_from', 'date_to', 'holiday_status_id'])
+            except Exception:
+                permisos = []
+            for p in permisos:
+                eid = p['employee_id'][0]
+                z = ctx['zona'].get(eid)
+                if not z or not p['date_from'] or not p['date_to']:
+                    continue
+                a = pytz.UTC.localize(fields.Datetime.to_datetime(p['date_from'])).astimezone(z).date()
+                b = pytz.UTC.localize(fields.Datetime.to_datetime(p['date_to'])).astimezone(z).date()
+                nombre = p['holiday_status_id'][1] if p['holiday_status_id'] else 'Permiso'
+                ctx['permisos'].setdefault(eid, []).append((a, b, nombre))
+        if 'resource.calendar.leaves' in self.env:
+            try:
+                festivos = self.env['resource.calendar.leaves'].sudo().search_read(
+                    [('resource_id', '=', False),
+                     ('date_from', '<=', hi), ('date_to', '>=', lo)],
+                    ['name', 'date_from', 'date_to', 'calendar_id'])
+            except Exception:
+                festivos = []
+            for f in festivos:
+                ctx['festivos'].append((
+                    fields.Datetime.to_datetime(f['date_from']),
+                    fields.Datetime.to_datetime(f['date_to']),
+                    f['name'] or 'Festivo',
+                    f['calendar_id'][0] if f['calendar_id'] else 0))
+        for pc in self.env['foco.computer'].sudo().search(
+                [('employee_id', 'in', empleados.ids), ('last_seen', '!=', False)]):
+            eid = pc.employee_id.id
+            if not ctx['vivo'].get(eid) or pc.last_seen > ctx['vivo'][eid]:
+                ctx['vivo'][eid] = pc.last_seen
+        return ctx
+
+    @api.model
+    def _adherencia_de(self, ctx, emp, dia, primera_senal=None, con_persona=False):
+        """La adherencia de UNA persona en UN dia, con el contexto ya leido.
+
+        `primera_senal` (UTC naive) y `con_persona` vienen de la jornada: la
+        primera senal en el equipo y si consta que habia alguien. Sirven de
+        entrada cuando no hay checada.
+        """
+        out = {
+            'adherence': False, 'adherence_source': False,
+            'check_in_at': False, 'check_out_at': False, 'check_in_missing': False,
+            'late_minutes': 0, 'early_minutes': 0, 'left_early': False,
+            'expected_start': 0.0, 'expected_end': 0.0, 'leave_name': '',
+        }
+        z = ctx['zona'].get(emp.id) or pytz.UTC
+        ahora = datetime.now(z)
+        if dia > ahora.date():
+            return out
+        intervalos = ctx['intervalos'].get(emp.id) or {}
+        if not intervalos:
+            out['adherence'] = 'sin_jornada'
+            return out
+        spans = sorted(intervalos.get(dia.isoweekday()) or [])
+        if not spans:
+            out['adherence'] = 'no_laborable'
+            return out
+        ini_esp, fin_esp = float(spans[0][0]), float(spans[-1][1])
+        out['expected_start'], out['expected_end'] = ini_esp, fin_esp
+        base = z.localize(datetime.combine(dia, time.min))
+        fin_dia = z.localize(datetime.combine(dia, time.max))
+        base_utc = base.astimezone(pytz.UTC).replace(tzinfo=None)
+        fin_utc = fin_dia.astimezone(pytz.UTC).replace(tzinfo=None)
+        cal_id = emp.resource_calendar_id.id or 0
+        for a, b, nombre, cal in ctx['festivos']:
+            if (not cal or cal == cal_id) and a <= fin_utc and b >= base_utc:
+                out['adherence'] = 'festivo'
+                out['leave_name'] = nombre
+                return out
+        for a, b, nombre in ctx['permisos'].get(emp.id, []):
+            if a <= dia <= b:
+                out['adherence'] = 'permiso'
+                out['leave_name'] = nombre
+                return out
+
+        gracia = ctx['gracia'].get(emp.id, 0)
+        fechas = ctx['fechas_checadas'].get(emp.id) or set()
+        desde_usa = dia - timedelta(days=ctx['ajustes'].CHECADOR_VENTANA_DIAS)
+        usa = any(desde_usa <= f <= dia for f in fechas)
+        todas = ctx['checadas'].get(emp.id, [])
+        propias = [(ci, co) for ci, co in todas if ci.date() == dia]
+        # Un doble toque (menos de un minuto) no es una jornada; si es lo
+        # unico que hay, al menos prueba que la persona paso por el checador.
+        utiles = [(ci, co) for ci, co in propias
+                  if not (co and (co - ci).total_seconds() < 60)] or propias
+        cubre = any(ci.date() < dia and (co is None or co.date() >= dia)
+                    for ci, co in todas)
+        es_hoy = dia == ahora.date()
+        h_ahora = self._hora_dec(ahora) if es_hoy else 24.0
+
+        llegada, fuente = None, None
+        if utiles:
+            llegada, fuente = utiles[0][0], 'checador'
+            out['check_in_at'] = llegada.astimezone(pytz.UTC).replace(tzinfo=None)
+        elif primera_senal and con_persona:
+            cand = pytz.UTC.localize(primera_senal).astimezone(z)
+            if cand.date() == dia:
+                llegada, fuente = cand, 'equipo'
+        out['check_in_missing'] = bool(usa and not utiles and llegada is not None)
+
+        if llegada is None:
+            if es_hoy and h_ahora < ini_esp + gracia / 60.0:
+                estado = 'no_iniciado'
+            elif es_hoy and h_ahora <= fin_esp:
+                estado = 'sin_entrada'
+                out['late_minutes'] = max(int(round((h_ahora - ini_esp) * 60)), 0)
+            elif usa:
+                # Dia cerrado sin checada propia. Si una checada de otro dia
+                # sigue abierta sobre este, no se puede afirmar nada: ni que
+                # vino ni que falto.
+                estado = 'sin_checada' if cubre else 'falto'
+            else:
+                vivo = ctx['vivo'].get(emp.id)
+                estado = 'sin_senal' if (vivo and vivo >= base_utc) else 'sin_dato'
+            out['adherence'] = estado
+            out['adherence_source'] = 'checador' if usa else 'equipo'
+        else:
+            retraso = int(round((self._hora_dec(llegada) - ini_esp) * 60))
+            out['late_minutes'] = max(retraso, 0)
+            out['adherence'] = 'tarde' if retraso > gracia else 'a_tiempo'
+            out['adherence_source'] = fuente
+
+        # La salida: solo con una salida checada EL MISMO dia y con el dia
+        # cerrado (o ya pasada su hora de salida, si es hoy).
+        if utiles:
+            ult_ci, ult_co = utiles[-1]
+            if ult_co and ult_co.date() == dia:
+                out['check_out_at'] = ult_co.astimezone(pytz.UTC).replace(tzinfo=None)
+                if (not es_hoy) or h_ahora > fin_esp:
+                    antes = int(round((fin_esp - self._hora_dec(ult_co)) * 60))
+                    out['early_minutes'] = max(antes, 0)
+                    out['left_early'] = antes > gracia
+        return out
+
+    @api.model
+    def _adherencia_texto(self, a):
+        """La frase corta que acompana al estado, con su evidencia. `a` es el
+        dict que devuelve `_adherencia_de` (o un renglon de jornada leido)."""
+        est = a.get('adherence') or ''
+        etq = ADHERENCIA_ETQ.get(est, est)
+        partes = []
+        if est == 'tarde' and a.get('late_minutes'):
+            partes.append('+%d min' % a['late_minutes'])
+        if est == 'sin_entrada' and a.get('late_minutes'):
+            partes.append('%d min despues de su hora' % a['late_minutes'])
+        if est in ('permiso', 'festivo') and a.get('leave_name'):
+            partes.append(a['leave_name'])
+        if a.get('adherence_source') == 'equipo' and est in ADH_CON_ENTRADA:
+            partes.append('segun su equipo')
+        return ('%s %s' % (etq, ' · '.join(partes))).strip() if partes else etq
+
+    @api.model
+    def adherencia(self, desde, hasta):
+        """La adherencia de cada persona monitoreada en [desde, hasta], para el
+        tablero y el reporte diario.
+
+        Devuelve {'personas': {emp_id: {...}}, 'equipo': {...}}. Por persona:
+        el estado del ULTIMO dia del rango (`hoy`, vivo: se calcula al momento,
+        no se lee de la jornada guardada) y los conteos del periodo. El equipo:
+        cuantas personas estan en cada estado el ultimo dia. Respeta el
+        alcance de quien pregunta (la lista de personas sale sin sudo).
+        """
+        desde = fields.Date.to_date(desde)
+        hasta = fields.Date.to_date(hasta)
+        vacio = {'personas': {}, 'equipo': {}, 'gracia': 0}
+        if not desde or not hasta or hasta < desde:
+            return vacio
+        empleados = self.env['foco.computer'].search(
+            [('employee_id', '!=', False)]).mapped('employee_id')
+        if not empleados:
+            return vacio
+        ctx = self._adherencia_contexto(empleados, desde, hasta)
+        # La primera senal con persona de cada dia, de la jornada guardada.
+        senales = {}
+        for w in self.sudo().search_read(
+                [('employee_id', 'in', empleados.ids),
+                 ('date', '>=', desde), ('date', '<=', hasta)],
+                ['employee_id', 'date', 'first_signal', 'state', 'check_out_missing']):
+            senales[(w['employee_id'][0], fields.Date.to_date(w['date']))] = w
+        dias = []
+        d = desde
+        while d <= hasta:
+            dias.append(d)
+            d += timedelta(days=1)
+        personas, equipo = {}, {}
+        for emp in empleados:
+            cnt = {'laborables': 0, 'a_tiempo': 0, 'tarde': 0, 'falto': 0,
+                   'permiso': 0, 'salio_antes': 0, 'sin_checada': 0,
+                   'tarde_min': 0, 'antes_min': 0}
+            ultimo = None
+            for dia in dias:
+                w = senales.get((emp.id, dia)) or {}
+                primera = fields.Datetime.to_datetime(w['first_signal']) if w.get('first_signal') else None
+                a = self._adherencia_de(ctx, emp, dia, primera, w.get('state') == 'completo')
+                est = a['adherence']
+                if est not in ('no_laborable', 'sin_jornada', False):
+                    cnt['laborables'] += 1
+                if est in ('a_tiempo', 'tarde'):
+                    cnt[est] += 1
+                    cnt['tarde_min'] += a['late_minutes'] if est == 'tarde' else 0
+                elif est in ADH_AUSENCIA:
+                    cnt['falto'] += 1
+                elif est in ('permiso', 'festivo'):
+                    cnt['permiso'] += 1
+                elif est == 'sin_checada':
+                    cnt['sin_checada'] += 1
+                if a['left_early']:
+                    cnt['salio_antes'] += 1
+                    cnt['antes_min'] += a['early_minutes']
+                ultimo = a
+            u = ultimo or {}
+            z = ctx['zona'].get(emp.id) or pytz.UTC
+
+            def hhmm(dt):
+                if not dt:
+                    return ''
+                return pytz.UTC.localize(dt).astimezone(z).strftime('%H:%M')
+
+            personas[str(emp.id)] = {
+                'estado': u.get('adherence') or '',
+                'etiqueta': ADHERENCIA_ETQ.get(u.get('adherence') or '', ''),
+                'texto': self._adherencia_texto(u) if u else '',
+                'fuente': u.get('adherence_source') or '',
+                'entrada': hhmm(u.get('check_in_at')),
+                'salida': hhmm(u.get('check_out_at')),
+                'tarde_min': u.get('late_minutes') or 0,
+                'antes_min': u.get('early_minutes') or 0,
+                'salio_antes': bool(u.get('left_early')),
+                'no_checo': bool(u.get('check_in_missing')),
+                'hora_entrada': u.get('expected_start') or 0.0,
+                'hora_salida': u.get('expected_end') or 0.0,
+                'permiso': u.get('leave_name') or '',
+                'gracia': ctx['gracia'].get(emp.id, 0),
+                'dias': cnt,
+            }
+            est = u.get('adherence') or ''
+            if est:
+                equipo[est] = equipo.get(est, 0) + 1
+            if u.get('left_early'):
+                equipo['salio_antes'] = equipo.get('salio_antes', 0) + 1
+        return {'personas': personas, 'equipo': equipo,
+                'gracia': int(ctx['ajustes'].adherencia_gracia_min or 0)}
 
     # ---------------------------------------------- recordatorio "no cerro salida"
     @api.model

@@ -136,6 +136,31 @@
                         <div class="fd_kpi_foot">equipos reportando en este momento</div>
                     </div>
 
+                    <!-- Asistencia (adherencia al turno): como llego cada quien
+                         contra su horario. Hoy son los estados vivos; en un
+                         rango, dias sumados. Abre la lista con la evidencia. -->
+                    <div class="fd_kpi fd_kpi_click" t-on-click="abrirAsistencia"
+                         title="Abrir Jornadas › Asistencia: entrada y salida checadas, minutos tarde y fuente, agrupado por estado.">
+                        <div class="fd_kpi_top">
+                            <span class="fd_kpi_label">Asistencia<t t-if="asis.dias"> · días</t></span>
+                            <t t-if="state.asistencia.gracia">
+                                <span class="fd_kpi_hint">tolerancia <t t-esc="state.asistencia.gracia"/> min</span>
+                            </t>
+                        </div>
+                        <div class="fd_asis">
+                            <span class="a good" title="Entrada dentro de la tolerancia"><b t-esc="asis.aTiempo"/><small>a tiempo</small></span>
+                            <span t-attf-class="a {{ asis.tarde ? 'mid' : '' }}" title="Entrada después de su hora más la tolerancia"><b t-esc="asis.tarde"/><small>tarde</small></span>
+                            <span t-attf-class="a {{ asis.falto ? 'low' : '' }}" title="Día cerrado sin checada ni señal de persona en su equipo"><b t-esc="asis.falto"/><small>sin registro</small></span>
+                            <span class="a" title="Permiso validado o festivo"><b t-esc="asis.permiso"/><small>permiso</small></span>
+                        </div>
+                        <div class="fd_kpi_foot">
+                            <t t-if="asis.salioAntes"><t t-esc="asis.salioAntes"/> salió antes · </t>
+                            <t t-if="asis.enCurso"><t t-esc="asis.enCurso"/> sin entrada aún · </t>
+                            <t t-if="asis.sinChecada"><t t-esc="asis.sinChecada"/> con checada abierta de otro día · </t>
+                            contra el horario de cada quien
+                        </div>
+                    </div>
+
                     <!-- Veredictos de la IA: episodios sospechosos con captura en
                          los que el modelo NO vio trabajo. Solo para quien puede ver
                          los episodios. Es evidencia por revisar: ámbar, nunca rojo. -->
@@ -296,9 +321,36 @@
                                         </td>
                                         <td class="c_emp">
                                             <span class="fd_emp">
-                                                <span class="fd_ava" t-attf-style="--h:{{ e.hue }}"><t t-esc="e.initials"/></span>
+                                                <!-- La foto del empleado (RRHH). Odoo devuelve un avatar con
+                                                     iniciales cuando no hay foto, asi que nunca queda vacio;
+                                                     las iniciales de abajo son el respaldo si la imagen falla. -->
+                                                <span class="fd_ava" t-attf-style="--h:{{ e.hue }}">
+                                                    <t t-esc="e.initials"/>
+                                                    <img t-attf-src="/web/image/hr.employee/{{ e.id }}/avatar_128" t-att-alt="e.name" loading="lazy"/>
+                                                </span>
                                                 <span class="fd_emp_txt">
                                                     <span class="fd_emp_name" t-esc="e.name"/>
+                                                    <!-- Adherencia al turno: solo cuando hay algo que decir
+                                                         (tarde, sin registro, permiso, salio antes). A tiempo
+                                                         no es noticia y no ocupa lugar. -->
+                                                    <t t-if="e.adhChip">
+                                                        <span t-attf-class="fd_tag adh {{ e.adhEstado }}"
+                                                              t-attf-title="{{ e.adhTexto }}{{ e.adhEntrada ? ' · entró ' + e.adhEntrada : '' }}{{ e.adhFuente === 'equipo' ? ' (según su equipo)' : '' }}">
+                                                            <t t-esc="e.adhChip"/>
+                                                        </span>
+                                                    </t>
+                                                    <t t-if="e.adhSalioAntes">
+                                                        <span class="fd_tag adh salio_antes"
+                                                              t-attf-title="Checó salida {{ e.adhSalida }}, {{ e.adhAntesMin }} min antes del fin de su horario.">
+                                                            salió <t t-esc="e.adhAntesMin"/> min antes
+                                                        </span>
+                                                    </t>
+                                                    <t t-if="e.adhNoCheco">
+                                                        <span class="fd_tag adh no_checo"
+                                                              t-attf-title="Su equipo prueba que estuvo (primera señal {{ e.adhEntrada }}), pero no checó entrada.">
+                                                            no checó entrada
+                                                        </span>
+                                                    </t>
                                                     <t t-if="e.sinSenal">
                                                         <span class="fd_tag sin_senal"
                                                               t-attf-title="El agente dejó de reportar ({{ e.sinSenalLabel }}). Los números están incompletos.">
@@ -348,14 +400,29 @@
                                             </span>
                                         </td>
                                         <td class="c_idx">
-                                            <div class="fd_idx">
-                                                <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
-                                                <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
-                                            </div>
+                                            <!-- Sin un solo renglon de uso no hay indice que dibujar: un
+                                                 0% rojo afirmaria que trabajo mal, y lo que pasa es que
+                                                 no hay dato (falto, permiso, equipo apagado). -->
+                                            <t t-if="e.sinUso">
+                                                <span class="fd_jor_na" title="Sin actividad registrada en el periodo.">—</span>
+                                            </t>
+                                            <t t-else="">
+                                                <div class="fd_idx">
+                                                    <div class="fd_meter"><div t-attf-class="fill {{ e.meter }}" t-attf-style="clip-path: inset(0 {{ 100 - (e.index) }}% 0 0)"/></div>
+                                                    <span t-attf-class="fd_idx_v {{ e.meter }}"><t t-esc="e.index"/>%</span>
+                                                </div>
+                                            </t>
                                         </td>
                                         <td class="c_jor">
                                             <t t-if="e.usaChecador">
                                                 <div class="fd_jor" t-attf-title="Checó {{ fmt(e.checado) }} de su horario de {{ fmt(e.expected) }}. El checador manda; el horario es la guía. {{ e.extra > 0.016 ? 'Se quedó ' + fmt(e.extra) + ' de más.' : (e.faltante > 0.016 ? 'Checó ' + fmt(e.faltante) + ' menos.' : '') }}">
+                                                    <!-- En un dia, la entrada y la salida checadas van aqui: es
+                                                         la pregunta que se hace el jefe antes que las horas. -->
+                                                    <t t-if="state.days === 1 and e.adhEntrada">
+                                                        <span class="fd_jor_hhmm">
+                                                            <t t-esc="e.adhEntrada"/><t t-if="e.adhSalida"> → <t t-esc="e.adhSalida"/></t>
+                                                        </span>
+                                                    </t>
                                                     <span class="fd_jor_v"><t t-esc="fmt(e.checado)"/> <small>/ <t t-esc="fmt(e.expected)"/></small></span>
                                                     <div class="fd_meter"><div class="fill chk" t-attf-style="clip-path: inset(0 {{ 100 - e.checadoPct }}% 0 0)"/></div>
                                                     <t t-if="e.extra > 0.016">
@@ -376,9 +443,9 @@
                                                 <span class="fd_jor_na" title="Sin jornada esperada este día (fin de semana o sin calendario).">—</span>
                                             </t>
                                         </td>
-                                        <td class="c_num" t-esc="fmt(e.active)"/>
-                                        <td class="c_num good" t-esc="fmt(e.prod)"/>
-                                        <td class="c_num warn" t-esc="fmt(e.distr)"/>
+                                        <td class="c_num" t-esc="e.sinUso ? '—' : fmt(e.active)"/>
+                                        <td class="c_num good" t-esc="e.sinUso ? '—' : fmt(e.prod)"/>
+                                        <td class="c_num warn" t-esc="e.sinUso ? '—' : fmt(e.distr)"/>
                                         <td class="c_app">
                                             <!-- Dos chips, no una: la app donde mas
                                                  tiempo paso y, si la hay, la distraccion
@@ -536,7 +603,10 @@
                 <div t-attf-class="fd_scrim {{ state.open ? 'open' : '' }}" t-on-click="() => this.closeDetail()"/>
                 <aside t-attf-class="fd_drawer {{ state.open ? 'open' : '' }}" role="dialog" aria-modal="true">
                     <div class="fd_dw_head">
-                        <span class="fd_ava lg" t-attf-style="--h:{{ state.detail.hue }}"><t t-esc="state.detail.initials"/></span>
+                        <span class="fd_ava lg" t-attf-style="--h:{{ state.detail.hue }}">
+                            <t t-esc="state.detail.initials"/>
+                            <img t-attf-src="/web/image/hr.employee/{{ state.detail.id }}/avatar_128" t-att-alt="state.detail.name"/>
+                        </span>
                         <div class="fd_dw_id">
                             <div class="fd_dw_name" t-esc="state.detail.name"/>
                             <div class="fd_dw_meta">

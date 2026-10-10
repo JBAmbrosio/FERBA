@@ -43,6 +43,13 @@
               parent="menu_foco_sec_actividad" action="foco_absence_review_action" sequence="32"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- El reporte del dia que recibe quien revisa la operacion: se arma solo
+         a la hora configurada y queda guardado con sus numeros. Solo
+         administradores: es un resumen de toda la gente. -->
+    <menuitem id="menu_foco_reporte_diario" name="Reporte diario"
+              parent="menu_foco_sec_actividad" action="foco_daily_report_action" sequence="35"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
     <!-- Hechos de integridad: lo medido que puede leerse como intento de
@@ -182,6 +189,11 @@
 
     <menuitem id="menu_foco_horario" name="Jornada"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
+
+    <!-- Tolerancia de entrada y el reporte diario por correo (hora, destinatarios). -->
+    <menuitem id="menu_foco_asistencia" name="Asistencia y reporte diario"
+              parent="menu_foco_config" action="foco_asistencia_action" sequence="5"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- La ventana bloqueante de justificacion de inactividad: umbral GLOBAL en
          minutos y a QUIEN le sale (por empleado, apagada para todos de fabrica). -->

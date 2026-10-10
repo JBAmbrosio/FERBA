@@ -26,6 +26,7 @@ access_foco_event_user,foco.event user,model_foco_event,group_foco_user,1,0,0,0
 access_foco_event_manager,foco.event manager,model_foco_event,group_foco_manager,1,1,1,1
 access_foco_workday_user,foco.workday user,model_foco_workday,group_foco_user,1,0,0,0
 access_foco_workday_manager,foco.workday manager,model_foco_workday,group_foco_manager,1,1,1,1
+access_foco_daily_report_manager,foco.daily.report manager,model_foco_daily_report,group_foco_manager,1,1,1,1
 access_foco_integrity_user,foco.integrity.fact user,model_foco_integrity_fact,group_foco_user,1,0,0,0
 access_foco_integrity_manager,foco.integrity.fact manager,model_foco_integrity_fact,group_foco_manager,1,1,1,1
 access_foco_integrity_verdict_manager,foco.integrity.verdict manager,model_foco_integrity_verdict,group_foco_manager,1,1,1,1

@@ -59,6 +59,8 @@ export class FocoDashboard extends Component {
             refrescando: false, ultimo: null,
             // justificaciones que la IA marco a revisar (pendiente global)
             revisar: 0,
+            // adherencia al turno: {personas: {id: {...}}, equipo: {estado: n}, gracia}
+            asistencia: { personas: {}, equipo: {}, gracia: 0 },
             // analitica
             serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
             expEmpleado: "", expGrano: "dia",
@@ -635,7 +637,7 @@ export class FocoDashboard extends Component {
 
         // La analitica se pide agregada, no cruda: el servidor devuelve
         // decenas de filas donde antes viajaban cientos de miles.
-        const [analitica, jornada, revisar] = await Promise.all([
+        const [analitica, jornada, revisar, asistencia] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
                 [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
@@ -643,8 +645,14 @@ export class FocoDashboard extends Component {
             // Justificaciones que la IA marco a revisar y nadie ha visto. Es un
             // pendiente global (no del periodo): un KPI que lleva a su ventana.
             this.orm.call("foco.absence", "revisar_pendientes", []),
+            // Adherencia al turno (10-oct): a tiempo / tarde / sin registro /
+            // permiso, con la entrada y salida checadas y los minutos. Vivo
+            // para el dia ancla; conteos para el rango.
+            this.orm.call("foco.workday", "adherencia",
+                [this.ymd(curStart), this.ymd(anchor)]),
         ]);
         this.state.revisar = revisar || 0;
+        this.state.asistencia = asistencia || { personas: {}, equipo: {}, gracia: 0 };
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
         // Veredictos de la IA: solo quien puede ver los episodios (administradores)
@@ -732,6 +740,18 @@ export class FocoDashboard extends Component {
             (e.comp[ck] = e.comp[ck] || { key: ck, hours: 0 }).hours += r.active_hours;
         }
 
+        // Quien NO genero un solo renglon de uso tambien tiene fila: es
+        // justamente a quien hay que ver (falto, permiso, equipo apagado).
+        // Antes solo aparecia como un nombre en el pie de "cobertura".
+        for (const c of comps) {
+            if (!c.employee_id) continue;
+            const id = c.employee_id[0];
+            if (!emp[id]) {
+                emp[id] = { id, name: c.employee_id[1], active: 0, prod: 0, distr: 0, call: 0,
+                    injected: 0, idle: 0, apps: {}, sites: {}, comp: {}, distrMap: {}, sinUso: true };
+            }
+        }
+
         let pActive = 0, pProd = 0;
         for (const r of prev) { pActive += r.active_hours; pProd += r.productive_hours; }
 
@@ -783,8 +803,26 @@ export class FocoDashboard extends Component {
             const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
             const topDistr = dList.length && dList[0].hours > 0.008
                 ? { name: this.appLabel(dList[0].name), hours: dList[0].hours } : null;
+            // Adherencia al turno del dia ancla (vivo) y los conteos del rango.
+            const ad = ((asistencia || {}).personas || {})[String(e.id)] || null;
             return {
                 topDistr, hasTopDistr: !!topDistr,
+                sinUso: !!e.sinUso,
+                adh: ad,
+                adhEstado: ad ? ad.estado : "",
+                adhTexto: ad ? ad.texto : "",
+                adhEntrada: ad ? ad.entrada : "",
+                adhSalida: ad ? ad.salida : "",
+                adhFuente: ad ? ad.fuente : "",
+                adhSalioAntes: !!(ad && ad.salio_antes),
+                adhAntesMin: ad ? ad.antes_min : 0,
+                adhNoCheco: !!(ad && ad.no_checo),
+                adhDias: ad ? ad.dias : null,
+                // Una etiqueta en la fila solo cuando hay algo que decir: a
+                // tiempo no es noticia; tarde, sin registro, permiso o salir
+                // antes, si.
+                adhChip: ad && ["tarde", "sin_entrada", "falto", "sin_senal", "sin_checada", "permiso", "festivo"].includes(ad.estado)
+                    ? ad.texto : "",
                 // Que tan completo esta el dato de esta persona. No lleva
                 // umbral: "incompleto" es una igualdad exacta -faltan dias-,
                 // no un corte elegido.
@@ -1106,6 +1144,45 @@ export class FocoDashboard extends Component {
     /** Los dias en que alguien checo entrada y nunca cerro salida. */
     abrirSinSalida() {
         this.action.doAction("foco_monitor.foco_workday_sin_salida_action");
+    }
+
+    /** La asistencia del periodo, renglon por renglon, agrupada por estado:
+     *  la evidencia (entrada, salida, minutos, fuente) esta en las columnas. */
+    abrirAsistencia() {
+        const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
+        this.action.doAction({
+            type: "ir.actions.act_window", name: "Asistencia",
+            res_model: "foco.workday", views: [[false, "list"]],
+            domain: [["date", ">=", desde], ["date", "<=", hasta],
+                     ["adherence", "not in", ["no_laborable", "sin_jornada", false]]],
+            context: { search_default_g_adh: 1 },
+        });
+    }
+
+    /** Los conteos de asistencia que muestra la tarjeta: los de HOY (vivos)
+     *  cuando se ve un dia; la suma de dias del rango cuando se ve mas. */
+    get asis() {
+        const a = this.state.asistencia || {};
+        if (this.state.days === 1) {
+            const q = a.equipo || {};
+            return {
+                aTiempo: q.a_tiempo || 0, tarde: q.tarde || 0,
+                falto: (q.falto || 0) + (q.sin_senal || 0),
+                permiso: (q.permiso || 0) + (q.festivo || 0),
+                salioAntes: q.salio_antes || 0,
+                enCurso: (q.no_iniciado || 0) + (q.sin_entrada || 0),
+                sinChecada: q.sin_checada || 0,
+                dias: false,
+            };
+        }
+        const t = { aTiempo: 0, tarde: 0, falto: 0, permiso: 0, salioAntes: 0, enCurso: 0, sinChecada: 0, dias: true };
+        for (const p of Object.values(a.personas || {})) {
+            const d = p.dias || {};
+            t.aTiempo += d.a_tiempo || 0; t.tarde += d.tarde || 0; t.falto += d.falto || 0;
+            t.permiso += d.permiso || 0; t.salioAntes += d.salio_antes || 0;
+            t.sinChecada += d.sin_checada || 0;
+        }
+        return t;
     }
 
     /** Los episodios que la IA no explico como trabajo, con los que faltan
