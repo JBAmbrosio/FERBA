@@ -260,6 +260,33 @@ class FocoUsage(models.Model):
     # filas en vez de cientos de miles.
 
     @api.model
+    def _indice(self, productivo, cubierto, activo):
+        """UN solo indice en todo Foco (10-oct-2026): cubierto (productivo +
+        justificado) entre la jornada esperada, tope 100. Es el de la tarjeta,
+        la tabla y el reporte diario. Sin jornada esperada (fin de semana, sin
+        calendario) se cae a productivo/activo. None cuando no hay dato."""
+        exp = float((cubierto or {}).get('expected') or 0.0)
+        jus = float((cubierto or {}).get('justified') or 0.0)
+        productivo = float(productivo or 0.0)
+        activo = float(activo or 0.0)
+        if not activo and not jus:
+            return None
+        if exp > 0:
+            return round(min(100.0, 100.0 * (productivo + jus) / exp), 1)
+        if activo:
+            return round(100.0 * productivo / activo, 1)
+        return None
+
+    @api.model
+    def _suma_cubierto(self, por_dia):
+        """Suma {dia: {expected, justified}} en un solo {expected, justified}."""
+        tot = {'expected': 0.0, 'justified': 0.0}
+        for v in (por_dia or {}).values():
+            tot['expected'] += float(v.get('expected') or 0.0)
+            tot['justified'] += float(v.get('justified') or 0.0)
+        return tot
+
+    @api.model
     def analitica(self, desde, hasta):
         """Serie por dia, comparacion por persona y reparto del equipo.
 
@@ -303,13 +330,23 @@ class FocoUsage(models.Model):
         # dibuja una caida a cero y una recuperacion el lunes: la grafica cuenta
         # que el equipo dejo de rendir, cuando lo que paso es que nadie
         # trabajo. `None` deja el hueco visible, que es la verdad.
+        # El indice es el MISMO de la tarjeta, la tabla y el reporte diario:
+        # cubierto (productivo + justificado) entre la jornada esperada.
+        # `cubierto_por_dia` trae jornada y justificado por dia y por persona
+        # de toda la gente monitoreada. Productivo/activo queda aparte, con su
+        # nombre (`indice_actividad`), para quien quiera la calidad del activo.
+        Absence = self.env['foco.absence']
+        cub = Absence.cubierto_por_dia(desde, hasta)
+        cub_dias = cub.get('dias') or {}
+        cub_emp = cub.get('empleados') or {}
         dias = []
         d = desde
         while d <= hasta:
             f = por_dia.get(d) or {'date': fields.Date.to_string(d),
                                    'activo': 0.0, 'productivo': 0.0, 'bruto': 0.0}
-            f['indice'] = (round(100.0 * f['productivo'] / f['activo'], 1)
-                           if f['activo'] else None)
+            f['indice'] = self._indice(f['productivo'], cub_dias.get(f['date']), f['activo'])
+            f['indice_actividad'] = (round(100.0 * f['productivo'] / f['activo'], 1)
+                                     if f['activo'] else None)
             dias.append(f)
             d += timedelta(days=1)
 
@@ -343,17 +380,23 @@ class FocoUsage(models.Model):
         largo = (hasta - desde).days + 1
         prev_hasta = desde - timedelta(days=1)
         prev_desde = prev_hasta - timedelta(days=largo - 1)
+        cub_prev = Absence.cubierto_por_dia(prev_desde, prev_hasta).get('empleados') or {}
         previo = {}
         for grupo in self._read_group(
                 [('date', '>=', prev_desde), ('date', '<=', prev_hasta)],
                 ['employee_id'], ['active_hours:sum', 'productive_hours:sum']):
             emp, activo, productivo = grupo
             if emp and activo:
-                previo[emp.id] = 100.0 * (productivo or 0.0) / activo
+                previo[emp.id] = self._indice(
+                    productivo or 0.0, self._suma_cubierto(cub_prev.get(str(emp.id))), activo)
 
         empleados = []
         for e in gente.values():
-            e['indice'] = round(100.0 * e['productivo'] / e['activo'], 1) if e['activo'] else 0.0
+            e['indice_actividad'] = round(100.0 * e['productivo'] / e['activo'], 1) if e['activo'] else 0.0
+            e['indice'] = self._indice(
+                e['productivo'], self._suma_cubierto(cub_emp.get(str(e['id']))), e['activo'])
+            if e['indice'] is None:
+                e['indice'] = 0.0
             antes = previo.get(e['id'])
             # `None` y `0` no son lo mismo: sin periodo previo no hay flecha
             # que dibujar, y una flecha de "+0" afirmaria que se midio.
@@ -427,6 +470,9 @@ class FocoUsage(models.Model):
 
         total_activo = sum(e['activo'] for e in empleados)
         total_prod = sum(e['productivo'] for e in empleados)
+        # La jornada del EQUIPO suma a toda la gente monitoreada, tenga renglon
+        # o no: quien no reporto nada tambien debia cubrir la suya.
+        tot_cub = self._suma_cubierto(cub_dias)
         return {
             'dias': dias,
             'empleados': empleados,
@@ -439,7 +485,10 @@ class FocoUsage(models.Model):
             'total': {
                 'activo': round(total_activo, 3),
                 'productivo': round(total_prod, 3),
-                'indice': round(100.0 * total_prod / total_activo, 1) if total_activo else 0.0,
+                'indice': self._indice(total_prod, tot_cub, total_activo) or 0.0,
+                'indice_actividad': round(100.0 * total_prod / total_activo, 1) if total_activo else 0.0,
+                'esperado': round(tot_cub['expected'], 3),
+                'justificado': round(tot_cub['justified'], 3),
                 'desde': fields.Date.to_string(desde),
                 'hasta': fields.Date.to_string(hasta),
                 'dias_periodo': largo,
@@ -820,14 +869,19 @@ class FocoUsage(models.Model):
                 [('date', '>=', desde), ('date', '<=', hasta)],
                 ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
             por_dia[dia] = (activo or 0.0, productivo or 0.0)
+        # El mismo indice que la cifra grande de la tarjeta que dibuja esta
+        # chispa: cubierto entre jornada. Antes la chispa era productivo/activo
+        # debajo de un numero que era otra cosa.
+        cub_dias = self.env['foco.absence'].cubierto_por_dia(desde, hasta).get('dias') or {}
         salida = []
         d = desde
         while d <= hasta:
             activo, productivo = por_dia.get(d, (0.0, 0.0))
+            k = fields.Date.to_string(d)
             salida.append({
-                'date': fields.Date.to_string(d),
+                'date': k,
                 'activo': round(activo, 3), 'productivo': round(productivo, 3),
-                'indice': round(100.0 * productivo / activo, 1) if activo else None,
+                'indice': self._indice(productivo, cub_dias.get(k), activo),
             })
             d += timedelta(days=1)
         return salida

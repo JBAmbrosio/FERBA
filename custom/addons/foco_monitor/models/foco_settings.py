@@ -1437,22 +1437,49 @@ class FocoSettings(models.Model):
         es una guia; el CHECADOR tiene el veredicto final de la columna Jornada, y
         lo configurado dice cuanto fue EXTRA. Se compara en NETO (se descuenta la
         comida configurada, para no contar como extra la hora de comer de quien no
-        la checa). Un dia PASADO sin cerrar salida NO cuenta: no hay con que medir
-        (cero falsos positivos). El indice de productividad NO usa esto: sigue
-        contra la guia."""
-        base = {e.id: {'usa': False, 'checado': 0.0, 'extra': 0.0, 'faltante': 0.0}
+        la checa). El indice de productividad NO usa esto: sigue contra la guia.
+
+        Dos reglas para la checada ABIERTA (sin salida), medidas el 10-oct-2026
+        con un caso real: una entrada del 9-oct sin salida contaba hasta `now`
+        toda la noche (10h17 a las 19:27, 15h51 a medianoche, "+7h21 de mas") y
+        al dia siguiente ese mismo dia decia "checo 0m".
+          - HOY con checada abierta: se cuenta hasta lo que ocurra ANTES de
+            ahora, la ultima senal de su equipo y el fin de su horario. Ni extra
+            ni faltante: el dia esta en curso (`abierta_hoy`).
+          - Un dia PASADO sin salida NO se mide: no hay con que (cero falsos
+            positivos), y se dice (`no_medible` cuenta esos dias) en vez de
+            dejar un cero que se lee como "no checo".
+        """
+        base = {e.id: {'usa': False, 'checado': 0.0, 'extra': 0.0, 'faltante': 0.0,
+                       'abierta_hoy': False, 'no_medible': 0}
                 for e in empleados}
         if 'hr.attendance' not in self.env or not empleados:
             return base
-        guia, comida, zonas, hoy = {}, {}, {}, {}
+        guia, fin_guia, comida, zonas, hoy, ahora_z = {}, {}, {}, {}, {}, {}
         for e in empleados:
             cal = e.resource_calendar_id
             tr = self.calendar_intervals(cal)
             guia[e.id] = {iso: round(sum(b - a for a, b in sp), 4) for iso, sp in tr.items()}
+            fin_guia[e.id] = {iso: max(b for a, b in sp) for iso, sp in tr.items() if sp}
             comida[e.id] = self._comida_por_iso(cal)
             z = self._tzinfo_for(e)
             zonas[e.id] = z
-            hoy[e.id] = datetime.now(z).date()
+            ahora_z[e.id] = datetime.now(z)
+            hoy[e.id] = ahora_z[e.id].date()
+        # La ultima senal del equipo de cada quien: lo checado de hoy no puede
+        # ir mas alla de lo que su computadora vio.
+        senal = {}
+        try:
+            for c in self.env['foco.computer'].sudo().search_read(
+                    [('employee_id', 'in', [e.id for e in empleados]),
+                     ('last_seen', '!=', False)],
+                    ['employee_id', 'last_seen']):
+                eid = c['employee_id'][0]
+                ls = fields.Datetime.to_datetime(c['last_seen'])
+                if eid not in senal or ls > senal[eid]:
+                    senal[eid] = ls
+        except Exception:
+            senal = {}
         lo = datetime.combine(d_ini - timedelta(days=1), time.min)
         hi = datetime.combine(d_fin + timedelta(days=1), time.max)
         try:
@@ -1477,13 +1504,26 @@ class FocoSettings(models.Model):
             base[eid]['usa'] = True
             z = zonas[eid]
             iso = dia.isoweekday()
-            tramos, abierto_pasado = [], False
+            tramos, abierto_pasado, abierto_hoy = [], False, False
             for ci, co_raw in pares:
                 if not co_raw:
                     if dia < hoy[eid]:
                         abierto_pasado = True       # paso el dia y no cerro salida
                         continue
-                    co = datetime.now(z)            # hoy: sigue checado
+                    # Hoy, sigue checado: hasta ahora, pero no mas alla de la
+                    # ultima senal de su equipo ni del fin de su horario.
+                    abierto_hoy = True
+                    co = ahora_z[eid]
+                    ls = senal.get(eid)
+                    if ls:
+                        ls_z = pytz.UTC.localize(ls).astimezone(z)
+                        if ls_z < co:
+                            co = ls_z
+                    fg = fin_guia[eid].get(iso)
+                    if fg is not None:
+                        fin_z = z.localize(datetime.combine(dia, time.min)) + timedelta(hours=fg)
+                        if fin_z < co:
+                            co = fin_z
                 else:
                     co = pytz.UTC.localize(
                         fields.Datetime.to_datetime(co_raw)).astimezone(z)
@@ -1491,7 +1531,12 @@ class FocoSettings(models.Model):
                 b = 24.0 if co.date() > dia else co.hour + co.minute / 60.0 + co.second / 3600.0
                 if b > a:
                     tramos.append((a, b))
-            if abierto_pasado or not tramos:
+            if abierto_hoy:
+                base[eid]['abierta_hoy'] = True
+            if abierto_pasado:
+                base[eid]['no_medible'] += 1
+                continue
+            if not tramos:
                 continue
             cw = comida[eid].get(iso)
             neto = 0.0
@@ -1502,6 +1547,7 @@ class FocoSettings(models.Model):
                 neto += max(0.0, dur)
             g = guia[eid].get(iso, 0.0)
             base[eid]['checado'] += neto
-            base[eid]['extra'] += max(0.0, neto - g)
-            base[eid]['faltante'] += max(0.0, g - neto)
+            if not abierto_hoy:                      # en curso no se juzga
+                base[eid]['extra'] += max(0.0, neto - g)
+                base[eid]['faltante'] += max(0.0, g - neto)
         return base

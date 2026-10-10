@@ -459,8 +459,68 @@ class FocoAbsence(models.Model):
                 'checado_h': round(chk.get(employee.id, {}).get('checado', 0.0), 3),
                 'extra_h': round(chk.get(employee.id, {}).get('extra', 0.0), 3),
                 'faltante_h': round(chk.get(employee.id, {}).get('faltante', 0.0), 3),
+                # Checada ABIERTA (10-oct-2026): hoy sigue checado (se cuenta hasta
+                # la ultima senal de su equipo o el fin de su horario, sin extra ni
+                # faltante); un dia pasado sin salida no se mide y se dice.
+                'checado_abierto': bool(chk.get(employee.id, {}).get('abierta_hoy')),
+                'checado_no_medible': int(chk.get(employee.id, {}).get('no_medible', 0)),
+                # Pausas sin teclear DENTRO de la jornada: los huecos `idle` que el
+                # agente abrio (del umbral en adelante), se hayan justificado o no.
+                # Es una sola linea de tiempo. El `fg_idle` de los renglones de uso
+                # se encima entre ventanas (medido: 10h25 de idle en 9h24 de
+                # presencia) y NO se muestra a nadie.
+                'sin_teclear_h': round(sum(recs.filtered(lambda a: a.kind == 'idle')
+                                           .mapped('expected_seconds')) / 3600.0, 3),
             }
         return out
+
+    @api.model
+    def cubierto_por_dia(self, date_from, date_to):
+        """Jornada esperada y justificado por DIA y por persona en el rango, en
+        horas. Es lo que hace falta para que el indice sea UNO en todo Foco
+        (10-oct-2026): cubierto (productivo + justificado) entre la jornada
+        esperada, por dia, por persona y para el equipo, como ya lo calculaban
+        la tarjeta, la tabla y el reporte diario. Misma gente y mismo alcance
+        que `dashboard_summary`."""
+        Settings = self.env['foco.settings'].sudo()
+        d_ini = fields.Date.to_date(date_from)
+        d_fin = fields.Date.to_date(date_to)
+        vacio = {'dias': {}, 'empleados': {}}
+        if not d_ini or not d_fin or d_fin < d_ini:
+            return vacio
+        computers = self.env['foco.computer'].search([('employee_id', '!=', False)])
+        empleados = computers.mapped('employee_id')
+        dias, por_emp = {}, {}
+        for emp in empleados:
+            tz = Settings._tzinfo_for(emp)
+            ini = tz.localize(datetime.combine(d_ini, time(0, 0))) \
+                    .astimezone(pytz.UTC).replace(tzinfo=None)
+            fin = tz.localize(datetime.combine(d_fin, time(23, 59, 59))) \
+                    .astimezone(pytz.UTC).replace(tzinfo=None)
+            justi = {}
+            for a in self.search([('employee_id', '=', emp.id), ('state', '=', 'justificada'),
+                                  ('start', '>=', ini), ('start', '<=', fin)]):
+                dia_local = pytz.UTC.localize(a.start).astimezone(tz).date()
+                justi[dia_local] = justi.get(dia_local, 0.0) + (a.expected_seconds or 0.0) / 3600.0
+            mio = por_emp[str(emp.id)] = {}
+            d = d_ini
+            while d <= d_fin:
+                a_utc = tz.localize(datetime.combine(d, time(0, 0))) \
+                          .astimezone(pytz.UTC).replace(tzinfo=None)
+                b_utc = tz.localize(datetime.combine(d, time(23, 59, 59))) \
+                          .astimezone(pytz.UTC).replace(tzinfo=None)
+                esperado = Settings.expected_seconds(emp, a_utc, b_utc) / 3600.0
+                k = fields.Date.to_string(d)
+                j = justi.get(d, 0.0)
+                mio[k] = {'expected': round(esperado, 4), 'justified': round(j, 4)}
+                t = dias.setdefault(k, {'expected': 0.0, 'justified': 0.0})
+                t['expected'] += esperado
+                t['justified'] += j
+                d += timedelta(days=1)
+        for t in dias.values():
+            t['expected'] = round(t['expected'], 4)
+            t['justified'] = round(t['justified'], 4)
+        return {'dias': dias, 'empleados': por_emp}
 
     # ------------------------------------------------------------- correo
     @api.model

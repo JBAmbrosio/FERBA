@@ -863,6 +863,12 @@ export class FocoDashboard extends Component {
                 extra: res.extra_h || 0,
                 faltante: res.faltante_h || 0,
                 checadoPct: expected > 0 ? Math.min(100, Math.round((res.checado_h || 0) / expected * 100)) : 0,
+                // Checada abierta (10-oct): hoy "sigue checado" (contado hasta la
+                // ultima senal de su equipo o el fin de su horario, sin extra ni
+                // faltante); un dia pasado sin salida no se mide y se dice.
+                jorAbierta: !!res.checado_abierto,
+                jorNoMedible: res.checado_no_medible || 0,
+                jorTitulo: this.jornadaTitulo(res, expected),
                 // Rezago del checador a la PC (min), null si no checo ese dia.
                 lagMin: (typeof res.lag_min === "number") ? res.lag_min : null,
                 // Dias del periodo en que checo entrada y no cerro salida. Es
@@ -906,10 +912,12 @@ export class FocoDashboard extends Component {
                       + ` · ${hx.ia.sin_revisar} sin revisar · ${hx.ia.confirmados} confirmado${hx.ia.confirmados === 1 ? "" : "s"}`
                     : "",
                 call: e.call, hasCall: e.call > 0.008,
-                // Frente a la pantalla sin teclear. NO se resta de nada: se
-                // traslapa con las ausencias justificadas (quien se va al
-                // medico deja la ventana enfocada). Es observacion, no cuenta.
-                idle: e.idle, hasIdle: e.idle > 0.008,
+                // Pausas sin teclear DENTRO de la jornada: los huecos `idle` del
+                // agente (del umbral en adelante), una sola linea de tiempo. El
+                // `fg_idle` de los renglones de uso se encima entre ventanas
+                // (medido 10-oct: 10h25 en 9h24 de presencia) y ya no se muestra.
+                // NO se resta de nada: se traslapa con lo justificado.
+                idle: res.sin_teclear_h || 0, hasIdle: (res.sin_teclear_h || 0) > 0.008,
                 id: e.id, name: e.name, active: e.active, prod: e.prod, distr: e.distr, index,
                 dept: depts[e.id] || "", pc: pcName[e.id] || "",
                 topApp: appList.length ? appList[0].name : "—",
@@ -971,10 +979,11 @@ export class FocoDashboard extends Component {
         // cada quien), por TODAS las personas monitoreadas -no solo las que
         // tienen renglon-, para que el denominador sea la jornada completa. El
         // periodo anterior se mide igual, para que la flecha compare lo mismo.
-        let teamCovered = 0, teamExp = 0;
+        let teamCovered = 0, teamExp = 0, teamSinTeclear = 0;
         for (const [eid, v] of Object.entries(resumen || {})) {
             teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0);
             teamExp += v.expected || 0;
+            teamSinTeclear += v.sin_teclear_h || 0;
         }
         let prevJust = 0, prevExp = 0;
         for (const v of Object.values(resumenPrev || {})) {
@@ -1002,7 +1011,9 @@ export class FocoDashboard extends Component {
             index: Math.round(idx), indexDelta: Math.round(idx - pIdx),
             active: tActive, prod: tProd, prodDelta: tProd - pProd,
             distr: tDistr, distrPct: tActive > 0 ? Math.round(tDistr / tActive * 100) : 0,
-            idle: tIdle, hasIdle: tIdle > 0.008,
+            // Pausas sin teclear dentro de la jornada, del resumen (una linea de
+            // tiempo por persona), no la suma de `fg_idle` de los renglones.
+            idle: teamSinTeclear, hasIdle: teamSinTeclear > 0.008,
             siteHours: siteAll.reduce((sum, s) => sum + s.hours, 0),
             pendCount: pend.length, pendHours,
             monitored: employees.length, online: employees.filter((e) => e.online).length,
@@ -1643,6 +1654,22 @@ export class FocoDashboard extends Component {
         m = Math.round(m || 0);
         if (m < 60) return `${m} min`;
         return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+    }
+
+    /** El texto de la celda Jornada: dice lo que se midio y lo que no. */
+    jornadaTitulo(res, expected) {
+        const checado = res.checado_h || 0, extra = res.extra_h || 0, falt = res.faltante_h || 0;
+        const nm = res.checado_no_medible || 0;
+        let t;
+        if (res.checado_abierto) {
+            t = `Sigue checado: ${this.fmt(checado)} hasta la última señal de su equipo o el fin de su horario, lo que ocurrió antes. Extra o faltante se dicen al checar salida.`;
+        } else {
+            t = `Checó ${this.fmt(checado)} de su horario de ${this.fmt(expected)}. El checador manda; el horario es la guía.`;
+            if (extra > 0.016) t += ` Se quedó ${this.fmt(extra)} de más.`;
+            else if (falt > 0.016) t += ` Checó ${this.fmt(falt)} menos.`;
+        }
+        if (nm) t += nm === 1 ? " Un día sin checar salida no se cuenta." : ` ${nm} días sin checar salida no se cuentan.`;
+        return t;
     }
 }
 
