@@ -108,7 +108,7 @@
                             </t>
                         </div>
                         <div class="fd_w_v"><t t-esc="fmt(state.team.prod)"/></div>
-                        <div class="fd_w_foot">de <b t-esc="fmt(state.team.active)"/> activas · <t t-esc="state.team.cobDias"/> de <t t-esc="state.team.cobEsp"/> días con dato</div>
+                        <div class="fd_w_foot">de <b t-esc="fmt(state.team.active)"/> activas · <t t-esc="state.team.cobDias"/> de <t t-esc="state.team.cobEsp"/> <t t-esc="state.days === 1 ? 'personas' : 'días-persona'"/> con dato</div>
                         <div class="fd_w_foot">distracción <b class="warn" t-esc="fmt(state.team.distr)"/> · <t t-esc="state.team.distrPct"/>% del activo</div>
                         <t t-if="state.spark.prod.d">
                             <svg class="fd_spark" viewBox="0 0 108 34" aria-hidden="true">
