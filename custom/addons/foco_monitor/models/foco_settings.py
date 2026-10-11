@@ -319,11 +319,29 @@ class FocoSettings(models.Model):
              'revisar» para que el admin lo trate con la persona.')
     justify_rebote_msg = fields.Char(
         string='Aviso al devolver la justificacion',
-        default='Tu justificacion anterior no explica que paso. Escribe el motivo '
-                'real (aunque sea breve: «cita medica», «junta con proveedor», «fui '
-                'al almacen») para poder seguir usando el equipo.',
+        default='Tu justificacion anterior no le dice al patron que paso. Escribe que '
+                'hiciste y con quien o para que (por ejemplo: «junta con Jenifer sobre '
+                'el pedido de Culiacan», «cita medica», «fui al taller a revisar la '
+                'dobladora») para poder seguir usando el equipo.',
         help='Lo que ve el empleado en la ventana del agente cuando se le devuelve '
-             'una justificacion vaga. Se puede ajustar aqui sin recompilar el agente.')
+             'una justificacion y la IA no dejo una pregunta puntual. Se puede '
+             'ajustar aqui sin recompilar el agente.')
+    # ---- regla de los 90 minutos (11-oct-2026, decision del dueno) ---------
+    justify_gracia_min = fields.Integer(
+        string='Minutos justificables al dia sin decision del admin', default=90,
+        help='Bolsa diaria por persona, la misma para todos. Lo que justifica y la '
+             'IA acepta se carga aqui en el orden en que lo justifica y cuenta como '
+             'cubierto. Cuando no alcanza, el periodo se parte y el resto queda "Por '
+             'decidir"; agotada la bolsa, todo lo que justifique despues lo decide '
+             'un administrador con Aceptar / Rechazar. Las apps neutras o de '
+             'distraccion no la consumen. Aplica a lo que se justifique a partir '
+             'de la regla; lo anterior cuenta tal cual.')
+
+    @api.constrains('justify_gracia_min')
+    def _check_justify_gracia_min(self):
+        for r in self:
+            if r.justify_gracia_min < 0 or r.justify_gracia_min > 480:
+                raise ValidationError('Los minutos justificables al dia van de 0 a 480.')
     anthropic_api_key = fields.Char(
         string='API key de Anthropic (Claude)', compute='_compute_anthropic_api_key',
         inverse='_inverse_anthropic_api_key',

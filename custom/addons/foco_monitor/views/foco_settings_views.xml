@@ -91,7 +91,20 @@
                         por su nombre. El cambio llega a cada equipo en su siguiente envío
                         (unos minutos), sin reinstalar nada.
                     </div>
-                    <group string="Justificaciones vagas: devolverlas al empleado">
+                    <group string="Regla de los 90 minutos">
+                        <field name="justify_gracia_min"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Cada persona tiene al día esa bolsa de minutos <b>justificables sin que
+                        nadie decida</b>, la misma para todos. Lo que justifica y la IA acepta se
+                        carga a la bolsa en el orden en que lo justifica y queda <b>Justificada</b>
+                        (en verde, con lo que le queda). Cuando no alcanza, el periodo se
+                        <b>parte</b>: lo que cabe queda justificado y el resto nace como periodo
+                        <b>Por decidir</b>. Agotada la bolsa, todo lo que justifique después queda
+                        Por decidir, con <b>Aceptar</b> y <b>Rechazar</b> para el administrador.
+                        Solo lo justificado consume la bolsa; las apps neutras o de distracción no.
+                    </div>
+                    <group string="Justificaciones sin información: devolverlas al empleado">
                         <field name="justify_rebote_activo"/>
                         <field name="justify_rebote_msg" invisible="not justify_rebote_activo"
                                placeholder="Mensaje que verá el empleado al devolverle la justificación..."/>
@@ -99,11 +112,13 @@
                     <div class="alert alert-warning" role="alert"
                          invisible="not justify_rebote_activo">
                         Con esto encendido, cuando la IA marca una justificación como <b>vaga</b>
-                        (un punto, vacío, basura) el periodo se <b>reabre</b> y la ventana del
-                        agente vuelve a pedirla con el aviso de arriba, hasta que la persona dé
-                        un motivo coherente. Tras varios intentos deja de insistir y queda solo
-                        en <b>Periodos a revisar</b> para el admin. El equipo debe tener el agente
-                        actualizado para ver el aviso.
+                        (un punto, vacío, basura) o <b>insuficiente</b> («trabajo», «reunión» sin
+                        decir en qué o con quién) el periodo se <b>reabre</b> y la ventana del
+                        agente vuelve a pedirla con la <b>pregunta puntual de la IA</b> («Trabajo,
+                        ¿en qué proyecto?»); el aviso de arriba se usa cuando la IA no dejó
+                        pregunta. Tras varios intentos deja de insistir y el periodo queda
+                        <b>Por decidir</b> para el admin, sin contar como justificado. El equipo
+                        debe tener el agente actualizado para ver el aviso.
                     </div>
                 </sheet>
             </form>

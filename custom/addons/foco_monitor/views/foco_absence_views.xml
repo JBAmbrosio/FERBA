@@ -4,21 +4,43 @@
         <field name="name">foco.absence.list</field>
         <field name="model">foco.absence</field>
         <field name="arch" type="xml">
-            <list decoration-warning="state == 'pendiente'"
+            <!-- Regla de los 90 min: verde = justificada (cabe en su bolsa o la
+                 acepto el admin); azul = por decidir (paso de la bolsa); rojo =
+                 rechazada; ambar = sin justificar. -->
+            <list decoration-success="state == 'justificada'"
+                  decoration-warning="state == 'pendiente'"
+                  decoration-info="state == 'por_decidir'"
+                  decoration-danger="state == 'rechazada'"
                   decoration-muted="state == 'auto'">
                 <field name="start"/>
                 <field name="stop"/>
                 <field name="employee_id"/>
                 <field name="duration" widget="float_time" sum="Total"/>
                 <field name="kind"/>
-                <field name="state"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'justificada'"
+                       decoration-warning="state == 'pendiente'"
+                       decoration-info="state == 'por_decidir'"
+                       decoration-danger="state == 'rechazada'"/>
+                <field name="cubierta_por" optional="show"/>
+                <field name="gracia_min" string="De sus 90" optional="show"
+                       invisible="cubierta_por != 'gracia'"/>
+                <field name="gracia_restante_min" string="Le quedan" optional="show"
+                       invisible="cubierta_por != 'gracia'"/>
                 <field name="reason"/>
                 <field name="note" optional="show"/>
+                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
+                        class="btn-success btn-sm" invisible="state != 'por_decidir'"/>
+                <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
+                        class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
                 <field name="ai_veredicto" optional="hide"/>
+                <field name="ai_pregunta" optional="hide"/>
                 <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo" optional="hide"/>
                 <field name="ai_requiere_revision" optional="hide"/>
                 <field name="ai_incoherente" optional="hide"/>
+                <field name="origen_id" optional="hide"/>
+                <field name="decidido_por" optional="hide"/>
                 <field name="answered_via" optional="hide"/>
                 <field name="computer_id" optional="hide"/>
             </list>
@@ -37,10 +59,20 @@
                 <field name="duration" widget="float_time" sum="Total"/>
                 <field name="reason"/>
                 <field name="note"/>
+                <field name="state" widget="badge" optional="show"
+                       decoration-success="state == 'justificada'"
+                       decoration-warning="state == 'pendiente'"
+                       decoration-info="state == 'por_decidir'"
+                       decoration-danger="state == 'rechazada'"/>
                 <field name="ai_veredicto" widget="badge"
-                       decoration-warning="ai_veredicto == 'vaga'"/>
+                       decoration-warning="ai_veredicto in ('vaga', 'insuficiente')"/>
+                <field name="ai_pregunta" optional="show"/>
                 <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo"/>
+                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
+                        class="btn-success btn-sm" invisible="state != 'por_decidir'"/>
+                <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
+                        class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
                 <field name="rebotes" string="Devuelta (veces)" optional="show"/>
                 <field name="rebote_pendiente" string="Devuelta ahora" optional="show"/>
@@ -58,6 +90,14 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_aceptar" type="object" string="Aceptar"
+                            class="btn-success" icon="fa-check"
+                            invisible="state != 'por_decidir'"/>
+                    <button name="action_rechazar" type="object" string="Rechazar"
+                            class="btn-danger" icon="fa-times"
+                            invisible="state != 'por_decidir'"/>
+                    <button name="action_reconsiderar" type="object" string="Volver a Por decidir"
+                            invisible="not (state == 'rechazada' or (state == 'justificada' and cubierta_por == 'admin'))"/>
                     <button name="action_marcar_revisado" type="object" string="Marcar revisado"
                             class="btn-primary" icon="fa-check"
                             invisible="review_visto or not ai_requiere_revision"/>
@@ -68,9 +108,14 @@
                     <div class="oe_title">
                         <h1><field name="employee_id" readonly="1"/></h1>
                     </div>
+                    <div class="alert alert-info" role="alert" invisible="state != 'por_decidir'">
+                        Esta justificacion paso de los minutos justificables del dia de la persona.
+                        No cuenta como cubierta hasta que la aceptes. Si la rechazas, queda como
+                        tiempo sin cubrir.
+                    </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="not ai_requiere_revision or review_visto">
-                        La IA marco esta justificacion como VAGA (no da ninguna razon):
+                        La IA marco esta justificacion como VAGA o INSUFICIENTE:
                         <field name="ai_motivo" readonly="1" nolabel="1"/>. Revisala con la persona y
                         marca "Revisado". Es evidencia del modelo, no un veredicto final.
                     </div>
@@ -118,6 +163,16 @@
                             <field name="rebote_pendiente" readonly="1"/>
                             <field name="rebotes" readonly="1"/>
                             <field name="nota_rechazada" readonly="1"/>
+                            <field name="ai_pregunta" readonly="1"/>
+                        </group>
+                        <group string="Regla de los 90 minutos">
+                            <field name="cubierta_por" readonly="1"/>
+                            <field name="gracia_min" readonly="1" invisible="cubierta_por != 'gracia'"/>
+                            <field name="gracia_restante_min" readonly="1" invisible="cubierta_por != 'gracia'"/>
+                            <field name="origen_id" readonly="1" invisible="not origen_id"/>
+                            <field name="decidido_por" readonly="1" invisible="not decidido_por"/>
+                            <field name="decidido_at" readonly="1" invisible="not decidido_at"/>
+                            <field name="decision_nota"/>
                         </group>
                     </group>
                     <group string="Diagnostico">
@@ -140,8 +195,17 @@
                         domain="[('state', '=', 'pendiente')]"/>
                 <filter name="justificadas" string="Justificadas"
                         domain="[('state', '=', 'justificada')]"/>
+                <filter name="por_decidir" string="Por decidir (pasaron de sus 90 min)"
+                        domain="[('state', '=', 'por_decidir')]"/>
+                <filter name="rechazadas" string="Rechazadas por el admin"
+                        domain="[('state', '=', 'rechazada')]"/>
                 <filter name="auto" string="Explicadas por calendario"
                         domain="[('state', '=', 'auto')]"/>
+                <separator/>
+                <filter name="de_sus_90" string="De sus 90 min"
+                        domain="[('cubierta_por', '=', 'gracia')]"/>
+                <filter name="aceptadas_admin" string="Aceptadas por el admin"
+                        domain="[('cubierta_por', '=', 'admin')]"/>
                 <separator/>
                 <filter name="a_revisar" string="La IA marcó a revisar"
                         domain="[('ai_requiere_revision', '=', True)]"/>
@@ -199,7 +263,9 @@
             <p>Aqui aparecen los huecos de la jornada que el sistema no puede
                explicar solo. Los que caen fuera del horario o en la comida del
                calendario entran como "Explicadas por calendario" y nadie tiene
-               que contestarlas.</p>
+               que contestarlas. Regla de los 90 minutos: lo que la persona
+               justifica se carga a su bolsa del dia; lo que pasa de ahi queda
+               "Por decidir" con Aceptar y Rechazar.</p>
         </field>
     </record>
 </odoo>
