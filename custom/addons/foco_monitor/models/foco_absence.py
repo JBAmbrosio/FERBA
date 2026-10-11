@@ -18,27 +18,44 @@ _logger = logging.getLogger(__name__)
 # razon (veredicto) y (B) la ordena en una categoria medible. Lo que decide si
 # algo "es creible" NO lo adivina el modelo: lo mide el sistema con el dato (si
 # el hueco cayo dentro o fuera de la jornada). Asi no hay falsos positivos.
+# Criterio del 11-oct-2026 (decision del dueno y del usuario): la justificacion
+# se la lee el PATRON y tiene que traer la informacion suficiente para entender
+# que paso sin preguntar. "Trabajo" o "Reunion" a secas ya no alcanzan: la IA
+# devuelve el periodo con UNA pregunta puntual ("Trabajo, en que proyecto?").
+# Antes (8-oct) bastaba cualquier palabra con sentido; con eso el registro 562
+# de Teodolo paso de "." a "Trabajo" y la IA lo acepto escribiendo ella misma
+# "sin dar mas detalle de la tarea".
 SISTEMA_JUST = (
     "Eres quien revisa las justificaciones de ausencia de los empleados de {contexto} "
     "El empleado eligio el motivo 'Otro' y escribio un TEXTO LIBRE para explicar por que su "
     "computadora estuvo un rato sin actividad. Te doy ese texto, cuanto duro, a que hora y "
-    "cuantos minutos del hueco caian DENTRO de su jornada. Haz dos cosas:\n"
+    "cuantos minutos del hueco caian DENTRO de su jornada. La justificacion se la va a leer el "
+    "patron: tiene que darle la informacion suficiente para entender QUE paso sin tener que "
+    "preguntar. Haz tres cosas:\n"
     "(A) VEREDICTO sobre el texto:\n"
-    " - 'adecuada' si el texto da CUALQUIER razon o circunstancia concreta: una actividad, "
-    "tarea, lugar, gestion, o una afirmacion de horario, aunque sea de una sola palabra "
-    "('almacen', 'bano', 'junta'), este en mayusculas o sea informal. 'fuera de horario "
-    "laboral', 'sin actividades asignadas' y 'reunion con proveedor' SON adecuadas: dicen algo.\n"
-    " - 'vaga' SOLO cuando el texto no aporta NADA: vacio, un punto, comas, 'x', 'asdf', letras "
-    "o numeros sueltos, o repetir 'otro'/'na'/'nada'.\n"
+    " - 'adecuada' si el patron entiende que hizo la persona con el detalle minimo que ese motivo "
+    "necesita: una actividad con su objeto (que proyecto, cliente, pedido, maquina o tarea), una "
+    "reunion o llamada con quien o de que, un lugar con para que, o una razon que se explica sola "
+    "(bano, comida, cita medica, tramite en el banco, permiso, apoyo a un area diciendo el tema). "
+    "Puede ser breve, informal o en mayusculas. 'fuera de horario laboral' y 'sin actividades "
+    "asignadas' SON adecuadas: afirman algo que el sistema verifica con el dato.\n"
+    " - 'insuficiente' si da una razon pero le FALTA el dato que el patron necesita: 'trabajo', "
+    "'trabajando', 'reunion', 'junta', 'taller', 'proveedor', 'pendientes', 'apoyo', 'llamada', "
+    "'cliente', 'almacen', 'revisando' sin decir en que, con quien, de que o para que.\n"
+    " - 'vaga' cuando el texto no aporta NADA: vacio, un punto, comas, 'x', 'asdf', letras o "
+    "numeros sueltos, o repetir 'otro'/'na'/'nada'.\n"
     " - 'indeterminada' si de verdad no puedes decidir.\n"
+    "(B) PREGUNTA: si el veredicto es 'insuficiente' o 'vaga', escribe UNA pregunta corta y directa "
+    "en espanol de Mexico, tuteando, que pida exactamente lo que falta retomando su palabra: "
+    "'Trabajo, en que proyecto o tarea?', 'Reunion, con quien y de que?', 'Taller, a que fuiste?'. "
+    "Maximo 15 palabras, sin regano. Si el veredicto es 'adecuada' o 'indeterminada', cadena vacia.\n"
     "NO castigues que alguien diga que estaba fuera de su horario: si eso es cierto o no lo "
-    "verifica el SISTEMA con el dato de la jornada, no tu. Tu solo dices si el texto aporta una "
-    "razon.\n"
-    "(B) CATEGORIA: elige de la lista del esquema la que mejor describa el texto. Si dice que "
+    "verifica el SISTEMA con el dato de la jornada, no tu. Tu solo dices si el texto trae la "
+    "informacion suficiente.\n"
+    "(C) CATEGORIA: elige de la lista del esquema la que mejor describa el texto. Si dice que "
     "estaba fuera de horario, de fin de semana, dormido o en casa, usa 'fuera_horario'. Si no "
     "encaja en ninguna, 'otra'.\n"
-    "'motivo' RESUME el texto en maximo 12 palabras, sin nombres de personas. Se tolerante: la "
-    "meta es cazar solo las que no dicen nada y ordenar las demas por categoria."
+    "'motivo' RESUME el texto en maximo 12 palabras, sin nombres de personas."
 )
 # Motivos del catalogo que explican la ausencia por SI SOLOS: si el empleado
 # eligio uno de estos (no "Otro"), no hay nada que revisar ni se llama a la IA.
@@ -48,6 +65,7 @@ MOTIVOS_EXPLICAN = {'comida', 'medico', 'escuela', 'permiso', 'tramite', 'person
 # decide por el dato, no por el texto.
 VEREDICTOS_JUST = [
     ('adecuada', 'Justificacion adecuada'),
+    ('insuficiente', 'Le falta informacion'),
     ('vaga', 'Vaga o sin explicacion'),
     ('sin_relacion', 'No parece razon de trabajo (historico)'),
     ('indeterminada', 'Indeterminada'),
@@ -75,14 +93,17 @@ ESQUEMA_JUST = {
     'schema': {
         'type': 'object', 'additionalProperties': False,
         'properties': {
-            'veredicto': {'type': 'string', 'enum': ['adecuada', 'vaga', 'indeterminada']},
+            'veredicto': {'type': 'string', 'enum': ['adecuada', 'insuficiente', 'vaga', 'indeterminada']},
+            'pregunta': {'type': 'string'},
             'categoria': {'type': 'string', 'enum': [c for c, _ in CATEGORIAS_JUST]},
             'motivo': {'type': 'string'},
             'confianza': {'type': 'number'},
         },
-        'required': ['veredicto', 'categoria', 'motivo', 'confianza'],
+        'required': ['veredicto', 'pregunta', 'categoria', 'motivo', 'confianza'],
     },
 }
+# Veredictos que DEVUELVEN el periodo al empleado, con la pregunta de la IA.
+VEREDICTOS_DEVUELVEN = ('vaga', 'insuficiente')
 AI_MAX_INTENTOS = 4
 AI_DIAS_ATRAS = 45
 # Menos de esto DENTRO de la jornada = el hueco cae fuera del turno: no hay nada
@@ -153,11 +174,42 @@ class FocoAbsence(models.Model):
              'Si es casi cero, el calendario ya lo explica.')
     reason = fields.Selection(REASONS, string='Motivo')
     note = fields.Char(string='Nota')
+    # Regla de los 90 minutos (11-oct-2026, decision del dueno): cada persona
+    # tiene al dia una bolsa de minutos justificables sin que nadie decida (90,
+    # fijos para todos). Lo que justifica y la IA acepta se carga a esa bolsa en
+    # el orden en que lo justifica. Cuando la bolsa no alcanza, el periodo se
+    # PARTE (lo que cabe queda justificado; el resto espera al admin) y cuando
+    # se agota, todo lo que justifique despues queda "Por decidir" con Aceptar /
+    # Rechazar. Solo lo justificado consume la bolsa: las apps neutras o de
+    # distraccion no la tocan. Lo justificado antes de la regla sigue contando
+    # tal cual (cubierta_por vacio).
     state = fields.Selection(
         [('auto', 'Explicado por calendario'),
          ('pendiente', 'Por justificar'),
-         ('justificada', 'Justificada')],
+         ('justificada', 'Justificada'),
+         ('por_decidir', 'Por decidir (admin)'),
+         ('rechazada', 'Rechazada por el admin')],
         string='Estado', default='pendiente', index=True, required=True)
+    cubierta_por = fields.Selection(
+        [('gracia', 'De sus 90 min'),
+         ('admin', 'Aceptada por el admin')],
+        string='Cuenta por', readonly=True, index=True,
+        help='Por que esta justificacion cuenta como cubierta: cabe en los minutos '
+             'justificables del dia, o un administrador la acepto. Vacio en lo '
+             'justificado antes de la regla (cuenta tal cual).')
+    gracia_min = fields.Integer(
+        string='De sus 90 (min)', readonly=True, default=0,
+        help='Minutos de este periodo cargados a la bolsa justificable del dia.')
+    gracia_restante_min = fields.Integer(
+        string='Le quedan (min)', readonly=True, default=0,
+        help='Minutos justificables que le quedaban ese dia despues de este periodo.')
+    origen_id = fields.Many2one(
+        'foco.absence', string='Partido de', readonly=True, index=True, ondelete='set null',
+        help='Este periodo es el resto de uno que se partio porque la bolsa del dia '
+             'no alcanzaba para cubrirlo completo.')
+    decidido_por = fields.Many2one('res.users', string='Decidio', readonly=True)
+    decidido_at = fields.Datetime(string='Decidido el', readonly=True)
+    decision_nota = fields.Char(string='Nota de la decision')
     notified = fields.Boolean(
         string='Avisado por correo', default=False, readonly=True,
         help='Se avisa UNA vez. Si el empleado no contesta, el periodo queda '
@@ -183,8 +235,9 @@ class FocoAbsence(models.Model):
     ai_requiere_revision = fields.Boolean(
         string='A revisar', index=True,
         help='La IA la marco como VAGA (no da ninguna razon: vacio, un punto, '
-             'basura). Solo eso llega a "Periodos a revisar": una razon escrita, '
-             'aunque sea discutible, no se marca aqui.')
+             'basura) o INSUFICIENTE (da una razon sin el dato que el patron '
+             'necesita: "trabajo", "reunion"). Es lo que llega a "Periodos a '
+             'revisar".')
     ai_incoherente = fields.Boolean(
         string='No coincide con su horario', index=True,
         help='El empleado declaro que estaba fuera de su horario, pero el hueco '
@@ -192,6 +245,10 @@ class FocoAbsence(models.Model):
              'acusacion: puede ser una evasion o que el horario configurado no sea '
              'el real (lo afina la jornada por empleado). No entra a "a revisar".')
     ai_motivo = fields.Char(string='Que vio la IA')
+    ai_pregunta = fields.Char(
+        string='Pregunta de la IA', readonly=True,
+        help='Lo que la IA le pregunto al empleado al devolverle la justificacion '
+             'por falta de informacion ("Trabajo, en que proyecto o tarea?").')
     ai_confianza = fields.Float(string='Confianza IA', digits=(3, 2))
     ai_modelo = fields.Char(string='Modelo IA')
     ai_tokens = fields.Integer(string='Tokens IA')
@@ -366,10 +423,12 @@ class FocoAbsence(models.Model):
                 'kind_label': KIND_FRASE.get(rec.kind, ''),
                 'suggested': rec._suggested_reason() or '',
                 # Rebote: la ventana del agente pinta este aviso cuando no esta
-                # vacio (periodo devuelto por justificacion vaga). Si el .exe no
-                # conoce la clave, la ignora: el rebote degrada a re-preguntar.
+                # vacio (periodo devuelto por justificacion vaga o insuficiente).
+                # Va la PREGUNTA puntual de la IA ("Trabajo, en que proyecto?") y,
+                # si no la hay, el aviso general de Ajustes. Si el .exe no conoce
+                # la clave, la ignora: el rebote degrada a re-preguntar.
                 'bounced': bool(rec.rebote_pendiente),
-                'bounce_msg': bmsg if rec.rebote_pendiente else '',
+                'bounce_msg': ((rec.ai_pregunta or '').strip() or bmsg) if rec.rebote_pendiente else '',
             })
         return out
 
@@ -439,10 +498,15 @@ class FocoAbsence(models.Model):
             # cuenta entera; una noche bloqueada justificada, casi nada.
             justi = recs.filtered(lambda a: a.state == 'justificada')
             pend = recs.filtered(lambda a: a.state == 'pendiente')
+            decidir = recs.filtered(lambda a: a.state == 'por_decidir')
             out[str(employee.id)] = {
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
                 'justified': sum(justi.mapped('expected_seconds')) / 3600.0,
                 'pending': len(pend),
+                # Regla de los 90 min: justificado que paso de la bolsa del dia y
+                # espera Aceptar / Rechazar del admin. No cuenta como cubierto.
+                'por_decidir': len(decidir),
+                'por_decidir_h': sum(decidir.mapped('expected_seconds')) / 3600.0,
                 # "Sin explicar" en horas: porcion de la jornada que cubren los
                 # huecos SIN justificar. Antes el tablero lo derivaba restando
                 # (esperado - activo - justificado), que a media jornada daba un
@@ -572,7 +636,7 @@ class FocoAbsence(models.Model):
         # servidor el que no la deja pasar (decision del cliente, 25-sep).
         if reason == 'otro' and not note:
             return {'ok': False, 'error': 'nota_requerida'}
-        if self.state == 'justificada':
+        if self.state in ('justificada', 'por_decidir', 'rechazada'):
             return {'ok': False, 'error': 'ya_justificada',
                     'reason': self.reason,
                     'reason_label': dict(REASONS).get(self.reason, '')}
@@ -587,7 +651,9 @@ class FocoAbsence(models.Model):
             'ai_estado': 'sin_analizar', 'ai_intentos': 0,
             # Si venia devuelta por vaga, el empleado ya contesto de nuevo: se
             # apaga el aviso hasta que la IA vuelva a juzgar este texto.
-            'rebote_pendiente': False,
+            'rebote_pendiente': False, 'ai_pregunta': False,
+            # La bolsa de 90 se carga cuando la IA acepte ESTE texto.
+            'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0,
         })
         return {'ok': True, 'reason_label': dict(REASONS).get(reason, '')}
 
@@ -650,11 +716,12 @@ class FocoAbsence(models.Model):
             self.sudo().write({
                 'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
                 'ai_categoria': self.reason, 'ai_requiere_revision': False,
-                'ai_incoherente': False,
+                'ai_incoherente': False, 'ai_pregunta': False,
                 'ai_motivo': 'Motivo del catalogo: %s' % dict(REASONS).get(self.reason, ''),
                 'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
                 'ai_at': fields.Datetime.now(), 'ai_error': False,
             })
+            self._aplicar_gracia()
             return
         # 2) El hueco cae FUERA de su jornada (hecho medido, no conjetura): no hay
         #    nada que justificar fuera de hora. Se acepta sin gastar IA y sin
@@ -663,11 +730,12 @@ class FocoAbsence(models.Model):
             self.sudo().write({
                 'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
                 'ai_categoria': 'fuera_horario', 'ai_requiere_revision': False,
-                'ai_incoherente': False,
+                'ai_incoherente': False, 'ai_pregunta': False,
                 'ai_motivo': 'El hueco cae fuera de su jornada',
                 'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
                 'ai_at': fields.Datetime.now(), 'ai_error': False,
             })
+            self._aplicar_gracia()
             return
         # 3) "Otro" con texto y DENTRO de la jornada: lo lee la IA.
         tz = self.env['foco.settings'].sudo()._tzinfo_for(self.employee_id)
@@ -686,6 +754,11 @@ class FocoAbsence(models.Model):
                (self.note or '').strip() or '(vacio)', dur,
                ini.strftime('%H:%M') if ini else '?', en_turno_min,
                dict(KINDS).get(self.kind, self.kind or '')))
+        # Si ya se le devolvio, la IA ve que escribio antes: "." y luego
+        # "Trabajo" es el caso real que motivo el criterio.
+        if self.rebotes:
+            usuario += '\nVECES DEVUELTA: %d\nANTES ESCRIBIO (y se le devolvio): %s' % (
+                self.rebotes, (self.nota_rechazada or '').strip() or '(vacio)')
         resp = self.env['foco.openai'].chat(
             [{'role': 'system', 'content': sistema},
              {'role': 'user', 'content': usuario}],
@@ -698,11 +771,14 @@ class FocoAbsence(models.Model):
             j = json.loads(resp['message'].get('content') or '{}')
         except (ValueError, TypeError):
             j = {}
-        ver = j.get('veredicto') if j.get('veredicto') in ('adecuada', 'vaga', 'indeterminada') else 'indeterminada'
+        ver = (j.get('veredicto') if j.get('veredicto') in ('adecuada', 'insuficiente', 'vaga', 'indeterminada')
+               else 'indeterminada')
         cat = j.get('categoria') if j.get('categoria') in dict(CATEGORIAS_JUST) else 'otra'
-        # A REVISAR solo lo VAGO (no da ninguna razon). Una razon escrita, aunque
-        # sea discutible, no se marca: eso es lo que pidio la reunion del 8-oct.
-        requiere = (ver == 'vaga')
+        pregunta = (j.get('pregunta') or '').strip()[:200]
+        # Se DEVUELVE lo vago y lo insuficiente (11-oct): la justificacion se la
+        # lee el patron y "Trabajo" a secas no le dice nada. Va con la pregunta
+        # puntual de la IA para que la persona complete justo lo que falta.
+        requiere = ver in VEREDICTOS_DEVUELVEN
         # Señal MEDIDA (no acusacion): declaro estar fuera de horario, pero este
         # hueco cae dentro de su turno (llegamos aqui con expected_seconds alto).
         # Lo ve el admin aparte; NO entra a "a revisar", porque puede ser que el
@@ -717,15 +793,18 @@ class FocoAbsence(models.Model):
             'ai_categoria': cat, 'ai_requiere_revision': requiere,
             'ai_incoherente': incoherente,
             'ai_motivo': (j.get('motivo') or '').strip()[:150] or False,
+            'ai_pregunta': (pregunta if requiere else '') or False,
             'ai_confianza': conf, 'ai_modelo': resp.get('modelo') or False,
             'ai_tokens': int((resp.get('usage') or {}).get('total_tokens') or 0),
             'ai_at': fields.Datetime.now(), 'ai_error': False,
         }
-        # Rebote (enforcement): si la IA dice que el texto NO explica nada, se
-        # DEVUELVE al empleado para que lo rehaga -se reabre el periodo y la
-        # ventana del agente vuelve con el aviso-, en vez de solo dejarlo para el
-        # admin. Gobernado por el interruptor de Ajustes y con tope de seguridad:
-        # tras REBOTES_MAX se deja de reabrir (queda en «Periodos a revisar»).
+        # Rebote (enforcement): si la IA dice que el texto NO trae lo que el
+        # patron necesita, se DEVUELVE al empleado con la pregunta -se reabre el
+        # periodo y la ventana del agente vuelve con ella-, en vez de solo
+        # dejarlo para el admin. Gobernado por el interruptor de Ajustes y con
+        # tope de seguridad: tras REBOTES_MAX ya no se reabre y queda "Por
+        # decidir" del admin (antes seguia contando como justificada: asi
+        # contaron 5h17 de "." y "Trabajo" de Teodolo el 9-oct).
         settings = self.env['foco.settings'].sudo().get_settings()
         if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX:
             vals.update({
@@ -735,8 +814,134 @@ class FocoAbsence(models.Model):
                 'nota_rechazada': (self.note or '').strip()[:200] or False,
                 # Que lo nag la VENTANA, no el correo: evita avisar dos veces.
                 'notified': True,
+                # Lo que se le haya cargado a la bolsa se libera: se carga
+                # cuando la IA acepte el texto nuevo.
+                'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0,
             })
+        elif requiere:
+            vals.update({'state': 'por_decidir',
+                         'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0})
         self.sudo().write(vals)
+        if not requiere:
+            self._aplicar_gracia()
+
+    # ------------------------------------------------- bolsa de 90 minutos
+    def _gracia_total_min(self):
+        return int(self.env['foco.settings'].sudo().get_settings().justify_gracia_min or 0)
+
+    def _rango_dia_local(self):
+        """[ini, fin] en UTC del dia LOCAL de la persona en que empezo el periodo."""
+        self.ensure_one()
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(self.employee_id)
+        d = pytz.UTC.localize(self.start).astimezone(tz).date()
+        ini = tz.localize(datetime.combine(d, time(0, 0))).astimezone(pytz.UTC).replace(tzinfo=None)
+        fin = tz.localize(datetime.combine(d, time(23, 59, 59))).astimezone(pytz.UTC).replace(tzinfo=None)
+        return ini, fin
+
+    def _gracia_consumida_min(self):
+        """Minutos de la bolsa del dia ya cargados por OTROS periodos de la persona."""
+        self.ensure_one()
+        ini, fin = self._rango_dia_local()
+        otros = self.sudo().search([('employee_id', '=', self.employee_id.id), ('id', '!=', self.id),
+                                    ('cubierta_por', '=', 'gracia'),
+                                    ('start', '>=', ini), ('start', '<=', fin)])
+        return sum(otros.mapped('gracia_min'))
+
+    def _punto_de_corte(self, minutos):
+        """Instante en que el periodo lleva `minutos` DENTRO de la jornada. Si el
+        hueco cae entero en la jornada es inicio + minutos; si parte cae fuera
+        (empezo antes del turno, cruza la comida), se busca: la jornada esperada
+        crece de forma monotona con el fin del tramo."""
+        self.ensure_one()
+        total = (self.stop - self.start).total_seconds()
+        if abs((self.expected_seconds or 0.0) - total) < 60:
+            return self.start + timedelta(minutes=minutos)
+        settings = self.env['foco.settings'].sudo().get_settings()
+        objetivo = minutos * 60.0
+        lo, hi = self.start, self.stop
+        for _ in range(24):
+            mid = lo + (hi - lo) / 2
+            if settings.expected_seconds(self.employee_id, self.start, mid, con_asistencia=True) < objetivo:
+                lo = mid
+            else:
+                hi = mid
+        return hi.replace(microsecond=0)
+
+    def _aplicar_gracia(self):
+        """La justificacion fue aceptada (IA, catalogo o fuera de jornada): se
+        carga a la bolsa diaria de la persona, en el orden en que se acepta.
+        Cabe entera: justificada con sus minutos. No cabe nada: por decidir del
+        admin. Cabe una parte: se PARTE en dos (lo que cabe queda justificado y
+        agota la bolsa; el resto nace como periodo propio, por decidir, con la
+        misma nota). La suma de las dos partes es el periodo original y la
+        bolsa siempre cuadra. Idempotente: no se carga dos veces."""
+        self.ensure_one()
+        if self.cubierta_por or self.state != 'justificada':
+            return
+        total = self._gracia_total_min()
+        mins = int(round((self.expected_seconds or 0.0) / 60.0))
+        libre = max(0, total - self._gracia_consumida_min())
+        if mins <= 0:
+            # Fuera de la jornada: no gasta bolsa ni necesita decision.
+            self.sudo().write({'cubierta_por': 'gracia', 'gracia_min': 0, 'gracia_restante_min': libre})
+            return
+        if mins <= libre:
+            self.sudo().write({'cubierta_por': 'gracia', 'gracia_min': mins,
+                               'gracia_restante_min': libre - mins})
+            return
+        if libre <= 0:
+            self.sudo().write({'state': 'por_decidir', 'cubierta_por': False,
+                               'gracia_min': 0, 'gracia_restante_min': 0})
+            return
+        corte = self._punto_de_corte(libre)
+        if corte <= self.start or corte >= self.stop:
+            self.sudo().write({'state': 'por_decidir', 'cubierta_por': False,
+                               'gracia_min': 0, 'gracia_restante_min': 0})
+            return
+        settings = self.env['foco.settings'].sudo().get_settings()
+        e1 = settings.expected_seconds(self.employee_id, self.start, corte, con_asistencia=True)
+        e2 = max(0.0, (self.expected_seconds or 0.0) - e1)
+        self.sudo().create({
+            'computer_id': self.computer_id.id, 'start': corte, 'stop': self.stop,
+            'kind': self.kind, 'expected_seconds': e2,
+            'reason': self.reason, 'note': self.note, 'state': 'por_decidir',
+            'notified': True, 'answered_at': self.answered_at, 'answered_via': self.answered_via,
+            'ai_estado': 'analizado', 'ai_veredicto': self.ai_veredicto, 'ai_categoria': self.ai_categoria,
+            'ai_motivo': self.ai_motivo, 'ai_confianza': self.ai_confianza, 'ai_modelo': self.ai_modelo,
+            'ai_at': self.ai_at, 'rebotes': self.rebotes, 'nota_rechazada': self.nota_rechazada,
+            'origen_id': self.id, 'gracia_min': 0, 'gracia_restante_min': 0,
+        })
+        self.sudo().write({'stop': corte, 'expected_seconds': e1,
+                           'cubierta_por': 'gracia', 'gracia_min': libre, 'gracia_restante_min': 0})
+
+    # ------------------------------------------------- decision del admin
+    def action_aceptar(self):
+        """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta."""
+        ahora = fields.Datetime.now()
+        for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+            rec.sudo().write({'state': 'justificada', 'cubierta_por': 'admin', 'gracia_min': 0,
+                              'decidido_por': self.env.user.id, 'decidido_at': ahora,
+                              'ai_requiere_revision': False, 'review_visto': True,
+                              'review_por': self.env.user.id, 'review_at': ahora})
+        return True
+
+    def action_rechazar(self):
+        """Paso de sus 90 min y el admin no la acepta: no cuenta."""
+        ahora = fields.Datetime.now()
+        for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+            rec.sudo().write({'state': 'rechazada', 'cubierta_por': False, 'gracia_min': 0,
+                              'decidido_por': self.env.user.id, 'decidido_at': ahora,
+                              'ai_requiere_revision': False, 'review_visto': True,
+                              'review_por': self.env.user.id, 'review_at': ahora})
+        return True
+
+    def action_reconsiderar(self):
+        """Vuelve a "Por decidir" una aceptada o rechazada por el admin."""
+        for rec in self.filtered(lambda r: r.state == 'rechazada'
+                                 or (r.state == 'justificada' and r.cubierta_por == 'admin')):
+            rec.sudo().write({'state': 'por_decidir', 'cubierta_por': False,
+                              'decidido_por': False, 'decidido_at': False})
+        return True
 
     # ------------------------------------------------- revision humana
     def action_marcar_revisado(self):
@@ -771,7 +976,15 @@ class FocoAbsence(models.Model):
         devueltas = []
         for rec in self.search([('rebote_pendiente', '=', True)], order='start desc', limit=20):
             devueltas.append({'id': rec.employee_id.id, 'nombre': rec.employee_id.name,
-                              'texto': (rec.nota_rechazada or '')[:40], 'veces': rec.rebotes})
+                              'texto': (rec.nota_rechazada or '')[:40], 'veces': rec.rebotes,
+                              'pregunta': (rec.ai_pregunta or '')[:60]})
+        # Regla de los 90 min: lo que paso de la bolsa y espera Aceptar / Rechazar.
+        decidir = []
+        for emp, n in self._read_group([('state', '=', 'por_decidir')], ['employee_id'], ['__count']):
+            decidir.append({'id': emp.id if emp else 0,
+                            'nombre': emp.name if emp else 'Sin empleado', 'n': n})
+        decidir.sort(key=lambda r: -r['n'])
         return {'revisar': sum(r['n'] for r in revisar), 'revisar_por': revisar[:8],
                 'devueltas': self.search_count([('rebote_pendiente', '=', True)]),
-                'devueltas_lista': devueltas}
+                'devueltas_lista': devueltas,
+                'por_decidir': sum(r['n'] for r in decidir), 'por_decidir_por': decidir[:8]}

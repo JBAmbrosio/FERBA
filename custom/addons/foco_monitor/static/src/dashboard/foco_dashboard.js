@@ -1165,6 +1165,11 @@ export class FocoDashboard extends Component {
                          detalle: (srv.devueltas_lista || []).slice(0, 5).map((d) => `${d.nombre}: "${d.texto}" (${d.veces} ${d.veces === 1 ? "vez" : "veces"})`),
                          mas: Math.max(srv.devueltas - 5, 0), accion: "abrirDevueltas", tono: "mid" });
         }
+        if (srv.por_decidir) {
+            items.push({ clave: "decidir", titulo: "Justificaciones por decidir: pasaron de sus 90 min del día", n: srv.por_decidir,
+                         detalle: (srv.por_decidir_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
+                         mas: Math.max((srv.por_decidir_por || []).length - 5, 0), accion: "abrirPorDecidir", tono: "mid" });
+        }
         if (srv.revisar) {
             items.push({ clave: "revisar", titulo: "Justificaciones vagas por revisar (acumulado)", n: srv.revisar,
                          detalle: (srv.revisar_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
@@ -1299,6 +1304,13 @@ export class FocoDashboard extends Component {
     abrirDevueltas() {
         this.action.doAction("foco_monitor.foco_absence_review_action", {
             additionalContext: { search_default_devueltas: 1, search_default_sin_revisar: 0 },
+        });
+    }
+
+    /** Lo que paso de los 90 min del dia y espera Aceptar / Rechazar. */
+    abrirPorDecidir() {
+        this.action.doAction("foco_monitor.foco_absence_action", {
+            additionalContext: { search_default_por_decidir: 1, search_default_pendientes: 0, search_default_g_emp: 1 },
         });
     }
 

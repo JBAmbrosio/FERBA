@@ -497,10 +497,15 @@ class FocoTomy(models.AbstractModel):
                'employee_id': emp_opt}, ['desde', 'hasta', 'tipo']),
             t('ausencias',
               'Periodos sin actividad dentro del horario (huecos) con su motivo, estado y nota. Con estado='
-              'pendiente trae solo las que faltan por justificar.',
+              'pendiente trae solo las que faltan por justificar. Regla de los 90 minutos: cada persona '
+              'tiene al dia 90 min justificables sin decision del admin (cuenta_por = De sus 90 min); lo '
+              'que pasa de ahi queda por_decidir (no cuenta como cubierto hasta que el admin acepte) o '
+              'rechazada.',
               {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
-               'estado': {'type': 'string', 'enum': ['pendiente', 'justificada', 'auto', 'todas'],
-                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar'}},
+               'estado': {'type': 'string',
+                          'enum': ['pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto', 'todas'],
+                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar; '
+                                         'por_decidir = paso de sus 90 min y espera al admin'}},
               ['desde', 'hasta']),
             t('llamadas',
               'Llamadas de WhatsApp hechas desde la laptop y analizadas: cuantas, minutos de trabajo y personales, '
@@ -784,27 +789,35 @@ class FocoTomy(models.AbstractModel):
         dominio = [('start', '>=', self._utc(d, zona=corte)), ('start', '<=', self._utc(h, fin=True, zona=corte))]
         if emp:
             dominio.append(('employee_id', '=', emp.id))
-        if estado in ('pendiente', 'justificada', 'auto'):
+        ESTADOS = ('pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto')
+        if estado in ESTADOS:
             dominio.append(('state', '=', estado))
         regs = Abs.search(dominio, order='start desc')
         motivos = dict(Abs._fields['reason'].selection)
         tipos = dict(Abs._fields['kind'].selection)
+        cuenta = dict(Abs._fields['cubierta_por'].selection)
         por_motivo = {}
         for r in regs.filtered(lambda x: x.state == 'justificada'):
             por_motivo[motivos.get(r.reason, r.reason or 'sin motivo')] = por_motivo.get(
                 motivos.get(r.reason, r.reason or 'sin motivo'), 0) + (r.duration or 0)
+        decidir = regs.filtered(lambda x: x.state == 'por_decidir')
         return {
-            'filtro_estado': estado if estado in ('pendiente', 'justificada', 'auto') else 'todas',
+            'filtro_estado': estado if estado in ESTADOS else 'todas',
             'total': len(regs),
             'pendientes_de_justificar': len(regs.filtered(lambda x: x.state == 'pendiente')),
             'horas_justificadas': _hm(sum(regs.filtered(lambda x: x.state == 'justificada').mapped('duration'))),
+            'por_decidir_del_admin': len(decidir),
+            'horas_por_decidir': _hm(sum(decidir.mapped('duration'))),
+            'rechazadas_por_el_admin': len(regs.filtered(lambda x: x.state == 'rechazada')),
             'por_motivo': {k: _hm(v) for k, v in por_motivo.items()},
             # fin con fecha completa: una ausencia que cruza la noche (18:38 -> 09:17)
             # obligaba al modelo a adivinar el dia del fin.
             'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start, zona_de(r.employee_id)),
                          'fin': self._local(r.stop, zona_de(r.employee_id)),
                          'duracion': _hm(r.duration), 'tipo': tipos.get(r.kind, r.kind),
-                         'estado': r.state, 'motivo': motivos.get(r.reason, '') if r.reason else '',
+                         'estado': r.state, 'cuenta_por': cuenta.get(r.cubierta_por, ''),
+                         'de_sus_90_min': r.gracia_min if r.cubierta_por == 'gracia' else None,
+                         'motivo': motivos.get(r.reason, '') if r.reason else '',
                          'nota': (r.note or '')[:120]} for r in regs[:8]],
         }
 
@@ -946,6 +959,8 @@ class FocoTomy(models.AbstractModel):
         if res['ultimas']:
             self._tabla(artefactos, 'Ausencias%s (%s a %s)' % (
                 {'pendiente': ' pendientes de justificar', 'justificada': ' justificadas',
+                 'por_decidir': ' por decidir del admin (pasaron de sus 90 min)',
+                 'rechazada': ' rechazadas por el admin',
                  'auto': ' fuera de horario'}.get(estado, ''), d, h),
                         ['Persona', 'Inicio', 'Fin', 'Duracion', 'Tipo', 'Estado', 'Motivo'],
                         [[u['persona'], u['inicio'], u['fin'], u['duracion'], u['tipo'], u['estado'], u['motivo']]
