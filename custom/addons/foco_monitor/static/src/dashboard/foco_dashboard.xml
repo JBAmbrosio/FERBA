@@ -53,6 +53,17 @@
                             <t t-esc="state.sinSenal"/> sin señal
                         </span>
                     </t>
+                    <!-- Contador diario de IA (pedido del dueño, 9-oct): tokens
+                         exactos de hoy y costo estimado a precio de lista. Rojo al
+                         pasar el umbral. Solo lo reciben los administradores. -->
+                    <t t-if="state.ia">
+                        <span t-attf-class="fd_pill fd_ia {{ state.ia.excedido ? 'down' : 'flat' }}"
+                              role="button" style="cursor: pointer;"
+                              t-on-click="() => this.abrirIA()"
+                              t-att-title="'IA hoy: ' + state.ia.llamadas + ' llamadas al modelo, ' + state.ia.tokens + ' tokens, ~$' + state.ia.costo.toFixed(2) + ' USD estimados a precio de lista. Umbral del día: ' + state.ia.umbral + ' tokens. Clic para ver el detalle por servicio y por día.'">
+                            IA hoy <t t-esc="fmtTok(state.ia.tokens)"/> tokens · ~$<t t-esc="state.ia.costo.toFixed(2)"/>
+                        </span>
+                    </t>
                     <button class="fd_refrescar" t-on-click="() => this.refrescar()"
                             t-att-disabled="state.refrescando"
                             t-attf-class="fd_refrescar {{ state.refrescando ? 'girando' : '' }}"

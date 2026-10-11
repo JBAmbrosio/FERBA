@@ -24,6 +24,19 @@ ANTHROPIC_API = 'https://api.anthropic.com/v1/messages'
 # - El tool use AUTOMATICO (lo de Tomy) si funciona.
 ANTHROPIC_VERSION = '2023-06-01'
 
+# Que servicio de Foco hizo la llamada, por el nombre del esquema JSON que pidio.
+# Es lo que alimenta el contador diario de consumo (foco.ai.usage) sin que cada
+# modelo que llama tenga que decirlo.
+SERVICIO_POR_ESQUEMA = {
+    'revision_justificacion': 'justificacion',
+    'dialogo_llamada': 'llamadas', 'clasificacion_llamada': 'llamadas',
+    'accion_play': 'movil',
+    'analisis_visita': 'visitas', 'dialogo_visita': 'visitas',
+    'clasificacion_pestanas': 'pestanas',
+    'clasificacion_whatsapp': 'whatsapp', 'wa_header': 'whatsapp',
+    'veredicto_pantalla': 'vision',
+}
+
 
 def _alinea_pestanas(items, lote, modelo):
     """Empareja los items que devolvio el modelo con `lote` por el INDICE 'i'
@@ -215,9 +228,10 @@ class FocoOpenAI(models.AbstractModel):
     # --------------------------------------------------------- nucleo Anthropic
     @api.model
     def _anthropic(self, system, messages, max_tokens, modelo, tools=None,
-                   tool_choice=None, timeout=120):
+                   tool_choice=None, timeout=120, servicio=None, ref=None):
         """Una llamada a /v1/messages. Sin `temperature` (la familia Claude 5 ya
-        no lo acepta). Levanta UserError si falla: quien llama decide si reintenta."""
+        no lo acepta). Levanta UserError si falla: quien llama decide si reintenta.
+        Cada respuesta deja su fila en el contador de consumo (foco.ai.usage)."""
         key = self.api_key()
         if not key:
             raise UserError('Falta la API key de Anthropic (Foco > Configuracion).')
@@ -236,12 +250,19 @@ class FocoOpenAI(models.AbstractModel):
             raise UserError('Anthropic: sin respuesta (%s)' % e)
         if r.status_code != 200:
             raise UserError('Anthropic %s: %s' % (r.status_code, r.text[:300]))
-        return r.json()
+        j = r.json()
+        tin, tout = self._tokens_split(j)
+        self.env['foco.ai.usage'].registrar(servicio or 'otro', modelo, tin, tout, ref=ref)
+        return j
+
+    @api.model
+    def _tokens_split(self, j):
+        u = j.get('usage') or {}
+        return int(u.get('input_tokens') or 0), int(u.get('output_tokens') or 0)
 
     @api.model
     def _tokens(self, j):
-        u = j.get('usage') or {}
-        return int((u.get('input_tokens') or 0) + (u.get('output_tokens') or 0))
+        return sum(self._tokens_split(j))
 
     @api.model
     def _texto(self, j):
@@ -249,14 +270,17 @@ class FocoOpenAI(models.AbstractModel):
                        if b.get('type') == 'text')
 
     @api.model
-    def _json_por_texto(self, system, messages, esquema, max_tokens, modelo, timeout=120):
+    def _json_por_texto(self, system, messages, esquema, max_tokens, modelo, timeout=120,
+                        servicio=None, ref=None):
         """JSON estructurado SIN tool forzado (Sonnet/Opus 5.x no lo soportan):
         se pide el JSON por texto, con el esquema en el sistema, y se parsea.
         Devuelve (dict, tokens). Levanta UserError si no vino JSON valido."""
         sis = ((system + '\n\n') if system else '')
         sis += ('Responde UNICAMENTE con un objeto JSON valido que cumpla este JSON Schema, '
                 'sin ningun texto antes ni despues y sin ```:\n' + _esquema_a_texto(esquema))
-        j = self._anthropic(sis, messages, max_tokens, modelo, timeout=timeout)
+        if not servicio:
+            servicio = SERVICIO_POR_ESQUEMA.get((esquema or {}).get('name'), 'otro')
+        j = self._anthropic(sis, messages, max_tokens, modelo, timeout=timeout, servicio=servicio, ref=ref)
         res = _extraer_json(self._texto(j))
         if not isinstance(res, dict):
             raise UserError('Anthropic: respuesta sin JSON valido')
@@ -360,33 +384,46 @@ class FocoOpenAI(models.AbstractModel):
             raise UserError('OpenAI transcripcion: sin respuesta (%s)' % e)
         if r.status_code != 200:
             raise UserError('OpenAI transcripcion %s: %s' % (r.status_code, r.text[:300]))
+        # Whisper no reporta tokens: queda la llamada con el tamano del audio.
+        self.env['foco.ai.usage'].registrar('transcripcion', modelo, 0, 0,
+                                            nota='audio de %d KB' % (len(wav_bytes or b'') // 1024))
         return (r.json().get('text') or '').strip()
 
     # ----------------------------------------------------------- chat (Claude)
     @api.model
-    def chat(self, messages, tools=None, response_format=None, max_tokens=900, model=None):
+    def chat(self, messages, tools=None, response_format=None, max_tokens=900, model=None,
+             servicio=None, ref=None):
         """Una vuelta de conversacion. Devuelve {'message', 'usage', 'modelo'}
         con `message` en forma OpenAI ('content' o 'tool_calls'), para no tocar a
         Tomy. Si `response_format` pide un json_schema, se resuelve por texto y el
-        JSON viene como cadena en `message.content` (como antes)."""
+        JSON viene como cadena en `message.content` (como antes). `servicio` dice
+        quien llama para el contador de consumo; si no viene se deduce (Tomy si
+        trae herramientas, el esquema si pide JSON)."""
         modelo = model or self._param('foco.ai_chat_model', 'claude-sonnet-5-5')
         system, amsgs = self._traducir_mensajes(messages)
         if response_format and response_format.get('type') == 'json_schema':
             esquema = response_format.get('json_schema') or {}
-            res, tokens = self._json_por_texto(system, amsgs, esquema, max_tokens or 900, modelo)
+            res, tokens = self._json_por_texto(system, amsgs, esquema, max_tokens or 900, modelo,
+                                               servicio=servicio, ref=ref)
             return {'message': {'role': 'assistant',
                                 'content': json.dumps(res, ensure_ascii=False), 'tool_calls': []},
                     'usage': {'total_tokens': tokens}, 'modelo': modelo}
         atools = self._traducir_tools(tools) if tools else None
         # tool_choice se deja en automatico (ni "tool" ni "any": Sonnet/Opus 5.x
         # no los aceptan, y Tomy necesita que el modelo decida).
-        j = self._anthropic(system, amsgs, max_tokens or 900, modelo, tools=atools)
+        j = self._anthropic(system, amsgs, max_tokens or 900, modelo, tools=atools,
+                            servicio=servicio or ('tomy' if tools else 'chat'), ref=ref)
+        tin, tout = self._tokens_split(j)
+        # prompt/completion ademas del total: Tomy suma su costo con ellos y desde
+        # la migracion a Claude (8-oct) los leia en cero.
         return {'message': self._de_anthropic(j),
-                'usage': {'total_tokens': self._tokens(j)}, 'modelo': modelo}
+                'usage': {'total_tokens': tin + tout, 'prompt_tokens': tin, 'completion_tokens': tout},
+                'modelo': modelo}
 
     # --------------------------------------------------------- vision (Claude)
     @api.model
-    def vision(self, imagenes, sistema, usuario, esquema, max_tokens=700, detail='low'):
+    def vision(self, imagenes, sistema, usuario, esquema, max_tokens=700, detail='low',
+               servicio='vision', ref=None):
         """Una pregunta con imagenes y respuesta en JSON con esquema.
 
         `imagenes`: lista de (mime, base64) en el orden en que el modelo debe
@@ -401,7 +438,8 @@ class FocoOpenAI(models.AbstractModel):
             bloques.append({'type': 'image', 'source': {
                 'type': 'base64', 'media_type': mime or 'image/jpeg', 'data': b64}})
         res, tokens = self._json_por_texto(
-            sistema, [{'role': 'user', 'content': bloques}], esquema, max_tokens or 700, modelo)
+            sistema, [{'role': 'user', 'content': bloques}], esquema, max_tokens or 700, modelo,
+            servicio=servicio, ref=ref)
         return {'json': res, 'tokens': tokens, 'modelo': modelo}
 
     # ---------------------------------------------------- clasificar (Claude)
@@ -417,7 +455,7 @@ class FocoOpenAI(models.AbstractModel):
                       (otro or '').strip() or '(sin voz)'))
         res, tokens = self._json_por_texto(
             SISTEMA.format(contexto=contexto or 'la empresa.'),
-            [{'role': 'user', 'content': usuario}], ESQUEMA, 500, modelo)
+            [{'role': 'user', 'content': usuario}], ESQUEMA, 500, modelo, servicio='llamadas')
         res['tokens'] = tokens
         res['modelo'] = modelo
         return res

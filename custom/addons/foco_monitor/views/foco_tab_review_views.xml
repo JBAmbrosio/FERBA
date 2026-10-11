@@ -21,6 +21,7 @@
                   decoration-warning="ia_suggestion == 'bloquear' and state == 'pendiente'"
                   decoration-muted="state != 'pendiente'">
                 <field name="create_date" string="Visto"/>
+                <field name="dia" optional="hide"/>
                 <field name="employee_id"/>
                 <field name="policy_id"/>
                 <field name="title"/>
@@ -84,6 +85,7 @@
                 <field name="employee_id"/>
                 <field name="policy_id"/>
                 <field name="host"/>
+                <field name="dia"/>
                 <separator/>
                 <filter name="pendiente" string="Pendientes" domain="[('state', '=', 'pendiente')]"/>
                 <filter name="sug_bloquear" string="IA aconseja bloquear"
@@ -91,7 +93,17 @@
                 <filter name="bloqueado" string="Bloqueadas" domain="[('state', '=', 'bloqueado')]"/>
                 <filter name="permitido" string="Permitidas" domain="[('state', '=', 'permitido')]"/>
                 <separator/>
+                <!-- Por dia (reunion del 9-oct-2026): hoy, ayer, la semana; y el
+                     campo Dia de arriba para cualquier fecha. -->
+                <filter name="hoy" string="Hoy"
+                        domain="[('dia', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="ayer" string="Ayer"
+                        domain="[('dia', '=', (context_today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <filter name="semana" string="Ultimos 7 dias"
+                        domain="[('dia', '&gt;=', (context_today() - datetime.timedelta(days=6)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
                 <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'dia:day'}"/>
                 <filter name="g_pol" string="Perfil" context="{'group_by': 'policy_id'}"/>
                 <filter name="g_state" string="Estado" context="{'group_by': 'state'}"/>
             </search>
@@ -102,7 +114,7 @@
         <field name="name">Pestañas por revisar</field>
         <field name="res_model">foco.tab.review</field>
         <field name="view_mode">list,form</field>
-        <field name="context">{'search_default_pendiente': 1}</field>
+        <field name="context">{'search_default_pendiente': 1, 'search_default_g_emp': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nada por revisar</p>
             <p>

@@ -63,6 +63,9 @@ export class FocoDashboard extends Component {
             asistencia: { personas: {}, equipo: {}, gracia: 0 },
             // lo derivado para el rediseno (10-oct): ver derivar()
             atencionSrv: { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] },
+            // consumo de IA de hoy (tokens, costo estimado, umbral); null si no
+            // se puede ver (solo administradores)
+            ia: null,
             serie7: [], cintas: { dias: [], ventana: [8, 20] },
             online: [], conectados: 0, asistenciaLista: [], atencion: [], atencionN: 0,
             barras: [], tl: { horas: [], cols: 1, ahora: null, filas: [] }, grupos: [],
@@ -647,7 +650,7 @@ export class FocoDashboard extends Component {
         // terminan en el ancla, se mire el periodo que se mire.
         const spark0 = new Date(anchor); spark0.setDate(anchor.getDate() - 6);
         const idsMonitoreados = comps.filter((c) => c.employee_id).map((c) => c.employee_id[0]);
-        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas] = await Promise.all([
+        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas, ia] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
                 [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
@@ -667,7 +670,11 @@ export class FocoDashboard extends Component {
             days === 1 && idsMonitoreados.length
                 ? this.orm.call("foco.workday", "cintas", [idsMonitoreados, this.ymd(anchor), this.ymd(anchor)])
                 : Promise.resolve({ dias: [], ventana: [8, 20] }),
+            // Consumo de IA de hoy. Solo administradores: a los demas el
+            // servidor les niega el modelo y la cabecera no lo pinta.
+            this.orm.call("foco.ai.usage", "resumen", [7]).catch(() => null),
         ]);
+        this.state.ia = ia || null;
         this.state.revisar = (atencionSrv && atencionSrv.revisar) || 0;
         this.state.atencionSrv = atencionSrv || { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] };
         this.state.asistencia = asistencia || { personas: {}, equipo: {}, gracia: 0 };
@@ -1170,6 +1177,12 @@ export class FocoDashboard extends Component {
                          detalle: (srv.por_decidir_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
                          mas: Math.max((srv.por_decidir_por || []).length - 5, 0), accion: "abrirPorDecidir", tono: "mid" });
         }
+        const ia = this.state.ia;
+        if (ia && ia.excedido) {
+            items.push({ clave: "ia_tokens", titulo: `IA: consumo de hoy por encima del umbral (${this.fmtTok(ia.tokens)} de ${this.fmtTok(ia.umbral)} tokens)`, n: 1,
+                         detalle: (ia.por_servicio || []).slice(0, 4).map((s) => `${s.servicio}: ${this.fmtTok(s.tokens)}`),
+                         mas: 0, accion: "abrirIA", tono: "mid" });
+        }
         if (srv.revisar) {
             items.push({ clave: "revisar", titulo: "Justificaciones vagas por revisar (acumulado)", n: srv.revisar,
                          detalle: (srv.revisar_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
@@ -1305,6 +1318,19 @@ export class FocoDashboard extends Component {
         this.action.doAction("foco_monitor.foco_absence_review_action", {
             additionalContext: { search_default_devueltas: 1, search_default_sin_revisar: 0 },
         });
+    }
+
+    /** Tokens en corto: 42 k, 1.3 M. */
+    fmtTok(n) {
+        n = Number(n || 0);
+        if (n >= 1e6) return `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} M`;
+        if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)} k`;
+        return String(n);
+    }
+
+    /** Consumo de IA por dia y por servicio. */
+    abrirIA() {
+        this.action.doAction("foco_monitor.foco_ai_usage_action");
     }
 
     /** Lo que paso de los 90 min del dia y espera Aceptar / Rechazar. */

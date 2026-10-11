@@ -1,6 +1,8 @@
 import logging
 import re
 
+import pytz
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
@@ -126,6 +128,19 @@ class FocoTabReview(models.Model):
         default='pendiente', required=True, index=True)
     decided_uid = fields.Many2one('res.users', string='Decidio', readonly=True)
     decided_at = fields.Datetime(string='Decidido', readonly=True)
+    # El dia en que se vio, en la zona de la persona: para filtrar y agrupar por
+    # dia (pedido de la reunion del 9-oct-2026). `create_date` es UTC y un filtro
+    # por fecha sobre el cortaria el dia a las 17:00 o 18:00 de aqui.
+    dia = fields.Date(string='Dia', compute='_compute_dia', store=True, index=True,
+                      help='Dia local en que se vio la pestaña por primera vez.')
+
+    @api.depends('create_date', 'computer_id')
+    def _compute_dia(self):
+        Settings = self.env['foco.settings'].sudo()
+        for rec in self:
+            base = rec.create_date or fields.Datetime.now()
+            tz = Settings._tzinfo_for(rec.employee_id, rec.computer_id) if rec.computer_id else pytz.UTC
+            rec.dia = pytz.UTC.localize(base).astimezone(tz).date()
 
     @api.model
     def ingest_tabs(self, computer, titulos, tab_hosts=None):
