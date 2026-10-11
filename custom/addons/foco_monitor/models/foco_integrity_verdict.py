@@ -74,6 +74,10 @@ PATRON_TEXTO = {
 VEREDICTOS = [
     ('trabajo_real', 'Trabajo real'),
     ('revision_pasiva', 'Revision pasiva (lee, mide, espera un proceso)'),
+    # Decision del dueno (9-oct-2026): "la musica no es tan grave". Un reproductor
+    # de musica al frente no es entretenimiento ni abre veredicto; un video, el
+    # futbol o el streaming si.
+    ('musica', 'Musica de fondo (permitida)'),
     ('entretenimiento', 'Entretenimiento (video, deportes, redes)'),
     ('personal', 'Asunto personal (chat, compras, tramites)'),
     ('inactiva', 'Pantalla inactiva (bloqueo, escritorio vacio)'),
@@ -123,8 +127,10 @@ SISTEMA_VISION = (
     "2. Veredictos: 'trabajo_real' (edita, dibuja, escribe, navega contenido del trabajo); "
     "'revision_pasiva' (lee planos, PDF, hojas, correo, espera un render o un calculo, esta en "
     "videollamada o tiene una pantalla de referencia abierta: es trabajo aunque no cambie); "
-    "'entretenimiento' (video, streaming, deportes, musica al frente, redes sociales, noticias "
-    "ajenas al trabajo); 'personal' (chat o sitios personales, compras, tramites propios); "
+    "'musica' (un reproductor de musica al frente: Spotify, YouTube Music, Apple Music, una lista "
+    "de reproduccion; la musica de fondo esta permitida por la direccion y NO es entretenimiento); "
+    "'entretenimiento' (video, streaming, deportes, un partido, un video musical, redes sociales, "
+    "noticias ajenas al trabajo); 'personal' (chat o sitios personales, compras, tramites propios); "
     "'inactiva' (pantalla de bloqueo, protector, escritorio vacio, inicio de sesion, ventana sin "
     "contenido); 'simulacion' (las capturas son identicas o solo se mueve el cursor sobre algo que "
     "no requiere atencion, con senales de input que no producen ningun cambio: patron de "
@@ -457,6 +463,22 @@ class FocoIntegrityVerdict(models.Model):
         cat = self.app_id.category_id
         return bool(cat and not cat.is_system and (cat.weight or 0.0) >= 0.9)
 
+    def _es_musica(self, settings=None):
+        """La app al frente es un reproductor de musica de la lista de Ajustes
+        (por nombre de app, ejecutable o titulo de la ventana). Decision del
+        dueno (9-oct-2026): la musica de fondo no es grave y no abre veredicto;
+        asi Spotify 18 min no gasta capturas de la IA ni asusta a nadie. Un
+        video de YouTube, el futbol o el streaming NO entran: el titulo de un
+        video dice "- YouTube", no "YouTube Music"."""
+        self.ensure_one()
+        settings = settings or self.env['foco.settings'].sudo().get_settings()
+        lista = [x.strip().lower() for x in (settings.vision_musica_apps or '').split(',') if x.strip()]
+        if not lista:
+            return False
+        texto = ' '.join(filter(None, [self.app_name, self.exe, self.title,
+                                       self.app_id.display_name if self.app_id else ''])).lower()
+        return any(x in texto for x in lista)
+
     def _analizar(self, forzar=False):
         settings = self.env['foco.settings'].sudo().get_settings()
         OpenAI = self.env['foco.openai']
@@ -468,6 +490,19 @@ class FocoIntegrityVerdict(models.Model):
             if not caps:
                 rec.write({'state': 'sin_capturas', 'veredicto': 'indeterminado', 'confianza': 0.0,
                            'motivo': 'sin capturas que mirar', 'decided_at': fields.Datetime.now()})
+                continue
+            # Musica de fondo: permitida por la direccion. Se resuelve aqui, sin
+            # mandar capturas al modelo (cero tokens) y sin marcar sospecha.
+            if rec._es_musica(settings):
+                rec.write({
+                    'state': 'analizado', 'veredicto': 'musica', 'confianza': 1.0,
+                    'motivo': 'Musica de fondo: permitida por la direccion (9-oct). No se pidio veredicto a la IA.',
+                    'contenido_de_trabajo': False, 'ajustado': True,
+                    'que_se_ve': 'Reproductor de musica al frente: %s' % (rec.app_name or rec.exe or ''),
+                    'capturas_cambian': 'una_sola' if len(caps) == 1 else False,
+                    'modelo': False, 'tokens': 0, 'decided_at': fields.Datetime.now(), 'error_detail': False,
+                })
+                rec._rehacer_hecho()
                 continue
             if not OpenAI.configurado():
                 rec.write({'state': 'error', 'retries': rec.retries + 1,
@@ -511,6 +546,11 @@ class FocoIntegrityVerdict(models.Model):
                 veredicto, ajustado = 'revision_pasiva', True
                 motivo = ('Ajustado: hay contenido de trabajo en pantalla; quieta no es simulada. '
                           + motivo)
+            # El modelo vio un reproductor de musica como entretenimiento: la
+            # direccion lo permite. Regla en el servidor, no solo en el prompt.
+            if veredicto == 'entretenimiento' and rec._es_musica(settings):
+                veredicto, ajustado = 'musica', True
+                motivo = 'Ajustado: musica de fondo, permitida por la direccion. ' + motivo
             rec.write({
                 'state': 'analizado', 'veredicto': veredicto, 'confianza': confianza,
                 'motivo': motivo[:160] or False, 'contenido_de_trabajo': contenido,

@@ -19,9 +19,8 @@ HISTORIAL = 10
 # Tope de dias por consulta: una pregunta sobre "todo el ano" se acota a un
 # trimestre y se dice; una agregacion mas larga no cabe en una respuesta util.
 MAX_DIAS = 92
-# gpt-4o-mini, USD por millon de tokens (entrada / salida), para el costo visible.
-PRECIO_ENTRADA = 0.15
-PRECIO_SALIDA = 0.60
+# El costo visible de una conversacion sale de la tabla de precios por modelo
+# de foco.ai.usage (antes eran los de gpt-4o-mini, cocidos aqui).
 PREFIJO_FUERA = 'Fuera de mi alcance'
 
 DEFINICIONES = {
@@ -373,19 +372,24 @@ class FocoTomy(models.AbstractModel):
 
         artefactos, fuentes = [], []
         tokens = {'prompt': 0, 'completion': 0}
+        costo = 0.0
+        Usage = self.env['foco.ai.usage']
         texto_final, error = '', ''
         t0 = time.time()
         vueltas = 0
         while True:
             try:
-                resp = OpenAI.chat(mensajes, tools=self._herramientas())
+                resp = OpenAI.chat(mensajes, tools=self._herramientas(), servicio='tomy',
+                                   ref='hilo %s' % thread.id)
             except UserError as e:
                 error = str(e)
                 texto_final = 'No pude consultar al modelo en este momento (%s). Intenta de nuevo en un minuto.' % error[:120]
                 break
             uso = resp.get('usage') or {}
-            tokens['prompt'] += int(uso.get('prompt_tokens') or 0)
-            tokens['completion'] += int(uso.get('completion_tokens') or 0)
+            tin, tout = int(uso.get('prompt_tokens') or 0), int(uso.get('completion_tokens') or 0)
+            tokens['prompt'] += tin
+            tokens['completion'] += tout
+            costo += Usage.costo(resp.get('modelo'), tin, tout)
             msg = resp['message']
             llamadas = msg.get('tool_calls') or []
             if not llamadas:
@@ -414,7 +418,6 @@ class FocoTomy(models.AbstractModel):
         artefactos = self._poda_graficas(artefactos)
         if not texto_final:
             texto_final = 'Aqui esta lo que encontre.' if artefactos else 'No obtuve respuesta del modelo. Intenta de nuevo.'
-        costo = tokens['prompt'] * PRECIO_ENTRADA / 1e6 + tokens['completion'] * PRECIO_SALIDA / 1e6
         return {'texto': texto_final, 'artefactos': artefactos, 'fuentes': fuentes,
                 'tokens': tokens['prompt'] + tokens['completion'], 'costo': costo,
                 'fuera': texto_final.startswith(PREFIJO_FUERA), 'error': error}

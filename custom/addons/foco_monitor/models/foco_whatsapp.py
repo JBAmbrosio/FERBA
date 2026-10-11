@@ -280,7 +280,7 @@ class FocoWhatsappGroup(models.Model):
         }
         res = oi.vision([('image/webp', img_b64)], sistema,
                         'Encabezado de WhatsApp. Da el nombre del chat o grupo.',
-                        esquema, max_tokens=120)
+                        esquema, max_tokens=120, servicio='whatsapp')
         return ((res.get('json') or {}).get('nombre') or '').strip()
 
     @api.model

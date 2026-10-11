@@ -8,7 +8,7 @@
         <field name="model">foco.integrity.verdict</field>
         <field name="arch" type="xml">
             <list decoration-danger="sospechoso and review_outcome == 'pendiente'"
-                  decoration-success="veredicto in ('trabajo_real', 'revision_pasiva')"
+                  decoration-success="veredicto in ('trabajo_real', 'revision_pasiva', 'musica')"
                   decoration-info="review_outcome == 'descartado'"
                   decoration-muted="state in ('abierto', 'pendiente', 'error', 'sin_capturas')">
                 <field name="started_at"/>
@@ -18,7 +18,7 @@
                 <field name="duration_min" widget="float" digits="[8,0]"/>
                 <field name="capture_count"/>
                 <field name="veredicto" widget="badge"
-                       decoration-success="veredicto in ('trabajo_real', 'revision_pasiva')"
+                       decoration-success="veredicto in ('trabajo_real', 'revision_pasiva', 'musica')"
                        decoration-danger="veredicto in ('entretenimiento', 'personal', 'inactiva', 'simulacion')"
                        decoration-muted="veredicto == 'indeterminado'"/>
                 <field name="confianza" widget="percentage" optional="show"/>

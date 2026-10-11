@@ -451,6 +451,30 @@ class FocoSettings(models.Model):
         help='0 = se conservan como evidencia, no se borran nunca (decision del '
              '7-oct-2026). Con un numero, el proceso de cada 5 min borra las mas '
              'antiguas; el veredicto se queda.')
+    vision_musica_apps = fields.Char(
+        string='Reproductores de musica (no abren veredicto)',
+        default='spotify, youtube music, music.youtube.com, apple music, itunes, deezer, '
+                'amazon music, tidal, soundcloud',
+        help='Decision de la direccion (9-oct-2026): la musica de fondo no es grave. Si '
+             'la aplicacion, el ejecutable o el titulo de la ventana del episodio '
+             'contiene uno de estos nombres (separados por coma), el episodio queda '
+             'como "Musica de fondo (permitida)" sin pedir veredicto a la IA ni gastar '
+             'tokens. Un video musical en YouTube, el futbol o el streaming NO entran.')
+    # ---- contador diario de consumo de IA (pedido del dueno, 9-oct-2026) ---
+    ia_tokens_umbral_dia = fields.Integer(
+        string='Umbral diario de tokens de IA', default=250000,
+        help='Pasado este total de tokens en el dia, el tablero lo marca en rojo y '
+             'aparece en "Requiere atencion". Medido la semana del 6-oct-2026: un dia '
+             'normal usa entre 30 y 60 mil tokens; el 9-oct, con 327 justificaciones '
+             'analizadas de golpe, 321 mil. 0 = sin umbral. El detalle por servicio y '
+             'por dia esta en Configuracion > Consumo de IA.')
+
+    @api.constrains('ia_tokens_umbral_dia')
+    def _check_ia_tokens_umbral_dia(self):
+        for r in self:
+            if r.ia_tokens_umbral_dia < 0 or r.ia_tokens_umbral_dia > 50000000:
+                raise ValidationError('El umbral diario de tokens va de 0 a 50 millones.')
+
     jornada_tope_semana = fields.Float(
         string='Tope legal de horas por semana', default=40.0,
         help='Solo para AVISAR en la pantalla de horarios cuando un empleado lo '

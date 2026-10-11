@@ -506,6 +506,8 @@
                         <field name="vision_detalle" invisible="not vision_enabled"/>
                         <field name="vision_notice" invisible="not vision_enabled"/>
                         <field name="vision_retention_days" invisible="not vision_enabled"/>
+                        <field name="vision_musica_apps" invisible="not vision_enabled"
+                               placeholder="spotify, youtube music, apple music..."/>
                         <div class="text-muted" colspan="2">
                             Cuando un equipo lleva el umbral de minutos en un patron de
                             actividad simulada (pantalla sin cambio con input, solo mouse,
@@ -517,6 +519,18 @@
                             sale de Odoo. El veredicto es evidencia para que un administrador
                             revise en Actividad > Veredictos de la IA; no sanciona nada solo.
                             Las capturas se conservan como evidencia salvo que pongas un plazo.
+                            La musica de fondo esta permitida: un episodio con un reproductor de
+                            la lista al frente queda como "Musica de fondo" sin consultar al modelo.
+                        </div>
+                    </group>
+                    <group string="Consumo de IA">
+                        <field name="ia_tokens_umbral_dia"/>
+                        <div class="text-muted" colspan="2">
+                            Cada llamada al modelo (Tomy, veredictos, justificaciones, pestañas,
+                            WhatsApp, llamadas, visitas) deja su conteo exacto de tokens en
+                            <b>Configuración ▸ Consumo de IA</b>, con un costo estimado a precio
+                            de lista. El tablero muestra el total del día en la cabecera y lo marca
+                            en rojo al pasar este umbral.
                         </div>
                     </group>
                     <group string="Agente de escritorio (instalador .exe) y actualizacion sola">
