@@ -989,6 +989,45 @@ class FocoSettings(models.Model):
         return out
 
     @api.model
+    def workspan_intervals(self, calendar):
+        """La jornada CONTINUA por dia ISO: UN tramo, del primer intervalo del
+        dia al ultimo, con la comida DENTRO.
+
+        `calendar_intervals` deja la comida fuera, que es lo correcto para medir
+        jornada esperada. Pero para decidir si un hueco amerita preguntarse,
+        dejarla fuera era un agujero: quien se levantaba a las 12:59 y volvia a
+        las 13:34 no recibia ninguna pregunta porque casi todo caia en la franja
+        de comida, y el sistema lo daba por "explicado por calendario" (medido
+        el 12-oct-2026 en Jose Angel, Isaura y Juan Daniel). Decision del dueno
+        ese dia: la comida deja de explicar huecos.
+        """
+        out = {}
+        for iso, tramos in self.calendar_intervals(calendar).items():
+            if tramos:
+                out[iso] = [(min(a for a, _ in tramos), max(b for _, b in tramos))]
+        return out
+
+    @api.model
+    def break_intervals(self, calendar):
+        """Los huecos DENTRO de la jornada: la comida y los descansos.
+
+        En `resource.calendar` la comida puede venir de dos formas y las dos
+        cuentan: como una LINEA con `day_period='lunch'`, o -como en FERBA-
+        simplemente como el hueco entre el tramo de la manana (8:00-13:00) y el
+        de la tarde (14:00-17:30), sin linea ninguna.
+        """
+        out = {}
+        for iso, tramos in self.calendar_intervals(calendar).items():
+            huecos = [(b1, a2) for (_, b1), (a2, _) in zip(tramos, tramos[1:]) if a2 > b1]
+            if huecos:
+                out[iso] = huecos
+        for iso, tramos in self.lunch_intervals(calendar).items():
+            out.setdefault(iso, []).extend(tramos)
+        for iso in out:
+            out[iso].sort()
+        return out
+
+    @api.model
     def lunch_intervals(self, calendar):
         """Franjas de comida por dia ISO. Sirven para PRESUGERIR el motivo."""
         out = {}
@@ -1406,7 +1445,8 @@ class FocoSettings(models.Model):
         return por_dia
 
     @api.model
-    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False):
+    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False,
+                         continuo=False):
         """Segundos de JORNADA ESPERADA dentro de [start_utc, stop_utc].
 
         Es lo que permite no molestar al empleado por huecos que caen fuera de
@@ -1424,7 +1464,12 @@ class FocoSettings(models.Model):
         if stop_utc <= start_utc:
             return 0.0
         calendar = employee.resource_calendar_id if employee else None
-        intervals = self.calendar_intervals(calendar)
+        # `continuo=True` mide la jornada de corrido, con la comida DENTRO. Lo
+        # usa SOLO la ingesta de huecos, para decidir si un hueco amerita
+        # preguntarse; las metricas del tablero siguen con la jornada real, que
+        # no incluye la comida.
+        intervals = (self.workspan_intervals(calendar) if continuo
+                     else self.calendar_intervals(calendar))
         if not intervals:
             # Sin calendario utilizable no se puede afirmar que estuviera libre:
             # se asume esperado para que alguien lo revise.
