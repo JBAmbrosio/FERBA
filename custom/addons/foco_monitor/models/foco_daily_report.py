@@ -97,8 +97,9 @@ class FocoDailyReport(models.Model):
     @api.model
     def _numeros_dia(self, dia, empleados, categorias):
         """Uso del dia por persona y del equipo, con la misma aritmetica que
-        el tablero (foco_dashboard.js): indice = (productivo + justificado) /
-        jornada esperada; sin jornada esperada, productivo / activo."""
+        el tablero (foco_dashboard.js): indice = productivo / META (7 h
+        configurables), que PUEDE pasar del 100%; lo justificado NO entra. Sin
+        meta (dia de descanso), productivo / activo. Cambio del 12-oct-2026."""
         Usage = self.env['foco.usage'].sudo()
         usos = Usage.search_read(
             [('date', '=', dia), ('employee_id', 'in', empleados.ids)],
@@ -137,9 +138,10 @@ class FocoDailyReport(models.Model):
                 d['personas'].add(eid)
             if app:
                 e['apps'][app] = e['apps'].get(app, 0.0) + (r['fg_active'] or 0.0)
+        meta_h = self.env['foco.settings'].sudo().get_settings().meta_productiva_h or 7.0
         equipo = {'cubierto': 0.0, 'esperado': 0.0, 'prod': 0.0, 'activo': 0.0,
                   'distr': 0.0, 'justificado': 0.0, 'sin_explicar': 0.0, 'con_dato': 0,
-                  'idle': 0.0}
+                  'idle': 0.0, 'meta': 0.0}
         for emp in empleados:
             e = por[emp.id]
             res = resumen.get(str(emp.id)) or {}
@@ -160,12 +162,15 @@ class FocoDailyReport(models.Model):
             # el `fg_idle` sumado por renglon se encima entre ventanas.
             e['idle'] = res.get('sin_teclear_h') or 0.0
             e['cubierto'] = e['prod'] + e['justificado']
-            if e['esperado'] > 0:
-                e['indice'] = min(100, int(round(e['cubierto'] / e['esperado'] * 100)))
+            # La meta de ESTA persona ese dia: cuenta solo si tenia jornada.
+            e['meta'] = meta_h if e['esperado'] > 0 else 0.0
+            if e['meta'] > 0:
+                e['indice'] = int(round(e['prod'] / e['meta'] * 100))
             elif e['activo'] > 0:
                 e['indice'] = int(round(e['prod'] / e['activo'] * 100))
             else:
                 e['indice'] = 0
+            equipo['meta'] += e['meta']
             equipo['cubierto'] += e['cubierto']
             equipo['esperado'] += e['esperado']
             equipo['prod'] += e['prod']
@@ -175,8 +180,8 @@ class FocoDailyReport(models.Model):
             equipo['justificado'] += e['justificado']
             equipo['sin_explicar'] += e['sin_explicar']
             equipo['con_dato'] += 1 if e['con_dato'] else 0
-        if equipo['esperado'] > 0:
-            equipo['indice'] = min(100, int(round(equipo['cubierto'] / equipo['esperado'] * 100)))
+        if equipo['meta'] > 0:
+            equipo['indice'] = int(round(equipo['prod'] / equipo['meta'] * 100))
         elif equipo['activo'] > 0:
             equipo['indice'] = int(round(equipo['prod'] / equipo['activo'] * 100))
         else:

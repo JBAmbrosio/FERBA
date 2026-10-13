@@ -261,29 +261,39 @@ class FocoUsage(models.Model):
 
     @api.model
     def _indice(self, productivo, cubierto, activo):
-        """UN solo indice en todo Foco (10-oct-2026): cubierto (productivo +
-        justificado) entre la jornada esperada, tope 100. Es el de la tarjeta,
-        la tabla y el reporte diario. Sin jornada esperada (fin de semana, sin
-        calendario) se cae a productivo/activo. None cuando no hay dato."""
-        exp = float((cubierto or {}).get('expected') or 0.0)
+        """UN solo indice en todo Foco: el de la tarjeta, la chispa de
+        tendencia, la tabla, el reporte diario, Mi dia y Tomy.
+
+        **12-oct-2026, decision del dueno**: el 100% son las HORAS PRODUCTIVAS
+        de la meta (7 h, `foco.settings.meta_productiva_h`), no la jornada. Lo
+        justificado SALIO del numerador -se dibuja aparte, despues de la meta- y
+        **se puede pasar del 100%**: quien trabaja de mas tiene que verse. Antes
+        era `(productivo + justificado) / jornada` topado a 100, que premiaba
+        igual a quien cubria su jornada justificando.
+
+        Sin meta (dia de descanso, sin calendario) se cae a productivo/activo,
+        como siempre. None cuando no hay nada que medir.
+        """
+        meta = float((cubierto or {}).get('meta') or 0.0)
         jus = float((cubierto or {}).get('justified') or 0.0)
         productivo = float(productivo or 0.0)
         activo = float(activo or 0.0)
         if not activo and not jus:
             return None
-        if exp > 0:
-            return round(min(100.0, 100.0 * (productivo + jus) / exp), 1)
+        if meta > 0:
+            return round(100.0 * productivo / meta, 1)
         if activo:
             return round(100.0 * productivo / activo, 1)
         return None
 
     @api.model
     def _suma_cubierto(self, por_dia):
-        """Suma {dia: {expected, justified}} en un solo {expected, justified}."""
-        tot = {'expected': 0.0, 'justified': 0.0}
+        """Suma {dia: {expected, justified, meta}} en un solo total."""
+        tot = {'expected': 0.0, 'justified': 0.0, 'meta': 0.0}
         for v in (por_dia or {}).values():
             tot['expected'] += float(v.get('expected') or 0.0)
             tot['justified'] += float(v.get('justified') or 0.0)
+            tot['meta'] += float(v.get('meta') or 0.0)
         return tot
 
     @api.model

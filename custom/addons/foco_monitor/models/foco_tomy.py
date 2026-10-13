@@ -31,10 +31,11 @@ DEFINICIONES = {
                   '(Productiva 1.0, Navegador 0.5, Neutral 0.3, Distraccion 0, Sistema no cuenta). '
                   'Si el sitio esta clasificado, manda el sitio sobre la app. Una llamada de WhatsApp '
                   'clasificada como trabajo pesa 1.0 y una personal 0, sin importar la app al frente.',
-    'indice': 'Cubierto (productivo + justificado) entre la jornada esperada de cada quien, en porcentaje, '
-              'tope 100. Es el MISMO indice de la tarjeta, la tabla y el reporte diario. Sin jornada esperada '
-              '(fin de semana, sin calendario) es productivo entre activo. Se calcula sobre horas sumadas, no '
-              'promediando indices. Productivo entre activo se llama aparte "productivo entre activo".',
+    'indice': 'Horas PRODUCTIVAS entre la META del dia (7 h, configurable), en porcentaje. PUEDE PASAR DEL '
+              '100%: quien trabaja de mas tiene que verse. Lo justificado NO entra en este numero -se mide '
+              'aparte, en "justificado"-, porque los minutos justificables van DESPUES de la meta. Es el MISMO '
+              'indice de la tarjeta, la chispa, la tabla y el reporte diario. Sin meta (dia de descanso, sin '
+              'calendario) es productivo entre activo. Se calcula sobre horas sumadas, no promediando indices.',
     'distraccion': 'Horas activas en apps o sitios con peso 0 (categoria Distraccion).',
     'sin_clasificar': 'Horas activas en apps o sitios que nadie ha clasificado todavia: no aportan al indice.',
     'llamada': 'Foco detecta una llamada cuando una app toma el microfono. Las de WhatsApp de escritorio '
@@ -706,13 +707,13 @@ class FocoTomy(models.AbstractModel):
         ausencias = self._ausencias_resumen(emp, d, h)
         jornada = self._jornada_resumen(emp, d, h)
         salud = (self.env['foco.computer'].health_summary() or {}).get(str(emp.id)) or {}
-        # El MISMO indice que el tablero (10-oct-2026): cubierto entre la jornada
-        # esperada de la persona en el rango. Tomy decia 80.5 (productivo entre
-        # activo) donde la tabla decia 63 (cubierto entre jornada): un solo numero.
+        # El MISMO indice que el tablero: productivo entre la META del periodo
+        # (12-oct-2026). Tomy decia 80.5 (productivo entre activo) donde la tabla
+        # decia 63: un solo numero en todo Foco, venga de donde venga.
         cub = Usage._suma_cubierto(
             (self.env['foco.absence'].cubierto_por_dia(d, h).get('empleados') or {}).get(str(emp.id)))
         indice = Usage._indice(productivo, cub, activo)
-        con_jornada = cub['expected'] > 0
+        con_jornada = cub.get('meta', 0.0) > 0
 
         if apps:
             self._tabla(artefactos, 'En que se fue el tiempo de %s (%s a %s)' % (emp.name, d, h),
@@ -729,8 +730,10 @@ class FocoTomy(models.AbstractModel):
                 'activo': _hm(activo), 'activo_h': _h(activo),
                 'productivo': _hm(productivo), 'productivo_h': _h(productivo),
                 'indice_pct': indice,
-                'formula_indice': ('(productivo + justificado) entre la jornada esperada, tope 100'
-                                   if con_jornada else 'productivo entre activo (sin jornada esperada en el periodo)'),
+                'formula_indice': ('productivo entre la meta (%s), puede pasar del 100%%; lo justificado '
+                                   'no entra' % _hm(cub.get('meta', 0.0))
+                                   if con_jornada else 'productivo entre activo (sin meta en el periodo)'),
+                'meta': _hm(cub.get('meta', 0.0)),
                 'jornada_esperada': _hm(cub['expected']), 'justificado': _hm(cub['justified']),
                 'cubierto': _hm(productivo + cub['justified']),
                 'productivo_entre_activo_pct': round(100.0 * productivo / activo, 1) if activo else None,

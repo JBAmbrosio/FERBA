@@ -669,6 +669,7 @@ class FocoAbsence(models.Model):
             return vacio
         computers = self.env['foco.computer'].search([('employee_id', '!=', False)])
         empleados = computers.mapped('employee_id')
+        meta_h = Settings.get_settings().meta_productiva_h or 7.0
         dias, por_emp = {}, {}
         for emp in empleados:
             tz = Settings._tzinfo_for(emp)
@@ -691,14 +692,21 @@ class FocoAbsence(models.Model):
                 esperado = Settings.expected_seconds(emp, a_utc, b_utc) / 3600.0
                 k = fields.Date.to_string(d)
                 j = justi.get(d, 0.0)
-                mio[k] = {'expected': round(esperado, 4), 'justified': round(j, 4)}
-                t = dias.setdefault(k, {'expected': 0.0, 'justified': 0.0})
+                # La META del dia (12-oct-2026): las horas productivas que valen
+                # el 100%. Solo cuenta quien ese dia TENIA jornada; en su dia de
+                # descanso la meta es cero y el indice se cae al calculo viejo.
+                m = meta_h if esperado > 0 else 0.0
+                mio[k] = {'expected': round(esperado, 4), 'justified': round(j, 4),
+                          'meta': round(m, 4)}
+                t = dias.setdefault(k, {'expected': 0.0, 'justified': 0.0, 'meta': 0.0})
                 t['expected'] += esperado
                 t['justified'] += j
+                t['meta'] += m
                 d += timedelta(days=1)
         for t in dias.values():
             t['expected'] = round(t['expected'], 4)
             t['justified'] = round(t['justified'], 4)
+            t['meta'] = round(t['meta'], 4)
         return {'dias': dias, 'empleados': por_emp}
 
     # ------------------------------------------------------------- correo
