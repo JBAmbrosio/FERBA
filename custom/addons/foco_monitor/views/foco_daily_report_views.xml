@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ====================================================== EL CORREO
+         Tablas anidadas y estilos en linea: es lo unico que Outlook (motor de
+         Word) renderiza igual que Gmail. Nada de flex, grid ni variables.
+         Los numeros vienen ya calculados en `d` (ver foco_daily_report.py);
+         aqui solo se acomodan. -->
+    <template id="reporte_diario_html" name="Foco: reporte diario (correo)">
+        <t t-set="ink" t-value="'#111826'"/>
+        <t t-set="muted" t-value="'#7c8797'"/>
+        <t t-set="line" t-value="'#e1e7f0'"/>
+        <t t-set="eq" t-value="d['equipo']"/>
+        <t t-set="asi" t-value="d['asistencia']"/>
+        <t t-set="color_idx" t-value="'#15803d' if eq['indice'] &gt;= 70 else ('#b45309' if eq['indice'] &gt;= 40 else '#c0341d')"/>
+        <div style="font-family: Arial, Helvetica, sans-serif; color:#111826; max-width:860px; margin:0 auto; background:#ffffff;">
+            <!-- cabecera -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="padding:18px 20px 14px; border-bottom:3px solid #e30613;">
+                        <div style="font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#7c8797; font-weight:bold;">Foco · FERBA</div>
+                        <div style="font-size:22px; font-weight:bold; color:#111826; margin-top:4px;">
+                            Reporte del <t t-esc="d['fecha_txt']"/>
+                        </div>
+                        <div style="font-size:12.5px; color:#7c8797; margin-top:4px;">
+                            Corte a las <b t-esc="d['corte']"/> ·
+                            <t t-esc="eq['monitoreados']"/> personas monitoreadas ·
+                            <t t-esc="eq['con_dato']"/> con dato del equipo
+                            <t t-if="eq['en_linea'] is not None"> · <t t-esc="eq['en_linea']"/> reportando ahora</t>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- cuatro numeros -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:separate; border-spacing:0; margin-top:14px;">
+                <tr>
+                    <td width="25%" valign="top" style="padding:0 6px 0 20px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e1e7f0; border-radius:8px; background:#f7f9fc;">
+                            <tr><td style="padding:12px 14px;">
+                                <div style="font-size:11.5px; color:#7c8797; font-weight:bold;">Índice del equipo</div>
+                                <div t-attf-style="font-size:30px; font-weight:bold; color:{{ color_idx }}; line-height:1.1; margin-top:4px;"><t t-esc="eq['indice']"/>%</div>
+                                <div style="font-size:11.5px; color:#5a6577; margin-top:4px;">
+                                    cubierto <b t-esc="hm(eq['cubierto'])"/> de <t t-esc="hm(eq['esperado'])"/>
+                                    <t t-if="eq.get('esperado_permisos')"> · sin contar permisos <b><t t-esc="eq['indice_neto']"/>%</b></t>
+                                </div>
+                                <div style="font-size:11.5px; color:#7c8797; margin-top:2px;">
+                                    <t t-if="eq['delta_previo'] is not None">
+                                        <span t-attf-style="color:{{ '#15803d' if eq['delta_previo'] &gt;= 0 else '#c0341d' }}; font-weight:bold;">
+                                            <t t-esc="('+' if eq['delta_previo'] &gt;= 0 else '') + str(eq['delta_previo'])"/> pts
+                                        </span> vs <t t-esc="eq['previo_txt']"/>
+                                    </t>
+                                    <t t-if="eq['delta_semana'] is not None">
+                                        · <span t-attf-style="color:{{ '#15803d' if eq['delta_semana'] &gt;= 0 else '#c0341d' }}; font-weight:bold;">
+                                            <t t-esc="('+' if eq['delta_semana'] &gt;= 0 else '') + str(eq['delta_semana'])"/> pts
+                                        </span> vs hace una semana
+                                    </t>
+                                </div>
+                            </td></tr>
+                        </table>
+                    </td>
+                    <td width="25%" valign="top" style="padding:0 6px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e1e7f0; border-radius:8px; background:#f7f9fc;">
+                            <tr><td style="padding:12px 14px;">
+                                <div style="font-size:11.5px; color:#7c8797; font-weight:bold;">Horas productivas</div>
+                                <div style="font-size:30px; font-weight:bold; color:#111826; line-height:1.1; margin-top:4px;"><t t-esc="hm(eq['prod'])"/></div>
+                                <div style="font-size:11.5px; color:#5a6577; margin-top:4px;">de <b t-esc="hm(eq['activo'])"/> activas</div>
+                                <div style="font-size:11.5px; color:#7c8797; margin-top:2px;">justificado <t t-esc="hm(eq['justificado'])"/> · sin explicar <t t-esc="hm(eq['sin_explicar'])"/></div>
+                            </td></tr>
+                        </table>
+                    </td>
+                    <td width="25%" valign="top" style="padding:0 6px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e1e7f0; border-radius:8px; background:#f7f9fc;">
+                            <tr><td style="padding:12px 14px;">
+                                <div style="font-size:11.5px; color:#7c8797; font-weight:bold;">Distracción</div>
+                                <div style="font-size:30px; font-weight:bold; color:#c0341d; line-height:1.1; margin-top:4px;"><t t-esc="hm(eq['distr'])"/></div>
+                                <div style="font-size:11.5px; color:#5a6577; margin-top:4px;"><t t-esc="eq['distr_pct']"/>% del tiempo activo</div>
+                                <div style="font-size:11.5px; color:#7c8797; margin-top:2px;">
+                                    <t t-if="d['distracciones']"><t t-esc="d['distracciones'][0]['nombre']"/> <t t-esc="hm(d['distracciones'][0]['horas'])"/></t>
+                                    <t t-else="">sin distracciones clasificadas</t>
+                                </div>
+                            </td></tr>
+                        </table>
+                    </td>
+                    <td width="25%" valign="top" style="padding:0 20px 0 6px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #e1e7f0; border-radius:8px; background:#f7f9fc;">
+                            <tr><td style="padding:12px 14px;">
+                                <div style="font-size:11.5px; color:#7c8797; font-weight:bold;">Asistencia (tolerancia <t t-esc="asi['gracia']"/> min)</div>
+                                <div style="font-size:14px; color:#111826; line-height:1.7; margin-top:4px;">
+                                    <b style="color:#15803d;"><t t-esc="asi['a_tiempo']"/></b> a tiempo ·
+                                    <b style="color:#b45309;"><t t-esc="asi['tarde']"/></b> tarde<br/>
+                                    <b style="color:#c0341d;"><t t-esc="asi['falto']"/></b> sin registro ·
+                                    <b><t t-esc="asi['permiso']"/></b> con permiso
+                                </div>
+                                <div style="font-size:11.5px; color:#7c8797; margin-top:2px;">
+                                    <t t-if="asi['salio_antes']"><t t-esc="asi['salio_antes']"/> salieron antes · </t>
+                                    <t t-if="asi['no_checo']"><t t-esc="asi['no_checo']"/> sin checar entrada · </t>
+                                    <t t-if="asi['en_curso']"><t t-esc="asi['en_curso']"/> sin entrada aún · </t>
+                                    <t t-if="asi['tarde']">retraso acumulado <t t-esc="asi['tarde_min_total']"/> min</t>
+                                </div>
+                            </td></tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- requiere atencion -->
+            <t t-if="d['atencion']">
+                <div style="padding:18px 20px 0;">
+                    <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#7c8797; font-weight:bold; margin-bottom:8px;">Requiere atención</div>
+                    <t t-foreach="d['atencion']" t-as="a">
+                        <t t-set="tono" t-value="'#c0341d' if a['clave'] in ('falto', 'distraccion') else ('#2f6fed' if a['clave'] in ('sin_senal', 'sin_checada', 'hechos') else '#b45309')"/>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin-bottom:8px;">
+                            <tr>
+                                <td width="5" t-attf-style="width:5px; background-color:{{ tono }}; font-size:0; line-height:0;">&#160;</td>
+                                <td style="background-color:#f7f9fc; border:1px solid #e1e7f0; border-left:0; padding:10px 14px;">
+                                    <div style="font-size:13.5px; font-weight:bold; color:#111826;">
+                                        <t t-esc="a['titulo']"/>
+                                        <span t-attf-style="display:inline-block; margin-left:6px; background:{{ tono }}; color:#ffffff; font-size:11px; padding:1px 8px; border-radius:10px;"><t t-esc="a['n']"/></span>
+                                    </div>
+                                    <div style="font-size:12.5px; color:#5a6577; margin-top:4px; line-height:1.5;">
+                                        <t t-foreach="a['detalle']" t-as="linea"><t t-esc="linea"/><br/></t>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </t>
+                </div>
+            </t>
+            <t t-else="">
+                <div style="padding:18px 20px 0; font-size:13px; color:#15803d; font-weight:bold;">Nada que requiera atención hoy.</div>
+            </t>
+
+            <!-- persona por persona -->
+            <div style="padding:18px 20px 0;">
+                <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#7c8797; font-weight:bold; margin-bottom:8px;">
+                    Persona por persona <span style="font-weight:normal; text-transform:none; letter-spacing:0;">· ordenado por índice · índice = (productivo + justificado) / jornada esperada</span>
+                </div>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <tr style="background:#f1f4f9;">
+                        <th align="left" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Persona</th>
+                        <th align="left" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Entrada</th>
+                        <th align="left" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Salida</th>
+                        <th align="left" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Asistencia</th>
+                        <th align="right" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Checado</th>
+                        <th align="right" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Activo</th>
+                        <th align="right" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Productivo</th>
+                        <th align="right" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Distracción</th>
+                        <th align="right" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">Índice</th>
+                        <th align="left" style="padding:7px 8px; border-bottom:1px solid #e1e7f0; color:#5a6577; font-size:10.5px; text-transform:uppercase;">En qué</th>
+                    </tr>
+                    <t t-foreach="d['personas']" t-as="p">
+                        <t t-set="cidx" t-value="'#15803d' if p['indice'] &gt;= 70 else ('#b45309' if p['indice'] &gt;= 40 else '#c0341d')"/>
+                        <t t-set="cest" t-value="'#15803d' if p['estado'] == 'a_tiempo' else ('#b45309' if p['estado'] in ('tarde', 'sin_entrada') else ('#c0341d' if p['estado'] in ('falto', 'sin_senal') else '#5a6577'))"/>
+                        <tr t-attf-style="background:{{ '#ffffff' if p_index % 2 == 0 else '#fbfcfe' }};">
+                            <td style="padding:7px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap;">
+                                <b t-esc="p['nombre']"/>
+                                <t t-if="p['depto']"><br/><span style="color:#8b95a6; font-size:11px;" t-esc="p['depto']"/></t>
+                                <t t-if="p['salud'] in ('stale', 'never')"><br/><span style="color:#b45309; font-size:11px; font-weight:bold;">equipo sin señal: dato incompleto</span></t>
+                            </td>
+                            <td style="padding:7px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap;">
+                                <t t-if="p['entrada']"><b t-esc="p['entrada']"/><t t-if="p['fuente'] == 'equipo'"><span style="color:#8b95a6;"> PC</span></t></t>
+                                <t t-else="">—</t>
+                                <t t-if="p['hora_entrada']"><br/><span style="color:#8b95a6; font-size:11px;">horario <t t-esc="p['hora_entrada']"/></span></t>
+                            </td>
+                            <td style="padding:7px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap;">
+                                <t t-if="p['salida']"><b t-esc="p['salida']"/></t>
+                                <t t-elif="p['entrada'] and p['fuente'] == 'checador'"><span style="color:#8b95a6;">abierta</span></t>
+                                <t t-else="">—</t>
+                                <t t-if="p['hora_salida']"><br/><span style="color:#8b95a6; font-size:11px;">horario <t t-esc="p['hora_salida']"/></span></t>
+                            </td>
+                            <td style="padding:7px 8px; border-bottom:1px solid #eef1f6;">
+                                <span t-attf-style="color:{{ cest }}; font-weight:bold;" t-esc="p['estado_txt']"/>
+                                <t t-if="p['salio_antes']"><br/><span style="color:#b45309; font-size:11px;">salió <t t-esc="p['antes_min']"/> min antes</span></t>
+                                <t t-if="p['no_checo']"><br/><span style="color:#2f6fed; font-size:11px;">no checó entrada</span></t>
+                                <t t-if="p['sin_salida_ayer']"><br/><span style="color:#b45309; font-size:11px;">ayer no cerró salida</span></t>
+                            </td>
+                            <td align="right" style="padding:7px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap;">
+                                <t t-if="p['usa_checador'] and p['checado']"><t t-esc="hm(p['checado'])"/>
+                                    <t t-if="p['extra'] &gt; 0.016"><br/><span style="color:#15803d; font-size:11px;">+<t t-esc="hm(p['extra'])"/></span></t>
+                                    <t t-elif="p['faltante'] &gt; 0.016"><br/><span style="color:#b45309; font-size:11px;">−<t t-esc="hm(p['faltante'])"/></span></t>
+                                </t>
+                                <t t-else="">—</t>
+                            </td>
+                            <td align="right" style="padding:7px 8px; border-bottom:1px solid #eef1f6;"><t t-if="p['con_dato']"><t t-esc="hm(p['activo'])"/></t><t t-else="">—</t></td>
+                            <td align="right" style="padding:7px 8px; border-bottom:1px solid #eef1f6; color:#15803d; font-weight:bold;"><t t-if="p['con_dato']"><t t-esc="hm(p['prod'])"/></t><t t-else="">—</t></td>
+                            <td align="right" style="padding:7px 8px; border-bottom:1px solid #eef1f6; color:#c0341d;"><t t-if="p['con_dato']"><t t-esc="hm(p['distr'])"/></t><t t-else="">—</t></td>
+                            <td align="right" style="padding:7px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap;">
+                                <t t-if="p['con_dato']">
+                                    <b t-attf-style="color:{{ cidx }};"><t t-esc="p['indice']"/>%</b>
+                                    <t t-if="p['sin_explicar'] &gt; 0.016"><br/><span style="color:#8b95a6; font-size:11px;"><t t-esc="hm(p['sin_explicar'])"/> sin explicar</span></t>
+                                    <t t-if="p['pendientes']"><br/><span style="color:#b45309; font-size:11px;"><t t-esc="p['pendientes']"/> por justificar</span></t>
+                                </t>
+                                <t t-else="">—</t>
+                            </td>
+                            <td style="padding:7px 8px; border-bottom:1px solid #eef1f6; max-width:180px;">
+                                <t t-if="p['top_app']"><span t-esc="p['top_app'][:34]"/> <span style="color:#8b95a6;" t-esc="hm(p['top_app_h'])"/></t>
+                                <t t-if="p['top_distr']"><br/><span style="color:#c0341d; font-size:11px;"><t t-esc="p['top_distr'][:34]"/> <t t-esc="hm(p['top_distr_h'])"/></span></t>
+                            </td>
+                        </tr>
+                    </t>
+                </table>
+            </div>
+
+            <!-- distracciones y sin clasificar -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin-top:18px;">
+                <tr>
+                    <td width="50%" valign="top" style="padding:0 8px 0 20px;">
+                        <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#7c8797; font-weight:bold; margin-bottom:8px;">Distracciones del equipo</div>
+                        <t t-if="d['distracciones']">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                                <t t-foreach="d['distracciones']" t-as="x">
+                                    <tr>
+                                        <td style="padding:5px 0; border-bottom:1px solid #eef1f6;" t-esc="x['nombre'][:40]"/>
+                                        <td align="right" style="padding:5px 0; border-bottom:1px solid #eef1f6; color:#5a6577; white-space:nowrap;"><t t-esc="x['personas']"/> pers.</td>
+                                        <td align="right" style="padding:5px 0 5px 10px; border-bottom:1px solid #eef1f6; font-weight:bold; color:#c0341d; white-space:nowrap;" t-esc="hm(x['horas'])"/>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+                        <t t-else=""><div style="font-size:12.5px; color:#8b95a6;">Sin distracciones clasificadas.</div></t>
+                    </td>
+                    <td width="50%" valign="top" style="padding:0 20px 0 8px;">
+                        <div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#7c8797; font-weight:bold; margin-bottom:8px;">Sitios sin clasificar (no cuentan al índice)</div>
+                        <t t-if="d['sin_clasificar']">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                                <t t-foreach="d['sin_clasificar']" t-as="x">
+                                    <tr>
+                                        <td style="padding:5px 0; border-bottom:1px solid #eef1f6;" t-esc="x['nombre'][:40]"/>
+                                        <td align="right" style="padding:5px 0 5px 10px; border-bottom:1px solid #eef1f6; font-weight:bold; color:#b45309; white-space:nowrap;" t-esc="hm(x['horas'])"/>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+                        <t t-else=""><div style="font-size:12.5px; color:#8b95a6;">Todo lo usado está clasificado.</div></t>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- como se calcula -->
+            <div style="padding:18px 20px 16px; font-size:11px; color:#8b95a6; line-height:1.55; border-top:1px solid #e1e7f0; margin-top:18px;">
+                <b>Cómo se calcula.</b>
+                Índice = (productivo + justificado con la ventana) ÷ jornada esperada del horario laboral.
+                Entrada = la checada; si no checó, la primera señal con persona en su equipo (marcada «PC»).
+                Tarde = entrada después de su hora más <t t-esc="asi['gracia']"/> min de tolerancia.
+                «Sin registro» = día cerrado sin checada ni señal de persona; una checada de otro día que sigue abierta no cuenta como falta.
+                «Salió antes» solo con una salida checada el mismo día. Permisos validados y festivos mandan sobre todo lo demás.
+                Un equipo sin señal es dato incompleto, no bajo desempeño. Los números son los del tablero al corte.
+            </div>
+        </div>
+    </template>
+
+    <!-- ================================================= VISTAS DEL REPORTE -->
+    <record id="foco_daily_report_view_list" model="ir.ui.view">
+        <field name="name">foco.daily.report.list</field>
+        <field name="model">foco.daily.report</field>
+        <field name="arch" type="xml">
+            <list string="Reportes diarios" create="0" default_order="date desc">
+                <field name="date"/>
+                <field name="resumen"/>
+                <field name="corte"/>
+                <field name="state" widget="badge" decoration-success="state == 'enviado'"/>
+                <field name="sent_at" optional="show"/>
+                <field name="sent_to" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_daily_report_view_form" model="ir.ui.view">
+        <field name="name">foco.daily.report.form</field>
+        <field name="model">foco.daily.report</field>
+        <field name="arch" type="xml">
+            <form string="Reporte diario" create="0">
+                <header>
+                    <button name="action_regenerar" type="object" string="Rehacer con los datos de ahora"
+                            class="btn-secondary"/>
+                    <button name="action_enviar" type="object" string="Enviar a los destinatarios"
+                            class="btn-primary"
+                            confirm="Se enviará este reporte por correo a los destinatarios configurados. ¿Continuar?"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <p class="text-muted">
+                            <field name="resumen" readonly="1"/>
+                        </p>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date" readonly="1"/>
+                            <field name="corte" readonly="1"/>
+                            <field name="generated_at" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="sent_at" readonly="1"/>
+                            <field name="sent_to" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Reporte" name="reporte">
+                            <field name="html" readonly="1" nolabel="1"/>
+                        </page>
+                        <page string="Datos (JSON)" name="datos" groups="base.group_no_one">
+                            <field name="datos" readonly="1" nolabel="1" widget="ace" options="{'mode': 'json'}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_daily_report_action" model="ir.actions.act_window">
+        <field name="name">Reporte diario</field>
+        <field name="res_model">foco.daily.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Todavía no hay reportes</p>
+            <p>El reporte de cada día se arma solo a la hora configurada en
+               Configuración ▸ Asistencia y reporte diario, y desde ahí se puede
+               generar el de hoy en cualquier momento.</p>
+        </field>
+    </record>
+
+    <!-- ===================================== CONFIGURACION: asistencia + reporte -->
+    <record id="foco_settings_view_form_asistencia" model="ir.ui.view">
+        <field name="name">foco.settings.asistencia</field>
+        <field name="model">foco.settings</field>
+        <field name="arch" type="xml">
+            <form string="Asistencia y reporte diario">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Asistencia y reporte diario</h1>
+                        <p class="text-muted">
+                            Cómo se decide «a tiempo», «tarde» o «sin registro», y a quién y a qué
+                            hora se manda el reporte del día.
+                        </p>
+                    </div>
+                    <group string="Adherencia al turno">
+                        <field name="adherencia_gracia_min"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        La entrada real es la <b>checada</b>; si la persona no checó, la primera señal con
+                        persona en su equipo. Se compara contra la <b>primera franja de su horario laboral</b>
+                        (Configuración ▸ Horarios laborales). Medido con 30 días de checadas: con 10 min de
+                        tolerancia el 39 % de las entradas salen «tarde», casi todas de 4 personas cuyo horario
+                        real no es el del calendario estándar. Lo correcto es ponerles <b>su</b> horario, no
+                        subir la tolerancia a todos. Una persona puede tener su propia tolerancia en su ficha
+                        de empleado (pestaña Foco).
+                    </div>
+                    <group string="Reporte diario por correo">
+                        <field name="reporte_diario_activo"/>
+                        <field name="reporte_diario_hora" widget="float_time"/>
+                        <field name="reporte_diario_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="reporte_diario_emails" placeholder="correo@dominio.com, otro@dominio.com"/>
+                        <field name="reporte_diario_ultimo"/>
+                    </group>
+                    <div>
+                        <button name="action_ver_reporte_hoy" type="object" string="Ver el reporte de hoy"
+                                class="btn btn-secondary"/>
+                        <button name="action_enviar_reporte_ahora" type="object" string="Generar y enviar ahora"
+                                class="btn btn-primary"
+                                confirm="Se armará el reporte de hoy con los números de este momento y se enviará a los destinatarios. ¿Continuar?"/>
+                    </div>
+                    <div class="alert alert-warning mt-3" role="alert">
+                        La hora es la local de la empresa (calendario laboral). El proceso revisa cada 15 minutos
+                        y envía una sola vez por día; los días sin jornada esperada (domingo, festivo general)
+                        no se envía nada. Los números del correo son los del tablero a la hora del corte y
+                        quedan guardados en Actividad ▸ Reporte diario.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_asistencia_action" model="ir.actions.server">
+        <field name="name">Asistencia y reporte diario</field>
+        <field name="model_id" ref="model_foco_settings"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_asistencia()</field>
+    </record>
+
+    <!-- El proceso: cada 15 min pregunta si ya es hora. -->
+    <record id="cron_foco_reporte_diario" model="ir.cron">
+        <field name="name">Foco: enviar el reporte diario</field>
+        <field name="model_id" ref="foco_monitor.model_foco_daily_report"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_enviar()</field>
+        <field name="interval_number">15</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- La tolerancia por persona, en la ficha del empleado. -->
+    <record id="view_employee_form_foco" model="ir.ui.view">
+        <field name="name">hr.employee.form.foco</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Foco" name="foco" groups="foco_monitor.group_foco_manager">
+                    <group>
+                        <field name="foco_gracia_min"/>
+                    </group>
+                    <p class="text-muted">
+                        0 = la tolerancia global de Foco (Configuración ▸ Asistencia y reporte diario).
+                        El horario contra el que se mide es el calendario laboral de la persona.
+                    </p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

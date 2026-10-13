@@ -31,6 +31,22 @@ const CAT_LABEL = {
     distraccion: "Distracción", sistema: "Sistema", sin: "Sin clasificar",
 };
 const CAT_ORDER = ["productiva", "navegador", "neutral", "distraccion", "sistema", "sin"];
+// A donde lleva cada tramo de la barra al hacerle clic. Se dice en el tooltip
+// ANTES de hacer clic: un grafico que navega sin avisar a donde, no se usa.
+// Etiquetas de los tramos que no son categorias de uso.
+const SEG_LABEL = {
+    aprobado: "Aprobado por ti (cuenta como productivo)",
+    justificado: "Justificado",
+    decidir: "Por decidir",
+};
+const DESTINO = {
+    decidir: "clic: justificaciones que esperan tu veredicto",
+    justificado: "clic: sus justificaciones del periodo",
+    aprobado: "clic: sus justificaciones del periodo",
+    sin: "clic: lo que falta clasificar",
+    distraccion: "clic: en qué se le fue el tiempo",
+    _: "clic: su detalle de uso",
+};
 
 // Cada cuanto se refresca solo. El agente empuja cada 5 min en produccion, asi
 // que refrescar mas seguido no traeria dato nuevo, solo carga.
@@ -48,12 +64,31 @@ export class FocoDashboard extends Component {
         this.action = useService("action");
         this.root = useRef("root");
         this.state = useState({
-            loading: true, days: 7, dark: false,
+            // "Hoy" es la primera vista (antes 7 dias). `fecha` es el dia ANCLA
+            // del periodo -el final del rango-: con el selector de fecha se
+            // puede anclar en un dia pasado y ver el tablero de ese dia.
+            loading: true, days: 1, fecha: this.ymd(new Date()), dark: false,
             team: {}, employees: [], composition: [], distractions: [],
             sites: [], pendingSites: [],
             attention: 0, sinSenal: 0, cobertura: {},
             detail: null, open: false,
             refrescando: false, ultimo: null,
+            // justificaciones que la IA marco a revisar (pendiente global)
+            revisar: 0,
+            // adherencia al turno: {personas: {id: {...}}, equipo: {estado: n}, gracia}
+            asistencia: { personas: {}, equipo: {}, gracia: 0 },
+            // lo derivado para el rediseno (10-oct): ver derivar()
+            atencionSrv: { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] },
+            // consumo de IA de hoy (tokens, costo estimado, umbral); null si no
+            // se puede ver (solo administradores)
+            ia: null,
+            serie7: [], cintas: { dias: [], ventana: [8, 20] },
+            online: [], conectados: 0, asistenciaLista: [], atencion: [], atencionN: 0,
+            barras: [], tl: { horas: [], cols: 1, ahora: null, filas: [] }, grupos: [],
+            // Las varas del grafico (Ajustes): la meta que vale el 100% y la
+            // bolsa justificable, que va DESPUES de la meta y no suma.
+            meta: 7, bolsa: 1.5,
+            spark: { indice: { d: "", fin: null }, prod: { d: "", fin: null } },
             // analitica
             serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
             expEmpleado: "", expGrano: "dia",
@@ -117,7 +152,7 @@ export class FocoDashboard extends Component {
         useEffect(
             () => { this.dibujar(); },
             () => [this.state.serie, this.state.porPersona, this.state.reparto,
-                   this.state.jornada, this.state.dark, this.state.days]
+                   this.state.jornada, this.state.dark, this.state.days, this.state.fecha]
         );
         useExternalListener(window, "keydown", (ev) => {
             if (ev.key === "Escape" && this.state.detail) this.closeDetail();
@@ -276,9 +311,10 @@ export class FocoDashboard extends Component {
         //    todos los dias -vamos mejor o peor-. El area con gradiente le da
         //    peso; la linea gruesa y el punto final con halo marcan donde
         //    estamos hoy.
-        if (this.cTendencia.el && this.state.days === 1) {
-            this.dibujarPorPersona(Chart, t);
-        } else if (this.cTendencia.el && this.state.serie.length) {
+        //    Desde el rediseno (10-oct) el dia ya no se dibuja con Chart.js:
+        //    la seccion "como viene cada quien" lo cuenta en HTML contra la
+        //    jornada de cada quien, y el lienzo solo existe en un rango.
+        if (this.cTendencia.el && this.state.days > 1 && this.state.serie.length) {
             const s = this.state.serie;
             const ultimoConDato = (() => {
                 for (let i = s.length - 1; i >= 0; i--) if (s[i].activo) return i;
@@ -341,11 +377,10 @@ export class FocoDashboard extends Component {
             });
         }
 
-        // 2) EL REPARTO DEL TIEMPO, como DONA con el indice al centro. Es la
-        //    grafica estrella: de un vistazo dice de que esta hecho el tiempo
-        //    del equipo, y el hueco central lleva el numero que resume todo. La
-        //    comparacion persona-a-persona vive en la tabla de abajo, asi que
-        //    la dona puede quedarse con el total sin perder nada.
+        // 2) EL REPARTO DEL TIEMPO, como DONA con el indice al centro. Desde
+        //    el rediseno (10-oct) la plantilla no trae el lienzo -el reparto
+        //    vive en la barra apilada de "En que se va el tiempo"-; el codigo
+        //    se conserva por si vuelve, y no corre sin su <canvas>.
         if (this.cDonut.el) {
             const r = this.state.reparto || {};
             const partes = [
@@ -586,24 +621,33 @@ export class FocoDashboard extends Component {
         // recargar la pagina. Cuesta una lectura de estilo, nada.
         this.detectTheme();
         const days = this.state.days;
-        const today = new Date();
-        const curStart = new Date(today); curStart.setDate(today.getDate() - (days - 1));
+        // El periodo TERMINA en el dia ancla (hoy por defecto, o el que se
+        // elija en el selector de fecha) y se extiende `days` hacia atras.
+        const anchor = this.fechaAncla();
+        const curStart = new Date(anchor); curStart.setDate(anchor.getDate() - (days - 1));
         const prevEnd = new Date(curStart); prevEnd.setDate(curStart.getDate() - 1);
         const prevStart = new Date(prevEnd); prevStart.setDate(prevEnd.getDate() - (days - 1));
-        this.state.rango = [this.ymd(curStart), this.ymd(today)];
+        this.state.rango = [this.ymd(curStart), this.ymd(anchor)];
 
         const fields = ["employee_id", "app_id", "site_id", "category_id", "fg_active",
             "fg_idle", "background", "active_hours", "productive_hours", "call_hours",
             "injected_hours"];
-        const [cur, prev, comps, resumen, salud, pendientes, cobertura] = await Promise.all([
-            this.orm.searchRead("foco.usage", [["date", ">=", this.ymd(curStart)]], fields),
+        const [cur, prev, comps, resumen, resumenPrev, salud, pendientes, cobertura] = await Promise.all([
+            this.orm.searchRead("foco.usage",
+                [["date", ">=", this.ymd(curStart)], ["date", "<=", this.ymd(anchor)]], fields),
             this.orm.searchRead("foco.usage",
                 [["date", ">=", this.ymd(prevStart)], ["date", "<=", this.ymd(prevEnd)]], fields),
             this.orm.searchRead("foco.computer", [], ["employee_id", "last_seen", "name"]),
-            // jornada esperada y ausencias: sin esto el numero castiga a quien
-            // tuvo una cita medica igual que a quien no trabajo
+            // jornada esperada (las 8:30), justificado y rezago checador->PC:
+            // sin esto el indice no se puede medir contra la jornada ni perdonar
+            // a quien tuvo una cita medica.
             this.orm.call("foco.absence", "dashboard_summary",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
+            // El mismo resumen del periodo ANTERIOR, para que la flecha del
+            // indice del equipo compare manzanas con manzanas (cubierto/8:30
+            // contra cubierto/8:30), no el indice viejo.
+            this.orm.call("foco.absence", "dashboard_summary",
+                [this.ymd(prevStart), this.ymd(prevEnd)]),
             // salud del agente: un agente caido muestra 0h igual que alguien
             // que no hizo nada. Sin esto se leen datos rotos como flojera.
             this.orm.call("foco.computer", "health_summary", []),
@@ -616,19 +660,57 @@ export class FocoDashboard extends Component {
             // comparan cosas que no son comparables: un 62% sobre 22 dias
             // medidos y un 62% sobre 9 se ven identicos en la tabla.
             this.orm.call("foco.usage", "cobertura",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
         ]);
 
         // La analitica se pide agregada, no cruda: el servidor devuelve
         // decenas de filas donde antes viajaban cientos de miles.
-        const [analitica, jornada] = await Promise.all([
+        // La chispa de tendencia de las tarjetas: siempre los 7 dias que
+        // terminan en el ancla, se mire el periodo que se mire.
+        const spark0 = new Date(anchor); spark0.setDate(anchor.getDate() - 6);
+        const idsMonitoreados = comps.filter((c) => c.employee_id).map((c) => c.employee_id[0]);
+        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas, ia, params] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
-                [this.ymd(curStart), this.ymd(today)]),
+                [this.ymd(curStart), this.ymd(anchor)]),
+            // Lo que la IA dejo esperando a alguien: justificaciones vagas sin
+            // revisar (por persona) y devueltas sin respuesta. Pendiente
+            // global, no del periodo.
+            this.orm.call("foco.absence", "pendientes_atencion", []),
+            // Adherencia al turno (10-oct): a tiempo / tarde / sin registro /
+            // permiso, con la entrada y salida checadas y los minutos. Vivo
+            // para el dia ancla; conteos para el rango.
+            this.orm.call("foco.workday", "adherencia",
+                [this.ymd(curStart), this.ymd(anchor)]),
+            this.orm.call("foco.usage", "serie_indice", [this.ymd(spark0), this.ymd(anchor)]),
+            // La linea del dia: solo cuando se mira UN dia (en un rango serian
+            // decenas de renglones por persona y la pregunta ya no es "cuando").
+            days === 1 && idsMonitoreados.length
+                ? this.orm.call("foco.workday", "cintas", [idsMonitoreados, this.ymd(anchor), this.ymd(anchor)])
+                : Promise.resolve({ dias: [], ventana: [8, 20] }),
+            // Consumo de IA de hoy. Solo administradores: a los demas el
+            // servidor les niega el modelo y la cabecera no lo pinta.
+            this.orm.call("foco.ai.usage", "resumen", [7]).catch(() => null),
+            // Las dos varas del grafico, desde Ajustes: la meta que vale el
+            // 100% (7 h de trabajo productivo) y la bolsa justificable (90
+            // min), que se dibuja DESPUES de la meta y NO suma al porcentaje.
+            // No se cocinan aqui: el dueno las mueve sin tocar codigo.
+            this.orm.call("foco.settings", "tablero_params", []).catch(() => null),
         ]);
+        this.state.meta = (params && params.meta_h) || 7;
+        this.state.bolsa = params && params.bolsa_h != null ? params.bolsa_h : 1.5;
+        this.state.ia = ia || null;
+        this.state.revisar = (atencionSrv && atencionSrv.revisar) || 0;
+        this.state.atencionSrv = atencionSrv || { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] };
+        this.state.asistencia = asistencia || { personas: {}, equipo: {}, gracia: 0 };
+        this.state.serie7 = serie7 || [];
+        this.state.cintas = cintas || { dias: [], ventana: [8, 20] };
         this.state.serie = analitica.dias || [];
         this.state.porPersona = analitica.empleados || [];
+        // Veredictos de la IA: solo quien puede ver los episodios (administradores)
+        // recibe la tarjeta; para los demas el servidor manda falso.
+        this.state.iaVisible = !!analitica.ia_visible;
         // Desde 19.0.18: {dias, fuentes}. `fuentes` dice cuantas personas se
         // rigen por el checador y cuantas por el calendario en el periodo.
         this.state.jornada = (jornada && jornada.dias) || [];
@@ -711,6 +793,18 @@ export class FocoDashboard extends Component {
             (e.comp[ck] = e.comp[ck] || { key: ck, hours: 0 }).hours += r.active_hours;
         }
 
+        // Quien NO genero un solo renglon de uso tambien tiene fila: es
+        // justamente a quien hay que ver (falto, permiso, equipo apagado).
+        // Antes solo aparecia como un nombre en el pie de "cobertura".
+        for (const c of comps) {
+            if (!c.employee_id) continue;
+            const id = c.employee_id[0];
+            if (!emp[id]) {
+                emp[id] = { id, name: c.employee_id[1], active: 0, prod: 0, distr: 0, call: 0,
+                    injected: 0, idle: 0, apps: {}, sites: {}, comp: {}, distrMap: {}, sinUso: true };
+            }
+        }
+
         let pActive = 0, pProd = 0;
         for (const r of prev) { pActive += r.active_hours; pProd += r.productive_hours; }
 
@@ -721,11 +815,34 @@ export class FocoDashboard extends Component {
             for (const e of es) depts[e.id] = e.department_id ? e.department_id[1] : "";
         }
 
-        const idx = tActive > 0 ? (tProd / tActive) * 100 : 0;
-        const pIdx = pActive > 0 ? (pProd / pActive) * 100 : 0;
-
         const employees = Object.values(emp).map((e) => {
-            const index = e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0;
+            const res = (resumen || {})[String(e.id)] || {};
+            const expected = res.expected || 0;
+            const justified = res.justified || 0;
+            // EL CAMBIO CENTRAL (8-oct-2026): el indice se mide contra la
+            // JORNADA que la persona debe cubrir (8:30), no contra lo que
+            // estuvo activa. Antes `prod/activo` daba 100% a quien trabajaba
+            // una hora a tope y se iba; ahora la vara es su jornada completa.
+            // Lo JUSTIFICADO con la ventana cuenta como cubierto (decision del
+            // usuario: "de momento, productivo"). Sin calendario (fin de
+            // semana, sin horario) se cae al calculo viejo para no pintar 0.
+            const covered = e.prod + justified;
+            // 12-oct-2026, decision del dueno: el 100% son las HORAS
+            // PRODUCTIVAS de la meta (7 h), no la jornada completa. Lo
+            // justificado ya NO entra en el porcentaje -se muestra aparte,
+            // despues de la meta- y quien pase de la meta se va arriba del
+            // 100%, que es justo lo que se quiere premiar. En un rango la meta
+            // se multiplica por los dias laborables de esa persona.
+            // Lo que el admin ACEPTO cuando ya no quedaba bolsa cuenta como
+            // productivo y cruza al lado izquierdo de la meta: el veredicto fue
+            // ese. Lo que cupo en los 90 min sigue a la derecha, sin sumar.
+            const aprobado = res.aprobado_h || 0;
+            const cbd = (cobertura || {})[String(e.id)] || {};
+            const nDias = Math.max(1, cbd.dias_esperados || 1);
+            const metaH = (this.state.meta || 7) * nDias;
+            const index = expected > 0
+                ? Math.round(((e.prod + aprobado) / metaH) * 100)
+                : (e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0);
             const appList = Object.values(e.apps).sort((a, b) => b.hours - a.hours);
             const appMax = Math.max(1, ...appList.map((a) => a.hours));
             appList.forEach((a) => { a.pct = Math.round(a.hours / appMax * 100); a.catLabel = CAT_LABEL[a.catKey]; });
@@ -740,20 +857,38 @@ export class FocoDashboard extends Component {
             const sal = (salud || {})[String(e.id)] || { health: "ok", minutes: 0 };
             const sinSenal = sal.health === "stale" || sal.health === "never";
             const cb = (cobertura || {})[String(e.id)] || null;
-            const res = (resumen || {})[String(e.id)] || {};
             // Hechos de integridad: vienen en la analitica por persona, no en
             // los renglones de uso con los que se arma esta fila.
             const hx = (this.state.porPersona || []).find((p) => p.id === e.id) || {};
             const hechos = hx.hechos || [];
-            const expected = res.expected || 0;
-            const justified = res.justified || 0;
-            // Lo unico que amerita conversacion: ni medido, ni justificado.
-            const unexplained = Math.max(0, expected - e.active - justified);
+            // "Sin explicar" = huecos de la jornada SIN justificar (lo calcula
+            // el servidor con la porcion dentro de la jornada). Antes se
+            // derivaba restando esperado - activo - justificado, que a media
+            // jornada daba un numero enorme (el esperado es el dia completo).
+            const unexplained = res.unexplained_h || 0;
             const dList = Object.values(e.distrMap).sort((a, b) => b.hours - a.hours);
             const topDistr = dList.length && dList[0].hours > 0.008
                 ? { name: this.appLabel(dList[0].name), hours: dList[0].hours } : null;
+            // Adherencia al turno del dia ancla (vivo) y los conteos del rango.
+            const ad = ((asistencia || {}).personas || {})[String(e.id)] || null;
             return {
                 topDistr, hasTopDistr: !!topDistr,
+                sinUso: !!e.sinUso,
+                adh: ad,
+                adhEstado: ad ? ad.estado : "",
+                adhTexto: ad ? ad.texto : "",
+                adhEntrada: ad ? ad.entrada : "",
+                adhSalida: ad ? ad.salida : "",
+                adhFuente: ad ? ad.fuente : "",
+                adhSalioAntes: !!(ad && ad.salio_antes),
+                adhAntesMin: ad ? ad.antes_min : 0,
+                adhNoCheco: !!(ad && ad.no_checo),
+                adhDias: ad ? ad.dias : null,
+                // Una etiqueta en la fila solo cuando hay algo que decir: a
+                // tiempo no es noticia; tarde, sin registro, permiso o salir
+                // antes, si.
+                adhChip: ad && ["tarde", "sin_entrada", "falto", "sin_senal", "sin_checada", "permiso", "festivo"].includes(ad.estado)
+                    ? ad.texto : "",
                 // Que tan completo esta el dato de esta persona. No lleva
                 // umbral: "incompleto" es una igualdad exacta -faltan dias-,
                 // no un corte elegido.
@@ -762,7 +897,36 @@ export class FocoDashboard extends Component {
                 cobPct: cb ? cb.pct : 0,
                 cobFuente: cb ? cb.fuente : "",
                 cobParcial: !!cb && cb.dias_esperados > 0 && cb.dias_con_dato < cb.dias_esperados,
-                expected, justified, unexplained,
+                expected, justified, unexplained, aprobado,
+                // La meta de ESTA persona en el periodo (7 h x sus dias
+                // laborables): el 100% del grafico y del porcentaje.
+                metaH, nDias,
+                // Justificado que paso de la bolsa del dia y espera Aceptar /
+                // Rechazar. No cuenta como cubierto y en el grafico va en ambar:
+                // todavia no se sabe si es productivo (decision del dueno, 12-oct).
+                porDecidir: res.por_decidir_h || 0,
+                // Cubierto de su jornada = productivo + justificado. La columna
+                // "Jornada" lo muestra como «cubierto / 8:30» con barra.
+                covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
+                // La columna Jornada muestra el CHECADOR (lo real) cuando la
+                // persona lo usa, con el extra/faltante vs el horario (la guia);
+                // el horario es solo guia, el checador manda (decisión 8-oct).
+                usaChecador: !!res.usa_checador,
+                checado: res.checado_h || 0,
+                extra: res.extra_h || 0,
+                faltante: res.faltante_h || 0,
+                checadoPct: expected > 0 ? Math.min(100, Math.round((res.checado_h || 0) / expected * 100)) : 0,
+                // Checada abierta (10-oct): hoy "sigue checado" (contado hasta la
+                // ultima senal de su equipo o el fin de su horario, sin extra ni
+                // faltante); un dia pasado sin salida no se mide y se dice.
+                jorAbierta: !!res.checado_abierto,
+                jorNoMedible: res.checado_no_medible || 0,
+                jorTitulo: this.jornadaTitulo(res, expected),
+                // Rezago del checador a la PC (min), null si no checo ese dia.
+                lagMin: (typeof res.lag_min === "number") ? res.lag_min : null,
+                // Dias del periodo en que checo entrada y no cerro salida. Es
+                // una etiqueta en su fila, no un castigo: puede ser un olvido.
+                sinSalida: res.sin_salida || 0,
                 pendingAbs: res.pending || 0,
                 hasExpected: expected > 0,
                 // Presencia REAL, no un punto verde o gris. Los estados
@@ -790,11 +954,23 @@ export class FocoDashboard extends Component {
                     .map((h) => `${h.etiqueta}: ${h.texto} · ${h.dias} ${h.dias === 1 ? "día" : "días"}`
                         + (h.mantenimiento_dias ? `, ${h.mantenimiento_dias} con mantenimiento del agente` : ""))
                     .join("\n"),
+                // Veredictos de la IA del periodo: episodios sospechosos con
+                // captura en los que el modelo NO vio trabajo y nadie descarto.
+                // Los que la IA explico como trabajo no se cuentan: absuelven.
+                iaN: (hx.ia && hx.ia.sospechosos) || 0,
+                iaSinRevisar: (hx.ia && hx.ia.sin_revisar) || 0,
+                iaTitulo: hx.ia && hx.ia.analizados
+                    ? `${hx.ia.analizados} episodio${hx.ia.analizados === 1 ? "" : "s"} analizado${hx.ia.analizados === 1 ? "" : "s"} por la IA`
+                      + ` · ${hx.ia.sospechosos} no parece${hx.ia.sospechosos === 1 ? "" : "n"} trabajo (${Math.round(hx.ia.minutos)} min)`
+                      + ` · ${hx.ia.sin_revisar} sin revisar · ${hx.ia.confirmados} confirmado${hx.ia.confirmados === 1 ? "" : "s"}`
+                    : "",
                 call: e.call, hasCall: e.call > 0.008,
-                // Frente a la pantalla sin teclear. NO se resta de nada: se
-                // traslapa con las ausencias justificadas (quien se va al
-                // medico deja la ventana enfocada). Es observacion, no cuenta.
-                idle: e.idle, hasIdle: e.idle > 0.008,
+                // Pausas sin teclear DENTRO de la jornada: los huecos `idle` del
+                // agente (del umbral en adelante), una sola linea de tiempo. El
+                // `fg_idle` de los renglones de uso se encima entre ventanas
+                // (medido 10-oct: 10h25 en 9h24 de presencia) y ya no se muestra.
+                // NO se resta de nada: se traslapa con lo justificado.
+                idle: res.sin_teclear_h || 0, hasIdle: (res.sin_teclear_h || 0) > 0.008,
                 id: e.id, name: e.name, active: e.active, prod: e.prod, distr: e.distr, index,
                 dept: depts[e.id] || "", pc: pcName[e.id] || "",
                 topApp: appList.length ? appList[0].name : "—",
@@ -803,9 +979,14 @@ export class FocoDashboard extends Component {
                 meter: index >= 70 ? "good" : index >= 40 ? "mid" : "low",
                 online: !!ls && (Date.now() - ls) < 10 * 60 * 1000,
                 since: this.since(ls),
-                // Nunca acusar de baja productividad a quien el agente dejo de
-                // reportar: ese numero bajo es dato FALTANTE, no flojera.
-                attention: !sinSenal && e.active > 0.25 && index < 40,
+                // "Baja productividad" se mide sobre lo que SI hizo (productivo
+                // de lo activo), no sobre el indice de jornada: si usara el
+                // indice, a media manana -cuando nadie ha cubierto sus 8:30-
+                // saldria todo el equipo en rojo. Esa calidad no depende de la
+                // hora. Nunca se acusa a quien el agente dejo de reportar: ese
+                // numero bajo es dato FALTANTE, no flojera.
+                attention: !sinSenal && e.active > 0.25
+                    && (e.active > 0 ? (e.prod / e.active) * 100 : 0) < 40,
             };
         }).sort((a, b) => b.index - a.index || b.active - a.active);
 
@@ -846,20 +1027,70 @@ export class FocoDashboard extends Component {
             }
         }
 
+        // Indice del EQUIPO contra LA META (12-oct): suma de lo productivo
+        // sobre la suma de las metas (7 h x los dias laborables de cada quien),
+        // por TODAS las personas monitoreadas -no solo las que tienen renglon-.
+        // Lo justificado ya no entra, igual que en el indice de cada persona.
+        // El periodo anterior se mide con la misma vara, para que la flecha
+        // compare lo mismo; `teamCovered` se conserva porque la tarjeta
+        // "cubierto de la jornada" lo sigue mostrando aparte.
+        const META_H = this.state.meta || 7;
+        let teamCovered = 0, teamExp = 0, teamSinTeclear = 0, teamProd = 0, teamMeta = 0;
+        for (const [eid, v] of Object.entries(resumen || {})) {
+            teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0) + (v.aprobado_h || 0);
+            // Lo aceptado por el admin cuenta como productivo, igual que arriba.
+            teamProd += (emp[eid] ? emp[eid].prod : 0) + (v.aprobado_h || 0);
+            teamMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
+            teamExp += v.expected || 0;
+            teamSinTeclear += v.sin_teclear_h || 0;
+        }
+        let prevJust = 0, prevExp = 0, prevMeta = 0, prevAprob = 0;
+        for (const [eid, v] of Object.entries(resumenPrev || {})) {
+            prevJust += v.justified || 0; prevExp += v.expected || 0;
+            prevAprob += v.aprobado_h || 0;
+            prevMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
+        }
+        // Dias "sin cerrar salida" de TODO el equipo en el periodo: se suma
+        // sobre el resumen (todas las personas monitoreadas), no sobre la tabla,
+        // que deja fuera a quien no genero renglones de uso.
+        let teamSinSalida = 0;
+        for (const v of Object.values(resumen || {})) teamSinSalida += v.sin_salida || 0;
+        const idx = teamMeta > 0 ? (teamProd / teamMeta) * 100
+            : (tActive > 0 ? (tProd / tActive) * 100 : 0);
+        const pIdx = prevMeta > 0 ? ((pProd + prevAprob) / prevMeta) * 100
+            : (pActive > 0 ? (pProd / pActive) * 100 : 0);
+
         this.state.team = {
             cobDias, cobEsp, cobParciales,
             cobPct: cobEsp > 0 ? Math.round(cobDias / cobEsp * 100) : 0,
             cobMedible: cobEsp > 0,
             cobSinDato: sinDato.length,
             cobSinDatoNombres: sinDato.slice(0, 8).join(", "),
+            // Jornada del equipo: cubierto / esperado (8:30 x personas).
+            covered: teamCovered, expected: teamExp,
+            coveredPct: teamExp > 0 ? Math.min(100, Math.round(teamCovered / teamExp * 100)) : 0,
             index: Math.round(idx), indexDelta: Math.round(idx - pIdx),
             active: tActive, prod: tProd, prodDelta: tProd - pProd,
             distr: tDistr, distrPct: tActive > 0 ? Math.round(tDistr / tActive * 100) : 0,
-            idle: tIdle, hasIdle: tIdle > 0.008,
+            // Pausas sin teclear dentro de la jornada, del resumen (una linea de
+            // tiempo por persona), no la suma de `fg_idle` de los renglones.
+            idle: teamSinTeclear, hasIdle: teamSinTeclear > 0.008,
             siteHours: siteAll.reduce((sum, s) => sum + s.hours, 0),
             pendCount: pend.length, pendHours,
             monitored: employees.length, online: employees.filter((e) => e.online).length,
+            // Salidas sin cerrar del equipo en el periodo: el KPI lleva a la
+            // lista de jornadas filtrada a esos dias.
+            sinSalida: teamSinSalida,
             meter: idx >= 70 ? "good" : idx >= 40 ? "mid" : "low",
+            // Veredictos de la IA del equipo en el periodo (de la analitica,
+            // que ya respeta el alcance y la ACL del usuario).
+            ...((this.state.porPersona || []).reduce((a, p) => {
+                const x = p.ia || {};
+                a.iaAnalizados += x.analizados || 0;
+                a.iaSospechosos += x.sospechosos || 0;
+                a.iaSinRevisar += x.sin_revisar || 0;
+                return a;
+            }, { iaAnalizados: 0, iaSospechosos: 0, iaSinRevisar: 0 })),
         };
         this.state.employees = employees;
         this.state.composition = composition;
@@ -869,6 +1100,10 @@ export class FocoDashboard extends Component {
         this.state.cobertura = cobertura || {};
         this.state.attention = employees.filter((e) => e.attention).length;
         this.state.sinSenal = employees.filter((e) => e.sinSenal).length;
+        // Lo que el rediseno (10-oct) arma a partir de las filas: quien esta
+        // en linea, la asistencia del dia, la lista de atencion, las barras
+        // contra la jornada, la linea del dia y los grupos por departamento.
+        this.derivar(employees, salud || {});
         this.state.ultimo = new Date();
         this.state.loading = false;
         // Los paneles que estan abiertos se refrescan con el resto del
@@ -877,6 +1112,399 @@ export class FocoDashboard extends Component {
         for (const e of employees) {
             if (this.state.abiertos[e.id]) this.cargarArbol(e, true);
         }
+    }
+
+    // ---------------------------------------------------- el rediseno (10-oct)
+    //
+    // Todo lo que las secciones nuevas necesitan sale de las MISMAS filas
+    // `employees` y de lo ya cargado; aqui solo se reordena para contestar,
+    // en este orden, lo que un jefe pregunta primero: quien esta, quien llego
+    // tarde o no vino, que pide su atencion, y como viene cada quien contra
+    // su jornada. Nada se vuelve a pedir al servidor.
+    derivar(employees, salud) {
+        const dias = this.state.days;
+        const porId = {};
+        for (const e of employees) porId[e.id] = e;
+
+        // 1) Quien esta en linea: por presencia (viva, no del periodo), y
+        //    dentro de cada grupo por horas. "Sin senal EN HORARIO" solo si la
+        //    salud lo dice: un equipo callado a las 10 de la noche es normal.
+        const RANK = { activo: 0, en_llamada: 0, ausente: 1, bloqueado: 2, suspendido: 3, apagado: 3, sin_senal: 4, nunca: 5 };
+        const grupoDe = (e) => {
+            const r = RANK[e.presencia] ?? 9;
+            if (r <= 2) return "Conectados";
+            if (e.health === "stale") return "Sin señal en horario";
+            if (e.health === "never") return "Nunca ha reportado";
+            return "Fuera de horario · apagado o callado";
+        };
+        const online = [...employees]
+            .sort((a, b) => (RANK[a.presencia] ?? 9) - (RANK[b.presencia] ?? 9) || b.active - a.active)
+            .map((e) => ({ id: e.id, name: e.name, presencia: e.presencia, presenciaTxt: e.presenciaTxt,
+                           topApp: e.topApp === "—" ? "" : e.topApp, active: e.active, index: e.index,
+                           meter: e.meter, sinUso: e.sinUso, hue: e.hue, initials: e.initials, grupo: grupoDe(e) }));
+        const gruposOnline = [];
+        for (const o of online) {
+            let g = gruposOnline.find((x) => x.nombre === o.grupo);
+            if (!g) { g = { nombre: o.grupo, personas: [] }; gruposOnline.push(g); }
+            g.personas.push(o);
+        }
+        this.state.online = gruposOnline;
+        this.state.conectados = online.filter((o) => (RANK[o.presencia] ?? 9) <= 2).length;
+
+        // 2) La asistencia: en un dia, quien NO esta "a tiempo y sin mas"
+        //    (tarde, sin registro, permiso, salio antes, no checo, sin dato),
+        //    con su evidencia; en un rango, quien acumulo dias de eso.
+        const ORDEN = ["tarde", "sin_entrada", "falto", "sin_senal", "sin_checada", "sin_dato", "permiso", "festivo", "no_iniciado"];
+        const lista = [];
+        for (const e of employees) {
+            const a = e.adh;
+            if (!a) continue;
+            if (dias === 1) {
+                const raro = ORDEN.includes(a.estado) || a.salio_antes || a.no_checo;
+                if (!raro) continue;
+                let ev = "", chip = a.estado, chipTxt = this.etqAdh(a.estado);
+                if (a.estado === "tarde") ev = `entró ${a.entrada} · su hora ${this.hhmm(a.hora_entrada)} · +${a.tarde_min} min${a.fuente === "equipo" ? " (según su equipo)" : ""}`;
+                else if (a.estado === "sin_entrada") ev = `su hora era ${this.hhmm(a.hora_entrada)} · ${a.tarde_min} min sin rastro`;
+                else if (a.estado === "no_iniciado") ev = `su hora es ${this.hhmm(a.hora_entrada)}`;
+                else if (a.estado === "falto") ev = "ni checada ni señal de su equipo en todo el día";
+                else if (a.estado === "sin_senal") ev = "no usa checador · su equipo no dio señal de persona";
+                else if (a.estado === "sin_dato") ev = "su equipo no reportó (dato incompleto, no falta)";
+                else if (a.estado === "sin_checada") ev = "una checada de otro día sigue abierta";
+                else if (a.estado === "permiso" || a.estado === "festivo") ev = `${a.permiso || ""} validado en RRHH`;
+                else if (a.salio_antes) { ev = `checó salida ${a.salida} · su hora ${this.hhmm(a.hora_salida)} · ${a.antes_min} min antes`; chip = "salio_antes"; chipTxt = "salió antes"; }
+                else if (a.no_checo) { ev = `estuvo (señal ${a.entrada}) pero no checó entrada`; chip = "no_checo"; chipTxt = "no checó"; }
+                lista.push({ id: e.id, name: e.name, hue: e.hue, initials: e.initials, ev, chip, chipTxt,
+                             orden: ORDEN.indexOf(a.estado) < 0 ? 20 : ORDEN.indexOf(a.estado) });
+            } else {
+                const d = a.dias || {};
+                if (!(d.tarde || d.falto || d.salio_antes || d.sin_checada)) continue;
+                const partes = [];
+                if (d.tarde) partes.push(`${d.tarde} ${d.tarde === 1 ? "día" : "días"} tarde (${d.tarde_min} min)`);
+                if (d.falto) partes.push(`${d.falto} sin registro`);
+                if (d.salio_antes) partes.push(`${d.salio_antes} salió antes`);
+                if (d.sin_checada) partes.push(`${d.sin_checada} con checada abierta`);
+                lista.push({ id: e.id, name: e.name, hue: e.hue, initials: e.initials, ev: partes.join(" · "),
+                             chip: d.falto ? "falto" : (d.tarde ? "tarde" : "salio_antes"),
+                             chipTxt: d.falto ? `${d.falto} sin registro` : (d.tarde ? `${d.tarde} tarde` : `${d.salio_antes} antes`),
+                             orden: d.falto ? 0 : 1 });
+            }
+        }
+        lista.sort((a, b) => a.orden - b.orden || a.name.localeCompare(b.name));
+        this.state.asistenciaLista = lista;
+
+        // 3) Requiere atencion: una lista corta de cosas con nombre y numero.
+        //    Cada renglon abre la pantalla donde se actua.
+        const items = [];
+        const agrega = (clave, titulo, filas, fmt, accion, tono) => {
+            if (!filas.length) return;
+            items.push({ clave, titulo, n: filas.length, detalle: filas.slice(0, 5).map(fmt),
+                         mas: Math.max(filas.length - 5, 0), accion, tono: tono || "mid" });
+        };
+        const conAdh = employees.filter((e) => e.adh);
+        if (dias === 1) {
+            agrega("tarde", "Llegaron tarde", conAdh.filter((e) => e.adhEstado === "tarde"),
+                (e) => `${e.name} ${e.adh.entrada} (+${e.adh.tarde_min} min, su hora ${this.hhmm(e.adh.hora_entrada)})`, "abrirAsistencia");
+            agrega("falto", "Sin registro en todo el día", conAdh.filter((e) => ["falto", "sin_senal"].includes(e.adhEstado)),
+                (e) => `${e.name} (${e.adhEstado === "falto" ? "ni checada ni señal de su equipo" : "su equipo no dio señal de persona"})`, "abrirAsistencia", "low");
+            agrega("salio_antes", "Salieron antes de su horario", conAdh.filter((e) => e.adhSalioAntes),
+                (e) => `${e.name} checó salida ${e.adh.salida} (${e.adh.antes_min} min antes de las ${this.hhmm(e.adh.hora_salida)})`, "abrirAsistencia");
+            agrega("no_checo", "Estuvieron pero no checaron entrada", conAdh.filter((e) => e.adhNoCheco),
+                (e) => `${e.name} (primera señal en su equipo ${e.adh.entrada})`, "abrirAsistencia", "info");
+        } else {
+            agrega("tarde", "Días con llegada tarde", conAdh.filter((e) => e.adh.dias && e.adh.dias.tarde),
+                (e) => `${e.name}: ${e.adh.dias.tarde} ${e.adh.dias.tarde === 1 ? "día" : "días"} (${e.adh.dias.tarde_min} min)`, "abrirAsistencia");
+            agrega("falto", "Días sin registro", conAdh.filter((e) => e.adh.dias && e.adh.dias.falto),
+                (e) => `${e.name}: ${e.adh.dias.falto}`, "abrirAsistencia", "low");
+            agrega("salio_antes", "Días que salieron antes", conAdh.filter((e) => e.adh.dias && e.adh.dias.salio_antes),
+                (e) => `${e.name}: ${e.adh.dias.salio_antes} (${e.adh.dias.antes_min} min)`, "abrirAsistencia");
+        }
+        agrega("sin_salida", "No cerraron salida en el checador", employees.filter((e) => e.sinSalida),
+            (e) => `${e.name}${e.sinSalida > 1 ? ` (${e.sinSalida} días)` : ""}`, "abrirSinSalida");
+        const srv = this.state.atencionSrv || {};
+        if (srv.devueltas) {
+            items.push({ clave: "devueltas", titulo: "Justificaciones devueltas por la IA, esperando respuesta", n: srv.devueltas,
+                         detalle: (srv.devueltas_lista || []).slice(0, 5).map((d) => `${d.nombre}: "${d.texto}" (${d.veces} ${d.veces === 1 ? "vez" : "veces"})`),
+                         mas: Math.max(srv.devueltas - 5, 0), accion: "abrirDevueltas", tono: "mid" });
+        }
+        if (srv.por_decidir) {
+            items.push({ clave: "decidir", titulo: "Justificaciones por decidir: pasaron de sus 90 min del día", n: srv.por_decidir,
+                         detalle: (srv.por_decidir_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
+                         mas: Math.max((srv.por_decidir_por || []).length - 5, 0), accion: "abrirPorDecidir", tono: "mid" });
+        }
+        const ia = this.state.ia;
+        if (ia && ia.excedido) {
+            items.push({ clave: "ia_tokens", titulo: `IA: consumo de hoy por encima del umbral (${this.fmtTok(ia.tokens)} de ${this.fmtTok(ia.umbral)} tokens)`, n: 1,
+                         detalle: (ia.por_servicio || []).slice(0, 4).map((s) => `${s.servicio}: ${this.fmtTok(s.tokens)}`),
+                         mas: 0, accion: "abrirIA", tono: "mid" });
+        }
+        if (srv.revisar) {
+            items.push({ clave: "revisar", titulo: "Justificaciones vagas por revisar (acumulado)", n: srv.revisar,
+                         detalle: (srv.revisar_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
+                         mas: Math.max((srv.revisar_por || []).length - 5, 0), accion: "abrirRevisar", tono: "mid" });
+        }
+        agrega("ia", "Episodios que la IA no vio como trabajo, sin revisar", employees.filter((e) => e.iaSinRevisar),
+            (e) => `${e.name}: ${e.iaSinRevisar} ${e.iaSinRevisar === 1 ? "episodio" : "episodios"}`, "abrirVeredictos");
+        // Solo los hechos FUERTES: sin teclear / pantalla sin cambio / "Otro" le
+        // salen a casi todos casi todos los dias y aqui serian ruido.
+        const FUERTES = ["sintetico_sin_input", "agente_reinicio", "dispositivo_nuevo", "justificacion_repetida",
+                         "navegador_cerrado", "navegador_desconocido", "sin_senal_tras_checar", "admin_local"];
+        const conHechos = employees.map((e) => ({ e, f: (e.hechos || []).filter((h) => FUERTES.includes(h.kind)) })).filter((x) => x.f.length);
+        agrega("hechos", "Hechos de integridad que piden mirar", conHechos,
+            (x) => `${x.e.name}: ${x.f.slice(0, 2).map((h) => `${h.etiqueta} ${h.texto}`).join("; ")}`, "abrirIntegridad", "info");
+        agrega("sin_senal", "Equipos sin señal en horario (dato incompleto)", employees.filter((e) => e.sinSenal),
+            (e) => `${e.name} (${e.sinSenalLabel})`, "abrirComputadoras", "info");
+        agrega("distraccion", "Más de una hora en distracción", employees.filter((e) => e.distr >= 1),
+            (e) => `${e.name} ${this.fmt(e.distr)}${e.topDistr ? ` (${e.topDistr.name} ${this.fmt(e.topDistr.hours)})` : ""}`, "", "low");
+        this.state.atencion = items;
+        this.state.atencionN = items.reduce((a, x) => a + x.n, 0);
+
+        // 4) Como viene cada quien: cubierto contra su jornada esperada. En un
+        //    dia, con la marca del margen de 1h30 (lo que Paco acepta perder);
+        //    en un rango, la jornada es la suma del periodo y la marca no aplica.
+        //    La barra tiene DOS zonas y la linea de la meta las separa:
+        //      [ 0 ... META = 100% ][ META ... META+BOLSA ]
+        //    A la izquierda, lo MEDIDO: productivo (lo que cuenta), neutral,
+        //    distraccion y sin clasificar. A la derecha, lo JUSTIFICADO, que
+        //    por decision del dueno (12-oct) va DESPUES de la meta y NO cuenta
+        //    para el 100%; y pasada la bolsa, lo que espera su veredicto, en
+        //    ambar: todavia no se sabe si es productivo.
+        //    En un rango la meta se multiplica por los dias con jornada.
+        const BOLSA1 = this.state.bolsa != null ? this.state.bolsa : 1.5;
+        const conJornada = employees.filter((e) => !e.sinUso && e.expected > 0);
+        const bolsaDe = (e) => BOLSA1 * (e.nDias || 1);
+        const metaDe = (e) => e.metaH || (this.state.meta || 7);
+        // UNA escala para todas las barras: la mas larga manda. Sin esto, a
+        // quien gasto toda su bolsa el ambar le quedaba FUERA de la barra y no
+        // se veia -justo lo que hay que ver-; y con una escala por fila, la
+        // linea de la meta caia en un sitio distinto en cada renglon.
+        const escala = Math.max(0.01, ...conJornada.map((e) =>
+            metaDe(e) + Math.max(bolsaDe(e), e.justified || 0) + (e.porDecidir || 0)));
+        this.state.barras = conJornada.map((e) => {
+            const meta = metaDe(e);
+            const bolsa = bolsaDe(e);
+            const pc = (h) => Math.max(0, h) / escala * 100;
+            const sin = (e.composition || []).find((c) => c.key === "sin");
+            const sinH = sin ? sin.hours : 0;
+            const otro = Math.max(e.active - e.prod - e.distr - sinH, 0);
+            const out = [];
+            // Zona 1: lo que cuenta para el 100%, recortado a la meta (lo que
+            // sobra sube el porcentaje pero no desborda la barra). Lo aprobado
+            // por el admin va justo despues de lo productivo: cruzo la linea
+            // porque tu dijiste que era trabajo, y se ve de quien fue el credito.
+            let x = 0, queda = meta;
+            for (const [k, v] of [["productiva", e.prod], ["aprobado", e.aprobado || 0],
+                                  ["otro", otro], ["distraccion", e.distr], ["sin", sinH]]) {
+                const h = Math.min(v, queda);
+                queda -= h;
+                const w = pc(h);
+                if (w > 0.2) {
+                    const etq = `${SEG_LABEL[k] || CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}`;
+                    out.push({ k, left: x.toFixed(2), width: w.toFixed(2), label: etq,
+                               titulo: `${etq} — ${DESTINO[k] || DESTINO._}` });
+                }
+                x += w;
+            }
+            // Zona 2: siempre arranca en la meta, aunque la zona 1 vaya a medias.
+            // Aqui solo vive lo que NO cuenta: lo que cupo en la bolsa de 90 min
+            // y lo que espera tu veredicto.
+            let y = pc(meta);
+            for (const [k, v, etq] of [["justificado", e.justified, "Justificado"],
+                                       ["decidir", e.porDecidir || 0, "Por decidir: espera tu veredicto"]]) {
+                const w = pc(v);
+                if (w > 0.2) {
+                    out.push({ k, left: y.toFixed(2), width: w.toFixed(2),
+                               label: `${etq}: ${this.fmt(v)}`,
+                               titulo: `${etq}: ${this.fmt(v)} — ${DESTINO[k] || DESTINO._}` });
+                }
+                y += w;
+            }
+            return { id: e.id, name: e.name, hue: e.hue, initials: e.initials,
+                     index: e.index, meter: e.meter,
+                     segs: out, fin: null, finTxt: "",
+                     marca: pc(meta).toFixed(2), marcaTxt: this.fmt(meta),
+                     titulo: `productivo ${this.fmt(e.prod)} de ${this.fmt(meta)}`
+                             + ((e.aprobado || 0) > 0 ? ` (+${this.fmt(e.aprobado)} que aceptaste)` : "")
+                             + ` · justificado ${this.fmt(e.justified)} de ${this.fmt(bolsa)}`
+                             + ((e.porDecidir || 0) > 0 ? ` · por decidir ${this.fmt(e.porDecidir)}` : "") };
+        }).sort((a, b) => b.index - a.index);
+
+        // 5) La linea del dia (solo en un dia), lista para dibujar: cada
+        //    segmento y cada checada ya en porcentaje de la ventana comun.
+        const cin = this.state.cintas || { dias: [], ventana: [8, 20] };
+        const [lo, hi] = cin.ventana || [8, 20];
+        const span = Math.max(hi - lo, 1);
+        const pos = (t) => ((t - lo) / span * 100).toFixed(2);
+        const horas = [];
+        for (let t = Math.ceil(lo); t <= Math.floor(hi); t++) horas.push({ t, label: `${String(t).padStart(2, "0")}:00`, left: pos(t) });
+        const ahora = new Date();
+        const nowH = ahora.getHours() + ahora.getMinutes() / 60;
+        this.state.tl = {
+            horas, cols: Math.max(Math.floor(hi) - Math.ceil(lo), 1),
+            ahora: (this.esHoy && nowH >= lo && nowH <= hi) ? pos(nowH) : null,
+            filas: [...(cin.dias || [])]
+                .sort((a, b) => ((porId[b.employee_id] || {}).active || 0) - ((porId[a.employee_id] || {}).active || 0))
+                .map((d) => {
+                    const e = porId[d.employee_id] || { id: d.employee_id, name: d.employee, hue: this.hue(d.employee), initials: this.initials(d.employee) };
+                    return {
+                        id: e.id, name: e.name, hue: e.hue, initials: e.initials,
+                        shift: (d.shift || []).map(([a, b]) => ({ left: pos(a), width: ((b - a) / span * 100).toFixed(2) })),
+                        segs: (d.segments || []).map((s) => ({ k: s.k, left: pos(s.a), width: Math.max((s.b - s.a) / span * 100, 0.15).toFixed(2),
+                                                                titulo: `${this.hhmm(s.a)}–${this.hhmm(s.b)} ${s.k.replace("_", " ")}${s.motivo ? " · " + s.motivo : ""}` })),
+                        pins: (d.pins || []).filter((m) => m.k === "checada_entrada" || m.k === "checada_salida")
+                            .map((m) => ({ k: m.k, left: pos(m.h), titulo: m.texto })),
+                    };
+                }),
+        };
+
+        // 6) La tabla por departamento, con el indice del grupo en su cabecera.
+        const grupos = {};
+        for (const e of employees) {
+            const k = e.dept || "Sin departamento";
+            (grupos[k] = grupos[k] || { nombre: k, personas: [], esperado: 0, cubierto: 0 }).personas.push(e);
+            grupos[k].esperado += e.expected; grupos[k].cubierto += e.covered;
+        }
+        this.state.grupos = Object.values(grupos)
+            .map((g) => ({ ...g, index: g.esperado > 0 ? Math.min(100, Math.round(g.cubierto / g.esperado * 100)) : null,
+                           personas: g.personas.sort((a, b) => (a.sinUso - b.sinUso) || b.index - a.index) }))
+            .sort((a, b) => (b.index ?? -1) - (a.index ?? -1));
+
+        // 7) Las chispas de las tarjetas: 7 dias, como trazo SVG.
+        this.state.spark = {
+            indice: this.trazo((this.state.serie7 || []).map((s) => s.indice), 100),
+            prod: this.trazo((this.state.serie7 || []).map((s) => s.productivo)),
+        };
+    }
+
+    /** Un trazo SVG de 108x34 con los puntos dados; null deja un hueco. */
+    trazo(valores, maxFijo) {
+        const w = 108, h = 34;
+        const ok = valores.filter((v) => v != null);
+        if (ok.length < 2) return { d: "", fin: null };
+        const min = Math.min(...ok, 0), max = maxFijo || Math.max(...ok, 1);
+        const px = (i) => 3 + i * (w - 6) / (valores.length - 1);
+        const py = (v) => h - 3 - (v - min) / (max - min || 1) * (h - 8);
+        let d = "", previo = null, fin = null;
+        valores.forEach((v, i) => {
+            if (v == null) { previo = null; return; }
+            d += `${previo == null ? "M" : "L"}${px(i).toFixed(1)} ${py(v).toFixed(1)} `;
+            previo = v; fin = { x: px(i).toFixed(1), y: py(v).toFixed(1) };
+        });
+        return { d, fin };
+    }
+
+    /** La fila completa de una persona a partir de su id: las listas de
+     *  "quien esta" y "asistencia" guardan solo lo que dibujan, y la ficha
+     *  necesita todo. */
+    empleadoDe(id) {
+        return (this.state.employees || []).find((e) => e.id === id) || null;
+    }
+
+    etqAdh(estado) {
+        return ({ a_tiempo: "A tiempo", tarde: "Tarde", no_iniciado: "Aún no empieza", sin_entrada: "Sin entrada aún",
+                  sin_checada: "Checada abierta de otro día", falto: "Sin registro", sin_senal: "Sin señal todo el día",
+                  sin_dato: "Equipo sin reportar", permiso: "Permiso", festivo: "Festivo", no_laborable: "No laborable",
+                  sin_jornada: "Sin horario" })[estado] || "";
+    }
+
+    hhmm(x) {
+        const m = Math.round((x || 0) * 60);
+        return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    }
+
+    /** Un renglon de «Requiere atencion» abre la pantalla donde se actua. */
+    clickAtencion(item) {
+        if (item.accion && typeof this[item.accion] === "function") this[item.accion]();
+    }
+
+    abrirDevueltas() {
+        this.action.doAction("foco_monitor.foco_absence_review_action", {
+            additionalContext: { search_default_devueltas: 1, search_default_sin_revisar: 0 },
+        });
+    }
+
+    /** Tokens en corto: 42 k, 1.3 M. */
+    fmtTok(n) {
+        n = Number(n || 0);
+        if (n >= 1e6) return `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} M`;
+        if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e5 ? 0 : 1)} k`;
+        return String(n);
+    }
+
+    /** Consumo de IA por dia y por servicio. */
+    abrirIA() {
+        this.action.doAction("foco_monitor.foco_ai_usage_action");
+    }
+
+    /** Lo que paso de los 90 min del dia y espera Aceptar / Rechazar. */
+    abrirPorDecidir() {
+        this.action.doAction("foco_monitor.foco_absence_action", {
+            additionalContext: { search_default_por_decidir: 1, search_default_pendientes: 0, search_default_g_emp: 1 },
+        });
+    }
+
+    /** Del grafico al registro, en un clic.
+     *
+     *  Cada tramo de la barra lleva a lo que hay que HACER con el, no a una
+     *  lista generica que despues hay que filtrar a mano: el ambar a las
+     *  justificaciones que esperan tu veredicto, el gris claro a lo que falta
+     *  clasificar, el rojo a sus distracciones. Siempre de ESA persona y del
+     *  periodo que se esta mirando, que es el contexto que uno ya tenia en la
+     *  cabeza al hacer clic.
+     */
+    abrirTramo(b, k) {
+        const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
+        const emp = ["employee_id", "=", b.id];
+        const dias = (campo) => [[campo, ">=", desde], [campo, "<=", hasta]];
+        const ventana = (nombre, model, domain, context, vistas) => this.action.doAction({
+            type: "ir.actions.act_window",
+            name: `${nombre} · ${b.name}`,
+            res_model: model,
+            views: vistas || [[false, "list"], [false, "form"]],
+            domain, context: context || {},
+        });
+        if (k === "decidir") {
+            // Lo que paso de su bolsa y espera Aceptar / Rechazar.
+            return ventana("Por decidir", "foco.absence",
+                [emp, ["state", "=", "por_decidir"], ...dias("start")]);
+        }
+        if (k === "justificado" || k === "aprobado") {
+            return ventana("Justificado", "foco.absence",
+                [emp, ["state", "=", "justificada"], ...dias("start")]);
+        }
+        if (k === "sin") {
+            // La cola de clasificacion de ESA persona: lo que todavia no pesa.
+            return ventana("Sin clasificar", "foco.usage",
+                [emp, ["category_id", "=", false], ...dias("date")],
+                { search_default_g_app: 1 });
+        }
+        if (k === "distraccion") {
+            return ventana("Distracción", "foco.usage",
+                [emp, ["category_id.weight", "<=", 0], ["category_id.is_system", "=", false],
+                 ...dias("date")],
+                { search_default_g_app: 1 });
+        }
+        // Productivo, neutral o la fila entera: su detalle de uso, que es donde
+        // se ve el arbol app > sitio > pagina y se puede clasificar desde ahi.
+        return this.abrirUso({ id: b.id });
+    }
+
+    abrirIntegridad() {
+        this.action.doAction("foco_monitor.foco_integrity_fact_action");
+    }
+
+    abrirComputadoras() {
+        this.action.doAction("foco_monitor.foco_computer_action");
+    }
+
+    /** Un dia atras o adelante con las flechas; nunca mas alla de hoy. */
+    cambiarDia(delta) {
+        const d = this.fechaAncla();
+        d.setDate(d.getDate() + delta);
+        let v = this.ymd(d);
+        if (v > this.hoyYmd) v = this.hoyYmd;
+        if (v === this.state.fecha) return;
+        this.state.fecha = v;
+        this.load();
     }
 
     // ------------------------------------------------- que hizo cada quien
@@ -969,6 +1597,13 @@ export class FocoDashboard extends Component {
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.toggleFila(e); }
     }
 
+    /** Enter o espacio sobre una persona de las tarjetas abre su ficha,
+     *  lo mismo que el clic. */
+    teclaFicha(ev, e) {
+        if (ev.target !== ev.currentTarget) return;
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); this.openDetail(e); }
+    }
+
     toggleNodo(n) { if (n.abrible) n.abierto = !n.abierto; }
 
     teclaNodo(ev, n) {
@@ -992,6 +1627,65 @@ export class FocoDashboard extends Component {
                 foco_employee_id: e.id,
                 foco_desde: this.state.rango ? this.state.rango[1] : undefined,
             },
+        });
+    }
+
+    /** Las justificaciones que la IA marco como vagas y nadie ha revisado. */
+    abrirRevisar() {
+        this.action.doAction("foco_monitor.foco_absence_review_action", {
+            additionalContext: { search_default_sin_revisar: 1 },
+        });
+    }
+
+    /** Los dias en que alguien checo entrada y nunca cerro salida. */
+    abrirSinSalida() {
+        this.action.doAction("foco_monitor.foco_workday_sin_salida_action");
+    }
+
+    /** La asistencia del periodo, renglon por renglon, agrupada por estado:
+     *  la evidencia (entrada, salida, minutos, fuente) esta en las columnas. */
+    abrirAsistencia() {
+        const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
+        this.action.doAction({
+            type: "ir.actions.act_window", name: "Asistencia",
+            res_model: "foco.workday", views: [[false, "list"]],
+            domain: [["date", ">=", desde], ["date", "<=", hasta],
+                     ["adherence", "not in", ["no_laborable", "sin_jornada", false]]],
+            context: { search_default_g_adh: 1 },
+        });
+    }
+
+    /** Los conteos de asistencia que muestra la tarjeta: los de HOY (vivos)
+     *  cuando se ve un dia; la suma de dias del rango cuando se ve mas. */
+    get asis() {
+        const a = this.state.asistencia || {};
+        if (this.state.days === 1) {
+            const q = a.equipo || {};
+            return {
+                aTiempo: q.a_tiempo || 0, tarde: q.tarde || 0,
+                falto: (q.falto || 0) + (q.sin_senal || 0),
+                permiso: (q.permiso || 0) + (q.festivo || 0),
+                salioAntes: q.salio_antes || 0,
+                enCurso: (q.no_iniciado || 0) + (q.sin_entrada || 0),
+                sinChecada: q.sin_checada || 0,
+                dias: false,
+            };
+        }
+        const t = { aTiempo: 0, tarde: 0, falto: 0, permiso: 0, salioAntes: 0, enCurso: 0, sinChecada: 0, dias: true };
+        for (const p of Object.values(a.personas || {})) {
+            const d = p.dias || {};
+            t.aTiempo += d.a_tiempo || 0; t.tarde += d.tarde || 0; t.falto += d.falto || 0;
+            t.permiso += d.permiso || 0; t.salioAntes += d.salio_antes || 0;
+            t.sinChecada += d.sin_checada || 0;
+        }
+        return t;
+    }
+
+    /** Los episodios que la IA no explico como trabajo, con los que faltan
+     *  por revisar al frente: la tarjeta es la puerta a las capturas. */
+    abrirVeredictos() {
+        this.action.doAction("foco_monitor.foco_integrity_verdict_action", {
+            additionalContext: { search_default_sin_revisar: 1 },
         });
     }
 
@@ -1041,6 +1735,7 @@ export class FocoDashboard extends Component {
     }
 
     openDetail(e) {
+        if (!e) return;
         this.state.detail = e;
         this.state.open = false;
         // La ficha muestra el mismo arbol que el renglon: una sola verdad.
@@ -1093,6 +1788,75 @@ export class FocoDashboard extends Component {
         return `hace ${Math.round(s / 86400)} d`;
     }
     setDays(n) { if (n === this.state.days) return; this.state.days = n; this.load(); }
+
+    // ------------------------------------------------ navegacion por fecha
+    //
+    // El periodo termina en un dia ANCLA. Por defecto es hoy; el selector de
+    // fecha lo mueve a un dia pasado para ver el tablero de ese dia (o la
+    // semana/mes que termina en el). "Hoy" lo regresa a hoy.
+
+    /** El dia ancla como Date LOCAL (mediodia, para no cruzar la frontera del
+     *  dia por la zona horaria al construirlo). */
+    fechaAncla() {
+        const [y, m, d] = (this.state.fecha || this.ymd(new Date())).split("-").map(Number);
+        return new Date(y, m - 1, d, 12, 0, 0);
+    }
+    get hoyYmd() { return this.ymd(new Date()); }
+    get anclaEsHoy() { return this.state.fecha === this.hoyYmd; }
+    /** "Hoy" solo esta activo si el ancla es hoy Y el periodo es de 1 dia. */
+    get esHoy() { return this.anclaEsHoy && this.state.days === 1; }
+
+    /** Etiqueta del periodo que se esta viendo, para el subtitulo. */
+    get periodoLabel() {
+        if (this.esHoy) return "Hoy";
+        const fin = this.fechaAncla();
+        if (this.state.days === 1) return this.fechaCorta(fin);
+        const ini = new Date(fin); ini.setDate(fin.getDate() - (this.state.days - 1));
+        return `${this.fechaCorta(ini)} – ${this.fechaCorta(fin)}`;
+    }
+    /** "8 oct" (dia y mes, sin año: el tablero vive en el presente). */
+    fechaCorta(d) {
+        const mes = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        return `${d.getDate()} ${mes[d.getMonth()]}`;
+    }
+
+    verHoy() {
+        if (this.esHoy) return;
+        this.state.days = 1;
+        this.state.fecha = this.hoyYmd;
+        this.load();
+    }
+    setFecha(ev) {
+        let v = ev.target.value;
+        if (!v) return;
+        if (v > this.hoyYmd) v = this.hoyYmd;   // nunca un dia futuro
+        if (v === this.state.fecha) return;
+        this.state.fecha = v;
+        this.load();
+    }
+
+    /** Minutos a texto compacto: «40 min», «1 h 05 min». */
+    fmtMinutos(m) {
+        m = Math.round(m || 0);
+        if (m < 60) return `${m} min`;
+        return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+    }
+
+    /** El texto de la celda Jornada: dice lo que se midio y lo que no. */
+    jornadaTitulo(res, expected) {
+        const checado = res.checado_h || 0, extra = res.extra_h || 0, falt = res.faltante_h || 0;
+        const nm = res.checado_no_medible || 0;
+        let t;
+        if (res.checado_abierto) {
+            t = `Sigue checado: ${this.fmt(checado)} hasta la última señal de su equipo o el fin de su horario, lo que ocurrió antes. Extra o faltante se dicen al checar salida.`;
+        } else {
+            t = `Checó ${this.fmt(checado)} de su horario de ${this.fmt(expected)}. El checador manda; el horario es la guía.`;
+            if (extra > 0.016) t += ` Se quedó ${this.fmt(extra)} de más.`;
+            else if (falt > 0.016) t += ` Checó ${this.fmt(falt)} menos.`;
+        }
+        if (nm) t += nm === 1 ? " Un día sin checar salida no se cuenta." : ` ${nm} días sin checar salida no se cuentan.`;
+        return t;
+    }
 }
 
 registry.category("actions").add("foco_dashboard", FocoDashboard);

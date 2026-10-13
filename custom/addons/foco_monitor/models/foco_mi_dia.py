@@ -134,10 +134,12 @@ class FocoUsageMiDia(models.Model):
         return {'categoria': cat.name, 'peso': 0.0, 'cuenta': 'no cuenta', 'clave': 'no_cuenta'}
 
     @api.model
-    def _totales_persona(self, dominio):
+    def _totales_persona(self, dominio, cubierto=None):
         """Las mismas cubetas que `analitica`, mas lo que a la persona le sirve
         leer: sin input, fuera de turno y en llamada. El sistema no cuenta en
-        ninguna (active_hours ya es 0 ahi; el sin input se salta aqui)."""
+        ninguna (active_hours ya es 0 ahi; el sin input se salta aqui).
+        `cubierto` = {expected, justified} en horas, para que el indice sea el
+        MISMO que ve el administrador (cubierto entre jornada)."""
         t = {'activo': 0.0, 'productivo': 0.0, 'distraccion': 0.0, 'sin_clasificar': 0.0,
              'sin_input': 0.0, 'fuera_turno': 0.0, 'llamada': 0.0}
         for cat, shift, activo, productivo, sin_input, llamada in self._read_group(
@@ -159,7 +161,9 @@ class FocoUsageMiDia(models.Model):
         # Lo activo que no es ni a favor, ni distraccion, ni sin clasificar: la
         # parte que NO suma de las categorias parciales (navegador al 50 %).
         t['otro'] = max(t['activo'] - t['productivo'] - t['distraccion'] - t['sin_clasificar'], 0.0)
-        t['indice'] = round(100.0 * t['productivo'] / t['activo'], 1) if t['activo'] else None
+        t['indice'] = self.env['foco.usage']._indice(t['productivo'], cubierto, t['activo'])
+        t['justificado'] = float((cubierto or {}).get('justified') or 0.0)
+        t['esperado'] = float((cubierto or {}).get('expected') or 0.0)
         for k in list(t):
             if k != 'indice':
                 t[k] = round(t[k], 3)
@@ -188,8 +192,12 @@ class FocoUsageMiDia(models.Model):
         dom_hoy = base + [('date', '=', hoy)]
         dom_sem = base + [('date', '>=', lunes), ('date', '<=', hoy)]
 
-        hoy_t = self._totales_persona(dom_hoy)
-        sem_t = self._totales_persona(dom_sem)
+        # La jornada y lo justificado de la persona, por dia, para el MISMO
+        # indice que ve el administrador (cubierto entre jornada).
+        cub = ((self.env['foco.absence'].sudo().cubierto_por_dia(lunes, hoy)
+                .get('empleados') or {}).get(str(emp.id)) or {})
+        hoy_t = self._totales_persona(dom_hoy, cub.get(hoy.isoformat()))
+        sem_t = self._totales_persona(dom_sem, self.env['foco.usage']._suma_cubierto(cub))
         sem_t['dias'] = len(self._read_group(dom_sem, ['date:day'], ['__count']))
         sem_t['desde'] = lunes.isoformat()
         sem_t['hasta'] = hoy.isoformat()

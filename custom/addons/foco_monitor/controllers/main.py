@@ -5,14 +5,45 @@ import json
 import logging
 from datetime import datetime, time as _time, timedelta
 
+import time
+
+import psycopg2
 import pytz
 from markupsafe import escape
+from psycopg2 import errorcodes
 
 from odoo import fields, http
 from odoo.exceptions import UserError
 from odoo.http import content_disposition, request
 
 _logger = logging.getLogger(__name__)
+
+# Lo mismo que Odoo reintenta en las llamadas RPC (service/model.py). Los
+# controladores `type='http'` NO lo traen de serie, y aqui dos procesos del
+# mismo equipo escriben la misma fila de foco_computer casi a la vez: el
+# agente en /foco/ingest (presencia, ultima senal) y el servicio en
+# /foco/policy (latido de verificacion). Medido el 8-oct-2026 en FbC208LGV:
+# "could not serialize access due to concurrent update" dos envios seguidos,
+# a la misma hora exacta que su /foco/policy; el tercero paso.
+_PG_REINTENTAR = (errorcodes.LOCK_NOT_AVAILABLE, errorcodes.SERIALIZATION_FAILURE,
+                  errorcodes.DEADLOCK_DETECTED)
+
+
+def _reintentando(fn, intentos=3):
+    """Corre `fn`; si la base rechaza la transaccion por concurrencia, la
+    deshace entera y la vuelve a correr desde cero. Las rutas que lo usan son
+    idempotentes (upsert del uso, eventos deduplicados, latidos)."""
+    for intento in range(intentos):
+        try:
+            return fn()
+        except psycopg2.OperationalError as e:
+            if e.pgcode not in _PG_REINTENTAR or intento == intentos - 1:
+                raise
+            request.env.cr.rollback()
+            if hasattr(request.env, 'reset'):
+                request.env.reset()
+            _logger.info('Foco: reintento %d por concurrencia (%s)', intento + 1, e.pgcode)
+            time.sleep(0.2 * (intento + 1))
 
 
 def _tomy_texto_a_html(texto):
@@ -143,6 +174,9 @@ class FocoController(http.Controller):
     @http.route('/foco/ingest', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def ingest(self, **kw):
+        return _reintentando(lambda: self._ingest(**kw))
+
+    def _ingest(self, **kw):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
@@ -152,6 +186,7 @@ class FocoController(http.Controller):
 
         App = request.env['foco.app'].sudo()
         Site = request.env['foco.site'].sudo()
+        WaGroup = request.env['foco.whatsapp.group'].sudo()
         Usage = request.env['foco.usage'].sudo()
 
         info = data.get('computer') or {}
@@ -303,6 +338,11 @@ class FocoController(http.Controller):
             # El sitio se cataloga como entidad propia: es lo que permite
             # clasificarlo y que pese distinto que la app que lo muestra.
             site = Site._get_or_create(host) if host else Site.browse()
+            # El grupo/chat de WhatsApp abierto, cuando el renglon es WhatsApp
+            # (Web: host web.whatsapp.com; escritorio: la app ES WhatsApp). El
+            # nombre viaja en `document`. Su categoria mandara sobre la de la app,
+            # como el sitio sobre el navegador (requisito Francesco 9-oct-2026).
+            wa = WaGroup.resolver_desde_uso(app, host, documento)
             usage = Usage.search([
                 ('computer_id', '=', computer.id),
                 ('app_id', '=', app.id),
@@ -322,7 +362,8 @@ class FocoController(http.Controller):
                       'keys_count': _entero(s.get('keys')),
                       'mouse_events': _entero(s.get('mouse_events')),
                       'positions_count': _entero(s.get('positions')),
-                      'site_id': site.id or False}
+                      'site_id': site.id or False,
+                      'wa_group_id': wa.id or False}
             if call_ref:
                 llamada = Review._buscar(computer, call_ref)
                 if llamada:
@@ -369,18 +410,40 @@ class FocoController(http.Controller):
         # Es lo que le pone causa a los huecos: sin esto, "apago y se fue" y
         # "el agente murio a media tarde" son el mismo renglon vacio.
         Event = request.env['foco.event'].sudo()
-        events_stored = Event.record_events(computer, data.get('events') or [])
+        # Mismo cuidado que en /foco/policy: un evento repetido dentro del lote
+        # no puede tumbar el envio del uso. Sin `events_stored` en la respuesta
+        # el agente reintenta los eventos mas tarde, que es lo correcto.
+        try:
+            with request.env.cr.savepoint():
+                events_stored = Event.record_events(computer, data.get('events') or [])
+        except Exception:
+            _logger.exception('Foco: eventos de %s', computer.id)
+            events_stored = None
 
         # --- pestañas abiertas (camino 1) -----------------------------------
         # Los TITULOS de todas las pestañas del navegador. Se guardan como filas
         # por clasificar; la IA corre en un cron, no aqui. Nunca tumba el ingest:
         # un fallo aqui haria que el agente reintentara el lote sin fin.
         try:
-            tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
-                computer, data.get('tabs') or [], data.get('tab_hosts') or {})
+            with request.env.cr.savepoint():
+                tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
+                    computer, data.get('tabs') or [], data.get('tab_hosts') or {})
         except Exception:
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
+
+        # --- encabezados de WhatsApp de escritorio (vision) -----------------
+        # La app UWP no expone su chat a UIA; el agente manda un recorte del
+        # encabezado con su huella. Aqui NO se corre vision (eso es un cron): se
+        # guardan los nuevos y se devuelven los que ya tienen nombre, para que el
+        # agente los use como el chat abierto. Nunca tumba el ingest.
+        wa_header_names = {}
+        try:
+            with request.env.cr.savepoint():
+                wa_header_names = WaGroup.resolver_headers(data.get('wa_headers') or [])
+        except Exception:
+            _logger.exception('Foco: encabezados de WhatsApp de %s', computer.id)
+            wa_header_names = {}
 
         # --- donde esta la persona AHORA ------------------------------------
         presencia = data.get('presence') or {}
@@ -410,16 +473,24 @@ class FocoController(http.Controller):
             # calculo falla, el envio tiene que responder ok igual. Un 500
             # aqui haria que el agente reintentara el mismo lote sin fin y el
             # equipo dejara de reportar (paso con el NUL del 24-sep).
+            # Con SAVEPOINT cada uno: atrapar la excepcion sin deshacer hasta
+            # el savepoint dejaba la transaccion abortada y TODO lo que seguia
+            # (comandos, respuesta) moria con "current transaction is aborted",
+            # asi que el 500 llegaba igual y el agente reenviaba el lote
+            # (FbC208LGV, 8-oct-2026: una jornada rehecha a la vez por otro
+            # proceso tumbo dos envios seguidos).
             try:
-                request.env['foco.workday'].sudo().rebuild(
-                    computer.employee_id, sorted(d for d in dias if d))
+                with request.env.cr.savepoint():
+                    request.env['foco.workday'].sudo().rebuild(
+                        computer.employee_id, sorted(d for d in dias if d))
             except Exception:
                 _logger.exception('Foco: jornada de %s', computer.id)
             # Y los hechos de integridad de esos mismos dias: barato (una
             # persona, uno o dos dias) y asi se ven al momento, no de noche.
             try:
-                request.env['foco.integrity.fact'].sudo().rebuild(
-                    computer.employee_id, sorted(d for d in dias if d))
+                with request.env.cr.savepoint():
+                    request.env['foco.integrity.fact'].sudo().rebuild(
+                        computer.employee_id, sorted(d for d in dias if d))
             except Exception:
                 _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
@@ -440,6 +511,9 @@ class FocoController(http.Controller):
             'gaps_stored': gaps_stored,
             'events_stored': events_stored,
             'tabs_stored': tabs_stored,
+            # {huella: nombre} de los encabezados de WhatsApp ya resueltos por
+            # vision. El agente los cachea y los usa como el chat abierto.
+            'wa_header_names': wa_header_names,
             'commands': out,
             'config': config,
             # El CHECADOR, en vivo: si esta persona lo usa y si ahora mismo
@@ -485,7 +559,54 @@ class FocoController(http.Controller):
             # respuesta, interruptor incluido, por la misma razon que las
             # capturas: apagarlo tiene que surtir efecto en el siguiente envio.
             'call_review': settings.call_review_config(computer),
+            # Veredicto por IA ante actividad sospechosa: umbral, cuantas
+            # capturas y cada cuanto. Tambien en cada respuesta.
+            'vision': settings.vision_config(computer),
         })
+
+    # ------------------------------------- actividad sospechosa: veredicto por IA
+    #
+    # El agente mide el patron (pantalla sin cambio con input, solo mouse,
+    # clics ritmicos, input inyectado); pasado el umbral abre un episodio con
+    # una `ref` y manda capturas en uno o varios envios; el ultimo trae
+    # `cerrar`. Odoo arma el contexto y le pide el veredicto al modelo de
+    # vision. La llave de OpenAI no sale de aqui.
+    @http.route('/foco/agent/sospecha', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def agent_sospecha(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        settings = request.env['foco.settings'].sudo().get_settings()
+        if not settings.vision_allowed(computer):
+            return request.make_json_response({'ok': False, 'error': 'disabled'})
+        if len(request.httprequest.get_data() or b'') > 25 * 1024 * 1024:
+            return request.make_json_response({'ok': False, 'error': 'demasiado_grande'}, status=413)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'ok': False, 'error': 'json_invalido'}, status=400)
+        ref = (data.get('ref') or '').strip()[:64]
+        if not ref:
+            return request.make_json_response({'ok': False, 'error': 'sin_ref'}, status=400)
+        try:
+            rec, nuevas = request.env['foco.integrity.verdict'].sudo()._registrar(computer, ref, data)
+        except Exception as e:
+            _logger.warning('foco: episodio %s de %s sin registrar: %s', ref, computer.name, e)
+            request.env.cr.rollback()
+            return request.make_json_response(
+                {'ok': False, 'error': 'registro', 'detail': str(e)[:200]}, status=503)
+        if data.get('cerrar') and rec.state == 'pendiente':
+            # El veredicto se intenta aqui mismo; si la API falla, el proceso
+            # de cada 5 min lo reintenta. El agente no espera por el resultado
+            # ni lo recibe: es para quien administra.
+            try:
+                rec._analizar()
+            except Exception as e:
+                _logger.warning('foco: episodio %s sin veredicto por ahora: %s', ref, e)
+        return request.make_json_response({
+            'ok': True, 'id': rec.id, 'state': rec.state,
+            'capturas': len(rec.capture_ids), 'nuevas': nuevas,
+            'max_capturas': min(settings.vision_max_capturas or 4, 12)})
 
     # ------------------------------------------------ llamadas de WhatsApp
     #
@@ -1431,6 +1552,9 @@ class FocoController(http.Controller):
     @http.route('/foco/policy', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def policy(self, **kw):
+        return _reintentando(lambda: self._policy(**kw))
+
+    def _policy(self, **kw):
         """Que sitios puede abrir este equipo, y que dice el equipo tener puesto.
 
         Endpoint APARTE de /foco/ingest a proposito. Quien lo llama no es el
@@ -1470,8 +1594,15 @@ class FocoController(http.Controller):
                     'detail': json.dumps({'process': str(c['exe'])[:120]}),
                 })
             if eventos:
+                # Con SAVEPOINT: un error de base aqui (una llave repetida)
+                # abortaba la transaccion entera y, aunque se atrapara, todo lo
+                # que seguia -el latido, la politica- moria con "current
+                # transaction is aborted" y el servicio recibia 500 en cada
+                # ciclo (FBT308DDF, 7/8-oct-2026). Guardar los cierres nunca
+                # puede costar la verificacion del bloqueo.
                 try:
-                    request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
+                    with request.env.cr.savepoint():
+                        request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
                 except Exception:
                     _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
 

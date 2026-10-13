@@ -60,9 +60,14 @@ class ResPartner(models.Model):
                                          compute='_compute_foco_visita')
 
     def _compute_foco_visita(self):
+        # sudo A PROPOSITO: este contador se calcula al abrir/guardar CUALQUIER
+        # contacto (cliente o proveedor), tambien por usuarios que no son de Foco
+        # (contabilidad). Las visitas (foco.visita) solo las ven los grupos de
+        # Foco; sin sudo, crear/editar un contacto tronaba con "No puede acceder a
+        # foco.visita". Aqui solo se CUENTA (no se exponen datos de la visita).
         data = {}
         if self.ids:
-            for g in self.env['foco.visita']._read_group(
+            for g in self.env['foco.visita'].sudo()._read_group(
                     [('partner_id', 'in', self.ids)],
                     ['partner_id'], ['__count', 'check_in:max']):
                 data[g[0].id] = (g[1], g[2])

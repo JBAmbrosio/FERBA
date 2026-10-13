@@ -60,6 +60,12 @@ class FocoPolicy(models.Model):
              'sociales ni streaming."')
     rule_ids = fields.One2many('foco.policy.rule', 'policy_id', string='Reglas')
     computer_ids = fields.One2many('foco.computer', 'policy_id', string='Equipos')
+    # Clasificacion de productividad PROPIA de este perfil: una app o un sitio
+    # cuenta como productivo o distraccion solo para los equipos de este perfil,
+    # ganando sobre la categoria global (reunion 9-oct-2026).
+    category_ids = fields.One2many(
+        'foco.policy.category', 'policy_id',
+        string='Clasificacion de este perfil')
 
     # Navegadores que se saltan el bloqueo. Medido (17-sep-2026): Opera ignora
     # la politica de empresa que Chrome, Edge, Brave y Firefox si obedecen, y

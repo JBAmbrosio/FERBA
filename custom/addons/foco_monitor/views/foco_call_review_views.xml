@@ -36,6 +36,12 @@
         <field name="model">foco.call.review</field>
         <field name="arch" type="xml">
             <form string="Llamada analizada" create="false" edit="false">
+                <header>
+                    <button name="action_rehacer_dialogo" type="object"
+                            string="Rehacer conversación" icon="fa-comments"
+                            groups="foco_monitor.group_foco_manager"
+                            invisible="transcript_cleared"/>
+                </header>
                 <sheet>
                     <div class="alert alert-info" role="alert" invisible="not transcript_cleared">
                         Aqui no hay audio ni transcripcion: el audio se transcribio al
@@ -78,7 +84,16 @@
                             <field name="error_detail"/>
                         </group>
                     </group>
-                    <group string="Transcripcion (conservada)"
+                    <!-- La conversacion va a lo ANCHO, FUERA de <group>: dentro de un
+                         group cae en la celda-valor (la mitad angosta del sheet) y las
+                         burbujas se parten palabra por palabra, con su propio scroll.
+                         Suelta en el sheet ocupa todo el ancho y se lee como chat. -->
+                    <div invisible="transcript_cleared"
+                         groups="foco_monitor.group_foco_manager">
+                        <separator string="Conversación"/>
+                        <field name="dialogo_html" nolabel="1" readonly="1"/>
+                    </div>
+                    <group string="Transcripcion por pista (crudo)"
                            invisible="transcript_cleared"
                            groups="foco_monitor.group_foco_manager">
                         <field name="transcript_empleado" nolabel="0"/>

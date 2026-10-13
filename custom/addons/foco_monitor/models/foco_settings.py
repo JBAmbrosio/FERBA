@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta
 import pytz
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -308,11 +308,90 @@ class FocoSettings(models.Model):
         string='Subir el audio en trozos de (min)', default=3,
         help='Cada trozo se transcribe al llegar y se descarta. Trozos cortos '
              'suben mas seguido; largos cargan mas cada peticion. 1 a 10.')
+    # ---- rebote de justificaciones vagas al empleado (enforcement) ----------
+    justify_rebote_activo = fields.Boolean(
+        string='Devolver justificaciones vagas al empleado', default=False,
+        help='Encendido: cuando la IA marca una justificacion como VAGA (no da '
+             'ninguna razon: un punto, vacio, basura), el periodo se REABRE y la '
+             'ventana del agente vuelve a pedirla con un aviso, hasta que el '
+             'empleado de un motivo coherente (o, tras varios intentos, queda solo '
+             'para revision del admin). Apagado: solo se marca en «Periodos a '
+             'revisar» para que el admin lo trate con la persona.')
+    justify_rebote_msg = fields.Char(
+        string='Aviso al devolver la justificacion',
+        default='Tu justificacion anterior no le dice al patron que paso. Escribe que '
+                'hiciste y con quien o para que (por ejemplo: «junta con Jenifer sobre '
+                'el pedido de Culiacan», «cita medica», «fui al taller a revisar la '
+                'dobladora») para poder seguir usando el equipo.',
+        help='Lo que ve el empleado en la ventana del agente cuando se le devuelve '
+             'una justificacion y la IA no dejo una pregunta puntual. Se puede '
+             'ajustar aqui sin recompilar el agente.')
+    # ---- regla de los 90 minutos (11-oct-2026, decision del dueno) ---------
+    justify_gracia_min = fields.Integer(
+        string='Minutos justificables al dia sin decision del admin', default=90,
+        help='Bolsa diaria por persona, la misma para todos. Lo que justifica y la '
+             'IA acepta se carga aqui en el orden en que lo justifica y cuenta como '
+             'cubierto. Cuando no alcanza, el periodo se parte y el resto queda "Por '
+             'decidir"; agotada la bolsa, todo lo que justifique despues lo decide '
+             'un administrador con Aceptar / Rechazar. Las apps neutras o de '
+             'distraccion no la consumen. Aplica a lo que se justifique a partir '
+             'de la regla; lo anterior cuenta tal cual.')
+
+    # ---- la meta del dia (12-oct-2026, decision del dueno) ----------------
+    meta_productiva_h = fields.Float(
+        string='Horas productivas que valen el 100%', default=7.0,
+        help='La vara del tablero. El 100% son estas horas de trabajo PRODUCTIVO, '
+             'no la jornada completa: en una jornada de 8:30 quedan fuera la hora '
+             'de comida y los minutos justificables. Quien pase de la meta se va '
+             'arriba del 100%. La bolsa de minutos justificables se dibuja DESPUES '
+             'de esta linea y NO cuenta para el 100%.')
+
+    @api.constrains('justify_gracia_min')
+    def _check_justify_gracia_min(self):
+        for r in self:
+            if r.justify_gracia_min < 0 or r.justify_gracia_min > 480:
+                raise ValidationError('Los minutos justificables al dia van de 0 a 480.')
+
+    @api.constrains('meta_productiva_h')
+    def _check_meta_productiva_h(self):
+        for r in self:
+            if r.meta_productiva_h <= 0 or r.meta_productiva_h > 24:
+                raise ValidationError('Las horas productivas que valen el 100% van de 0 a 24.')
+
+    @api.model
+    def tablero_params(self):
+        """Las dos varas del tablero, para que el grafico no las traiga cocidas.
+
+        `meta_h` es el 100% (7 h) y `bolsa_h` lo justificable, que va DESPUES de
+        esa linea y no suma al 100%. Ninguna se adivina en el navegador: se
+        configuran aqui y el tablero las lee.
+        """
+        s = self.sudo().get_settings()
+        return {'meta_h': round(s.meta_productiva_h or 7.0, 3),
+                'bolsa_h': round((s.justify_gracia_min or 0) / 60.0, 3)}
+    anthropic_api_key = fields.Char(
+        string='API key de Anthropic (Claude)', compute='_compute_anthropic_api_key',
+        inverse='_inverse_anthropic_api_key',
+        help='Vive en un parametro del sistema (foco.anthropic_api_key). Nunca '
+             'viaja a los equipos: la usa Odoo para el veredicto por vision, el '
+             'chat de Tomy y la clasificacion. Es la IA principal.')
     openai_api_key = fields.Char(
-        string='API key de OpenAI', compute='_compute_openai_api_key',
+        string='API key de OpenAI (solo transcripcion)', compute='_compute_openai_api_key',
         inverse='_inverse_openai_api_key',
         help='Vive en un parametro del sistema (foco.openai_api_key). Nunca '
-             'viaja a los equipos: la usa Odoo para transcribir y clasificar.')
+             'viaja a los equipos. Solo se usa para TRANSCRIBIR audio de llamadas '
+             '(Whisper): Claude no transcribe. Si no usas el analisis de llamadas, '
+             'puedes dejarla vacia.')
+
+    def _compute_anthropic_api_key(self):
+        key = self.env['ir.config_parameter'].sudo().get_param('foco.anthropic_api_key') or ''
+        for rec in self:
+            rec.anthropic_api_key = key
+
+    def _inverse_anthropic_api_key(self):
+        for rec in self:
+            self.env['ir.config_parameter'].sudo().set_param(
+                'foco.anthropic_api_key', (rec.anthropic_api_key or '').strip())
 
     def _compute_openai_api_key(self):
         key = self.env['ir.config_parameter'].sudo().get_param('foco.openai_api_key') or ''
@@ -358,6 +437,175 @@ class FocoSettings(models.Model):
 
     def call_review_allowed(self, computer):
         return bool(self.call_review_enabled and computer and computer.call_review)
+
+    # ---- veredicto por IA ante actividad sospechosa (vision) --------------
+    # La IA vive en Odoo. Cuando el agente mide un patron de actividad simulada
+    # (pantalla sin cambio con input, solo mouse, clics ritmicos, input
+    # inyectado) durante T minutos, toma unas pocas capturas y las sube; Odoo
+    # pide al modelo de vision que diga que se ve. Ordenado por la direccion y
+    # escrito en la politica de uso de equipos (7-oct-2026).
+    vision_enabled = fields.Boolean(
+        string='Veredicto por IA ante actividad sospechosa', default=False,
+        help='Interruptor general. Apagado, ningun equipo captura por este motivo y '
+             'lo que llegara se rechaza. Requiere la API key de OpenAI. Las '
+             'capturas y el veredicto los ven solo quienes administran Foco.')
+    vision_umbral_minutos = fields.Integer(
+        string='Minutos de patron sospechoso antes de capturar', default=15,
+        help='T. El agente abre un episodio cuando un patron (pantalla sin cambio '
+             'con input, solo mouse, clics ritmicos, input inyectado) lleva estos '
+             'minutos seguidos. 3 a 240.')
+    vision_max_capturas = fields.Integer(
+        string='Capturas por episodio (maximo)', default=4,
+        help='Cuantas capturas como mucho se toman en un episodio. Mas no mejora el '
+             'veredicto. 1 a 12.')
+    vision_capturas_cada_min = fields.Integer(
+        string='Minutos entre capturas del episodio', default=5,
+        help='Separacion entre capturas mientras el patron siga. Ver DOS pantallas '
+             'identicas con minutos de por medio es lo que distingue una simulacion '
+             'de una pausa. 1 a 60.')
+    vision_detalle = fields.Selection(
+        [('low', 'Baja: rapida y barata (basta para saber que hay en pantalla)'),
+         ('high', 'Alta: lee texto pequeno, cuesta varias veces mas')],
+        string='Resolucion con la que mira el modelo', default='low')
+    vision_notice = fields.Text(
+        string='Aviso en pantalla al capturar',
+        default='Foco detecto actividad sin cambios en pantalla durante varios minutos y '
+                'tomo una captura como evidencia, conforme a la politica de uso de equipos.',
+        help='Se muestra unos segundos al tomar la primera captura del episodio. '
+             'Vacio = sin aviso (no recomendable).')
+    vision_retention_days = fields.Integer(
+        string='Conservar las capturas (dias)', default=0,
+        help='0 = se conservan como evidencia, no se borran nunca (decision del '
+             '7-oct-2026). Con un numero, el proceso de cada 5 min borra las mas '
+             'antiguas; el veredicto se queda.')
+    vision_musica_apps = fields.Char(
+        string='Reproductores de musica (no abren veredicto)',
+        default='spotify, youtube music, music.youtube.com, apple music, itunes, deezer, '
+                'amazon music, tidal, soundcloud',
+        help='Decision de la direccion (9-oct-2026): la musica de fondo no es grave. Si '
+             'la aplicacion, el ejecutable o el titulo de la ventana del episodio '
+             'contiene uno de estos nombres (separados por coma), el episodio queda '
+             'como "Musica de fondo (permitida)" sin pedir veredicto a la IA ni gastar '
+             'tokens. Un video musical en YouTube, el futbol o el streaming NO entran.')
+    # ---- contador diario de consumo de IA (pedido del dueno, 9-oct-2026) ---
+    ia_tokens_umbral_dia = fields.Integer(
+        string='Umbral diario de tokens de IA', default=250000,
+        help='Pasado este total de tokens en el dia, el tablero lo marca en rojo y '
+             'aparece en "Requiere atencion". Medido la semana del 6-oct-2026: un dia '
+             'normal usa entre 30 y 60 mil tokens; el 9-oct, con 327 justificaciones '
+             'analizadas de golpe, 321 mil. 0 = sin umbral. El detalle por servicio y '
+             'por dia esta en Configuracion > Consumo de IA.')
+
+    @api.constrains('ia_tokens_umbral_dia')
+    def _check_ia_tokens_umbral_dia(self):
+        for r in self:
+            if r.ia_tokens_umbral_dia < 0 or r.ia_tokens_umbral_dia > 50000000:
+                raise ValidationError('El umbral diario de tokens va de 0 a 50 millones.')
+
+    jornada_tope_semana = fields.Float(
+        string='Tope legal de horas por semana', default=40.0,
+        help='Solo para AVISAR en la pantalla de horarios cuando un empleado lo '
+             'rebasa. No recorta ni bloquea nada: la cifra la fija el area legal '
+             '(hoy el limite va camino a 40/38 h).')
+
+    # ---- adherencia al turno y reporte diario (10-oct-2026) ---------------
+    adherencia_gracia_min = fields.Integer(
+        string='Tolerancia de entrada (min)', default=10,
+        help='Minutos despues de su hora de entrada a partir de los cuales una '
+             'llegada se marca "tarde". Medido con 30 dias de checadas de FERBA: '
+             'con 10 min, el 39 por ciento de las entradas salen tarde, casi todas de 4 '
+             'personas cuyo horario real no es el del calendario estandar. '
+             'Corregir SU horario en Horarios laborales es lo correcto; subir '
+             'esta tolerancia a todos, no. Se puede dar una tolerancia distinta '
+             'a una persona en su ficha de empleado.')
+    reporte_diario_activo = fields.Boolean(
+        string='Enviar el reporte diario', default=False,
+        help='Cada dia laborable, a la hora indicada, se arma el reporte del dia '
+             'con los numeros reales del tablero y se manda a los destinatarios.')
+    reporte_diario_hora = fields.Float(
+        string='Hora de envio', default=17.75,
+        help='Hora local de la empresa (la del calendario laboral). 17:45 de '
+             'fabrica: despues de la salida de las 17:30 y antes de la revision '
+             'de las 18:00.')
+    reporte_diario_user_ids = fields.Many2many(
+        'res.users', 'foco_reporte_diario_user_rel', 'settings_id', 'user_id',
+        string='Destinatarios',
+        help='Usuarios de Odoo que lo reciben, por su correo.')
+    reporte_diario_emails = fields.Char(
+        string='Otros correos',
+        help='Correos adicionales separados por coma, para quien no tiene usuario.')
+    reporte_diario_ultimo = fields.Date(
+        string='Ultimo enviado', readonly=True,
+        help='El dia del ultimo reporte enviado por el proceso automatico. Se '
+             'envia una vez por dia.')
+
+    @api.constrains('adherencia_gracia_min', 'reporte_diario_hora')
+    def _check_adherencia(self):
+        for r in self:
+            if r.adherencia_gracia_min < 0 or r.adherencia_gracia_min > 120:
+                raise ValidationError('La tolerancia de entrada va de 0 a 120 minutos.')
+            if r.reporte_diario_hora < 0 or r.reporte_diario_hora >= 24:
+                raise ValidationError('La hora de envio debe estar entre 00:00 y 23:59.')
+
+    def action_asistencia(self):
+        """Abre la configuracion de asistencia y reporte diario."""
+        rec = self.get_settings()
+        return {
+            'type': 'ir.actions.act_window', 'name': 'Asistencia y reporte diario',
+            'res_model': 'foco.settings', 'res_id': rec.id,
+            'view_mode': 'form', 'target': 'current',
+            'view_id': self.env.ref('foco_monitor.foco_settings_view_form_asistencia').id,
+        }
+
+    def action_enviar_reporte_ahora(self):
+        """Genera el reporte de HOY y lo manda a los destinatarios configurados.
+        Es el boton de prueba: no espera a la hora programada."""
+        self.ensure_one()
+        rep = self.env['foco.daily.report'].sudo().generar(fields.Date.context_today(self))
+        enviados = rep.enviar()
+        return {
+            'type': 'ir.actions.client', 'tag': 'display_notification',
+            'params': {'type': 'success' if enviados else 'warning', 'sticky': False,
+                       'title': 'Reporte diario',
+                       'message': ('Enviado a %s' % enviados) if enviados
+                                  else 'Generado, pero no hay destinatarios con correo.'},
+        }
+
+    def action_ver_reporte_hoy(self):
+        """Arma (o rearma) el reporte de hoy y lo abre, sin enviarlo."""
+        self.ensure_one()
+        rep = self.env['foco.daily.report'].sudo().generar(fields.Date.context_today(self))
+        return {
+            'type': 'ir.actions.act_window', 'name': rep.display_name,
+            'res_model': 'foco.daily.report', 'res_id': rep.id,
+            'view_mode': 'form', 'target': 'current',
+        }
+
+    @api.constrains('vision_umbral_minutos', 'vision_max_capturas', 'vision_capturas_cada_min')
+    def _check_vision(self):
+        for r in self:
+            if not (3 <= (r.vision_umbral_minutos or 0) <= 240):
+                raise ValidationError('El umbral de actividad sospechosa va de 3 a 240 minutos.')
+            if not (1 <= (r.vision_max_capturas or 0) <= 12):
+                raise ValidationError('Las capturas por episodio van de 1 a 12.')
+            if not (1 <= (r.vision_capturas_cada_min or 0) <= 60):
+                raise ValidationError('La separacion entre capturas va de 1 a 60 minutos.')
+
+    def vision_allowed(self, computer):
+        return bool(self.vision_enabled and computer and self.env['foco.openai'].configurado())
+
+    def vision_config(self, computer):
+        """Lo que el agente de ESE equipo necesita para abrir episodios. Viaja
+        en cada envio: apagarlo surte efecto en el siguiente ciclo."""
+        self.ensure_one()
+        return {
+            'enabled': self.vision_allowed(computer),
+            'umbral_min': self.vision_umbral_minutos or 15,
+            'max_capturas': self.vision_max_capturas or 4,
+            'cada_min': self.vision_capturas_cada_min or 5,
+            'aviso': (self.vision_notice or '').strip(),
+            'patrones': ['pantalla_sin_cambio', 'solo_mouse', 'clics_ritmicos', 'input_inyectado'],
+        }
 
     # ---- cuanto tiempo se guarda el dato --------------------------------
     # APAGADA de fabrica (0). Una purga encendida por omision borraria datos
@@ -768,6 +1016,45 @@ class FocoSettings(models.Model):
         return out
 
     @api.model
+    def workspan_intervals(self, calendar):
+        """La jornada CONTINUA por dia ISO: UN tramo, del primer intervalo del
+        dia al ultimo, con la comida DENTRO.
+
+        `calendar_intervals` deja la comida fuera, que es lo correcto para medir
+        jornada esperada. Pero para decidir si un hueco amerita preguntarse,
+        dejarla fuera era un agujero: quien se levantaba a las 12:59 y volvia a
+        las 13:34 no recibia ninguna pregunta porque casi todo caia en la franja
+        de comida, y el sistema lo daba por "explicado por calendario" (medido
+        el 12-oct-2026 en Jose Angel, Isaura y Juan Daniel). Decision del dueno
+        ese dia: la comida deja de explicar huecos.
+        """
+        out = {}
+        for iso, tramos in self.calendar_intervals(calendar).items():
+            if tramos:
+                out[iso] = [(min(a for a, _ in tramos), max(b for _, b in tramos))]
+        return out
+
+    @api.model
+    def break_intervals(self, calendar):
+        """Los huecos DENTRO de la jornada: la comida y los descansos.
+
+        En `resource.calendar` la comida puede venir de dos formas y las dos
+        cuentan: como una LINEA con `day_period='lunch'`, o -como en FERBA-
+        simplemente como el hueco entre el tramo de la manana (8:00-13:00) y el
+        de la tarde (14:00-17:30), sin linea ninguna.
+        """
+        out = {}
+        for iso, tramos in self.calendar_intervals(calendar).items():
+            huecos = [(b1, a2) for (_, b1), (a2, _) in zip(tramos, tramos[1:]) if a2 > b1]
+            if huecos:
+                out[iso] = huecos
+        for iso, tramos in self.lunch_intervals(calendar).items():
+            out.setdefault(iso, []).extend(tramos)
+        for iso in out:
+            out[iso].sort()
+        return out
+
+    @api.model
     def lunch_intervals(self, calendar):
         """Franjas de comida por dia ISO. Sirven para PRESUGERIR el motivo."""
         out = {}
@@ -848,6 +1135,204 @@ class FocoSettings(models.Model):
                     "intervals": {str(k): v for k, v in intervals.items()}}
         return {"enabled": False, "intervals": {}, "source": "sin_calendario",
                 "tz": self._tz_for(employee)}
+
+    # ---- editor de horarios por empleado (Config > Horarios laborales) -----
+    #
+    # Edita el horario laboral NATIVO (resource.calendar) de cada empleado, que
+    # es de donde ya salen TODAS las metricas (expected_seconds / jornada_de /
+    # schedule_for). No se inventa una segunda verdad. Al personalizar a alguien
+    # que comparte un calendario (el estandar), se le da el suyo propio para no
+    # mover a los demas. El checador sigue mandando lo REAL en los dias que marca.
+    DIAS_SEMANA = [(1, 'Lunes'), (2, 'Martes'), (3, 'Miércoles'), (4, 'Jueves'),
+                   (5, 'Viernes'), (6, 'Sábado'), (7, 'Domingo')]
+
+    @api.model
+    def _hora_valida(self, v):
+        """Un numero de hora (0..24) o None. Acepta float o cadena."""
+        if v is None or v is False or v == '':
+            return None
+        try:
+            return max(0.0, min(24.0, round(float(v), 4)))
+        except (TypeError, ValueError):
+            return None
+
+    @api.model
+    def _horario_dias(self, calendar):
+        """El horario semanal EDITABLE de un calendario: por dia ISO, si trabaja,
+        entrada, salida y comida. Reconstruye entrada=min y salida=max de las
+        lineas de trabajo (la comida sale de la linea 'lunch')."""
+        trabajo = self.calendar_intervals(calendar)   # {iso: [(a,b)...]} sin comida
+        comidas = self.lunch_intervals(calendar)       # {iso: [(a,b)...]} lineas 'lunch'
+        dias = []
+        for iso, etiqueta in self.DIAS_SEMANA:
+            spans = sorted(trabajo.get(iso) or [])
+            com = comidas.get(iso) or []
+            if spans:
+                entrada = spans[0][0]
+                salida = spans[-1][1]
+                horas = round(sum(b - a for a, b in spans), 2)
+                if com:
+                    ci, cf = com[0][0], com[0][1]
+                elif len(spans) >= 2 and spans[1][0] > spans[0][1]:
+                    # El 'Standard 40h' de Odoo NO tiene linea de comida: la comida
+                    # es el HUECO entre el bloque de la mañana y el de la tarde.
+                    ci, cf = spans[0][1], spans[1][0]
+                else:
+                    ci = cf = None
+            else:
+                entrada = salida = ci = cf = None
+                horas = 0.0
+            dias.append({'iso': iso, 'etiqueta': etiqueta, 'trabaja': bool(spans),
+                         'entrada': entrada, 'salida': salida,
+                         'comida_inicio': ci, 'comida_fin': cf, 'horas': horas})
+        return dias
+
+    @api.model
+    def _horario_plantillas(self):
+        """Plantillas rapidas para no capturar dia por dia. 8:30 h = 9:00–18:30
+        menos 1 h de comida."""
+        def d(e, s, ci=None, cf=None):
+            return {'entrada': e, 'salida': s, 'comida_inicio': ci, 'comida_fin': cf}
+        lv = {str(i): d(9.0, 18.5, 13.0, 14.0) for i in range(1, 6)}
+        lv8 = {str(i): d(9.0, 18.0, 13.0, 14.0) for i in range(1, 6)}
+        return [
+            {'clave': 'lv85', 'etiqueta': 'Lun–Vie 8:30 h', 'dias': lv},
+            {'clave': 'lv85s5', 'etiqueta': 'Lun–Vie 8:30 h + Sáb 5 h',
+             'dias': {**lv, '6': d(9.0, 14.0)}},
+            {'clave': 'lv8', 'etiqueta': 'Lun–Vie 8 h', 'dias': lv8},
+        ]
+
+    @api.model
+    def _fuente_hoy(self, emp):
+        """De donde manda la jornada de esa persona HOY: checador o calendario."""
+        zona = self._tzinfo_for(emp)
+        hoy = datetime.now(zona).date()
+        if self._usa_checador(emp, hoy, zona):
+            return 'checador'
+        return 'calendario' if self.calendar_intervals(emp.resource_calendar_id) else 'ninguno'
+
+    @api.model
+    def horarios_tablero(self):
+        """Lista de empleados monitoreados con su horario resumido. Lo lee la
+        pantalla OWL de Horarios laborales (sin sudo: respeta el alcance)."""
+        ajustes = self.get_settings()
+        empleados = self.env['foco.computer'].search(
+            [('employee_id', '!=', False)]).mapped('employee_id')
+        out = []
+        for emp in empleados:
+            cal = emp.resource_calendar_id
+            dias = ajustes._horario_dias(cal)
+            comparten = (self.env['hr.employee'].sudo().search_count(
+                [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+            out.append({
+                'id': emp.id, 'name': emp.name,
+                'departamento': emp.department_id.name or '',
+                'dias': [d['iso'] for d in dias if d['trabaja']],
+                'horas_semana': round(sum(d['horas'] for d in dias), 2),
+                'calendario': cal.name or '', 'compartido': comparten > 1,
+                'fuente_hoy': self._fuente_hoy(emp),
+            })
+        out.sort(key=lambda p: p['name'])
+        return {'empleados': out,
+                'tope_semana': ajustes.jornada_tope_semana or 40.0,
+                'plantillas': self._horario_plantillas()}
+
+    @api.model
+    def horario_empleado(self, employee_id):
+        """El horario completo y editable de un empleado."""
+        emp = self.env['hr.employee'].browse(int(employee_id or 0)).exists()
+        if not emp:
+            return {}
+        ajustes = self.get_settings()
+        cal = emp.resource_calendar_id
+        comparten = (self.env['hr.employee'].sudo().search_count(
+            [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+        return {
+            'id': emp.id, 'name': emp.name,
+            'departamento': emp.department_id.name or '',
+            'calendario': cal.name or '', 'compartido': comparten > 1,
+            'comparten': comparten,
+            'tz': (cal.tz if cal else None) or ajustes._tz_for(emp),
+            'tope_semana': ajustes.jornada_tope_semana or 40.0,
+            'fuente_hoy': self._fuente_hoy(emp),
+            'dias': ajustes._horario_dias(cal),
+        }
+
+    @api.model
+    def _calendario_propio(self, emp):
+        """El calendario que usa SOLO este empleado, para editarlo sin tocar a
+        nadie mas. Si el actual lo comparte, es el de la empresa, o no tiene, se
+        le clona/crea uno propio y se le asigna."""
+        cal = emp.resource_calendar_id
+        company_def = self.env.company.resource_calendar_id
+        comparten = (self.env['hr.employee'].sudo().search_count(
+            [('resource_calendar_id', '=', cal.id)]) if cal else 0)
+        propio = bool(cal) and comparten <= 1 and cal.id != (company_def.id if company_def else 0)
+        if propio:
+            return cal
+        nombre = 'Horario — %s' % emp.name
+        if cal:
+            nuevo = cal.sudo().copy()
+            # resource.calendar.copy ignora el name y pone "(copy)": se fija aparte.
+            nuevo.sudo().write({'name': nombre})
+        else:
+            nuevo = self.env['resource.calendar'].sudo().create({
+                'name': nombre,
+                'tz': emp.tz or (company_def.tz if company_def else 'America/Mexico_City')})
+        emp.sudo().write({'resource_calendar_id': nuevo.id})
+        return nuevo
+
+    @api.model
+    def horario_guardar(self, employee_id, dias):
+        """Guarda el horario del empleado en SU calendario (clona si lo comparte).
+
+        `dias` = [{iso, trabaja, entrada, salida, comida_inicio, comida_fin}].
+        Un dia con comida se escribe como manana + comida + tarde (como el
+        estandar de Odoo), para que `calendar_intervals` cuente el trabajo sin la
+        comida y `lunch_intervals` reconozca la comida. Levanta UserError con un
+        mensaje claro si un dia no cuadra: nada se guarda a medias."""
+        emp = self.env['hr.employee'].browse(int(employee_id or 0)).exists()
+        if not emp:
+            raise UserError('No se encontró al empleado.')
+        etq = dict(self.DIAS_SEMANA)
+        lineas = []
+        for d in (dias or []):
+            if not d.get('trabaja'):
+                continue
+            try:
+                iso = int(d.get('iso'))
+            except (TypeError, ValueError):
+                continue
+            nombre_dia = etq.get(iso, '')
+            e = self._hora_valida(d.get('entrada'))
+            s = self._hora_valida(d.get('salida'))
+            ci = self._hora_valida(d.get('comida_inicio'))
+            cf = self._hora_valida(d.get('comida_fin'))
+            if e is None or s is None or s <= e:
+                raise UserError('En %s la salida debe ser mayor que la entrada.' % nombre_dia)
+            dow = str(iso - 1)
+            hay_comida = ci is not None and cf is not None
+            if hay_comida:
+                if not (e <= ci < cf <= s):
+                    raise UserError('En %s la comida debe caer dentro del turno '
+                                    '(entrada ≤ comida ≤ salida).' % nombre_dia)
+                lineas += [
+                    (0, 0, {'name': '%s mañana' % nombre_dia, 'dayofweek': dow,
+                            'hour_from': e, 'hour_to': ci, 'day_period': 'morning'}),
+                    (0, 0, {'name': 'Comida', 'dayofweek': dow,
+                            'hour_from': ci, 'hour_to': cf, 'day_period': 'lunch'}),
+                    (0, 0, {'name': '%s tarde' % nombre_dia, 'dayofweek': dow,
+                            'hour_from': cf, 'hour_to': s, 'day_period': 'afternoon'}),
+                ]
+            else:
+                periodo = 'afternoon' if e >= 13.0 else 'morning'
+                lineas.append((0, 0, {
+                    'name': nombre_dia, 'dayofweek': dow,
+                    'hour_from': e, 'hour_to': s, 'day_period': periodo}))
+        cal = self._calendario_propio(emp)
+        cal.sudo().write({'two_weeks_calendar': False,
+                          'attendance_ids': [(5, 0, 0)] + lineas})
+        return self.horario_empleado(emp.id)
 
     # ---- purga ----------------------------------------------------------
     def _purgar_modelo(self, modelo, dominio, cupo):
@@ -987,7 +1472,8 @@ class FocoSettings(models.Model):
         return por_dia
 
     @api.model
-    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False):
+    def expected_seconds(self, employee, start_utc, stop_utc, con_asistencia=False,
+                         continuo=False):
         """Segundos de JORNADA ESPERADA dentro de [start_utc, stop_utc].
 
         Es lo que permite no molestar al empleado por huecos que caen fuera de
@@ -1005,7 +1491,12 @@ class FocoSettings(models.Model):
         if stop_utc <= start_utc:
             return 0.0
         calendar = employee.resource_calendar_id if employee else None
-        intervals = self.calendar_intervals(calendar)
+        # `continuo=True` mide la jornada de corrido, con la comida DENTRO. Lo
+        # usa SOLO la ingesta de huecos, para decidir si un hueco amerita
+        # preguntarse; las metricas del tablero siguen con la jornada real, que
+        # no incluye la comida.
+        intervals = (self.workspan_intervals(calendar) if continuo
+                     else self.calendar_intervals(calendar))
         if not intervals:
             # Sin calendario utilizable no se puede afirmar que estuviera libre:
             # se asume esperado para que alguien lo revise.
@@ -1036,3 +1527,141 @@ class FocoSettings(models.Model):
                         total += (b - a).total_seconds()
             day += timedelta(days=1)
         return total
+
+    # ---- la columna Jornada del tablero: el checador manda, el horario guia --
+    @api.model
+    def _comida_por_iso(self, calendar):
+        """La comida por dia ISO: la linea 'lunch' si existe, o el HUECO entre el
+        bloque de la mañana y el de la tarde (asi la trae el Standard 40h)."""
+        trabajo = self.calendar_intervals(calendar)
+        comidas = self.lunch_intervals(calendar)
+        out = {}
+        for iso, spans in trabajo.items():
+            spans = sorted(spans)
+            if comidas.get(iso):
+                out[iso] = (comidas[iso][0][0], comidas[iso][0][1])
+            elif len(spans) >= 2 and spans[1][0] > spans[0][1]:
+                out[iso] = (spans[0][1], spans[1][0])
+        return out
+
+    @api.model
+    def _checador_jornada(self, empleados, d_ini, d_fin):
+        """Jornada REAL del checador y EXTRA/faltante vs el horario (la guia), por
+        empleado, en [d_ini, d_fin]. Decision del usuario (8-oct-2026): el horario
+        es una guia; el CHECADOR tiene el veredicto final de la columna Jornada, y
+        lo configurado dice cuanto fue EXTRA. Se compara en NETO (se descuenta la
+        comida configurada, para no contar como extra la hora de comer de quien no
+        la checa). El indice de productividad NO usa esto: sigue contra la guia.
+
+        Dos reglas para la checada ABIERTA (sin salida), medidas el 10-oct-2026
+        con un caso real: una entrada del 9-oct sin salida contaba hasta `now`
+        toda la noche (10h17 a las 19:27, 15h51 a medianoche, "+7h21 de mas") y
+        al dia siguiente ese mismo dia decia "checo 0m".
+          - HOY con checada abierta: se cuenta hasta lo que ocurra ANTES de
+            ahora, la ultima senal de su equipo y el fin de su horario. Ni extra
+            ni faltante: el dia esta en curso (`abierta_hoy`).
+          - Un dia PASADO sin salida NO se mide: no hay con que (cero falsos
+            positivos), y se dice (`no_medible` cuenta esos dias) en vez de
+            dejar un cero que se lee como "no checo".
+        """
+        base = {e.id: {'usa': False, 'checado': 0.0, 'extra': 0.0, 'faltante': 0.0,
+                       'abierta_hoy': False, 'no_medible': 0}
+                for e in empleados}
+        if 'hr.attendance' not in self.env or not empleados:
+            return base
+        guia, fin_guia, comida, zonas, hoy, ahora_z = {}, {}, {}, {}, {}, {}
+        for e in empleados:
+            cal = e.resource_calendar_id
+            tr = self.calendar_intervals(cal)
+            guia[e.id] = {iso: round(sum(b - a for a, b in sp), 4) for iso, sp in tr.items()}
+            fin_guia[e.id] = {iso: max(b for a, b in sp) for iso, sp in tr.items() if sp}
+            comida[e.id] = self._comida_por_iso(cal)
+            z = self._tzinfo_for(e)
+            zonas[e.id] = z
+            ahora_z[e.id] = datetime.now(z)
+            hoy[e.id] = ahora_z[e.id].date()
+        # La ultima senal del equipo de cada quien: lo checado de hoy no puede
+        # ir mas alla de lo que su computadora vio.
+        senal = {}
+        try:
+            for c in self.env['foco.computer'].sudo().search_read(
+                    [('employee_id', 'in', [e.id for e in empleados]),
+                     ('last_seen', '!=', False)],
+                    ['employee_id', 'last_seen']):
+                eid = c['employee_id'][0]
+                ls = fields.Datetime.to_datetime(c['last_seen'])
+                if eid not in senal or ls > senal[eid]:
+                    senal[eid] = ls
+        except Exception:
+            senal = {}
+        lo = datetime.combine(d_ini - timedelta(days=1), time.min)
+        hi = datetime.combine(d_fin + timedelta(days=1), time.max)
+        try:
+            regs = self.env['hr.attendance'].sudo().search_read(
+                [('employee_id', 'in', [e.id for e in empleados]),
+                 ('check_in', '>=', lo), ('check_in', '<=', hi)],
+                ['employee_id', 'check_in', 'check_out'], order='check_in')
+        except Exception:
+            return base
+        por = {}
+        for r in regs:
+            eid = r['employee_id'][0]
+            z = zonas.get(eid)
+            if not z:
+                continue
+            ci = pytz.UTC.localize(fields.Datetime.to_datetime(r['check_in'])).astimezone(z)
+            dia = ci.date()
+            if dia < d_ini or dia > d_fin:
+                continue
+            por.setdefault((eid, dia), []).append((ci, r['check_out']))
+        for (eid, dia), pares in por.items():
+            base[eid]['usa'] = True
+            z = zonas[eid]
+            iso = dia.isoweekday()
+            tramos, abierto_pasado, abierto_hoy = [], False, False
+            for ci, co_raw in pares:
+                if not co_raw:
+                    if dia < hoy[eid]:
+                        abierto_pasado = True       # paso el dia y no cerro salida
+                        continue
+                    # Hoy, sigue checado: hasta ahora, pero no mas alla de la
+                    # ultima senal de su equipo ni del fin de su horario.
+                    abierto_hoy = True
+                    co = ahora_z[eid]
+                    ls = senal.get(eid)
+                    if ls:
+                        ls_z = pytz.UTC.localize(ls).astimezone(z)
+                        if ls_z < co:
+                            co = ls_z
+                    fg = fin_guia[eid].get(iso)
+                    if fg is not None:
+                        fin_z = z.localize(datetime.combine(dia, time.min)) + timedelta(hours=fg)
+                        if fin_z < co:
+                            co = fin_z
+                else:
+                    co = pytz.UTC.localize(
+                        fields.Datetime.to_datetime(co_raw)).astimezone(z)
+                a = ci.hour + ci.minute / 60.0 + ci.second / 3600.0
+                b = 24.0 if co.date() > dia else co.hour + co.minute / 60.0 + co.second / 3600.0
+                if b > a:
+                    tramos.append((a, b))
+            if abierto_hoy:
+                base[eid]['abierta_hoy'] = True
+            if abierto_pasado:
+                base[eid]['no_medible'] += 1
+                continue
+            if not tramos:
+                continue
+            cw = comida[eid].get(iso)
+            neto = 0.0
+            for a, b in tramos:
+                dur = b - a
+                if cw:                               # descontar la comida configurada
+                    dur -= max(0.0, min(b, cw[1]) - max(a, cw[0]))
+                neto += max(0.0, dur)
+            g = guia[eid].get(iso, 0.0)
+            base[eid]['checado'] += neto
+            if not abierto_hoy:                      # en curso no se juzga
+                base[eid]['extra'] += max(0.0, neto - g)
+                base[eid]['faltante'] += max(0.0, g - neto)
+        return base

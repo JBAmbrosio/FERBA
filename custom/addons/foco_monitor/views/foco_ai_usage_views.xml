@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_ai_usage_view_list" model="ir.ui.view">
+        <field name="name">foco.ai.usage.list</field>
+        <field name="model">foco.ai.usage</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="dia"/>
+                <field name="at"/>
+                <field name="servicio"/>
+                <field name="modelo" optional="show"/>
+                <field name="tokens_in" sum="Entrada" optional="show"/>
+                <field name="tokens_out" sum="Salida" optional="show"/>
+                <field name="tokens" sum="Tokens"/>
+                <field name="costo_usd" sum="Costo estimado"/>
+                <field name="ref" optional="hide"/>
+                <field name="nota" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_ai_usage_view_pivot" model="ir.ui.view">
+        <field name="name">foco.ai.usage.pivot</field>
+        <field name="model">foco.ai.usage</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="dia" type="row" interval="day"/>
+                <field name="servicio" type="col"/>
+                <field name="tokens" type="measure"/>
+                <field name="costo_usd" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="foco_ai_usage_view_graph" model="ir.ui.view">
+        <field name="name">foco.ai.usage.graph</field>
+        <field name="model">foco.ai.usage</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="1">
+                <field name="dia" interval="day"/>
+                <field name="servicio"/>
+                <field name="tokens" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="foco_ai_usage_view_search" model="ir.ui.view">
+        <field name="name">foco.ai.usage.search</field>
+        <field name="model">foco.ai.usage</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="servicio"/>
+                <field name="modelo"/>
+                <field name="ref"/>
+                <filter name="hoy" string="Hoy"
+                        domain="[('dia', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="semana" string="Ultimos 7 dias"
+                        domain="[('dia', '&gt;=', (context_today() - datetime.timedelta(days=6)).strftime('%Y-%m-%d'))]"/>
+                <filter name="mes" string="Ultimos 30 dias"
+                        domain="[('dia', '&gt;=', (context_today() - datetime.timedelta(days=29)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="g_dia" string="Dia" context="{'group_by': 'dia:day'}"/>
+                <filter name="g_servicio" string="Servicio" context="{'group_by': 'servicio'}"/>
+                <filter name="g_modelo" string="Modelo" context="{'group_by': 'modelo'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_ai_usage_action" model="ir.actions.act_window">
+        <field name="name">Consumo de IA</field>
+        <field name="res_model">foco.ai.usage</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="foco_ai_usage_view_search"/>
+        <field name="context">{'search_default_semana': 1, 'search_default_g_dia': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin llamadas a la IA todavia</p>
+            <p>Cada llamada al modelo deja una fila con sus tokens exactos y un costo
+               estimado con los precios de lista. El umbral diario se ajusta en
+               Configuracion; el tablero lo muestra en la cabecera.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_foco_ai_usage" name="Consumo de IA"
+              parent="menu_foco_config" action="foco_ai_usage_action"
+              sequence="80" groups="foco_monitor.group_foco_manager"/>
+</odoo>

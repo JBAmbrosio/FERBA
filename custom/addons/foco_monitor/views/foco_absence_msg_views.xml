@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- La conversacion de un periodo, de arriba abajo. Solo lectura: la
+         escriben el agente, la IA y los botones del administrador. -->
+    <record id="foco_absence_msg_view_list" model="ir.ui.view">
+        <field name="name">foco.absence.msg.list</field>
+        <field name="model">foco.absence.msg</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" default_order="id"
+                  decoration-warning="quien == 'ia'" decoration-bf="quien == 'admin'">
+                <field name="at" string="Cuando"/>
+                <field name="quien" widget="badge"
+                       decoration-info="quien == 'empleado'"
+                       decoration-warning="quien == 'ia'"
+                       decoration-success="quien == 'admin'"/>
+                <field name="texto"/>
+                <field name="reason" optional="show"/>
+                <field name="veredicto" optional="show"/>
+                <field name="confianza" widget="percentage" optional="hide"/>
+                <field name="via" optional="hide"/>
+                <field name="user_id" optional="hide"/>
+                <field name="vuelta" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Devolverle el periodo con el mensaje del administrador. -->
+    <record id="foco_absence_devolver_view_form" model="ir.ui.view">
+        <field name="name">foco.absence.devolver.form</field>
+        <field name="model">foco.absence.devolver</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-info" role="alert">
+                    Le vuelve a salir la ventana con TU texto en lugar de la pregunta de la
+                    IA, y el periodo regresa a "Por justificar". No gasta las devoluciones
+                    de la IA: puedes insistir las veces que haga falta.
+                </div>
+                <group>
+                    <field name="absence_id" invisible="1"/>
+                    <field name="employee_id"/>
+                    <field name="nota_actual" string="Lo que escribio"/>
+                </group>
+                <group>
+                    <field name="mensaje" nolabel="1" colspan="2"
+                           placeholder="Ejemplo: dime el numero de pedido que surtiste y para que cliente."/>
+                </group>
+                <footer>
+                    <button name="action_enviar" type="object" string="Devolver al empleado"
+                            class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

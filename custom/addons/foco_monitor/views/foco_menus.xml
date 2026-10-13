@@ -37,12 +37,31 @@
     <menuitem id="menu_foco_ausencias" name="Periodos sin actividad"
               parent="menu_foco_sec_actividad" action="foco_absence_action" sequence="30"/>
 
+    <!-- Justificaciones que la IA leyo y marco como vagas o sin relacion con el
+         trabajo. Solo administradores: es una herramienta de supervision. -->
+    <menuitem id="menu_foco_periodos_revisar" name="Periodos a revisar"
+              parent="menu_foco_sec_actividad" action="foco_absence_review_action" sequence="32"
+              groups="foco_monitor.group_foco_manager"/>
+
+    <!-- El reporte del dia que recibe quien revisa la operacion: se arma solo
+         a la hora configurada y queda guardado con sus numeros. Solo
+         administradores: es un resumen de toda la gente. -->
+    <menuitem id="menu_foco_reporte_diario" name="Reporte diario"
+              parent="menu_foco_sec_actividad" action="foco_daily_report_action" sequence="35"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_eventos" name="Eventos del equipo"
               parent="menu_foco_sec_actividad" action="foco_event_action" sequence="40"/>
     <!-- Hechos de integridad: lo medido que puede leerse como intento de
          saltarse la medicion, con evidencia y significado; nunca veredicto. -->
     <menuitem id="menu_foco_integridad" name="Integridad"
               parent="menu_foco_sec_actividad" action="foco_integrity_fact_action" sequence="45"/>
+    <!-- Lo que la IA vio en las capturas de un episodio sospechoso y lo que
+         decidio una persona despues. Solo administradores: son capturas de la
+         pantalla de alguien. -->
+    <menuitem id="menu_foco_veredictos" name="Veredictos de la IA"
+              parent="menu_foco_sec_actividad" action="foco_integrity_verdict_action" sequence="46"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- Llamadas de WhatsApp desde la laptop, ya clasificadas por el modelo.
          Solo administradores: aunque no haya contenido, "llamada personal de
@@ -162,8 +181,19 @@
     <!-- Antes "Horario": un horario global editable que, desde que RRHH
          asigna calendarios, no gobernaba a nadie. Ahora dice de donde sale la
          jornada de cada persona (checador o calendario) y no se edita aqui. -->
+    <!-- Editor del horario laboral POR EMPLEADO (dias, entrada/salida, comida).
+         Escribe el calendario nativo; de aqui salen todas las metricas. -->
+    <menuitem id="menu_foco_horarios" name="Horarios laborales"
+              parent="menu_foco_config" action="foco_horarios_action" sequence="4"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_horario" name="Jornada"
               parent="menu_foco_config" action="foco_settings_client" sequence="5"/>
+
+    <!-- Tolerancia de entrada y el reporte diario por correo (hora, destinatarios). -->
+    <menuitem id="menu_foco_asistencia" name="Asistencia y reporte diario"
+              parent="menu_foco_config" action="foco_asistencia_action" sequence="5"
+              groups="foco_monitor.group_foco_manager"/>
 
     <!-- La ventana bloqueante de justificacion de inactividad: umbral GLOBAL en
          minutos y a QUIEN le sale (por empleado, apagada para todos de fabrica). -->

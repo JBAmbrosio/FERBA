@@ -48,6 +48,16 @@ class FocoUsage(models.Model):
         help='El sitio como entidad clasificable. Es lo que permite que una '
              'hora en el ERP y una hora en YouTube dejen de valer lo mismo '
              'solo porque las dos ocurrieron en el navegador.')
+    # El grupo/chat de WhatsApp abierto en este renglon (requisito de Francesco,
+    # 9-oct-2026). Es a WhatsApp lo que el sitio al navegador: lo que permite que
+    # el grupo de ventas cuente como productivo y uno de ocio como distraccion,
+    # aunque los dos sean "WhatsApp". El nombre viene de `document` (titulo del
+    # chat); lo resuelve el ingest. Vacio = ese renglon no es un chat de WhatsApp.
+    wa_group_id = fields.Many2one(
+        'foco.whatsapp.group', string='Grupo de WhatsApp',
+        ondelete='set null', index=True,
+        help='El grupo o chat que estaba abierto. Si esta clasificado, su '
+             'categoria MANDA sobre la de WhatsApp.')
     host_status = fields.Selection(
         [('ok', 'Leido'), ('typing', 'Escribiendo'),
          ('unreadable', 'Navegador no identificado'),
@@ -64,7 +74,11 @@ class FocoUsage(models.Model):
         compute='_compute_category_id',
         help='Del SITIO si esta clasificado; si no, de la aplicacion.')
     category_source = fields.Selection(
-        [('site', 'Sitio'), ('app', 'Aplicacion'), ('none', 'Sin clasificar')],
+        [('whatsapp', 'Grupo de WhatsApp'),
+         ('perfil_sitio', 'Sitio (de este perfil)'),
+         ('site', 'Sitio'),
+         ('perfil_app', 'Aplicacion (de este perfil)'),
+         ('app', 'Aplicacion'), ('none', 'Sin clasificar')],
         string='Origen de la categoria', store=True, compute='_compute_category_id',
         help='De donde salio el peso de este renglon. Que el numero pueda '
              'explicarse es parte del numero.')
@@ -143,19 +157,58 @@ class FocoUsage(models.Model):
         string='Horas productivas', compute='_compute_metrics', store=True,
         help='Horas activas ponderadas por el peso de la categoria.')
 
-    @api.depends('site_id', 'site_id.category_id', 'app_id', 'app_id.category_id')
+    @api.depends('wa_group_id', 'wa_group_id.category_id',
+                 'site_id', 'site_id.category_id', 'app_id', 'app_id.category_id',
+                 'computer_id', 'computer_id.policy_id')
     def _compute_category_id(self):
+        # La categoria se resuelve de lo MAS ESPECIFICO a lo general:
+        #   1) grupo de WhatsApp (el mas fino)
+        #   2) SITIO clasificado EN ESTE PERFIL   (gana sobre el global)
+        #   3) sitio clasificado global
+        #   4) APP clasificada EN ESTE PERFIL     (gana sobre la global)
+        #   5) app clasificada global
+        # El "perfil" es el EFECTIVO del equipo (el suyo o el de omision), igual
+        # que foco.policy._perfil_vigente: asi WhatsApp cuenta productivo para un
+        # perfil y distraccion para otro (reunion 9-oct-2026).
+        PolicyCat = self.env['foco.policy.category'].sudo()
+        try:
+            default_pol = self.env['foco.settings'].sudo().get_settings()\
+                .default_policy_id.filtered('active')
+        except Exception:
+            default_pol = self.env['foco.policy']
+
+        def perfil(computer):
+            propio = computer.policy_id.filtered('active')
+            return (propio or default_pol)[:1]
+
+        perfiles = self.env['foco.policy']
         for rec in self:
-            cat = rec.site_id.category_id
-            if cat:
-                rec.category_id = cat
-                rec.category_source = 'site'
-            elif rec.app_id.category_id:
-                rec.category_id = rec.app_id.category_id
-                rec.category_source = 'app'
-            else:
-                rec.category_id = False
-                rec.category_source = 'none'
+            perfiles |= perfil(rec.computer_id)
+        por_sitio, por_app = {}, {}
+        if perfiles:
+            for o in PolicyCat.search([('policy_id', 'in', perfiles.ids)]):
+                if o.site_id:
+                    por_sitio[(o.policy_id.id, o.site_id.id)] = o.category_id
+                elif o.app_id:
+                    por_app[(o.policy_id.id, o.app_id.id)] = o.category_id
+
+        Cat = self.env['foco.category']
+        for rec in self:
+            pid = perfil(rec.computer_id).id
+            site, app = rec.site_id, rec.app_id
+            cat, src = Cat, 'none'
+            if rec.wa_group_id.category_id:
+                cat, src = rec.wa_group_id.category_id, 'whatsapp'
+            elif site and pid and por_sitio.get((pid, site.id)):
+                cat, src = por_sitio[(pid, site.id)], 'perfil_sitio'
+            elif site.category_id:
+                cat, src = site.category_id, 'site'
+            elif app and pid and por_app.get((pid, app.id)):
+                cat, src = por_app[(pid, app.id)], 'perfil_app'
+            elif app.category_id:
+                cat, src = app.category_id, 'app'
+            rec.category_id = cat.id if cat else False
+            rec.category_source = src
 
     # El rato de una llamada de WhatsApp analizada. Va EN LA LLAVE, como el
     # sitio y el archivo: asi "Excel durante la llamada #12" es su propio
@@ -207,6 +260,50 @@ class FocoUsage(models.Model):
     # filas en vez de cientos de miles.
 
     @api.model
+    def _indice(self, productivo, cubierto, activo):
+        """UN solo indice en todo Foco: el de la tarjeta, la chispa de
+        tendencia, la tabla, el reporte diario, Mi dia y Tomy.
+
+        **12-oct-2026, decision del dueno**: el 100% son las HORAS PRODUCTIVAS
+        de la meta (7 h, `foco.settings.meta_productiva_h`), no la jornada. Lo
+        justificado DENTRO de la bolsa de 90 min salio del numerador -se dibuja
+        aparte, a la derecha de la meta- y **se puede pasar del 100%**: quien
+        trabaja de mas tiene que verse. Antes era `(productivo + justificado) /
+        jornada` topado a 100, que premiaba igual a quien cubria su jornada
+        justificando.
+
+        Lo que el ADMIN acepto cuando ya se habia agotado la bolsa SI cuenta
+        como productivo: el veredicto fue justamente ese, y por eso cruza al
+        lado izquierdo de la meta.
+
+        Sin meta (dia de descanso, sin calendario) se cae a productivo/activo,
+        como siempre. None cuando no hay nada que medir.
+        """
+        meta = float((cubierto or {}).get('meta') or 0.0)
+        jus = float((cubierto or {}).get('justified') or 0.0)
+        aprob = float((cubierto or {}).get('aprobado') or 0.0)
+        productivo = float(productivo or 0.0)
+        activo = float(activo or 0.0)
+        if not activo and not jus and not aprob:
+            return None
+        if meta > 0:
+            return round(100.0 * (productivo + aprob) / meta, 1)
+        if activo:
+            return round(100.0 * productivo / activo, 1)
+        return None
+
+    @api.model
+    def _suma_cubierto(self, por_dia):
+        """Suma {dia: {expected, justified, aprobado, meta}} en un solo total."""
+        tot = {'expected': 0.0, 'justified': 0.0, 'aprobado': 0.0, 'meta': 0.0}
+        for v in (por_dia or {}).values():
+            tot['expected'] += float(v.get('expected') or 0.0)
+            tot['justified'] += float(v.get('justified') or 0.0)
+            tot['aprobado'] += float(v.get('aprobado') or 0.0)
+            tot['meta'] += float(v.get('meta') or 0.0)
+        return tot
+
+    @api.model
     def analitica(self, desde, hasta):
         """Serie por dia, comparacion por persona y reparto del equipo.
 
@@ -250,13 +347,23 @@ class FocoUsage(models.Model):
         # dibuja una caida a cero y una recuperacion el lunes: la grafica cuenta
         # que el equipo dejo de rendir, cuando lo que paso es que nadie
         # trabajo. `None` deja el hueco visible, que es la verdad.
+        # El indice es el MISMO de la tarjeta, la tabla y el reporte diario:
+        # cubierto (productivo + justificado) entre la jornada esperada.
+        # `cubierto_por_dia` trae jornada y justificado por dia y por persona
+        # de toda la gente monitoreada. Productivo/activo queda aparte, con su
+        # nombre (`indice_actividad`), para quien quiera la calidad del activo.
+        Absence = self.env['foco.absence']
+        cub = Absence.cubierto_por_dia(desde, hasta)
+        cub_dias = cub.get('dias') or {}
+        cub_emp = cub.get('empleados') or {}
         dias = []
         d = desde
         while d <= hasta:
             f = por_dia.get(d) or {'date': fields.Date.to_string(d),
                                    'activo': 0.0, 'productivo': 0.0, 'bruto': 0.0}
-            f['indice'] = (round(100.0 * f['productivo'] / f['activo'], 1)
-                           if f['activo'] else None)
+            f['indice'] = self._indice(f['productivo'], cub_dias.get(f['date']), f['activo'])
+            f['indice_actividad'] = (round(100.0 * f['productivo'] / f['activo'], 1)
+                                     if f['activo'] else None)
             dias.append(f)
             d += timedelta(days=1)
 
@@ -290,17 +397,23 @@ class FocoUsage(models.Model):
         largo = (hasta - desde).days + 1
         prev_hasta = desde - timedelta(days=1)
         prev_desde = prev_hasta - timedelta(days=largo - 1)
+        cub_prev = Absence.cubierto_por_dia(prev_desde, prev_hasta).get('empleados') or {}
         previo = {}
         for grupo in self._read_group(
                 [('date', '>=', prev_desde), ('date', '<=', prev_hasta)],
                 ['employee_id'], ['active_hours:sum', 'productive_hours:sum']):
             emp, activo, productivo = grupo
             if emp and activo:
-                previo[emp.id] = 100.0 * (productivo or 0.0) / activo
+                previo[emp.id] = self._indice(
+                    productivo or 0.0, self._suma_cubierto(cub_prev.get(str(emp.id))), activo)
 
         empleados = []
         for e in gente.values():
-            e['indice'] = round(100.0 * e['productivo'] / e['activo'], 1) if e['activo'] else 0.0
+            e['indice_actividad'] = round(100.0 * e['productivo'] / e['activo'], 1) if e['activo'] else 0.0
+            e['indice'] = self._indice(
+                e['productivo'], self._suma_cubierto(cub_emp.get(str(e['id']))), e['activo'])
+            if e['indice'] is None:
+                e['indice'] = 0.0
             antes = previo.get(e['id'])
             # `None` y `0` no son lo mismo: sin periodo previo no hay flecha
             # que dibujar, y una flecha de "+0" afirmaria que se midio.
@@ -331,11 +444,56 @@ class FocoUsage(models.Model):
                            for h in lista[:6]]
             e['hechos_n'] = len(lista)
 
+        # --- veredictos de la IA del periodo, por persona ----------------------
+        # Solo administradores ven los episodios (ACL): a los demas, ceros y
+        # `ia_visible` en falso, y el tablero no dibuja la tarjeta. Cuenta los
+        # analizados, los que NO parecen trabajo y nadie descarto, y los que
+        # esperan revision.
+        ia = {}
+        ia_visible = False
+        try:
+            Ver = self.env['foco.integrity.verdict']
+            ia_visible = bool(Ver.has_access('read')) if hasattr(Ver, 'has_access') \
+                else bool(Ver.check_access_rights('read', raise_exception=False))
+            if ia_visible and empleados:
+                import pytz
+                from datetime import datetime as _dt, time as _time
+                try:
+                    tz = pytz.timezone(self.env.user.tz or self.env.company.partner_id.tz or 'America/Mazatlan')
+                except Exception:
+                    tz = pytz.timezone('America/Mazatlan')
+                ini = tz.localize(_dt.combine(desde, _time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+                fin = tz.localize(_dt.combine(hasta, _time.max)).astimezone(pytz.UTC).replace(tzinfo=None, microsecond=0)
+                for v in Ver.search([('employee_id', 'in', [e['id'] for e in empleados]),
+                                     ('state', '=', 'analizado'),
+                                     ('started_at', '>=', ini), ('started_at', '<=', fin)]):
+                    x = ia.setdefault(v.employee_id.id, {'analizados': 0, 'sospechosos': 0,
+                                                          'sin_revisar': 0, 'confirmados': 0, 'minutos': 0.0})
+                    x['analizados'] += 1
+                    if v.sospechoso and v.review_outcome != 'descartado':
+                        x['sospechosos'] += 1
+                        x['minutos'] += v.duration_min or 0.0
+                        if v.review_outcome == 'pendiente':
+                            x['sin_revisar'] += 1
+                        elif v.review_outcome == 'confirmado':
+                            x['confirmados'] += 1
+        except Exception:
+            ia, ia_visible = {}, False
+        for e in empleados:
+            x = ia.get(e['id']) or {'analizados': 0, 'sospechosos': 0, 'sin_revisar': 0,
+                                    'confirmados': 0, 'minutos': 0.0}
+            x['minutos'] = round(x['minutos'], 1)
+            e['ia'] = x
+
         total_activo = sum(e['activo'] for e in empleados)
         total_prod = sum(e['productivo'] for e in empleados)
+        # La jornada del EQUIPO suma a toda la gente monitoreada, tenga renglon
+        # o no: quien no reporto nada tambien debia cubrir la suya.
+        tot_cub = self._suma_cubierto(cub_dias)
         return {
             'dias': dias,
             'empleados': empleados,
+            'ia_visible': ia_visible,
             'reparto': {
                 'productivo': round(total_prod, 3),
                 'distraccion': round(sum(e['distraccion'] for e in empleados), 3),
@@ -344,7 +502,10 @@ class FocoUsage(models.Model):
             'total': {
                 'activo': round(total_activo, 3),
                 'productivo': round(total_prod, 3),
-                'indice': round(100.0 * total_prod / total_activo, 1) if total_activo else 0.0,
+                'indice': self._indice(total_prod, tot_cub, total_activo) or 0.0,
+                'indice_actividad': round(100.0 * total_prod / total_activo, 1) if total_activo else 0.0,
+                'esperado': round(tot_cub['expected'], 3),
+                'justificado': round(tot_cub['justified'], 3),
                 'desde': fields.Date.to_string(desde),
                 'hasta': fields.Date.to_string(hasta),
                 'dias_periodo': largo,
@@ -709,6 +870,38 @@ class FocoUsage(models.Model):
             'cola': ({'n': len(cola), 'horas': h(sum(a['horas'] for a in cola))}
                      if cola else None),
         }
+
+    @api.model
+    def serie_indice(self, desde, hasta):
+        """El indice productivo/activo del equipo por dia, y nada mas: la
+        chispa de tendencia de las tarjetas del tablero. `analitica` ya trae
+        la serie, pero calcula ademas hechos, veredictos y reparto; para una
+        linea de 7 puntos eso es trabajo tirado. Dias sin dato van en None."""
+        desde = fields.Date.to_date(desde)
+        hasta = fields.Date.to_date(hasta)
+        if not desde or not hasta or hasta < desde:
+            return []
+        por_dia = {}
+        for dia, activo, productivo in self._read_group(
+                [('date', '>=', desde), ('date', '<=', hasta)],
+                ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
+            por_dia[dia] = (activo or 0.0, productivo or 0.0)
+        # El mismo indice que la cifra grande de la tarjeta que dibuja esta
+        # chispa: cubierto entre jornada. Antes la chispa era productivo/activo
+        # debajo de un numero que era otra cosa.
+        cub_dias = self.env['foco.absence'].cubierto_por_dia(desde, hasta).get('dias') or {}
+        salida = []
+        d = desde
+        while d <= hasta:
+            activo, productivo = por_dia.get(d, (0.0, 0.0))
+            k = fields.Date.to_string(d)
+            salida.append({
+                'date': k,
+                'activo': round(activo, 3), 'productivo': round(productivo, 3),
+                'indice': self._indice(productivo, cub_dias.get(k), activo),
+            })
+            d += timedelta(days=1)
+        return salida
 
     @api.model
     def sitios_por_clasificar(self, dias=30, limite=15):

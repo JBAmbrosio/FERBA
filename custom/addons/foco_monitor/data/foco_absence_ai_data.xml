@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- La IA revisa las justificaciones solita: las nuevas y las que
+             fallaron, de los ultimos dias. Sin boton. Cada 15 min: una
+             justificacion vaga es un renglon a revisar, no una urgencia. -->
+        <record id="cron_foco_absence_ia" model="ir.cron">
+            <field name="name">Foco: revisar justificaciones con IA</field>
+            <field name="model_id" ref="model_foco_absence"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_revisar_ia()</field>
+            <field name="interval_number">15</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

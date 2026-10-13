@@ -5,6 +5,11 @@ access_foco_app_user,foco.app user,model_foco_app,group_foco_user,1,0,0,0
 access_foco_app_manager,foco.app manager,model_foco_app,group_foco_manager,1,1,1,1
 access_foco_site_user,foco.site user,model_foco_site,group_foco_user,1,0,0,0
 access_foco_site_manager,foco.site manager,model_foco_site,group_foco_manager,1,1,1,1
+access_foco_whatsapp_group_user,foco.whatsapp.group user,model_foco_whatsapp_group,group_foco_user,1,0,0,0
+access_foco_whatsapp_group_manager,foco.whatsapp.group manager,model_foco_whatsapp_group,group_foco_manager,1,1,1,1
+access_foco_whatsapp_header_manager,foco.whatsapp.header manager,model_foco_whatsapp_header,group_foco_manager,1,1,1,1
+access_foco_policy_category_user,foco.policy.category user,model_foco_policy_category,group_foco_user,1,0,0,0
+access_foco_policy_category_manager,foco.policy.category manager,model_foco_policy_category,group_foco_manager,1,1,1,1
 access_foco_computer_user,foco.computer user,model_foco_computer,group_foco_user,1,0,0,0
 access_foco_computer_manager,foco.computer manager,model_foco_computer,group_foco_manager,1,1,1,1
 access_foco_usage_user,foco.usage user,model_foco_usage,group_foco_user,1,0,0,0
@@ -21,8 +26,11 @@ access_foco_event_user,foco.event user,model_foco_event,group_foco_user,1,0,0,0
 access_foco_event_manager,foco.event manager,model_foco_event,group_foco_manager,1,1,1,1
 access_foco_workday_user,foco.workday user,model_foco_workday,group_foco_user,1,0,0,0
 access_foco_workday_manager,foco.workday manager,model_foco_workday,group_foco_manager,1,1,1,1
+access_foco_daily_report_manager,foco.daily.report manager,model_foco_daily_report,group_foco_manager,1,1,1,1
 access_foco_integrity_user,foco.integrity.fact user,model_foco_integrity_fact,group_foco_user,1,0,0,0
 access_foco_integrity_manager,foco.integrity.fact manager,model_foco_integrity_fact,group_foco_manager,1,1,1,1
+access_foco_integrity_verdict_manager,foco.integrity.verdict manager,model_foco_integrity_verdict,group_foco_manager,1,1,1,1
+access_foco_integrity_capture_manager,foco.integrity.capture manager,model_foco_integrity_capture,group_foco_manager,1,1,1,1
 access_foco_policy_user,foco.policy user,model_foco_policy,group_foco_user,1,0,0,0
 access_foco_policy_manager,foco.policy manager,model_foco_policy,group_foco_manager,1,1,1,1
 access_foco_policy_rule_user,foco.policy.rule user,model_foco_policy_rule,group_foco_user,1,0,0,0
@@ -63,3 +71,7 @@ access_foco_tab_review_manager,foco.tab.review manager,model_foco_tab_review,gro
 access_foco_visita_user,foco.visita user,model_foco_visita,group_foco_user,1,0,0,0
 access_foco_visita_manager,foco.visita manager,model_foco_visita,group_foco_manager,1,1,1,1
 access_foco_vendedor_import_manager,foco.vendedor.import manager,model_foco_vendedor_import,group_foco_manager,1,1,1,1
+access_foco_ai_usage_manager,foco.ai.usage manager,model_foco_ai_usage,group_foco_manager,1,0,0,1
+access_foco_absence_msg_user,foco.absence.msg user,model_foco_absence_msg,group_foco_user,1,0,0,0
+access_foco_absence_msg_manager,foco.absence.msg manager,model_foco_absence_msg,group_foco_manager,1,1,1,1
+access_foco_absence_devolver_manager,foco.absence.devolver manager,model_foco_absence_devolver,group_foco_manager,1,1,1,1

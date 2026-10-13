@@ -14,6 +14,7 @@
                 <field name="foco_cliente_ventas" invisible="1"/>
                 <button class="oe_stat_button" type="object"
                         name="action_foco_ver_visitas" icon="fa-map-marker"
+                        groups="foco_monitor.group_foco_user"
                         invisible="not foco_cliente_ventas">
                     <field name="foco_visita_count" widget="statinfo" string="Visitas"/>
                 </button>
@@ -191,6 +192,9 @@
                             <group string="Mejoras sugeridas">
                                 <field name="analisis_mejoras" nolabel="1"/>
                             </group>
+                        </page>
+                        <page string="Conversación" name="dialogo">
+                            <field name="dialogo_html" nolabel="1" readonly="1"/>
                         </page>
                         <page string="Transcripcion" name="transcripcion">
                             <field name="transcripcion" nolabel="1"/>

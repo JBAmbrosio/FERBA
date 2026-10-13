@@ -140,13 +140,25 @@ class FocoEvent(models.Model):
         # Se filtran los que ya estan en vez de confiar en la restriccion: una
         # excepcion de base abortaria TODA la ingesta del envio, incluidos los
         # renglones de uso que venian en el mismo paquete.
-        claves = {(v['at'], v['kind'], v['source']) for v in vals_list}
         existentes = self.search([
             ('computer_id', '=', computer.id),
             ('at', 'in', sorted({v['at'] for v in vals_list})),
         ])
         ya = {(r.at, r.kind, r.source) for r in existentes}
-        nuevos = [v for v in vals_list if (v['at'], v['kind'], v['source']) not in ya]
+        # Y tambien DENTRO del mismo lote: el servicio cierra varios procesos
+        # del mismo programa en el mismo segundo (Opera y su auto-updater) y
+        # manda dos cierres con la misma hora. Medido el 8-oct-2026 en FBT308DDF:
+        # el segundo violaba foco_event_uniq, la transaccion quedaba abortada,
+        # /foco/policy respondia 500 en CADA ciclo y, como el servicio solo
+        # suelta los cierres cuando Odoo confirma, no salia de ahi hasta un
+        # reinicio. Se queda el primero de cada llave.
+        nuevos = []
+        for v in vals_list:
+            llave = (v['at'], v['kind'], v['source'])
+            if llave in ya:
+                continue
+            ya.add(llave)
+            nuevos.append(v)
         if nuevos:
             self.create(nuevos)
             n = len(nuevos)

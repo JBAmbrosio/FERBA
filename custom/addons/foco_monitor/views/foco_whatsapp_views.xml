@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- La IA propone productivo/distraccion para los grupos nuevos, fuera del
+         ingest, cada 10 min. El aprobador confirma; la IA no fija la categoria. -->
+    <record id="foco_whatsapp_group_cron" model="ir.cron">
+        <field name="name">Foco: clasificar grupos de WhatsApp</field>
+        <field name="model_id" ref="model_foco_whatsapp_group"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_clasificar()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- La vision lee el nombre del encabezado de WhatsApp de escritorio (UWP,
+         que no expone su chat a UIA). Cada minuto para acotar el rato en que el
+         tiempo de un grupo nuevo queda sin atribuir; fuera del ingest. -->
+    <record id="foco_whatsapp_header_cron" model="ir.cron">
+        <field name="name">Foco: leer encabezados de WhatsApp (vision)</field>
+        <field name="model_id" ref="model_foco_whatsapp_group"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_resolver_headers()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <record id="foco_whatsapp_group_view_list" model="ir.ui.view">
+        <field name="name">foco.whatsapp.group.list</field>
+        <field name="model">foco.whatsapp.group</field>
+        <field name="arch" type="xml">
+            <list string="Grupos de WhatsApp" editable="bottom"
+                  decoration-success="category_id and category_weight &gt; 0 and not category_system"
+                  decoration-danger="category_id and category_weight &lt;= 0 and not category_system"
+                  decoration-muted="not category_id">
+                <field name="last_seen" string="Visto"/>
+                <field name="name"/>
+                <field name="ia_suggestion" string="IA aconseja" readonly="1"/>
+                <field name="ia_reason" string="Motivo" readonly="1" optional="show"/>
+                <field name="category_id" string="Categoria"
+                       options="{'no_create_edit': True}"/>
+                <field name="classified" column_invisible="1"/>
+                <field name="category_weight" column_invisible="1"/>
+                <field name="category_system" column_invisible="1"/>
+                <field name="ia_clasificado" column_invisible="1"/>
+                <field name="ia_model" column_invisible="1"/>
+                <button name="action_productiva" type="object" string="Productivo"
+                        icon="fa-briefcase" invisible="category_id"/>
+                <button name="action_distraccion" type="object" string="Distraccion"
+                        icon="fa-coffee" invisible="category_id"/>
+                <button name="action_ver_uso" type="object" string="Ver uso"
+                        icon="fa-clock-o"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_whatsapp_group_view_form" model="ir.ui.view">
+        <field name="name">foco.whatsapp.group.form</field>
+        <field name="model">foco.whatsapp.group</field>
+        <field name="arch" type="xml">
+            <form string="Grupo de WhatsApp">
+                <header>
+                    <button name="action_productiva" type="object" string="Productivo"
+                            class="btn-primary" invisible="category_id"/>
+                    <button name="action_distraccion" type="object" string="Distraccion"
+                            class="btn-secondary" invisible="category_id"/>
+                    <button name="action_ver_uso" type="object" string="Ver uso"
+                            class="btn-link" icon="fa-clock-o"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="category_id" options="{'no_create_edit': True}"/>
+                        <field name="first_seen" readonly="1"/>
+                        <field name="last_seen" readonly="1"/>
+                    </group>
+                    <group string="Lo que dice la IA">
+                        <field name="ia_suggestion" readonly="1"/>
+                        <field name="ia_reason" readonly="1"/>
+                        <field name="ia_model" readonly="1" groups="base.group_no_one"/>
+                    </group>
+                    <group>
+                        <field name="decided_uid" readonly="1"/>
+                        <field name="decided_at" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_whatsapp_group_view_search" model="ir.ui.view">
+        <field name="name">foco.whatsapp.group.search</field>
+        <field name="model">foco.whatsapp.group</field>
+        <field name="arch" type="xml">
+            <search string="Grupos de WhatsApp">
+                <field name="name"/>
+                <field name="category_id"/>
+                <separator/>
+                <filter name="sin_clasificar" string="Sin clasificar"
+                        domain="[('category_id', '=', False)]"/>
+                <filter name="sug_distraccion" string="IA aconseja distraccion"
+                        domain="[('ia_suggestion', '=', 'distraccion')]"/>
+                <filter name="sug_productiva" string="IA aconseja productivo"
+                        domain="[('ia_suggestion', '=', 'productiva')]"/>
+                <filter name="clasificados" string="Clasificados"
+                        domain="[('category_id', '!=', False)]"/>
+                <separator/>
+                <filter name="g_cat" string="Categoria" context="{'group_by': 'category_id'}"/>
+                <filter name="g_sug" string="Sugerencia de la IA"
+                        context="{'group_by': 'ia_suggestion'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_whatsapp_group_action" model="ir.actions.act_window">
+        <field name="name">Grupos de WhatsApp</field>
+        <field name="res_model">foco.whatsapp.group</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_sin_clasificar': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no se ve ningun grupo de WhatsApp</p>
+            <p>
+                Aqui aparece cada <b>grupo o chat de WhatsApp</b> que la gente abre,
+                tanto en WhatsApp Web como en la app de escritorio. Clasificalo como
+                <b>Productivo</b> (p. ej. un grupo de ventas o de un proyecto) o
+                <b>Distraccion</b> (ocio, personal) y su tiempo contara con ese peso
+                en el indice, en vez de medir todo WhatsApp por igual. La IA propone;
+                tu confirmas. Solo se guarda el <b>nombre</b> del grupo, nunca los
+                mensajes.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_foco_whatsapp_group" name="Grupos de WhatsApp"
+              parent="menu_foco_sec_actividad" action="foco_whatsapp_group_action"
+              sequence="56" groups="foco_monitor.group_foco_manager"/>
+
+</odoo>

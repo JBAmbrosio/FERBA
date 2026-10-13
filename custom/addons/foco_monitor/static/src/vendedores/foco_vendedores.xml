@@ -61,7 +61,7 @@
                     <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('vendedor', ev)">
                         <option value="">Todos los vendedores</option>
                         <t t-foreach="state.cat.vendedores" t-as="v" t-key="v.id">
-                            <option t-att-value="v.id" t-att-selected="String(state.f.vendedor) === String(v.id)" t-esc="v.name"/>
+                            <option t-att-value="v.id" t-att-selected="('' + state.f.vendedor) === ('' + v.id)" t-esc="v.name"/>
                         </t>
                     </select>
                 </div>

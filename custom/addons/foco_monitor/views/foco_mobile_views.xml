@@ -460,6 +460,14 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
+                    <group string="Inteligencia artificial (Claude)">
+                        <field name="anthropic_api_key" password="True"/>
+                        <div class="text-muted" colspan="2">
+                            La IA principal de Foco. La usan el veredicto por vision,
+                            el chat de Tomy y la clasificacion de justificaciones y
+                            pestañas. Sin esta llave esas funciones no operan.
+                        </div>
+                    </group>
                     <group string="Analisis de llamadas de WhatsApp en la laptop (lo mas invasivo)">
                         <field name="call_review_enabled"/>
                         <field name="openai_api_key" password="True"
@@ -488,6 +496,41 @@
                             borra. El audio nunca se guarda y nadie lo escucha. Queda el
                             veredicto, el rol del interlocutor y un motivo de 12
                             palabras (en las personales, solo «asunto personal»).
+                        </div>
+                    </group>
+                    <group string="Veredicto por IA ante actividad sospechosa (la IA vive en Odoo)">
+                        <field name="vision_enabled"/>
+                        <field name="vision_umbral_minutos" invisible="not vision_enabled"/>
+                        <field name="vision_max_capturas" invisible="not vision_enabled"/>
+                        <field name="vision_capturas_cada_min" invisible="not vision_enabled"/>
+                        <field name="vision_detalle" invisible="not vision_enabled"/>
+                        <field name="vision_notice" invisible="not vision_enabled"/>
+                        <field name="vision_retention_days" invisible="not vision_enabled"/>
+                        <field name="vision_musica_apps" invisible="not vision_enabled"
+                               placeholder="spotify, youtube music, apple music..."/>
+                        <div class="text-muted" colspan="2">
+                            Cuando un equipo lleva el umbral de minutos en un patron de
+                            actividad simulada (pantalla sin cambio con input, solo mouse,
+                            clics a ritmo regular, input inyectado), el agente toma unas pocas
+                            capturas separadas por minutos y las sube. Odoo arma el contexto
+                            (puesto, aplicacion, duracion, senales) y el modelo de vision dice
+                            que se ve: trabajo real, revision pasiva, entretenimiento, asunto
+                            personal, pantalla inactiva o simulacion. La llave de OpenAI nunca
+                            sale de Odoo. El veredicto es evidencia para que un administrador
+                            revise en Actividad > Veredictos de la IA; no sanciona nada solo.
+                            Las capturas se conservan como evidencia salvo que pongas un plazo.
+                            La musica de fondo esta permitida: un episodio con un reproductor de
+                            la lista al frente queda como "Musica de fondo" sin consultar al modelo.
+                        </div>
+                    </group>
+                    <group string="Consumo de IA">
+                        <field name="ia_tokens_umbral_dia"/>
+                        <div class="text-muted" colspan="2">
+                            Cada llamada al modelo (Tomy, veredictos, justificaciones, pestañas,
+                            WhatsApp, llamadas, visitas) deja su conteo exacto de tokens en
+                            <b>Configuración ▸ Consumo de IA</b>, con un costo estimado a precio
+                            de lista. El tablero muestra el total del día en la cabecera y lo marca
+                            en rojo al pasar este umbral.
                         </div>
                     </group>
                     <group string="Agente de escritorio (instalador .exe) y actualizacion sola">

@@ -19,9 +19,8 @@ HISTORIAL = 10
 # Tope de dias por consulta: una pregunta sobre "todo el ano" se acota a un
 # trimestre y se dice; una agregacion mas larga no cabe en una respuesta util.
 MAX_DIAS = 92
-# gpt-4o-mini, USD por millon de tokens (entrada / salida), para el costo visible.
-PRECIO_ENTRADA = 0.15
-PRECIO_SALIDA = 0.60
+# El costo visible de una conversacion sale de la tabla de precios por modelo
+# de foco.ai.usage (antes eran los de gpt-4o-mini, cocidos aqui).
 PREFIJO_FUERA = 'Fuera de mi alcance'
 
 DEFINICIONES = {
@@ -32,7 +31,13 @@ DEFINICIONES = {
                   '(Productiva 1.0, Navegador 0.5, Neutral 0.3, Distraccion 0, Sistema no cuenta). '
                   'Si el sitio esta clasificado, manda el sitio sobre la app. Una llamada de WhatsApp '
                   'clasificada como trabajo pesa 1.0 y una personal 0, sin importar la app al frente.',
-    'indice': 'Productivo entre activo, en porcentaje. Se calcula sobre horas sumadas, no promediando indices.',
+    'indice': 'Horas PRODUCTIVAS (mas lo que el administrador acepto como trabajo) entre la META del dia '
+              '(7 h, configurable), en porcentaje. PUEDE PASAR DEL 100%: quien trabaja de mas tiene que '
+              'verse. Lo justificado que cupo en la bolsa de 90 min NO entra -se mide aparte, en '
+              '"justificado"-, porque va DESPUES de la meta. Lo que el admin aprobo cuando la bolsa ya se '
+              'habia agotado SI entra: su veredicto fue que era trabajo. Es el MISMO indice de la tarjeta, '
+              'la chispa, la tabla y el reporte diario. Sin meta (dia de descanso) es productivo entre '
+              'activo. Se calcula sobre horas sumadas, no promediando indices.',
     'distraccion': 'Horas activas en apps o sitios con peso 0 (categoria Distraccion).',
     'sin_clasificar': 'Horas activas en apps o sitios que nadie ha clasificado todavia: no aportan al indice.',
     'llamada': 'Foco detecta una llamada cuando una app toma el microfono. Las de WhatsApp de escritorio '
@@ -62,6 +67,11 @@ DEFINICIONES = {
                                  'la politica y el navegador no lo cargo. No lo vio.',
     'dispositivo_nuevo': 'Windows instalo un mouse, teclado o HID que no conocia. Normal al estrenar un '
                          'mouse; junto a horas solo-mouse es evidencia de jiggler de hardware.',
+    'veredicto_ia': 'Episodio sospechoso: un patron (pantalla sin cambio, solo mouse, input inyectado) que '
+                    'duro el umbral (15 min) en la misma app; el agente tomo capturas y la IA de Odoo dijo '
+                    'que se veia -trabajo real, revision pasiva, entretenimiento, asunto personal, pantalla '
+                    'inactiva, simulacion o indeterminado- con confianza y motivo. Un administrador lo '
+                    'confirma o lo descarta. Es evidencia del modelo sobre capturas; nunca una sancion.',
 }
 
 
@@ -228,21 +238,62 @@ class FocoTomy(models.AbstractModel):
             nota = 'El periodo se acoto a %d dias (%s a %s).' % (MAX_DIAS, d, h)
         return d, h, nota
 
-    def _utc(self, dia, fin=False):
-        """Medianoche local (o fin del dia) en UTC naive, como guarda Odoo."""
-        tz = self._tz()
+    def _zona_de(self, emp=None, computer=None):
+        """La zona de ESA persona (la que reporta su equipo o la de RRHH), no
+        la de quien pregunta. Sin persona ni equipo, la de quien pregunta.
+
+        Tomy decia que la primera senal de Isaura fue a las 09:13 cuando en
+        su reloj fueron las 08:13: convertia con la zona del administrador que
+        preguntaba. Las horas de una persona se dicen en su zona, igual que
+        la jornada, la asistencia y el tablero movil.
+        """
+        if emp or computer:
+            return self.env['foco.settings']._tzinfo_for(emp, computer)
+        return self._tz()
+
+    def _zonificador(self):
+        """zona(emp, computer) que resuelve la zona de cada persona UNA vez
+        por llamada: _tzinfo_for busca el equipo de la persona y una lista de
+        90 dias o 200 eventos no debe repetir esa busqueda por renglon."""
+        memo = {}
+
+        def zona(emp=None, computer=None):
+            clave = (emp.id if emp else 0, computer.id if computer else 0)
+            if clave not in memo:
+                memo[clave] = self._zona_de(emp, computer)
+            return memo[clave]
+        return zona
+
+    @staticmethod
+    def _zona_txt(zona):
+        """Nombre legible de la zona para que Tomy diga de quien es la hora."""
+        nombre = getattr(zona, 'zone', None)
+        if nombre:
+            return nombre
+        off = zona.utcoffset(datetime.utcnow())
+        if off is None:
+            return 'UTC'
+        minutos = int(off.total_seconds() // 60)
+        signo = '+' if minutos >= 0 else '-'
+        minutos = abs(minutos)
+        return 'UTC%s%02d:%02d' % (signo, minutos // 60, minutos % 60)
+
+    def _utc(self, dia, fin=False, zona=None):
+        """Medianoche local (o fin del dia) en UTC naive, como guarda Odoo.
+        Con `zona`, el dia se corta en la zona de la persona."""
+        tz = zona or self._tz()
         base = datetime.combine(dia, datetime.max.time() if fin else datetime.min.time())
         return tz.localize(base).astimezone(pytz.UTC).replace(tzinfo=None, microsecond=0)
 
-    def _local(self, dt):
+    def _local(self, dt, zona=None):
         if not dt:
             return ''
-        return pytz.UTC.localize(dt).astimezone(self._tz()).strftime('%Y-%m-%d %H:%M')
+        return pytz.UTC.localize(dt).astimezone(zona or self._tz()).strftime('%Y-%m-%d %H:%M')
 
-    def _hora_local(self, dt):
+    def _hora_local(self, dt, zona=None):
         if not dt:
             return ''
-        return pytz.UTC.localize(dt).astimezone(self._tz()).strftime('%H:%M')
+        return pytz.UTC.localize(dt).astimezone(zona or self._tz()).strftime('%H:%M')
 
     def _system(self, contexto):
         hoy = self._hoy()
@@ -279,7 +330,9 @@ class FocoTomy(models.AbstractModel):
             "7. Formato: texto plano en parrafos cortos; usa guiones '- ' para listas; usa **negritas** para los "
             "numeros clave. Da las horas como '3 h 20 min' (las herramientas ya te las dan asi). Menciona siempre el "
             "periodo que usaste. No repitas tablas que ya devolviste con una herramienta: la interfaz las muestra; "
-            "resume lo importante.\n"
+            "resume lo importante. Las horas del dia (primera y ultima senal, inicio de una llamada, ausencia o "
+            "evento) vienen en la zona horaria de la PERSONA, la de su equipo, no en la tuya: no las conviertas "
+            "ni las corrijas; si la herramienta dice en que zona van, dilo una vez.\n"
             "8. Si el usuario pide una grafica, un tablero o un reporte: consulta primero los datos y luego usa la "
             "herramienta 'grafica' (una o varias) con esos datos; para un reporte escribe secciones con titulos "
             "cortos (Resumen, Por persona, Distracciones, Llamadas, Ausencias, Observaciones). La grafica la "
@@ -294,6 +347,11 @@ class FocoTomy(models.AbstractModel):
             "11. Si preguntan por trampa, evasion, engano, 'algo raro' o integridad, usa 'integridad': "
             "contesta con los hechos (medida, dias, significado), di si ese dia hubo mantenimiento, y "
             "cierra con lo que Foco no puede saber. Nunca escribas 'hizo trampa' ni 'no hizo trampa'.\n"
+            "12. Si preguntan que vio la IA, por capturas, episodios sospechosos o veredictos, usa "
+            "'veredictos_ia': di el veredicto del modelo con su confianza y lo que vio, distingue lo "
+            "confirmado por un administrador de lo sin revisar y de lo descartado, y si la IA vio trabajo o "
+            "revision dilo como lo que EXPLICA el patron (un plano quieto no es simulacion). El veredicto es "
+            "del modelo sobre capturas, no un hecho medido: nunca escribas 'esta simulando' ni 'hizo trampa'.\n"
             "%s"
             % (PREFIJO_FUERA, dias[hoy.weekday()], hoy.isoformat(), lunes.isoformat(),
                (lunes + timedelta(days=6)).isoformat(), (hoy - timedelta(days=1)).isoformat(), gente, rango)
@@ -317,19 +375,24 @@ class FocoTomy(models.AbstractModel):
 
         artefactos, fuentes = [], []
         tokens = {'prompt': 0, 'completion': 0}
+        costo = 0.0
+        Usage = self.env['foco.ai.usage']
         texto_final, error = '', ''
         t0 = time.time()
         vueltas = 0
         while True:
             try:
-                resp = OpenAI.chat(mensajes, tools=self._herramientas())
+                resp = OpenAI.chat(mensajes, tools=self._herramientas(), servicio='tomy',
+                                   ref='hilo %s' % thread.id)
             except UserError as e:
                 error = str(e)
                 texto_final = 'No pude consultar al modelo en este momento (%s). Intenta de nuevo en un minuto.' % error[:120]
                 break
             uso = resp.get('usage') or {}
-            tokens['prompt'] += int(uso.get('prompt_tokens') or 0)
-            tokens['completion'] += int(uso.get('completion_tokens') or 0)
+            tin, tout = int(uso.get('prompt_tokens') or 0), int(uso.get('completion_tokens') or 0)
+            tokens['prompt'] += tin
+            tokens['completion'] += tout
+            costo += Usage.costo(resp.get('modelo'), tin, tout)
             msg = resp['message']
             llamadas = msg.get('tool_calls') or []
             if not llamadas:
@@ -358,7 +421,6 @@ class FocoTomy(models.AbstractModel):
         artefactos = self._poda_graficas(artefactos)
         if not texto_final:
             texto_final = 'Aqui esta lo que encontre.' if artefactos else 'No obtuve respuesta del modelo. Intenta de nuevo.'
-        costo = tokens['prompt'] * PRECIO_ENTRADA / 1e6 + tokens['completion'] * PRECIO_SALIDA / 1e6
         return {'texto': texto_final, 'artefactos': artefactos, 'fuentes': fuentes,
                 'tokens': tokens['prompt'] + tokens['completion'], 'costo': costo,
                 'fuera': texto_final.startswith(PREFIJO_FUERA), 'error': error}
@@ -441,10 +503,15 @@ class FocoTomy(models.AbstractModel):
                'employee_id': emp_opt}, ['desde', 'hasta', 'tipo']),
             t('ausencias',
               'Periodos sin actividad dentro del horario (huecos) con su motivo, estado y nota. Con estado='
-              'pendiente trae solo las que faltan por justificar.',
+              'pendiente trae solo las que faltan por justificar. Regla de los 90 minutos: cada persona '
+              'tiene al dia 90 min justificables sin decision del admin (cuenta_por = De sus 90 min); lo '
+              'que pasa de ahi queda por_decidir (no cuenta como cubierto hasta que el admin acepte) o '
+              'rechazada.',
               {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
-               'estado': {'type': 'string', 'enum': ['pendiente', 'justificada', 'auto', 'todas'],
-                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar'}},
+               'estado': {'type': 'string',
+                          'enum': ['pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto', 'todas'],
+                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar; '
+                                         'por_decidir = paso de sus 90 min y espera al admin'}},
               ['desde', 'hasta']),
             t('llamadas',
               'Llamadas de WhatsApp hechas desde la laptop y analizadas: cuantas, minutos de trabajo y personales, '
@@ -470,6 +537,17 @@ class FocoTomy(models.AbstractModel):
               '"algo raro". Nunca da veredicto. SIN employee_id trae a TODAS las personas del alcance de '
               'una vez: para el equipo llamala UNA sola vez, no una por persona.',
               {'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['desde', 'hasta']),
+            t('veredictos_ia',
+              'Episodios de actividad sospechosa (pantalla quieta, solo mouse o input inyectado durante el '
+              'umbral) en los que el agente tomo capturas y la IA de Odoo dijo que se veia: trabajo real, '
+              'revision pasiva, entretenimiento, asunto personal, pantalla inactiva, simulacion o '
+              'indeterminado, con confianza, motivo, que vio, y si un administrador lo confirmo o lo '
+              'descarto. Para "que vio la IA", "capturas", "episodios", "veredictos", "simulacion". Solo '
+              'administradores. Nunca es una sancion.',
+              {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
+               'solo_sospechosos': {'type': 'boolean',
+                                    'description': 'opcional: solo los episodios que no parecen trabajo'}},
+              ['desde', 'hasta']),
             t('grafica',
               'Dibuja una grafica en la respuesta con datos que YA obtuviste de otras herramientas.',
               {'tipo': {'type': 'string', 'enum': ['barras', 'lineas', 'dona']},
@@ -484,7 +562,8 @@ class FocoTomy(models.AbstractModel):
             t('abrir_en_odoo',
               'Pone en la respuesta un boton para abrir esa pantalla de Foco con el filtro dado.',
               {'pantalla': {'type': 'string',
-                            'enum': ['detalle_uso', 'jornada', 'ausencias', 'llamadas', 'sitios', 'tablero']},
+                            'enum': ['detalle_uso', 'jornada', 'ausencias', 'llamadas', 'sitios', 'tablero',
+                                     'veredictos']},
                'employee_id': emp_opt, 'desde': fecha, 'hasta': fecha}, ['pantalla']),
         ]
 
@@ -529,6 +608,73 @@ class FocoTomy(models.AbstractModel):
                          'retrasos), y cierra con lo que Foco no puede saber. Ningun hecho prueba '
                          'intencion: no concluyas "hizo trampa" ni "no hizo trampa".'}
 
+    def _tool_veredictos_ia(self, artefactos, desde=None, hasta=None, employee_id=None,
+                            solo_sospechosos=False):
+        d, h, nota = self._fechas(desde, hasta)
+        # ACL de administrador: a quien no puede verlos, el ORM le levanta
+        # AccessError y _ejecutar contesta "no tienes permiso".
+        Ver = self.env['foco.integrity.verdict']
+        gente = self._empleado(employee_id) if employee_id else self._alcance()
+        zona_de = self._zonificador()
+        # Con una persona, el dia se corta en SU zona; con todas, en la de quien pregunta.
+        corte = zona_de(gente) if employee_id else None
+        regs = Ver.search([('employee_id', 'in', gente.ids),
+                           ('started_at', '>=', self._utc(d, zona=corte)),
+                           ('started_at', '<=', self._utc(h, fin=True, zona=corte))],
+                          order='started_at desc')
+        if solo_sospechosos:
+            regs = regs.filtered(lambda v: v.sospechoso)
+        etiq_v = dict(Ver._fields['veredicto'].selection)
+        etiq_p = dict(Ver._fields['pattern'].selection)
+        etiq_r = dict(Ver._fields['review_outcome'].selection)
+        conteo, minutos = {}, {}
+        sin_revisar = 0
+        for v in regs:
+            ver = etiq_v.get(v.veredicto, 'sin veredicto todavia').split(' (')[0] if v.veredicto else 'sin veredicto todavia'
+            conteo[ver] = conteo.get(ver, 0) + 1
+            minutos[ver] = minutos.get(ver, 0.0) + (v.duration_min or 0.0)
+            if v.sospechoso and v.review_outcome == 'pendiente':
+                sin_revisar += 1
+        episodios, filas = [], []
+        for v in regs[:60]:
+            ver = etiq_v.get(v.veredicto, 'sin veredicto todavia').split(' (')[0] if v.veredicto else 'sin veredicto todavia'
+            rev = etiq_r.get(v.review_outcome, v.review_outcome)
+            episodios.append({
+                'persona': v.employee_id.name, 'employee_id': v.employee_id.id,
+                'inicio': self._local(v.started_at, zona_de(v.employee_id)),
+                'duracion_min': round(v.duration_min or 0.0),
+                'patron': etiq_p.get(v.pattern, v.pattern), 'app': v.app_name or v.exe or '',
+                'veredicto': ver, 'no_parece_trabajo': bool(v.sospechoso),
+                'confianza_pct': int(round((v.confianza or 0.0) * 100)),
+                'motivo': v.motivo or '', 'que_vio': v.que_se_ve or '',
+                'capturas': v.capture_count, 'las_capturas': v.capturas_cambian or '',
+                'revision': rev, 'ajustado_por_regla': bool(v.ajustado),
+                'estado': v.state,
+            })
+            filas.append([v.employee_id.name, self._local(v.started_at, zona_de(v.employee_id)),
+                          round(v.duration_min or 0.0),
+                          v.app_name or v.exe or '', ver, '%d%%' % int(round((v.confianza or 0.0) * 100)),
+                          rev])
+        if filas:
+            self._tabla(artefactos, 'Veredictos de la IA (%s a %s)' % (d, h),
+                        ['Persona', 'Inicio', 'Min', 'Aplicacion', 'Veredicto', 'Confianza', 'Revision'], filas)
+        return {
+            'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None,
+            'total_episodios': len(regs),
+            'por_veredicto': [{'veredicto': k, 'episodios': n, 'minutos': round(minutos.get(k, 0.0))}
+                              for k, n in sorted(conteo.items(), key=lambda kv: -kv[1])],
+            'sin_revisar': sin_revisar,
+            'episodios': episodios,
+            'sin_episodios': [e.name for e in gente if not any(x['employee_id'] == e.id for x in episodios)]
+                             if not solo_sospechosos else None,
+            'significado': DEFINICIONES['veredicto_ia'],
+            'regla': 'La tabla ya se muestra: no la repitas. Resume por persona cuantos episodios hubo, '
+                     'cuantos la IA explico como trabajo o revision (eso absuelve el patron) y cuantos no '
+                     'parecen trabajo, con lo que el modelo vio; distingue confirmado, sin revisar y '
+                     'descartado. El veredicto es del modelo sobre capturas, no un hecho: nunca concluyas '
+                     '"esta simulando" ni "hizo trampa"; invita a abrir el episodio y mirar las capturas.',
+        }
+
     def _tool_resumen_persona(self, artefactos, employee_id=None, desde=None, hasta=None):
         emp = self._empleado(employee_id)
         d, h, nota = self._fechas(desde, hasta)
@@ -563,6 +709,13 @@ class FocoTomy(models.AbstractModel):
         ausencias = self._ausencias_resumen(emp, d, h)
         jornada = self._jornada_resumen(emp, d, h)
         salud = (self.env['foco.computer'].health_summary() or {}).get(str(emp.id)) or {}
+        # El MISMO indice que el tablero: productivo entre la META del periodo
+        # (12-oct-2026). Tomy decia 80.5 (productivo entre activo) donde la tabla
+        # decia 63: un solo numero en todo Foco, venga de donde venga.
+        cub = Usage._suma_cubierto(
+            (self.env['foco.absence'].cubierto_por_dia(d, h).get('empleados') or {}).get(str(emp.id)))
+        indice = Usage._indice(productivo, cub, activo)
+        con_jornada = cub.get('meta', 0.0) > 0
 
         if apps:
             self._tabla(artefactos, 'En que se fue el tiempo de %s (%s a %s)' % (emp.name, d, h),
@@ -574,10 +727,20 @@ class FocoTomy(models.AbstractModel):
         return {
             'persona': emp.name, 'periodo': {'desde': str(d), 'hasta': str(h), 'dias_con_dato': dias_con_dato},
             'nota': nota or None,
+            'zona_horaria_de_la_persona': self._zona_txt(self._zona_de(emp)),
             'totales': {
                 'activo': _hm(activo), 'activo_h': _h(activo),
                 'productivo': _hm(productivo), 'productivo_h': _h(productivo),
-                'indice_pct': round(100.0 * productivo / activo, 1) if activo else None,
+                'indice_pct': indice,
+                'formula_indice': ('(productivo + lo aprobado por el admin) entre la meta (%s), puede '
+                                   'pasar del 100%%; lo justificado de la bolsa no entra'
+                                   % _hm(cub.get('meta', 0.0))
+                                   if con_jornada else 'productivo entre activo (sin meta en el periodo)'),
+                'meta': _hm(cub.get('meta', 0.0)),
+                'aprobado_por_el_admin': _hm(cub.get('aprobado', 0.0)),
+                'jornada_esperada': _hm(cub['expected']), 'justificado': _hm(cub['justified']),
+                'cubierto': _hm(productivo + cub['justified']),
+                'productivo_entre_activo_pct': round(100.0 * productivo / activo, 1) if activo else None,
                 'sin_input': _hm(sin_input), 'en_llamada': _hm(en_llamada),
                 # Hechos de integridad, con su significado escrito.
                 'sintetico_sin_input_real': _hm(inyectado) if inyectado else None,
@@ -604,10 +767,13 @@ class FocoTomy(models.AbstractModel):
         }
 
     def _llamadas_resumen(self, emp, d, h, lista=False):
+        zona_de = self._zonificador()
+        corte = zona_de(emp) if emp else None
         try:
             Rev = self.env['foco.call.review']
             regs = Rev.search([('employee_id', '=', emp.id) if emp else ('id', '!=', 0),
-                               ('started_at', '>=', self._utc(d)), ('started_at', '<=', self._utc(h, fin=True))],
+                               ('started_at', '>=', self._utc(d, zona=corte)),
+                               ('started_at', '<=', self._utc(h, fin=True, zona=corte))],
                               order='started_at desc')
         except AccessError:
             return {'nota': 'no tienes permiso para ver las llamadas analizadas'}
@@ -620,7 +786,7 @@ class FocoTomy(models.AbstractModel):
         salida = {'total': len(regs), 'por_veredicto': por}
         if lista:
             salida['detalle'] = [{
-                'persona': r.employee_id.name, 'inicio': self._local(r.started_at),
+                'persona': r.employee_id.name, 'inicio': self._local(r.started_at, zona_de(r.employee_id)),
                 'duracion': '%d min' % int(round((r.duration_seconds or 0) / 60.0)),
                 'veredicto': r.clasificacion or r.state, 'rol': r.con_quien or '', 'motivo': r.motivo or '',
                 'confianza': r.confianza} for r in regs[:15]]
@@ -628,29 +794,40 @@ class FocoTomy(models.AbstractModel):
 
     def _ausencias_resumen(self, emp, d, h, estado=None):
         Abs = self.env['foco.absence']
-        dominio = [('start', '>=', self._utc(d)), ('start', '<=', self._utc(h, fin=True))]
+        zona_de = self._zonificador()
+        corte = zona_de(emp) if emp else None
+        dominio = [('start', '>=', self._utc(d, zona=corte)), ('start', '<=', self._utc(h, fin=True, zona=corte))]
         if emp:
             dominio.append(('employee_id', '=', emp.id))
-        if estado in ('pendiente', 'justificada', 'auto'):
+        ESTADOS = ('pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto')
+        if estado in ESTADOS:
             dominio.append(('state', '=', estado))
         regs = Abs.search(dominio, order='start desc')
         motivos = dict(Abs._fields['reason'].selection)
         tipos = dict(Abs._fields['kind'].selection)
+        cuenta = dict(Abs._fields['cubierta_por'].selection)
         por_motivo = {}
         for r in regs.filtered(lambda x: x.state == 'justificada'):
             por_motivo[motivos.get(r.reason, r.reason or 'sin motivo')] = por_motivo.get(
                 motivos.get(r.reason, r.reason or 'sin motivo'), 0) + (r.duration or 0)
+        decidir = regs.filtered(lambda x: x.state == 'por_decidir')
         return {
-            'filtro_estado': estado if estado in ('pendiente', 'justificada', 'auto') else 'todas',
+            'filtro_estado': estado if estado in ESTADOS else 'todas',
             'total': len(regs),
             'pendientes_de_justificar': len(regs.filtered(lambda x: x.state == 'pendiente')),
             'horas_justificadas': _hm(sum(regs.filtered(lambda x: x.state == 'justificada').mapped('duration'))),
+            'por_decidir_del_admin': len(decidir),
+            'horas_por_decidir': _hm(sum(decidir.mapped('duration'))),
+            'rechazadas_por_el_admin': len(regs.filtered(lambda x: x.state == 'rechazada')),
             'por_motivo': {k: _hm(v) for k, v in por_motivo.items()},
             # fin con fecha completa: una ausencia que cruza la noche (18:38 -> 09:17)
             # obligaba al modelo a adivinar el dia del fin.
-            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start), 'fin': self._local(r.stop),
+            'ultimas': [{'persona': r.employee_id.name, 'inicio': self._local(r.start, zona_de(r.employee_id)),
+                         'fin': self._local(r.stop, zona_de(r.employee_id)),
                          'duracion': _hm(r.duration), 'tipo': tipos.get(r.kind, r.kind),
-                         'estado': r.state, 'motivo': motivos.get(r.reason, '') if r.reason else '',
+                         'estado': r.state, 'cuenta_por': cuenta.get(r.cubierta_por, ''),
+                         'de_sus_90_min': r.gracia_min if r.cubierta_por == 'gracia' else None,
+                         'motivo': motivos.get(r.reason, '') if r.reason else '',
                          'nota': (r.note or '')[:120]} for r in regs[:8]],
         }
 
@@ -658,17 +835,20 @@ class FocoTomy(models.AbstractModel):
         Wd = self.env['foco.workday']
         regs = Wd.search([('employee_id', '=', emp.id), ('date', '>=', d), ('date', '<=', h)], order='date asc')
         estados = dict(Wd._fields['state'].selection)
-        dias = [{'dia': str(r.date), 'primera_senal': self._hora_local(r.first_signal),
-                 'ultima_senal': self._hora_local(r.last_signal), 'activo': _hm(r.active_hours),
+        zona = self._zona_de(emp)
+        dias = [{'dia': str(r.date), 'primera_senal': self._hora_local(r.first_signal, zona),
+                 'ultima_senal': self._hora_local(r.last_signal, zona), 'activo': _hm(r.active_hours),
                  'esperado': _hm(r.expected_hours), 'sin_explicar_min': r.unexplained_minutes,
                  'huecos': r.gap_count, 'estado': estados.get(r.state, r.state)} for r in regs]
+        horas_en = 'las horas van en la zona de %s (%s), no en la de quien pregunta' % (
+            emp.name, self._zona_txt(zona))
         if len(dias) > 10:
-            return {'dias_con_jornada': len(dias),
+            return {'dias_con_jornada': len(dias), 'horas_en': horas_en,
                     'activo_total': _hm(sum(regs.mapped('active_hours'))),
                     'esperado_total': _hm(sum(regs.mapped('expected_hours'))),
                     'sin_explicar_min_total': sum(regs.mapped('unexplained_minutes')),
                     'primeros_dias': dias[:5], 'ultimos_dias': dias[-5:]}
-        return {'dias': dias}
+        return {'dias': dias, 'horas_en': horas_en}
 
     def _tool_comparar(self, artefactos, desde=None, hasta=None):
         d, h, nota = self._fechas(desde, hasta)
@@ -678,6 +858,7 @@ class FocoTomy(models.AbstractModel):
             gente.append({'persona': e['nombre'], 'employee_id': e['id'],
                           'activo': _hm(e['activo']), 'activo_h': _h(e['activo']),
                           'productivo': _hm(e['productivo']), 'indice_pct': e['indice'],
+                          'productivo_entre_activo_pct': e.get('indice_actividad'),
                           'distraccion': _hm(e['distraccion']), 'sin_clasificar': _hm(e['sin_clasificar']),
                           'cambio_indice_vs_periodo_anterior': e.get('delta')})
         cob = self.env['foco.usage'].cobertura(d, h) or {}
@@ -714,12 +895,14 @@ class FocoTomy(models.AbstractModel):
                     ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
                 dd = dia.date() if hasattr(dia, 'date') and not isinstance(dia, type(d)) else dia
                 por_dia[str(dd)] = (activo or 0.0, productivo or 0.0)
+            # El mismo indice que el tablero: cubierto entre jornada, por dia.
+            cub = (self.env['foco.absence'].cubierto_por_dia(d, h).get('empleados') or {}).get(str(emp.id)) or {}
             dias = []
             x = d
             while x <= h:
                 a, p = por_dia.get(str(x), (0.0, 0.0))
                 dias.append({'dia': str(x), 'activo_h': _h(a), 'productivo_h': _h(p),
-                             'indice_pct': round(100.0 * p / a, 1) if a else None})
+                             'indice_pct': Usage._indice(p, cub.get(str(x)), a)})
                 x += timedelta(days=1)
         else:
             dias = [{'dia': f['date'], 'activo_h': f['activo'], 'productivo_h': f['productivo'],
@@ -786,6 +969,8 @@ class FocoTomy(models.AbstractModel):
         if res['ultimas']:
             self._tabla(artefactos, 'Ausencias%s (%s a %s)' % (
                 {'pendiente': ' pendientes de justificar', 'justificada': ' justificadas',
+                 'por_decidir': ' por decidir del admin (pasaron de sus 90 min)',
+                 'rechazada': ' rechazadas por el admin',
                  'auto': ' fuera de horario'}.get(estado, ''), d, h),
                         ['Persona', 'Inicio', 'Fin', 'Duracion', 'Tipo', 'Estado', 'Motivo'],
                         [[u['persona'], u['inicio'], u['fin'], u['duracion'], u['tipo'], u['estado'], u['motivo']]
@@ -856,16 +1041,19 @@ class FocoTomy(models.AbstractModel):
     def _tool_eventos(self, artefactos, desde=None, hasta=None, employee_id=None):
         d, h, nota = self._fechas(desde, hasta)
         Ev = self.env['foco.event']
-        dominio = [('at', '>=', self._utc(d)), ('at', '<=', self._utc(h, fin=True))]
-        if employee_id:
-            dominio.append(('employee_id', '=', self._empleado(employee_id).id))
+        zona_de = self._zonificador()
+        emp = self._empleado(employee_id) if employee_id else None
+        corte = zona_de(emp) if emp else None
+        dominio = [('at', '>=', self._utc(d, zona=corte)), ('at', '<=', self._utc(h, fin=True, zona=corte))]
+        if emp:
+            dominio.append(('employee_id', '=', emp.id))
         regs = Ev.search(dominio, order='at desc', limit=200)
         etiquetas = dict(Ev._fields['kind'].selection)
         # Conteo YA ESCRITO por tipo, con sus horas: el modelo copia la frase
         # en vez de contar renglones (conto 4 donde habia 5).
         por_tipo = {}
         for r in regs:
-            por_tipo.setdefault(r.kind, []).append(self._hora_local(r.at))
+            por_tipo.setdefault(r.kind, []).append(self._hora_local(r.at, zona_de(r.employee_id, r.computer_id)))
         resumen = ['%s: %d %s (%s)' % (etiquetas.get(k, k), len(horas),
                                         'vez' if len(horas) == 1 else 'veces',
                                         ', '.join(sorted(horas)[:12]) + (', ...' if len(horas) > 12 else ''))
@@ -876,7 +1064,9 @@ class FocoTomy(models.AbstractModel):
                 'resumen': resumen,
                 'significado': {etiquetas.get(k, k): self.SIGNIFICADO_EVENTO[k]
                                 for k in por_tipo if k in self.SIGNIFICADO_EVENTO},
-                'ultimos': [{'persona': r.employee_id.name or r.computer_id.name, 'cuando': self._local(r.at),
+                'nota_horas': 'cada hora va en la zona del equipo de esa persona, no en la de quien pregunta',
+                'ultimos': [{'persona': r.employee_id.name or r.computer_id.name,
+                             'cuando': self._local(r.at, zona_de(r.employee_id, r.computer_id)),
                              'que': etiquetas.get(r.kind, r.kind), 'proceso': r.process or ''}
                             for r in regs[:25]]}
 
@@ -930,6 +1120,8 @@ class FocoTomy(models.AbstractModel):
                          {'search_default_employee_id': emp.id} if emp else {}),
             'sitios': ('Sitios por clasificar', 'foco_monitor.foco_site_action', {'search_default_sin_clasificar': 1}),
             'tablero': ('Tablero', 'foco_monitor.foco_dashboard_action', {}),
+            'veredictos': ('Veredictos de la IA', 'foco_monitor.foco_integrity_verdict_action',
+                           {'search_default_employee_id': emp.id} if emp else {'search_default_sin_revisar': 1}),
         }
         etiqueta, accion, ctx = pantallas.get(pantalla, pantallas['tablero'])
         if emp:
