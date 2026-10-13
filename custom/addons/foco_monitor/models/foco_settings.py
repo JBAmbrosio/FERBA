@@ -158,6 +158,46 @@ class FocoSettings(models.Model):
     mobile_collect_apps = fields.Boolean(
         string='Registrar uso de apps', default=True,
         help='Segundos en primer plano por aplicacion y dia.')
+
+    # ---- Alarma de bateria baja (en el telefono) -------------------------
+    #
+    # ENCENDIDA de fabrica, al reves que todo lo demas del bloque movil: esto
+    # no mide a nadie, cuida la herramienta. Un telefono sin pila deja a la
+    # persona incomunicada en la calle y, de paso, deja de reportar.
+    #
+    # Son DOS escalones a proposito. El AVISO es una notificacion normal, que
+    # se puede ignorar sin drama. La ALARMA es lo que de verdad interrumpe:
+    # suena como llamada -aunque el telefono este en silencio-, toma la
+    # pantalla completa y se repite hasta que lo conecten. Si los dos sonaran
+    # igual, el primero ensenaria a ignorar al segundo.
+    #
+    # Los dos umbrales y la repeticion se configuran aqui porque el numero
+    # bueno depende del equipo: un telefono gastado cae de 15 a 0 en minutos.
+    bateria_alarma_enabled = fields.Boolean(
+        string='Avisar cuando se quede sin pila', default=True,
+        help='Interruptor general de los dos escalones. Apagado, el telefono '
+             'no avisa ni suena por bateria baja. No depende del monitoreo: '
+             'avisar de la pila no es medir a la persona.')
+    bateria_aviso_pct = fields.Integer(
+        string='Avisar al bajar de (%)', default=15,
+        help='Primer escalon: una notificacion discreta de "conecta el '
+             'cargador". No suena como alarma y se puede descartar. '
+             '0 = sin aviso, solo la alarma.')
+    bateria_alarma_pct = fields.Integer(
+        string='Alarma sonora al bajar de (%)', default=10,
+        help='Segundo escalon: suena como una llamada y toma la pantalla '
+             'completa. Tiene que ser MENOR que el aviso. 0 = sin alarma, '
+             'solo el aviso.')
+    bateria_alarma_repetir_min = fields.Integer(
+        string='Repetir la alarma cada (min)', default=10,
+        help='La alarma vuelve a sonar cada tantos minutos mientras no '
+             'conecten el cargador. Al conectarlo se calla sola. '
+             '0 = sonar una sola vez.')
+    bateria_alarma_silencio = fields.Boolean(
+        string='Sonar aunque este en silencio', default=True,
+        help='La alarma usa el canal de ALARMA del telefono, que suena aunque '
+             'el equipo este en vibrador o silencio. Es lo que la hace util en '
+             'la calle. Apagalo si prefieres respetar el modo silencio.')
     # --- Grabacion de la visita (coaching con IA) ---
     # APAGADO de fabrica. Es lo mas sensible del lado movil: graba la
     # conversacion de la visita (micro) para que la IA la analice como gerente
@@ -232,6 +272,29 @@ class FocoSettings(models.Model):
                 vistos.append(p)
         return vistos
 
+    @api.constrains('bateria_aviso_pct', 'bateria_alarma_pct',
+                    'bateria_alarma_repetir_min')
+    def _check_bateria(self):
+        """Los dos escalones tienen que ser un escalon de verdad: si la alarma
+        no queda POR DEBAJO del aviso, los dos se disparan a la vez y el aviso
+        deja de servir para algo."""
+        for r in self:
+            for campo, etiqueta in (('bateria_aviso_pct', 'aviso'),
+                                    ('bateria_alarma_pct', 'alarma')):
+                v = r[campo] or 0
+                if not (0 <= v <= 100):
+                    raise ValidationError(
+                        'El porcentaje de %s debe estar entre 0 y 100.' % etiqueta)
+            if (r.bateria_alarma_repetir_min or 0) < 0:
+                raise ValidationError(
+                    'Los minutos para repetir la alarma no pueden ser negativos.')
+            av, al = r.bateria_aviso_pct or 0, r.bateria_alarma_pct or 0
+            if av and al and al >= av:
+                raise ValidationError(
+                    'La alarma sonora (%d%%) tiene que quedar POR DEBAJO del '
+                    'aviso (%d%%). Si no, suenan las dos a la vez y el aviso '
+                    'no sirve de nada.' % (al, av))
+
     @api.constrains('mobile_uninstall_pin')
     def _check_uninstall_pin(self):
         for r in self:
@@ -253,6 +316,13 @@ class FocoSettings(models.Model):
             'visita_grabar': self.visita_grabar,
             'visita_radio_m': self.visita_grabar_radio_m or 200,
             'visita_max_min': self.visita_grabar_max_min or 90,
+            # Alarma de bateria: viaja SIEMPRE, encendido o no el monitoreo
+            # (el telefono la aplica solo; el servidor no la dispara).
+            'bateria_alarma': self.bateria_alarma_enabled,
+            'bateria_aviso_pct': self.bateria_aviso_pct or 0,
+            'bateria_alarma_pct': self.bateria_alarma_pct or 0,
+            'bateria_repetir_min': self.bateria_alarma_repetir_min or 0,
+            'bateria_silencio': self.bateria_alarma_silencio,
         }
 
     # ---- analisis de llamadas de WhatsApp (laptop) -----------------------
