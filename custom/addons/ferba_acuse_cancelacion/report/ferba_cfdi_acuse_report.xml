@@ -20,17 +20,18 @@
                     cancelación. El documento original es el XML firmado por el SAT, que se conserva en el sistema.
                 </p>
                 <table class="table table-sm">
-                    <tr><th style="width: 35%">UUID del CFDI</th><td t-out="o.uuid"/></tr>
-                    <tr><th>Documento</th><td t-out="o.move_id.display_name or 'No ligado a una factura'"/></tr>
-                    <tr t-if="o.partner_id"><th>Cliente / proveedor</th><td t-out="o.partner_id.display_name"/></tr>
-                    <tr><th>RFC emisor (según el acuse)</th><td t-out="o.sat_rfc_emisor or 'No viene en el acuse'"/></tr>
-                    <tr><th>Fecha del acuse (SAT)</th><td t-out="o.sat_date or 'No viene en el acuse'"/></tr>
-                    <tr><th>Estatus del UUID (según el acuse)</th><td t-out="o.sat_status or 'No viene en el acuse'"/></tr>
-                    <tr><th>Motivo de cancelación solicitado</th><td t-out="o.cancellation_reason or '-'"/></tr>
-                    <tr t-if="o.substitution_uuid"><th>Folio de sustitución</th><td t-out="o.substitution_uuid"/></tr>
-                    <tr><th>Respuesta de SW</th><td><t t-out="o.sw_code or '-'"/><t t-if="o.sw_code_description"> — <t t-out="o.sw_code_description"/></t></td></tr>
-                    <tr><th>Firma del SAT en el acuse</th><td t-out="'Sí' if o.sat_signed else 'No'"/></tr>
-                    <tr><th>Registrado en el sistema</th><td t-field="o.create_date"/></tr>
+                    <!-- Odoo 19: t-field/t-out no van directo en <td>; el valor va en un <span> dentro de la celda. -->
+                    <tr><th style="width: 35%">UUID del CFDI</th><td><span t-out="o.uuid"/></td></tr>
+                    <tr><th>Documento</th><td><span t-out="o.move_id.display_name or 'No ligado a una factura'"/></td></tr>
+                    <tr t-if="o.partner_id"><th>Cliente / proveedor</th><td><span t-out="o.partner_id.display_name"/></td></tr>
+                    <tr><th>RFC emisor (según el acuse)</th><td><span t-out="o.sat_rfc_emisor or 'No viene en el acuse'"/></td></tr>
+                    <tr><th>Fecha del acuse (SAT)</th><td><span t-out="o.sat_date or 'No viene en el acuse'"/></td></tr>
+                    <tr><th>Estatus del UUID (según el acuse)</th><td><span t-out="o.sat_status or 'No viene en el acuse'"/></td></tr>
+                    <tr><th>Motivo de cancelación solicitado</th><td><span t-out="o.cancellation_reason or '-'"/></td></tr>
+                    <tr t-if="o.substitution_uuid"><th>Folio de sustitución</th><td><span t-out="o.substitution_uuid"/></td></tr>
+                    <tr><th>Respuesta de SW</th><td><span t-out="o.sw_code or '-'"/><t t-if="o.sw_code_description"> — <span t-out="o.sw_code_description"/></t></td></tr>
+                    <tr><th>Firma del SAT en el acuse</th><td><span t-out="'Sí' if o.sat_signed else 'No'"/></td></tr>
+                    <tr><th>Registrado en el sistema</th><td><span t-field="o.create_date"/></td></tr>
                 </table>
                 <p t-if="o.parse_error" class="text-danger">
                     No se pudo leer el contenido del acuse; se conserva el XML tal como llegó.
