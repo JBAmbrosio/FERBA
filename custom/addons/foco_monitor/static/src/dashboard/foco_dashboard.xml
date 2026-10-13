@@ -259,12 +259,13 @@
                     <section class="fd_card">
                         <div class="fd_card_head">
                             <h2><t t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo vino cada quien en el periodo'"/></h2>
-                            <span class="fd_card_hint">el 100% son <t t-esc="fmt(state.meta)"/> de trabajo productivo · lo justificable va DESPUÉS de la marca y no suma</span>
+                            <span class="fd_card_hint">el 100% son <t t-esc="fmt(state.meta)"/> de trabajo productivo · lo justificable va DESPUÉS de la marca y no suma · <b>clic en un tramo</b> para abrir sus registros</span>
                         </div>
                         <div class="fd_bars">
                             <t t-foreach="state.barras" t-as="b" t-key="b.id">
                                 <div class="brow" t-attf-style="--i:{{ Math.min(b_index, 14) }}">
-                                    <div class="nm">
+                                    <div class="nm clic" t-on-click="() => this.abrirTramo(b, '')"
+                                         t-attf-title="Ver el detalle de uso de {{ b.name }}">
                                         <span class="fd_ava sm" t-attf-style="--h:{{ b.hue }}">
                                             <t t-esc="b.initials"/>
                                             <img t-attf-src="/web/image/hr.employee/{{ b.id }}/avatar_128" t-att-alt="b.name" loading="lazy"/>
@@ -273,11 +274,13 @@
                                     </div>
                                     <div class="track" t-att-title="b.titulo">
                                         <t t-foreach="b.segs" t-as="s" t-key="s.k">
-                                            <span t-attf-class="s {{ s.k }}" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%" t-att-title="s.label"/>
+                                            <span t-attf-class="s {{ s.k }} clic" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%"
+                                                  t-att-title="s.titulo" t-on-click="() => this.abrirTramo(b, s.k)"/>
                                         </t>
                                         <t t-if="b.marca !== null"><span class="mark meta" t-attf-style="left:{{ b.marca }}%" t-att-data-l="b.marcaTxt"/></t>
                                     </div>
-                                    <div t-attf-class="pct {{ b.meter }}"><t t-esc="b.index"/>%</div>
+                                    <div t-attf-class="pct {{ b.meter }} clic" t-on-click="() => this.abrirTramo(b, '')"
+                                         t-attf-title="Ver el detalle de uso de {{ b.name }}"><t t-esc="b.index"/>%</div>
                                 </div>
                             </t>
                         </div>

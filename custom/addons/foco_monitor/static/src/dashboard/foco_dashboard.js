@@ -31,6 +31,16 @@ const CAT_LABEL = {
     distraccion: "Distracción", sistema: "Sistema", sin: "Sin clasificar",
 };
 const CAT_ORDER = ["productiva", "navegador", "neutral", "distraccion", "sistema", "sin"];
+// A donde lleva cada tramo de la barra al hacerle clic. Se dice en el tooltip
+// ANTES de hacer clic: un grafico que navega sin avisar a donde, no se usa.
+const DESTINO = {
+    decidir: "clic: justificaciones que esperan tu veredicto",
+    justificado: "clic: sus justificaciones del periodo",
+    aprobado: "clic: sus justificaciones del periodo",
+    sin: "clic: lo que falta clasificar",
+    distraccion: "clic: en qué se le fue el tiempo",
+    _: "clic: su detalle de uso",
+};
 
 // Cada cuanto se refresca solo. El agente empuja cada 5 min en produccion, asi
 // que refrescar mas seguido no traeria dato nuevo, solo carga.
@@ -1274,8 +1284,9 @@ export class FocoDashboard extends Component {
                 queda -= h;
                 const w = pc(h);
                 if (w > 0.2) {
-                    out.push({ k, left: x.toFixed(2), width: w.toFixed(2),
-                               label: `${CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}` });
+                    const etq = `${CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}`;
+                    out.push({ k, left: x.toFixed(2), width: w.toFixed(2), label: etq,
+                               titulo: `${etq} — ${DESTINO[k] || DESTINO._}` });
                 }
                 x += w;
             }
@@ -1289,7 +1300,8 @@ export class FocoDashboard extends Component {
                 const w = pc(v);
                 if (w > 0.2) {
                     out.push({ k, left: y.toFixed(2), width: w.toFixed(2),
-                               label: `${etq}: ${this.fmt(v)}` });
+                               label: `${etq}: ${this.fmt(v)}`,
+                               titulo: `${etq}: ${this.fmt(v)} — ${DESTINO[k] || DESTINO._}` });
                 }
                 y += w;
             }
@@ -1414,6 +1426,52 @@ export class FocoDashboard extends Component {
         this.action.doAction("foco_monitor.foco_absence_action", {
             additionalContext: { search_default_por_decidir: 1, search_default_pendientes: 0, search_default_g_emp: 1 },
         });
+    }
+
+    /** Del grafico al registro, en un clic.
+     *
+     *  Cada tramo de la barra lleva a lo que hay que HACER con el, no a una
+     *  lista generica que despues hay que filtrar a mano: el ambar a las
+     *  justificaciones que esperan tu veredicto, el gris claro a lo que falta
+     *  clasificar, el rojo a sus distracciones. Siempre de ESA persona y del
+     *  periodo que se esta mirando, que es el contexto que uno ya tenia en la
+     *  cabeza al hacer clic.
+     */
+    abrirTramo(b, k) {
+        const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
+        const emp = ["employee_id", "=", b.id];
+        const dias = (campo) => [[campo, ">=", desde], [campo, "<=", hasta]];
+        const ventana = (nombre, model, domain, context, vistas) => this.action.doAction({
+            type: "ir.actions.act_window",
+            name: `${nombre} · ${b.name}`,
+            res_model: model,
+            views: vistas || [[false, "list"], [false, "form"]],
+            domain, context: context || {},
+        });
+        if (k === "decidir") {
+            // Lo que paso de su bolsa y espera Aceptar / Rechazar.
+            return ventana("Por decidir", "foco.absence",
+                [emp, ["state", "=", "por_decidir"], ...dias("start")]);
+        }
+        if (k === "justificado" || k === "aprobado") {
+            return ventana("Justificado", "foco.absence",
+                [emp, ["state", "=", "justificada"], ...dias("start")]);
+        }
+        if (k === "sin") {
+            // La cola de clasificacion de ESA persona: lo que todavia no pesa.
+            return ventana("Sin clasificar", "foco.usage",
+                [emp, ["category_id", "=", false], ...dias("date")],
+                { search_default_g_app: 1 });
+        }
+        if (k === "distraccion") {
+            return ventana("Distracción", "foco.usage",
+                [emp, ["category_id.weight", "<=", 0], ["category_id.is_system", "=", false],
+                 ...dias("date")],
+                { search_default_g_app: 1 });
+        }
+        // Productivo, neutral o la fila entera: su detalle de uso, que es donde
+        // se ve el arbol app > sitio > pagina y se puede clasificar desde ahi.
+        return this.abrirUso({ id: b.id });
     }
 
     abrirIntegridad() {

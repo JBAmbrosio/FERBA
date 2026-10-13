@@ -240,7 +240,14 @@
             &.good { color: var(--good); } &.mid { color: var(--mid); } &.low { color: var(--low); } }
     }
     @media (max-width: 760px) { .brow { grid-template-columns: 120px minmax(0, 1fr) 46px; } }
+    // Lo que se puede abrir se ve que se puede abrir: el cursor y un realce al
+    // pasar encima. Sin esto, un grafico clicable no se descubre nunca.
+    .brow .clic { cursor: pointer; }
+    .brow .nm.clic:hover span:last-child { text-decoration: underline; text-underline-offset: 2px; }
+    .brow .pct.clic:hover { text-decoration: underline; text-underline-offset: 2px; }
     .track { position: relative; height: 18px; background: var(--track); border-radius: 6px; overflow: hidden;
+        .s.clic:hover { filter: brightness(1.12) saturate(1.1); outline: 1px solid var(--ink);
+            outline-offset: -1px; }
         .s { position: absolute; top: 0; bottom: 0;
             &.productiva { background: var(--prod); }
             &.justificado { background: repeating-linear-gradient(135deg, var(--jus) 0 4px, color-mix(in srgb, var(--jus) 55%, transparent) 4px 8px); }
