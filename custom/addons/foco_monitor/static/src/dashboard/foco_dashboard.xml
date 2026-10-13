@@ -285,13 +285,13 @@
                             </t>
                         </div>
                         <div class="fd_legend">
-                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo (es el 100%)</span>
+                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo</span>
+                            <span class="fd_leg"><span class="fd_dot aprobado"/>Aprobado por ti (cuenta igual)</span>
                             <span class="fd_leg"><span class="fd_dot neutral"/>Neutral y navegador</span>
                             <span class="fd_leg"><span class="fd_dot distraccion"/>Distracción</span>
                             <span class="fd_leg"><span class="fd_dot sin"/>Sin clasificar</span>
-                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (después de la meta, no suma)</span>
-                            <span class="fd_leg"><span class="fd_dot aprobado"/>Aprobado por el admin</span>
-                            <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir: espera tu veredicto</span>
+                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado · a la derecha, no suma</span>
+                            <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir · espera tu veredicto</span>
                         </div>
                     </section>
                 </t>

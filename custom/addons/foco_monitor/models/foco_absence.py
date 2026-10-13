@@ -612,11 +612,19 @@ class FocoAbsence(models.Model):
             # activos y daba 100%. Una comida justificada (dentro de jornada) si
             # cuenta entera; una noche bloqueada justificada, casi nada.
             justi = recs.filtered(lambda a: a.state == 'justificada')
+            # Lo que el ADMIN acepto despues de que se agotara la bolsa cuenta
+            # como PRODUCTIVO (decision del dueno, 12-oct-2026): pasa al lado
+            # izquierdo de la meta y sube el porcentaje. Lo que cupo en los 90
+            # min sigue a la derecha, sin sumar. Son dos cosas distintas y por
+            # eso viajan en dos numeros.
+            aprob = justi.filtered(lambda a: a.cubierta_por == 'admin')
+            cubre_bolsa = justi - aprob
             pend = recs.filtered(lambda a: a.state == 'pendiente')
             decidir = recs.filtered(lambda a: a.state == 'por_decidir')
             out[str(employee.id)] = {
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
-                'justified': sum(justi.mapped('expected_seconds')) / 3600.0,
+                'justified': sum(cubre_bolsa.mapped('expected_seconds')) / 3600.0,
+                'aprobado_h': sum(aprob.mapped('expected_seconds')) / 3600.0,
                 'pending': len(pend),
                 # Regla de los 90 min: justificado que paso de la bolsa del dia y
                 # espera Aceptar / Rechazar del admin. No cuenta como cubierto.
@@ -677,11 +685,15 @@ class FocoAbsence(models.Model):
                     .astimezone(pytz.UTC).replace(tzinfo=None)
             fin = tz.localize(datetime.combine(d_fin, time(23, 59, 59))) \
                     .astimezone(pytz.UTC).replace(tzinfo=None)
-            justi = {}
+            justi, aprob = {}, {}
             for a in self.search([('employee_id', '=', emp.id), ('state', '=', 'justificada'),
                                   ('start', '>=', ini), ('start', '<=', fin)]):
                 dia_local = pytz.UTC.localize(a.start).astimezone(tz).date()
-                justi[dia_local] = justi.get(dia_local, 0.0) + (a.expected_seconds or 0.0) / 3600.0
+                horas = (a.expected_seconds or 0.0) / 3600.0
+                # Lo aceptado por el admin cuenta como productivo; lo que cupo
+                # en la bolsa de 90 min, no (decision del dueno, 12-oct-2026).
+                donde = aprob if a.cubierta_por == 'admin' else justi
+                donde[dia_local] = donde.get(dia_local, 0.0) + horas
             mio = por_emp[str(emp.id)] = {}
             d = d_ini
             while d <= d_fin:
@@ -696,16 +708,20 @@ class FocoAbsence(models.Model):
                 # el 100%. Solo cuenta quien ese dia TENIA jornada; en su dia de
                 # descanso la meta es cero y el indice se cae al calculo viejo.
                 m = meta_h if esperado > 0 else 0.0
+                ap = aprob.get(d, 0.0)
                 mio[k] = {'expected': round(esperado, 4), 'justified': round(j, 4),
-                          'meta': round(m, 4)}
-                t = dias.setdefault(k, {'expected': 0.0, 'justified': 0.0, 'meta': 0.0})
+                          'aprobado': round(ap, 4), 'meta': round(m, 4)}
+                t = dias.setdefault(k, {'expected': 0.0, 'justified': 0.0,
+                                        'aprobado': 0.0, 'meta': 0.0})
                 t['expected'] += esperado
                 t['justified'] += j
+                t['aprobado'] += ap
                 t['meta'] += m
                 d += timedelta(days=1)
         for t in dias.values():
             t['expected'] = round(t['expected'], 4)
             t['justified'] = round(t['justified'], 4)
+            t['aprobado'] = round(t['aprobado'], 4)
             t['meta'] = round(t['meta'], 4)
         return {'dias': dias, 'empleados': por_emp}
 

@@ -31,11 +31,13 @@ DEFINICIONES = {
                   '(Productiva 1.0, Navegador 0.5, Neutral 0.3, Distraccion 0, Sistema no cuenta). '
                   'Si el sitio esta clasificado, manda el sitio sobre la app. Una llamada de WhatsApp '
                   'clasificada como trabajo pesa 1.0 y una personal 0, sin importar la app al frente.',
-    'indice': 'Horas PRODUCTIVAS entre la META del dia (7 h, configurable), en porcentaje. PUEDE PASAR DEL '
-              '100%: quien trabaja de mas tiene que verse. Lo justificado NO entra en este numero -se mide '
-              'aparte, en "justificado"-, porque los minutos justificables van DESPUES de la meta. Es el MISMO '
-              'indice de la tarjeta, la chispa, la tabla y el reporte diario. Sin meta (dia de descanso, sin '
-              'calendario) es productivo entre activo. Se calcula sobre horas sumadas, no promediando indices.',
+    'indice': 'Horas PRODUCTIVAS (mas lo que el administrador acepto como trabajo) entre la META del dia '
+              '(7 h, configurable), en porcentaje. PUEDE PASAR DEL 100%: quien trabaja de mas tiene que '
+              'verse. Lo justificado que cupo en la bolsa de 90 min NO entra -se mide aparte, en '
+              '"justificado"-, porque va DESPUES de la meta. Lo que el admin aprobo cuando la bolsa ya se '
+              'habia agotado SI entra: su veredicto fue que era trabajo. Es el MISMO indice de la tarjeta, '
+              'la chispa, la tabla y el reporte diario. Sin meta (dia de descanso) es productivo entre '
+              'activo. Se calcula sobre horas sumadas, no promediando indices.',
     'distraccion': 'Horas activas en apps o sitios con peso 0 (categoria Distraccion).',
     'sin_clasificar': 'Horas activas en apps o sitios que nadie ha clasificado todavia: no aportan al indice.',
     'llamada': 'Foco detecta una llamada cuando una app toma el microfono. Las de WhatsApp de escritorio '
@@ -730,10 +732,12 @@ class FocoTomy(models.AbstractModel):
                 'activo': _hm(activo), 'activo_h': _h(activo),
                 'productivo': _hm(productivo), 'productivo_h': _h(productivo),
                 'indice_pct': indice,
-                'formula_indice': ('productivo entre la meta (%s), puede pasar del 100%%; lo justificado '
-                                   'no entra' % _hm(cub.get('meta', 0.0))
+                'formula_indice': ('(productivo + lo aprobado por el admin) entre la meta (%s), puede '
+                                   'pasar del 100%%; lo justificado de la bolsa no entra'
+                                   % _hm(cub.get('meta', 0.0))
                                    if con_jornada else 'productivo entre activo (sin meta en el periodo)'),
                 'meta': _hm(cub.get('meta', 0.0)),
+                'aprobado_por_el_admin': _hm(cub.get('aprobado', 0.0)),
                 'jornada_esperada': _hm(cub['expected']), 'justificado': _hm(cub['justified']),
                 'cubierto': _hm(productivo + cub['justified']),
                 'productivo_entre_activo_pct': round(100.0 * productivo / activo, 1) if activo else None,
