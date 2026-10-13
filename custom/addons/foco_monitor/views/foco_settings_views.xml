@@ -91,6 +91,16 @@
                         por su nombre. El cambio llega a cada equipo en su siguiente envío
                         (unos minutos), sin reinstalar nada.
                     </div>
+                    <group string="La meta del día">
+                        <field name="meta_productiva_h" widget="float_time"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        El <b>100% del tablero</b> son esas horas de trabajo productivo, no la
+                        jornada completa: de una jornada de 8:30 quedan fuera la hora de comida
+                        y los minutos justificables. Quien pase de la meta se va <b>arriba del
+                        100%</b>. La bolsa de aquí abajo se dibuja <b>después</b> de esa línea
+                        y no suma al porcentaje.
+                    </div>
                     <group string="Regla de los 90 minutos">
                         <field name="justify_gracia_min"/>
                     </group>

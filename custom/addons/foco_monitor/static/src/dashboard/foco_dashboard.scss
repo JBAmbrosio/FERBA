@@ -11,7 +11,7 @@
     --mid: #b45309;  --mid-fill: #f59e0b;
     --low: #c0341d;  --low-fill: #dc3545;
     --prod: #16a34a; --nav: #8b5cf6; --neu: #64748b; --dis: #dc3545; --sis: #94a3b8;
-    --sin: #cbd3df; --jus: #7cc69a;
+    --sin: #cbd3df; --jus: #7cc69a; --amb: #d97706;
     --brand: #e30613;
     --raise: 0 1px 2px rgba(16, 21, 31, .06);
     --ease: cubic-bezier(0.23, 1, 0.32, 1);
@@ -29,7 +29,7 @@
         --mid: #fbbf24;  --mid-fill: #f59e0b;
         --low: #f87171;  --low-fill: #ef4444;
         --prod: #22c55e; --nav: #a78bfa; --neu: #94a3b8; --dis: #ef4444; --sis: #64748b;
-        --sin: #3a4353; --jus: #3f8f5f;
+        --sin: #3a4353; --jus: #3f8f5f; --amb: #f59e0b;
         --raise: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
@@ -244,12 +244,22 @@
         .s { position: absolute; top: 0; bottom: 0;
             &.productiva { background: var(--prod); }
             &.justificado { background: repeating-linear-gradient(135deg, var(--jus) 0 4px, color-mix(in srgb, var(--jus) 55%, transparent) 4px 8px); }
-            &.otro { background: var(--neu); } &.distraccion { background: var(--dis); } &.sin { background: var(--sin); } }
+            &.otro { background: var(--neu); } &.distraccion { background: var(--dis); } &.sin { background: var(--sin); }
+            // Paso la bolsa y el admin ya dijo que si: verde liso, para no
+            // confundirlo con el tiempo productivo MEDIDO de la izquierda.
+            &.aprobado { background: color-mix(in srgb, var(--jus) 70%, var(--prod)); }
+            // Paso la bolsa y NADIE ha decidido: ambar. Nunca verde, porque
+            // todavia no se sabe si es productivo (decision del dueno, 12-oct).
+            &.decidir { background: repeating-linear-gradient(135deg, var(--amb) 0 4px, color-mix(in srgb, var(--amb) 50%, transparent) 4px 8px); } }
         .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: .55;
             &.fin { opacity: .25; }
+            // La linea de la meta: lo que queda a su derecha no cuenta al 100%.
+            &.meta { opacity: .9; width: 2.5px; }
             &::after { content: attr(data-l); position: absolute; top: 0; left: 5px; font-size: 9.5px; color: var(--ink3); font-weight: 700; white-space: nowrap; } }
     }
     .fd_dot.justificado { background: var(--jus); }
+    .fd_dot.aprobado { background: color-mix(in srgb, var(--jus) 70%, var(--prod)); }
+    .fd_dot.decidir { background: var(--amb); }
 
     // ------------------------------------------------- la linea del dia
     .fd_tl { padding: 4px 18px 10px; overflow-x: auto; }

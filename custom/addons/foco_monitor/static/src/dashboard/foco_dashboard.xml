@@ -259,7 +259,7 @@
                     <section class="fd_card">
                         <div class="fd_card_head">
                             <h2><t t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo vino cada quien en el periodo'"/></h2>
-                            <span class="fd_card_hint">cada barra es su jornada esperada<t t-if="state.days === 1"> · la marca es el margen de 1h30</t></span>
+                            <span class="fd_card_hint">el 100% son <t t-esc="fmt(state.meta)"/> de trabajo productivo · lo justificable va DESPUÉS de la marca y no suma</span>
                         </div>
                         <div class="fd_bars">
                             <t t-foreach="state.barras" t-as="b" t-key="b.id">
@@ -275,19 +275,20 @@
                                         <t t-foreach="b.segs" t-as="s" t-key="s.k">
                                             <span t-attf-class="s {{ s.k }}" t-attf-style="left:{{ s.left }}%;width:{{ s.width }}%" t-att-title="s.label"/>
                                         </t>
-                                        <t t-if="b.marca !== null"><span class="mark" t-attf-style="left:{{ b.marca }}%" data-l="7h"/></t>
-                                        <span class="mark fin" t-attf-style="left:{{ b.fin }}%" t-att-data-l="b.finTxt"/>
+                                        <t t-if="b.marca !== null"><span class="mark meta" t-attf-style="left:{{ b.marca }}%" t-att-data-l="b.marcaTxt"/></t>
                                     </div>
                                     <div t-attf-class="pct {{ b.meter }}"><t t-esc="b.index"/>%</div>
                                 </div>
                             </t>
                         </div>
                         <div class="fd_legend">
-                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo</span>
-                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (cuenta como cubierto)</span>
+                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo (es el 100%)</span>
                             <span class="fd_leg"><span class="fd_dot neutral"/>Neutral y navegador</span>
                             <span class="fd_leg"><span class="fd_dot distraccion"/>Distracción</span>
                             <span class="fd_leg"><span class="fd_dot sin"/>Sin clasificar</span>
+                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (después de la meta, no suma)</span>
+                            <span class="fd_leg"><span class="fd_dot aprobado"/>Aprobado por el admin</span>
+                            <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir: espera tu veredicto</span>
                         </div>
                     </section>
                 </t>
