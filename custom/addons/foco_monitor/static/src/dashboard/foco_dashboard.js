@@ -33,6 +33,12 @@ const CAT_LABEL = {
 const CAT_ORDER = ["productiva", "navegador", "neutral", "distraccion", "sistema", "sin"];
 // A donde lleva cada tramo de la barra al hacerle clic. Se dice en el tooltip
 // ANTES de hacer clic: un grafico que navega sin avisar a donde, no se usa.
+// Etiquetas de los tramos que no son categorias de uso.
+const SEG_LABEL = {
+    aprobado: "Aprobado por ti (cuenta como productivo)",
+    justificado: "Justificado",
+    decidir: "Por decidir",
+};
 const DESTINO = {
     decidir: "clic: justificaciones que esperan tu veredicto",
     justificado: "clic: sus justificaciones del periodo",
@@ -827,11 +833,15 @@ export class FocoDashboard extends Component {
             // despues de la meta- y quien pase de la meta se va arriba del
             // 100%, que es justo lo que se quiere premiar. En un rango la meta
             // se multiplica por los dias laborables de esa persona.
+            // Lo que el admin ACEPTO cuando ya no quedaba bolsa cuenta como
+            // productivo y cruza al lado izquierdo de la meta: el veredicto fue
+            // ese. Lo que cupo en los 90 min sigue a la derecha, sin sumar.
+            const aprobado = res.aprobado_h || 0;
             const cbd = (cobertura || {})[String(e.id)] || {};
             const nDias = Math.max(1, cbd.dias_esperados || 1);
             const metaH = (this.state.meta || 7) * nDias;
             const index = expected > 0
-                ? Math.round((e.prod / metaH) * 100)
+                ? Math.round(((e.prod + aprobado) / metaH) * 100)
                 : (e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0);
             const appList = Object.values(e.apps).sort((a, b) => b.hours - a.hours);
             const appMax = Math.max(1, ...appList.map((a) => a.hours));
@@ -887,7 +897,7 @@ export class FocoDashboard extends Component {
                 cobPct: cb ? cb.pct : 0,
                 cobFuente: cb ? cb.fuente : "",
                 cobParcial: !!cb && cb.dias_esperados > 0 && cb.dias_con_dato < cb.dias_esperados,
-                expected, justified, unexplained,
+                expected, justified, unexplained, aprobado,
                 // La meta de ESTA persona en el periodo (7 h x sus dias
                 // laborables): el 100% del grafico y del porcentaje.
                 metaH, nDias,
@@ -1027,15 +1037,17 @@ export class FocoDashboard extends Component {
         const META_H = this.state.meta || 7;
         let teamCovered = 0, teamExp = 0, teamSinTeclear = 0, teamProd = 0, teamMeta = 0;
         for (const [eid, v] of Object.entries(resumen || {})) {
-            teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0);
-            teamProd += emp[eid] ? emp[eid].prod : 0;
+            teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0) + (v.aprobado_h || 0);
+            // Lo aceptado por el admin cuenta como productivo, igual que arriba.
+            teamProd += (emp[eid] ? emp[eid].prod : 0) + (v.aprobado_h || 0);
             teamMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
             teamExp += v.expected || 0;
             teamSinTeclear += v.sin_teclear_h || 0;
         }
-        let prevJust = 0, prevExp = 0, prevMeta = 0;
+        let prevJust = 0, prevExp = 0, prevMeta = 0, prevAprob = 0;
         for (const [eid, v] of Object.entries(resumenPrev || {})) {
             prevJust += v.justified || 0; prevExp += v.expected || 0;
+            prevAprob += v.aprobado_h || 0;
             prevMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
         }
         // Dias "sin cerrar salida" de TODO el equipo en el periodo: se suma
@@ -1045,7 +1057,7 @@ export class FocoDashboard extends Component {
         for (const v of Object.values(resumen || {})) teamSinSalida += v.sin_salida || 0;
         const idx = teamMeta > 0 ? (teamProd / teamMeta) * 100
             : (tActive > 0 ? (tProd / tActive) * 100 : 0);
-        const pIdx = prevMeta > 0 ? (pProd / prevMeta) * 100
+        const pIdx = prevMeta > 0 ? ((pProd + prevAprob) / prevMeta) * 100
             : (pActive > 0 ? (pProd / pActive) * 100 : 0);
 
         this.state.team = {
@@ -1275,27 +1287,28 @@ export class FocoDashboard extends Component {
             const sinH = sin ? sin.hours : 0;
             const otro = Math.max(e.active - e.prod - e.distr - sinH, 0);
             const out = [];
-            // Zona 1: lo medido, recortado a la meta (lo que sobra se cuenta en
-            // el porcentaje, que puede pasar del 100%, pero no desborda la barra).
+            // Zona 1: lo que cuenta para el 100%, recortado a la meta (lo que
+            // sobra sube el porcentaje pero no desborda la barra). Lo aprobado
+            // por el admin va justo despues de lo productivo: cruzo la linea
+            // porque tu dijiste que era trabajo, y se ve de quien fue el credito.
             let x = 0, queda = meta;
-            for (const [k, v] of [["productiva", e.prod], ["otro", otro],
-                                  ["distraccion", e.distr], ["sin", sinH]]) {
+            for (const [k, v] of [["productiva", e.prod], ["aprobado", e.aprobado || 0],
+                                  ["otro", otro], ["distraccion", e.distr], ["sin", sinH]]) {
                 const h = Math.min(v, queda);
                 queda -= h;
                 const w = pc(h);
                 if (w > 0.2) {
-                    const etq = `${CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}`;
+                    const etq = `${SEG_LABEL[k] || CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}`;
                     out.push({ k, left: x.toFixed(2), width: w.toFixed(2), label: etq,
                                titulo: `${etq} — ${DESTINO[k] || DESTINO._}` });
                 }
                 x += w;
             }
             // Zona 2: siempre arranca en la meta, aunque la zona 1 vaya a medias.
+            // Aqui solo vive lo que NO cuenta: lo que cupo en la bolsa de 90 min
+            // y lo que espera tu veredicto.
             let y = pc(meta);
-            const just = Math.min(e.justified, bolsa);
-            const extra = Math.max(e.justified - bolsa, 0);
-            for (const [k, v, etq] of [["justificado", just, "Justificado"],
-                                       ["aprobado", extra, "Aprobado por el admin (pasó la bolsa)"],
+            for (const [k, v, etq] of [["justificado", e.justified, "Justificado"],
                                        ["decidir", e.porDecidir || 0, "Por decidir: espera tu veredicto"]]) {
                 const w = pc(v);
                 if (w > 0.2) {
@@ -1309,8 +1322,9 @@ export class FocoDashboard extends Component {
                      index: e.index, meter: e.meter,
                      segs: out, fin: null, finTxt: "",
                      marca: pc(meta).toFixed(2), marcaTxt: this.fmt(meta),
-                     titulo: `productivo ${this.fmt(e.prod)} de ${this.fmt(meta)} · justificado `
-                             + `${this.fmt(e.justified)} de ${this.fmt(bolsa)}`
+                     titulo: `productivo ${this.fmt(e.prod)} de ${this.fmt(meta)}`
+                             + ((e.aprobado || 0) > 0 ? ` (+${this.fmt(e.aprobado)} que aceptaste)` : "")
+                             + ` · justificado ${this.fmt(e.justified)} de ${this.fmt(bolsa)}`
                              + ((e.porDecidir || 0) > 0 ? ` · por decidir ${this.fmt(e.porDecidir)}` : "") };
         }).sort((a, b) => b.index - a.index);
 

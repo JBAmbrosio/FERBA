@@ -141,7 +141,7 @@ class FocoDailyReport(models.Model):
         meta_h = self.env['foco.settings'].sudo().get_settings().meta_productiva_h or 7.0
         equipo = {'cubierto': 0.0, 'esperado': 0.0, 'prod': 0.0, 'activo': 0.0,
                   'distr': 0.0, 'justificado': 0.0, 'sin_explicar': 0.0, 'con_dato': 0,
-                  'idle': 0.0, 'meta': 0.0}
+                  'idle': 0.0, 'meta': 0.0, 'aprobado': 0.0}
         for emp in empleados:
             e = por[emp.id]
             res = resumen.get(str(emp.id)) or {}
@@ -161,16 +161,20 @@ class FocoDailyReport(models.Model):
             # Pausas sin teclear dentro de la jornada, una sola linea de tiempo;
             # el `fg_idle` sumado por renglon se encima entre ventanas.
             e['idle'] = res.get('sin_teclear_h') or 0.0
-            e['cubierto'] = e['prod'] + e['justificado']
+            # Lo que el admin acepto pasada la bolsa cuenta como PRODUCTIVO
+            # (12-oct-2026): suma al indice igual que el tiempo medido.
+            e['aprobado'] = res.get('aprobado_h') or 0.0
+            e['cubierto'] = e['prod'] + e['justificado'] + e['aprobado']
             # La meta de ESTA persona ese dia: cuenta solo si tenia jornada.
             e['meta'] = meta_h if e['esperado'] > 0 else 0.0
             if e['meta'] > 0:
-                e['indice'] = int(round(e['prod'] / e['meta'] * 100))
+                e['indice'] = int(round((e['prod'] + e['aprobado']) / e['meta'] * 100))
             elif e['activo'] > 0:
                 e['indice'] = int(round(e['prod'] / e['activo'] * 100))
             else:
                 e['indice'] = 0
             equipo['meta'] += e['meta']
+            equipo['aprobado'] += e['aprobado']
             equipo['cubierto'] += e['cubierto']
             equipo['esperado'] += e['esperado']
             equipo['prod'] += e['prod']
@@ -181,7 +185,8 @@ class FocoDailyReport(models.Model):
             equipo['sin_explicar'] += e['sin_explicar']
             equipo['con_dato'] += 1 if e['con_dato'] else 0
         if equipo['meta'] > 0:
-            equipo['indice'] = int(round(equipo['prod'] / equipo['meta'] * 100))
+            equipo['indice'] = int(round((equipo['prod'] + equipo['aprobado'])
+                                         / equipo['meta'] * 100))
         elif equipo['activo'] > 0:
             equipo['indice'] = int(round(equipo['prod'] / equipo['activo'] * 100))
         else:
