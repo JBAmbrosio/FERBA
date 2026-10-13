@@ -69,6 +69,9 @@ export class FocoDashboard extends Component {
             serie7: [], cintas: { dias: [], ventana: [8, 20] },
             online: [], conectados: 0, asistenciaLista: [], atencion: [], atencionN: 0,
             barras: [], tl: { horas: [], cols: 1, ahora: null, filas: [] }, grupos: [],
+            // Las varas del grafico (Ajustes): la meta que vale el 100% y la
+            // bolsa justificable, que va DESPUES de la meta y no suma.
+            meta: 7, bolsa: 1.5,
             spark: { indice: { d: "", fin: null }, prod: { d: "", fin: null } },
             // analitica
             serie: [], porPersona: [], jornada: [], jornadaFuentes: {},
@@ -650,7 +653,7 @@ export class FocoDashboard extends Component {
         // terminan en el ancla, se mire el periodo que se mire.
         const spark0 = new Date(anchor); spark0.setDate(anchor.getDate() - 6);
         const idsMonitoreados = comps.filter((c) => c.employee_id).map((c) => c.employee_id[0]);
-        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas, ia] = await Promise.all([
+        const [analitica, jornada, atencionSrv, asistencia, serie7, cintas, ia, params] = await Promise.all([
             this.orm.call("foco.usage", "analitica",
                 [this.ymd(curStart), this.ymd(anchor)]),
             this.orm.call("foco.workday", "jornada_serie",
@@ -673,7 +676,14 @@ export class FocoDashboard extends Component {
             // Consumo de IA de hoy. Solo administradores: a los demas el
             // servidor les niega el modelo y la cabecera no lo pinta.
             this.orm.call("foco.ai.usage", "resumen", [7]).catch(() => null),
+            // Las dos varas del grafico, desde Ajustes: la meta que vale el
+            // 100% (7 h de trabajo productivo) y la bolsa justificable (90
+            // min), que se dibuja DESPUES de la meta y NO suma al porcentaje.
+            // No se cocinan aqui: el dueno las mueve sin tocar codigo.
+            this.orm.call("foco.settings", "tablero_params", []).catch(() => null),
         ]);
+        this.state.meta = (params && params.meta_h) || 7;
+        this.state.bolsa = params && params.bolsa_h != null ? params.bolsa_h : 1.5;
         this.state.ia = ia || null;
         this.state.revisar = (atencionSrv && atencionSrv.revisar) || 0;
         this.state.atencionSrv = atencionSrv || { revisar: 0, revisar_por: [], devueltas: 0, devueltas_lista: [] };
@@ -801,8 +811,17 @@ export class FocoDashboard extends Component {
             // usuario: "de momento, productivo"). Sin calendario (fin de
             // semana, sin horario) se cae al calculo viejo para no pintar 0.
             const covered = e.prod + justified;
+            // 12-oct-2026, decision del dueno: el 100% son las HORAS
+            // PRODUCTIVAS de la meta (7 h), no la jornada completa. Lo
+            // justificado ya NO entra en el porcentaje -se muestra aparte,
+            // despues de la meta- y quien pase de la meta se va arriba del
+            // 100%, que es justo lo que se quiere premiar. En un rango la meta
+            // se multiplica por los dias laborables de esa persona.
+            const cbd = (cobertura || {})[String(e.id)] || {};
+            const nDias = Math.max(1, cbd.dias_esperados || 1);
+            const metaH = (this.state.meta || 7) * nDias;
             const index = expected > 0
-                ? Math.min(100, Math.round((covered / expected) * 100))
+                ? Math.round((e.prod / metaH) * 100)
                 : (e.active > 0 ? Math.round((e.prod / e.active) * 100) : 0);
             const appList = Object.values(e.apps).sort((a, b) => b.hours - a.hours);
             const appMax = Math.max(1, ...appList.map((a) => a.hours));
@@ -859,6 +878,13 @@ export class FocoDashboard extends Component {
                 cobFuente: cb ? cb.fuente : "",
                 cobParcial: !!cb && cb.dias_esperados > 0 && cb.dias_con_dato < cb.dias_esperados,
                 expected, justified, unexplained,
+                // La meta de ESTA persona en el periodo (7 h x sus dias
+                // laborables): el 100% del grafico y del porcentaje.
+                metaH, nDias,
+                // Justificado que paso de la bolsa del dia y espera Aceptar /
+                // Rechazar. No cuenta como cubierto y en el grafico va en ambar:
+                // todavia no se sabe si es productivo (decision del dueno, 12-oct).
+                porDecidir: res.por_decidir_h || 0,
                 // Cubierto de su jornada = productivo + justificado. La columna
                 // "Jornada" lo muestra como «cubierto / 8:30» con barra.
                 covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
@@ -981,29 +1007,35 @@ export class FocoDashboard extends Component {
             }
         }
 
-        // Indice del EQUIPO contra la jornada: suma de lo cubierto
-        // (productivo + justificado) sobre la suma de las jornadas (8:30 de
-        // cada quien), por TODAS las personas monitoreadas -no solo las que
-        // tienen renglon-, para que el denominador sea la jornada completa. El
-        // periodo anterior se mide igual, para que la flecha compare lo mismo.
-        let teamCovered = 0, teamExp = 0, teamSinTeclear = 0;
+        // Indice del EQUIPO contra LA META (12-oct): suma de lo productivo
+        // sobre la suma de las metas (7 h x los dias laborables de cada quien),
+        // por TODAS las personas monitoreadas -no solo las que tienen renglon-.
+        // Lo justificado ya no entra, igual que en el indice de cada persona.
+        // El periodo anterior se mide con la misma vara, para que la flecha
+        // compare lo mismo; `teamCovered` se conserva porque la tarjeta
+        // "cubierto de la jornada" lo sigue mostrando aparte.
+        const META_H = this.state.meta || 7;
+        let teamCovered = 0, teamExp = 0, teamSinTeclear = 0, teamProd = 0, teamMeta = 0;
         for (const [eid, v] of Object.entries(resumen || {})) {
             teamCovered += (emp[eid] ? emp[eid].prod : 0) + (v.justified || 0);
+            teamProd += emp[eid] ? emp[eid].prod : 0;
+            teamMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
             teamExp += v.expected || 0;
             teamSinTeclear += v.sin_teclear_h || 0;
         }
-        let prevJust = 0, prevExp = 0;
-        for (const v of Object.values(resumenPrev || {})) {
+        let prevJust = 0, prevExp = 0, prevMeta = 0;
+        for (const [eid, v] of Object.entries(resumenPrev || {})) {
             prevJust += v.justified || 0; prevExp += v.expected || 0;
+            prevMeta += META_H * Math.max(1, ((cobertura || {})[eid] || {}).dias_esperados || 1);
         }
         // Dias "sin cerrar salida" de TODO el equipo en el periodo: se suma
         // sobre el resumen (todas las personas monitoreadas), no sobre la tabla,
         // que deja fuera a quien no genero renglones de uso.
         let teamSinSalida = 0;
         for (const v of Object.values(resumen || {})) teamSinSalida += v.sin_salida || 0;
-        const idx = teamExp > 0 ? Math.min(100, (teamCovered / teamExp) * 100)
+        const idx = teamMeta > 0 ? (teamProd / teamMeta) * 100
             : (tActive > 0 ? (tProd / tActive) * 100 : 0);
-        const pIdx = prevExp > 0 ? Math.min(100, ((pProd + prevJust) / prevExp) * 100)
+        const pIdx = prevMeta > 0 ? (pProd / prevMeta) * 100
             : (pActive > 0 ? (pProd / pActive) * 100 : 0);
 
         this.state.team = {
@@ -1207,24 +1239,68 @@ export class FocoDashboard extends Component {
         // 4) Como viene cada quien: cubierto contra su jornada esperada. En un
         //    dia, con la marca del margen de 1h30 (lo que Paco acepta perder);
         //    en un rango, la jornada es la suma del periodo y la marca no aplica.
-        const conJornada = employees.filter((e) => !e.sinUso && e.expected > 0).sort((a, b) => b.index - a.index);
-        const maxEsp = Math.max(...conJornada.map((e) => e.expected), 0.01);
+        //    La barra tiene DOS zonas y la linea de la meta las separa:
+        //      [ 0 ... META = 100% ][ META ... META+BOLSA ]
+        //    A la izquierda, lo MEDIDO: productivo (lo que cuenta), neutral,
+        //    distraccion y sin clasificar. A la derecha, lo JUSTIFICADO, que
+        //    por decision del dueno (12-oct) va DESPUES de la meta y NO cuenta
+        //    para el 100%; y pasada la bolsa, lo que espera su veredicto, en
+        //    ambar: todavia no se sabe si es productivo.
+        //    En un rango la meta se multiplica por los dias con jornada.
+        const BOLSA1 = this.state.bolsa != null ? this.state.bolsa : 1.5;
+        const conJornada = employees.filter((e) => !e.sinUso && e.expected > 0);
+        const bolsaDe = (e) => BOLSA1 * (e.nDias || 1);
+        const metaDe = (e) => e.metaH || (this.state.meta || 7);
+        // UNA escala para todas las barras: la mas larga manda. Sin esto, a
+        // quien gasto toda su bolsa el ambar le quedaba FUERA de la barra y no
+        // se veia -justo lo que hay que ver-; y con una escala por fila, la
+        // linea de la meta caia en un sitio distinto en cada renglon.
+        const escala = Math.max(0.01, ...conJornada.map((e) =>
+            metaDe(e) + Math.max(bolsaDe(e), e.justified || 0) + (e.porDecidir || 0)));
         this.state.barras = conJornada.map((e) => {
+            const meta = metaDe(e);
+            const bolsa = bolsaDe(e);
+            const pc = (h) => Math.max(0, h) / escala * 100;
             const sin = (e.composition || []).find((c) => c.key === "sin");
             const sinH = sin ? sin.hours : 0;
             const otro = Math.max(e.active - e.prod - e.distr - sinH, 0);
-            const segs = [["productiva", e.prod], ["justificado", e.justified], ["otro", otro], ["distraccion", e.distr], ["sin", sinH]];
-            let x = 0; const out = [];
-            for (const [k, v] of segs) {
-                const w = v / maxEsp * 100;
-                if (w > 0.2) out.push({ k, left: x.toFixed(2), width: w.toFixed(2), label: `${CAT_LABEL[k] || (k === "justificado" ? "Justificado" : "Neutral y navegador")}: ${this.fmt(v)}` });
+            const out = [];
+            // Zona 1: lo medido, recortado a la meta (lo que sobra se cuenta en
+            // el porcentaje, que puede pasar del 100%, pero no desborda la barra).
+            let x = 0, queda = meta;
+            for (const [k, v] of [["productiva", e.prod], ["otro", otro],
+                                  ["distraccion", e.distr], ["sin", sinH]]) {
+                const h = Math.min(v, queda);
+                queda -= h;
+                const w = pc(h);
+                if (w > 0.2) {
+                    out.push({ k, left: x.toFixed(2), width: w.toFixed(2),
+                               label: `${CAT_LABEL[k] || "Neutral y navegador"}: ${this.fmt(v)}` });
+                }
                 x += w;
             }
-            return { id: e.id, name: e.name, hue: e.hue, initials: e.initials, index: e.index, meter: e.meter,
-                     segs: out, fin: (e.expected / maxEsp * 100).toFixed(2), finTxt: this.fmt(e.expected),
-                     marca: dias === 1 ? (Math.max(e.expected - 1.5, 0) / maxEsp * 100).toFixed(2) : null,
-                     titulo: `jornada esperada ${this.fmt(e.expected)} · cubierto ${this.fmt(e.covered)}` };
-        });
+            // Zona 2: siempre arranca en la meta, aunque la zona 1 vaya a medias.
+            let y = pc(meta);
+            const just = Math.min(e.justified, bolsa);
+            const extra = Math.max(e.justified - bolsa, 0);
+            for (const [k, v, etq] of [["justificado", just, "Justificado"],
+                                       ["aprobado", extra, "Aprobado por el admin (pasó la bolsa)"],
+                                       ["decidir", e.porDecidir || 0, "Por decidir: espera tu veredicto"]]) {
+                const w = pc(v);
+                if (w > 0.2) {
+                    out.push({ k, left: y.toFixed(2), width: w.toFixed(2),
+                               label: `${etq}: ${this.fmt(v)}` });
+                }
+                y += w;
+            }
+            return { id: e.id, name: e.name, hue: e.hue, initials: e.initials,
+                     index: e.index, meter: e.meter,
+                     segs: out, fin: null, finTxt: "",
+                     marca: pc(meta).toFixed(2), marcaTxt: this.fmt(meta),
+                     titulo: `productivo ${this.fmt(e.prod)} de ${this.fmt(meta)} · justificado `
+                             + `${this.fmt(e.justified)} de ${this.fmt(bolsa)}`
+                             + ((e.porDecidir || 0) > 0 ? ` · por decidir ${this.fmt(e.porDecidir)}` : "") };
+        }).sort((a, b) => b.index - a.index);
 
         // 5) La linea del dia (solo en un dia), lista para dibujar: cada
         //    segmento y cada checada ya en porcentaje de la ventana comun.

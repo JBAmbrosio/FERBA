@@ -337,11 +337,38 @@ class FocoSettings(models.Model):
              'distraccion no la consumen. Aplica a lo que se justifique a partir '
              'de la regla; lo anterior cuenta tal cual.')
 
+    # ---- la meta del dia (12-oct-2026, decision del dueno) ----------------
+    meta_productiva_h = fields.Float(
+        string='Horas productivas que valen el 100%', default=7.0,
+        help='La vara del tablero. El 100% son estas horas de trabajo PRODUCTIVO, '
+             'no la jornada completa: en una jornada de 8:30 quedan fuera la hora '
+             'de comida y los minutos justificables. Quien pase de la meta se va '
+             'arriba del 100%. La bolsa de minutos justificables se dibuja DESPUES '
+             'de esta linea y NO cuenta para el 100%.')
+
     @api.constrains('justify_gracia_min')
     def _check_justify_gracia_min(self):
         for r in self:
             if r.justify_gracia_min < 0 or r.justify_gracia_min > 480:
                 raise ValidationError('Los minutos justificables al dia van de 0 a 480.')
+
+    @api.constrains('meta_productiva_h')
+    def _check_meta_productiva_h(self):
+        for r in self:
+            if r.meta_productiva_h <= 0 or r.meta_productiva_h > 24:
+                raise ValidationError('Las horas productivas que valen el 100% van de 0 a 24.')
+
+    @api.model
+    def tablero_params(self):
+        """Las dos varas del tablero, para que el grafico no las traiga cocidas.
+
+        `meta_h` es el 100% (7 h) y `bolsa_h` lo justificable, que va DESPUES de
+        esa linea y no suma al 100%. Ninguna se adivina en el navegador: se
+        configuran aqui y el tablero las lee.
+        """
+        s = self.sudo().get_settings()
+        return {'meta_h': round(s.meta_productiva_h or 7.0, 3),
+                'bolsa_h': round((s.justify_gracia_min or 0) / 60.0, 3)}
     anthropic_api_key = fields.Char(
         string='API key de Anthropic (Claude)', compute='_compute_anthropic_api_key',
         inverse='_inverse_anthropic_api_key',
