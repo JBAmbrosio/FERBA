@@ -23,6 +23,8 @@ from . import foco_integrity
 from . import foco_integrity_verdict
 from . import foco_invitation
 from . import foco_absence
+# Despues de foco_absence: la conversacion apunta a ese modelo.
+from . import foco_absence_msg
 from . import foco_daily_report
 from . import foco_tab_review
 from . import hr_employee

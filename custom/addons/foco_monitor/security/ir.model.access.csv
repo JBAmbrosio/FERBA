@@ -72,3 +72,6 @@ access_foco_visita_user,foco.visita user,model_foco_visita,group_foco_user,1,0,0
 access_foco_visita_manager,foco.visita manager,model_foco_visita,group_foco_manager,1,1,1,1
 access_foco_vendedor_import_manager,foco.vendedor.import manager,model_foco_vendedor_import,group_foco_manager,1,1,1,1
 access_foco_ai_usage_manager,foco.ai.usage manager,model_foco_ai_usage,group_foco_manager,1,0,0,1
+access_foco_absence_msg_user,foco.absence.msg user,model_foco_absence_msg,group_foco_user,1,0,0,0
+access_foco_absence_msg_manager,foco.absence.msg manager,model_foco_absence_msg,group_foco_manager,1,1,1,1
+access_foco_absence_devolver_manager,foco.absence.devolver manager,model_foco_absence_devolver,group_foco_manager,1,1,1,1

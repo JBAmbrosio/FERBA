@@ -73,6 +73,10 @@
                         class="btn-success btn-sm" invisible="state != 'por_decidir'"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
                         class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
+                <button name="action_devolver_mensaje" type="object" string="Devolver"
+                        icon="fa-reply" class="btn-outline-primary btn-sm"
+                        invisible="state not in ('por_decidir', 'justificada', 'rechazada')"/>
+                <field name="msg_count" string="Mensajes" optional="show"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
                 <field name="rebotes" string="Devuelta (veces)" optional="show"/>
                 <field name="rebote_pendiente" string="Devuelta ahora" optional="show"/>
@@ -96,6 +100,9 @@
                     <button name="action_rechazar" type="object" string="Rechazar"
                             class="btn-danger" icon="fa-times"
                             invisible="state != 'por_decidir'"/>
+                    <button name="action_devolver_mensaje" type="object"
+                            string="Devolver con mi mensaje" icon="fa-reply"
+                            invisible="state not in ('por_decidir', 'justificada', 'rechazada')"/>
                     <button name="action_reconsiderar" type="object" string="Volver a Por decidir"
                             invisible="not (state == 'rechazada' or (state == 'justificada' and cubierta_por == 'admin'))"/>
                     <button name="action_marcar_revisado" type="object" string="Marcar revisado"
@@ -175,6 +182,14 @@
                             <field name="decision_nota"/>
                         </group>
                     </group>
+                    <separator string="Conversacion con el empleado"/>
+                    <div class="text-muted mb-2" invisible="msg_count">
+                        Sin mensajes registrados. La conversacion se guarda desde la version
+                        29.2.0: de lo anterior solo quedan el ultimo texto rechazado y la
+                        ultima pregunta, arriba.
+                    </div>
+                    <field name="msg_count" invisible="1"/>
+                    <field name="msg_ids" nolabel="1" readonly="1" invisible="not msg_count"/>
                     <group string="Diagnostico">
                         <field name="expected_seconds" readonly="1"
                                help="Cuanto de este periodo caia dentro de la jornada del empleado. Si es casi cero, el calendario ya lo explica y no se le pregunta."/>
