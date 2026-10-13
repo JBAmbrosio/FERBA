@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_ferba_cfdi_acuse" model="ir.actions.report">
+        <field name="name">Acuse de solicitud de cancelación</field>
+        <field name="model">ferba.cfdi.acuse</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">ferba_acuse_cancelacion.report_ferba_cfdi_acuse</field>
+        <field name="report_file">ferba_acuse_cancelacion.report_ferba_cfdi_acuse</field>
+        <field name="print_report_name">'Acuse_cancelacion_%s' % (object.uuid)</field>
+        <field name="binding_model_id" ref="model_ferba_cfdi_acuse"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_ferba_cfdi_acuse_document">
+        <t t-call="web.external_layout">
+            <div class="page">
+                <h3>Acuse de solicitud de cancelación de CFDI</h3>
+                <p class="text-muted">
+                    Representación legible del acuse que el SAT devolvió a través del PAC (SW) al solicitar la
+                    cancelación. El documento original es el XML firmado por el SAT, que se conserva en el sistema.
+                </p>
+                <table class="table table-sm">
+                    <tr><th style="width: 35%">UUID del CFDI</th><td t-out="o.uuid"/></tr>
+                    <tr><th>Documento</th><td t-out="o.move_id.display_name or 'No ligado a una factura'"/></tr>
+                    <tr t-if="o.partner_id"><th>Cliente / proveedor</th><td t-out="o.partner_id.display_name"/></tr>
+                    <tr><th>RFC emisor (según el acuse)</th><td t-out="o.sat_rfc_emisor or 'No viene en el acuse'"/></tr>
+                    <tr><th>Fecha del acuse (SAT)</th><td t-out="o.sat_date or 'No viene en el acuse'"/></tr>
+                    <tr><th>Estatus del UUID (según el acuse)</th><td t-out="o.sat_status or 'No viene en el acuse'"/></tr>
+                    <tr><th>Motivo de cancelación solicitado</th><td t-out="o.cancellation_reason or '-'"/></tr>
+                    <tr t-if="o.substitution_uuid"><th>Folio de sustitución</th><td t-out="o.substitution_uuid"/></tr>
+                    <tr><th>Respuesta de SW</th><td><t t-out="o.sw_code or '-'"/><t t-if="o.sw_code_description"> — <t t-out="o.sw_code_description"/></t></td></tr>
+                    <tr><th>Firma del SAT en el acuse</th><td t-out="'Sí' if o.sat_signed else 'No'"/></tr>
+                    <tr><th>Registrado en el sistema</th><td t-field="o.create_date"/></tr>
+                </table>
+                <p t-if="o.parse_error" class="text-danger">
+                    No se pudo leer el contenido del acuse; se conserva el XML tal como llegó.
+                </p>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_ferba_cfdi_acuse">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="ferba_acuse_cancelacion.report_ferba_cfdi_acuse_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

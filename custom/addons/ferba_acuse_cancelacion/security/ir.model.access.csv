@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ferba_cfdi_acuse_readonly,ferba.cfdi.acuse lectura contabilidad,model_ferba_cfdi_acuse,account.group_account_readonly,1,0,0,0
+access_ferba_cfdi_acuse_invoice,ferba.cfdi.acuse facturacion,model_ferba_cfdi_acuse,account.group_account_invoice,1,0,0,0
+access_ferba_cfdi_acuse_system,ferba.cfdi.acuse administrador,model_ferba_cfdi_acuse,base.group_system,1,1,1,1
