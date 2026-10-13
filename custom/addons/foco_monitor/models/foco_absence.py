@@ -184,7 +184,7 @@ class FocoAbsence(models.Model):
     # distraccion no la tocan. Lo justificado antes de la regla sigue contando
     # tal cual (cubierta_por vacio).
     state = fields.Selection(
-        [('auto', 'Explicado por calendario'),
+        [('auto', 'Explicado por vacaciones'),
          ('pendiente', 'Por justificar'),
          ('justificada', 'Justificada'),
          ('por_decidir', 'Por decidir (admin)'),
@@ -369,13 +369,46 @@ class FocoAbsence(models.Model):
             return False
 
     @api.model
+    def _cierre_de_jornada(self, employee, start):
+        """UTC del cierre de la jornada del dia LOCAL en que empieza el hueco.
+
+        Sirve para recortar lo que se guarda. Un hueco que empieza a las 17:00 y
+        termina a las 19:00 es, para efectos de justificar, de 17:00 a 17:30: el
+        resto es tiempo de nadie. Sin este recorte, al dejar de explicarse los
+        huecos por calendario, a la gente le saldrian ventanas pidiendole que
+        justifique catorce horas por haber dejado la computadora prendida.
+        """
+        if not employee:
+            return None
+        settings = self.env['foco.settings'].sudo()
+        spans = settings.workspan_intervals(employee.resource_calendar_id)
+        if not spans:
+            return None
+        tz = settings._tzinfo_for(employee)
+        local = pytz.UTC.localize(start).astimezone(tz)
+        tramos = spans.get(local.isoweekday())
+        if not tramos:
+            return None
+        fin_h = max(b for _, b in tramos)
+        base = tz.localize(datetime.combine(local.date(), time(0, 0)))
+        return (base + timedelta(hours=fin_h)).astimezone(pytz.UTC).replace(tzinfo=None)
+
+    @api.model
     def record_gaps(self, computer, gaps):
         """Guarda los huecos que manda el agente. Idempotente por (equipo, inicio).
 
-        Solo se marca 'pendiente' lo que el sistema NO puede explicar solo: si
-        el hueco cae fuera de la jornada o en la comida, entra como 'auto' y
-        nadie tiene que contestarlo. Sin esto, preguntariamos por la hora de
-        comida todos los dias.
+        Tres destinos (decision del dueno, 12-oct-2026):
+
+        - **De vacaciones** (permiso aprobado): entra como 'auto', visible pero
+          sin preguntarle a nadie. Es el UNICO caso que queda explicado solo.
+        - **Fuera de la jornada** (la noche, el domingo, antes de abrir o
+          despues de cerrar): NO SE REGISTRA. Antes entraba como 'auto' y
+          llenaba la lista de filas de 850 a 2,500 minutos -la computadora que
+          se queda prendida- que nadie va a justificar nunca.
+        - **Todo lo demas**: 'pendiente'. Y la jornada se mide de CORRIDO, con
+          la comida dentro: quien se levanta a las 12:59 y vuelve a las 13:34
+          ahora recibe la pregunta. Antes la franja de comida lo explicaba y el
+          hueco no le costaba nada a nadie.
         """
         if not computer or not gaps:
             return 0
@@ -396,16 +429,41 @@ class FocoAbsence(models.Model):
                 continue
             # Con el checador: lo que pasa despues de checar salida (o antes de
             # checar entrada) no cuenta como jornada esperada y no se pregunta.
-            expected = settings.expected_seconds(employee, start, stop, con_asistencia=True)
-            explicado = (expected < MIN_EXPECTED_SECS
-                         or self._covered_by_leave(employee, start, stop))
+            #
+            # Para DECIDIR si se pregunta, la jornada va de corrido (la comida
+            # cuenta). Para MEDIR, se guarda la jornada real -sin comida-, que
+            # es la que gasta la bolsa de 90 min y la que suma el tablero: asi,
+            # un hueco que cae entero en la comida se pregunta pero no le cuesta
+            # minutos a nadie, y estirarse hasta las 14:20 si cuesta.
+            de_vacaciones = self._covered_by_leave(employee, start, stop)
+            fin = stop
+            if not de_vacaciones:
+                # Se recorta al cierre de la jornada del dia en que empezo: lo
+                # que sigue ya no es tiempo que nadie deba explicar. El INICIO
+                # no se toca nunca, que es la llave contra duplicados.
+                cierre = self._cierre_de_jornada(employee, start)
+                if cierre:
+                    if start >= cierre:
+                        # Empezo despues de cerrar. Lo que alcance de la manana
+                        # siguiente es asunto de PUNTUALIDAD (lo mide la
+                        # adherencia), no un hueco que justificar: si no, por
+                        # llegar 08:13 se le pediria explicar catorce horas.
+                        stored += 1
+                        continue
+                    fin = min(fin, cierre)
+                jornada = settings.expected_seconds(employee, start, fin,
+                                                    con_asistencia=True, continuo=True)
+                if jornada < MIN_EXPECTED_SECS:
+                    stored += 1         # fuera de la jornada: ni se registra
+                    continue
+            expected = settings.expected_seconds(employee, start, fin, con_asistencia=True)
             self.sudo().create({
                 'computer_id': computer.id,
                 'start': start,
-                'stop': stop,
+                'stop': fin,
                 'kind': gap.get('kind') if gap.get('kind') in kinds else 'idle',
                 'expected_seconds': expected,
-                'state': 'auto' if explicado else 'pendiente',
+                'state': 'auto' if de_vacaciones else 'pendiente',
             })
             stored += 1
         return stored
@@ -420,10 +478,17 @@ class FocoAbsence(models.Model):
             order='start desc', limit=limit)
 
     def _suggested_reason(self):
-        """Si el periodo traslapa la comida del calendario, se presugiere."""
+        """Si el periodo traslapa la comida del calendario, se presugiere.
+
+        Desde el 12-oct-2026 la comida ya NO explica el hueco sola -se pregunta
+        igual-, asi que presugerir el motivo deja de ser un detalle: es lo que
+        hace que contestar sea un clic. Mira tambien el hueco entre el tramo de
+        la manana y el de la tarde, que es como esta puesta la comida en FERBA
+        (sin linea `day_period='lunch'`).
+        """
         self.ensure_one()
         calendar = self.employee_id.resource_calendar_id
-        lunch = self.env['foco.settings'].lunch_intervals(calendar)
+        lunch = self.env['foco.settings'].break_intervals(calendar)
         if not lunch or not self.start or not self.stop:
             return False
         tz = self.env['foco.settings']._tzinfo_for(self.employee_id)
@@ -787,11 +852,18 @@ class FocoAbsence(models.Model):
         #    nada que justificar fuera de hora. Se acepta sin gastar IA y sin
         #    marcar. Cero falsos positivos: lo dice el dato, no el texto.
         if (self.expected_seconds or 0.0) < OFF_SHIFT_SEGUNDOS:
+            # Desde el 12-oct la comida SI se pregunta, pero no cuesta minutos:
+            # cae aqui, con 0 de jornada esperada, y se acepta sin gastar IA ni
+            # bolsa. Se dice con todas sus letras para que el admin no lea
+            # "fuera de su jornada" en un hueco de las 13:10.
+            en_comida = self._suggested_reason() == 'comida'
             self.sudo().write({
                 'ai_estado': 'analizado', 'ai_veredicto': 'adecuada',
-                'ai_categoria': 'fuera_horario', 'ai_requiere_revision': False,
+                'ai_categoria': 'comida' if en_comida else 'fuera_horario',
+                'ai_requiere_revision': False,
                 'ai_incoherente': False, 'ai_pregunta': False,
-                'ai_motivo': 'El hueco cae fuera de su jornada',
+                'ai_motivo': ('El hueco cae en su hora de comida' if en_comida
+                              else 'El hueco cae fuera de su jornada'),
                 'ai_confianza': 1.0, 'ai_modelo': False, 'ai_tokens': 0,
                 'ai_at': fields.Datetime.now(), 'ai_error': False,
             })
