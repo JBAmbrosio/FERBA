@@ -409,6 +409,26 @@
                         <field name="mobile_collect_calls"
                                invisible="not mobile_enabled"/>
                     </group>
+                    <group string="Alarma de bateria baja">
+                        <field name="bateria_alarma_enabled"/>
+                        <field name="bateria_aviso_pct"
+                               invisible="not bateria_alarma_enabled"/>
+                        <field name="bateria_alarma_pct"
+                               invisible="not bateria_alarma_enabled"/>
+                        <field name="bateria_alarma_repetir_min"
+                               invisible="not bateria_alarma_enabled"/>
+                        <field name="bateria_alarma_silencio"
+                               invisible="not bateria_alarma_enabled"/>
+                        <div class="text-muted" colspan="2"
+                             invisible="not bateria_alarma_enabled">
+                            Dos escalones en el telefono. Al bajar del primero sale
+                            una notificacion discreta que se puede ignorar; al bajar
+                            del segundo suena como llamada, toma la pantalla completa
+                            y se repite hasta que conecten el cargador. La alarma
+                            tiene que quedar POR DEBAJO del aviso. Esto no depende
+                            del monitoreo: funciona aunque este apagado.
+                        </div>
+                    </group>
                     <group string="Grabacion de la visita (coaching con IA) - lo mas sensible">
                         <field name="visita_grabar"/>
                         <field name="visita_grabar_radio_m"
