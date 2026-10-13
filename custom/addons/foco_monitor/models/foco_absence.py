@@ -270,6 +270,12 @@ class FocoAbsence(models.Model):
         string='Ultimo texto rechazado', readonly=True,
         help='Lo que el empleado habia escrito y la IA considero que no explica '
              'nada. Se guarda para no perder el historial al reabrir.')
+    # La conversacion COMPLETA, vuelta por vuelta. Los dos campos de arriba solo
+    # guardan la ultima vuelta -cada rebote pisa al anterior-, y con eso el admin
+    # no puede decidir nada cuando el periodo le llega tras cinco idas y vueltas.
+    msg_ids = fields.One2many(
+        'foco.absence.msg', 'absence_id', string='Conversacion', readonly=True)
+    msg_count = fields.Integer(string='Mensajes', compute='_compute_msg_count')
 
     # ---- revision humana de lo que la IA marco ------------------------------
     review_visto = fields.Boolean(
@@ -279,6 +285,50 @@ class FocoAbsence(models.Model):
     review_por = fields.Many2one('res.users', string='Revisado por', readonly=True)
     review_at = fields.Datetime(string='Revisado el', readonly=True)
     review_nota = fields.Char(string='Nota de la revision')
+
+    @api.depends('msg_ids')
+    def _compute_msg_count(self):
+        for rec in self:
+            rec.msg_count = len(rec.msg_ids)
+
+    # ------------------------------------------------- conversacion
+    def _registrar_msg(self, quien, texto, **extra):
+        """Deja un mensaje en la conversacion del periodo. Nunca levanta: el
+        registro es para poder decidir despues, no una parte critica del
+        flujo -si falla, la justificacion igual se guarda-."""
+        self.ensure_one()
+        texto = (texto or '').strip()
+        if not texto:
+            return False
+        vals = {'absence_id': self.id, 'quien': quien, 'texto': texto[:1000],
+                'vuelta': self.rebotes, 'at': fields.Datetime.now()}
+        vals.update(extra)
+        try:
+            return self.env['foco.absence.msg'].sudo().create(vals)
+        except Exception as e:          # noqa: BLE001
+            _logger.warning('foco.absence %s: no se pudo registrar el mensaje (%s)',
+                            self.id, e)
+            return False
+
+    def _pedir_analisis_ia(self):
+        """Despierta al proceso que juzga, en vez de esperar su turno.
+
+        El cron corre cada 15 min porque nacio como un reporte; desde que el
+        veredicto DEVUELVE el periodo al empleado, esos minutos son una persona
+        esperando. `_trigger` es el mecanismo de Odoo para pedirle a un cron que
+        corra ya: deja el analisis fuera de la peticion del agente (que se
+        libera al instante, como hoy) y conserva los reintentos del cron, que
+        sigue barriendo cada 15 min lo que el disparo no haya alcanzado."""
+        cron = self.env.ref('foco_monitor.cron_foco_absence_ia',
+                            raise_if_not_found=False)
+        if not cron:
+            return False
+        try:
+            cron.sudo()._trigger()
+            return True
+        except Exception as e:          # noqa: BLE001
+            _logger.warning('no se pudo disparar la revision por IA (%s)', e)
+            return False
 
     @api.depends('start', 'stop')
     def _compute_duration(self):
@@ -655,7 +705,13 @@ class FocoAbsence(models.Model):
             # La bolsa de 90 se carga cuando la IA acepte ESTE texto.
             'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0,
         })
-        return {'ok': True, 'reason_label': dict(REASONS).get(reason, '')}
+        etiqueta = dict(REASONS).get(reason, '')
+        self._registrar_msg('empleado', note or etiqueta,
+                            reason=etiqueta, via=dict(self._fields['answered_via'].selection).get(via, via))
+        # Que lo juzgue YA, no en el siguiente cuarto de hora: del otro lado hay
+        # alguien que va a tener que volver a contestar si el texto no sirve.
+        self._pedir_analisis_ia()
+        return {'ok': True, 'reason_label': etiqueta}
 
     def write(self, vals):
         # Si cambia el texto o el motivo de una justificacion ya analizada,
@@ -665,9 +721,13 @@ class FocoAbsence(models.Model):
                      and 'ai_estado' not in vals and 'ai_veredicto' not in vals)
         res = super().write(vals)
         if reanaliza:
+            recolar = False
             for rec in self:
                 if rec.state == 'justificada' and rec.ai_estado == 'analizado':
                     super(FocoAbsence, rec).write({'ai_estado': 'sin_analizar', 'ai_intentos': 0})
+                    recolar = True
+            if recolar:
+                self[0]._pedir_analisis_ia()
         return res
 
     # ------------------------------------------------- revision por IA (cron)
@@ -821,6 +881,19 @@ class FocoAbsence(models.Model):
         elif requiere:
             vals.update({'state': 'por_decidir',
                          'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0})
+        # El mensaje ANTES del write: asi comparte numero de vuelta con el texto
+        # del empleado al que esta contestando (el write incrementa `rebotes`).
+        dicho = (vals.get('ai_motivo') or '').strip()
+        if requiere:
+            cola = ' (ya no se le devuelve: paso a decision del administrador)' \
+                if vals.get('state') == 'por_decidir' else ''
+            self._registrar_msg(
+                'ia', (pregunta or dicho or 'La justificacion no explica la ausencia.') + cola,
+                veredicto=dict(VEREDICTOS_JUST).get(ver, ver), confianza=conf)
+        else:
+            self._registrar_msg(
+                'ia', dicho or 'La justificacion explica la ausencia.',
+                veredicto=dict(VEREDICTOS_JUST).get(ver, ver), confianza=conf)
         self.sudo().write(vals)
         if not requiere:
             self._aplicar_gracia()
@@ -919,6 +992,8 @@ class FocoAbsence(models.Model):
         """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta."""
         ahora = fields.Datetime.now()
         for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+            rec._registrar_msg('admin', 'Aceptada por el administrador.',
+                               user_id=self.env.user.id)
             rec.sudo().write({'state': 'justificada', 'cubierta_por': 'admin', 'gracia_min': 0,
                               'decidido_por': self.env.user.id, 'decidido_at': ahora,
                               'ai_requiere_revision': False, 'review_visto': True,
@@ -929,11 +1004,52 @@ class FocoAbsence(models.Model):
         """Paso de sus 90 min y el admin no la acepta: no cuenta."""
         ahora = fields.Datetime.now()
         for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+            rec._registrar_msg('admin', 'Rechazada por el administrador: no cuenta como cubierta.',
+                               user_id=self.env.user.id)
             rec.sudo().write({'state': 'rechazada', 'cubierta_por': False, 'gracia_min': 0,
                               'decidido_por': self.env.user.id, 'decidido_at': ahora,
                               'ai_requiere_revision': False, 'review_visto': True,
                               'review_por': self.env.user.id, 'review_at': ahora})
         return True
+
+    def devolver_con_mensaje(self, mensaje):
+        """El admin se la devuelve al empleado con SUS palabras.
+
+        El tercer camino: cuando la IA ya dio sus vueltas y no le saco el dato,
+        Aceptar o Rechazar son las dos malas. Esto reabre el periodo y le manda
+        el texto del administrador por el MISMO canal que la pregunta de la IA
+        (`ai_pregunta` -> `payload().bounce_msg`), asi que la ventana del agente
+        lo pinta sin que haya que tocar el .exe. No gasta rebotes: los cinco son
+        de la IA; los del administrador son suyos y los da cuando quiera."""
+        self.ensure_one()
+        mensaje = (mensaje or '').strip()[:200]
+        if not mensaje:
+            return False
+        self._registrar_msg('admin', mensaje, user_id=self.env.user.id)
+        self.sudo().write({
+            'state': 'pendiente',
+            'rebote_pendiente': True,
+            'ai_pregunta': mensaje,
+            'nota_rechazada': (self.note or '').strip()[:200] or False,
+            # Que lo pida la VENTANA, no el correo (igual que el rebote de la IA).
+            'notified': True,
+            # Lo que tuviera cargado a la bolsa se libera: se vuelve a cargar
+            # cuando la IA acepte el texto nuevo.
+            'cubierta_por': False, 'gracia_min': 0, 'gracia_restante_min': 0,
+        })
+        return True
+
+    def action_devolver_mensaje(self):
+        """Abre el cuadro para escribirle al empleado."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Devolver con mi mensaje',
+            'res_model': 'foco.absence.devolver',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_absence_id': self.id},
+        }
 
     def action_reconsiderar(self):
         """Vuelve a "Por decidir" una aceptada o rechazada por el admin."""
