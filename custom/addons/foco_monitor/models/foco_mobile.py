@@ -750,6 +750,13 @@ class FocoMobileDevice(models.Model):
                 'lat': c.partner_latitude, 'lon': c.partner_longitude,
                 'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
                 'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
+                # Zona por ESTADO (pestana Mapa): el codigo empata con el de los
+                # poligonos que viajan en el APK (assets/mx_estados.json).
+                'estado': c.foco_estado_id.name or '',
+                'estado_code': c.foco_estado_id.code or '',
+                'contacto': c.foco_contacto or '',
+                'ultima_visita': (fields.Datetime.to_string(c.foco_ultima_visita)
+                                  if c.foco_ultima_visita else ''),
             })
         return filas
 

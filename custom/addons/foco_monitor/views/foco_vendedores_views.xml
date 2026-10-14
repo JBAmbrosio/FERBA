@@ -32,6 +32,9 @@
                             <field name="foco_expediente_url" widget="url"/>
                         </group>
                         <group string="Ubicacion y zona">
+                            <field name="foco_estado_id" readonly="1"/>
+                            <field name="foco_estado_origen" readonly="1"
+                                   invisible="not foco_estado_id"/>
                             <field name="foco_zona"/>
                             <field name="foco_cultivo"/>
                             <field name="partner_latitude"/>
@@ -53,6 +56,7 @@
             <list string="Clientes de ventas">
                 <field name="name"/>
                 <field name="foco_empaque" optional="show"/>
+                <field name="foco_estado_id" optional="show"/>
                 <field name="foco_zona" optional="show"/>
                 <field name="foco_cultivo" optional="show"/>
                 <field name="foco_estatus"/>
@@ -71,6 +75,7 @@
             <search string="Clientes de ventas">
                 <field name="name" string="Cliente / empaque"
                        filter_domain="['|', ('name', 'ilike', self), ('foco_empaque', 'ilike', self)]"/>
+                <field name="foco_estado_id"/>
                 <field name="foco_zona"/>
                 <field name="foco_cultivo"/>
                 <field name="user_id" string="Vendedor"/>
@@ -88,6 +93,7 @@
                      vista entera (mismo caso que foco_capture_views.xml). -->
                 <separator/>
                 <filter name="g_vendedor" string="Vendedor" context="{'group_by': 'user_id'}"/>
+                <filter name="g_estado" string="Zona (estado)" context="{'group_by': 'foco_estado_id'}"/>
                 <filter name="g_zona" string="Zona" context="{'group_by': 'foco_zona'}"/>
                 <filter name="g_cultivo" string="Cultivo" context="{'group_by': 'foco_cultivo'}"/>
                 <filter name="g_estatus" string="Estatus" context="{'group_by': 'foco_estatus'}"/>
