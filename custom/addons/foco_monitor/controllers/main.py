@@ -406,6 +406,24 @@ class FocoController(http.Controller):
         Absence = request.env['foco.absence'].sudo()
         gaps_stored = Absence.record_gaps(computer, data.get('gaps') or [])
 
+        # --- pausas cortas y actividad del dia (agente 2026.10.14) -----------
+        # Lo que el tablero llamaba "sin actividad" sin poder decir cuando. Cada
+        # uno en su savepoint: un renglon raro no puede tumbar el envio del uso.
+        # Sin `pausas_stored` el agente las reintenta, que es lo correcto.
+        pausas_stored = actividad_stored = None
+        try:
+            with request.env.cr.savepoint():
+                pausas_stored = request.env['foco.pausa'].sudo().record_pausas(
+                    computer, data.get('pausas') or [])
+        except Exception:
+            _logger.exception('Foco: pausas de %s', computer.id)
+        try:
+            with request.env.cr.savepoint():
+                actividad_stored = request.env['foco.actividad'].sudo().record_actividad(
+                    computer, data.get('actividad') or [])
+        except Exception:
+            _logger.exception('Foco: actividad de %s', computer.id)
+
         # --- que le paso al EQUIPO ------------------------------------------
         # Es lo que le pone causa a los huecos: sin esto, "apago y se fue" y
         # "el agente murio a media tarde" son el mismo renglon vacio.
@@ -509,6 +527,8 @@ class FocoController(http.Controller):
             'ok': True,
             'stored': stored,
             'gaps_stored': gaps_stored,
+            'pausas_stored': pausas_stored,
+            'actividad_stored': actividad_stored,
             'events_stored': events_stored,
             'tabs_stored': tabs_stored,
             # {huella: nombre} de los encabezados de WhatsApp ya resueltos por

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- "Sin actividad", explicado: se abre al hacer clic en el tramo gris
+         punteado de "Como viene cada quien". Solo muestra lo medido. -->
+    <record id="foco_sinact_action" model="ir.actions.client">
+        <field name="name">Sin actividad</field>
+        <field name="tag">foco_sinact</field>
+    </record>
+</odoo>

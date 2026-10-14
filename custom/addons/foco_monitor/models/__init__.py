@@ -25,6 +25,9 @@ from . import foco_invitation
 from . import foco_absence
 # Despues de foco_absence: la conversacion apunta a ese modelo.
 from . import foco_absence_msg
+# Pausas cortas y actividad del dia (14-oct-2026): usan la conversion de horas
+# y el tablero de foco.absence.
+from . import foco_pausa
 from . import foco_daily_report
 from . import foco_tab_review
 from . import hr_employee

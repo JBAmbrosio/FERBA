@@ -1,4 +1,8 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_foco_pausa_user,foco.pausa user,model_foco_pausa,group_foco_user,1,0,0,0
+access_foco_pausa_manager,foco.pausa manager,model_foco_pausa,group_foco_manager,1,1,1,1
+access_foco_actividad_user,foco.actividad user,model_foco_actividad,group_foco_user,1,0,0,0
+access_foco_actividad_manager,foco.actividad manager,model_foco_actividad,group_foco_manager,1,1,1,1
 access_foco_category_user,foco.category user,model_foco_category,group_foco_user,1,0,0,0
 access_foco_category_manager,foco.category manager,model_foco_category,group_foco_manager,1,1,1,1
 access_foco_app_user,foco.app user,model_foco_app,group_foco_user,1,0,0,0
