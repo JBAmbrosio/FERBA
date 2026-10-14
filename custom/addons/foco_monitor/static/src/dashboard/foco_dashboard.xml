@@ -300,7 +300,8 @@
                                 <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir · espera tu veredicto</span>
                                 <span class="fd_leg"><span class="fd_dot sinexp"/>Sin justificar · se contesta el mismo día o queda así</span>
                                 <span class="fd_leg"><span class="fd_dot rechazado"/>Rechazado por ti</span>
-                                <span class="fd_leg"><span class="fd_dot sinact"/>Sin actividad · pausas de menos de 15 min, llegada o salida</span>
+                                <span class="fd_leg"><span class="fd_dot sinact_fuera"/>Sin actividad, probado fuera del equipo · checador, bloqueo, apagado, distracción sonando</span>
+                                <span class="fd_leg"><span class="fd_dot sinact"/>Sin actividad, sin prueba · pausas, llegada o salida sin señal</span>
                                 <span class="fd_leg"><span class="fd_dot comida"/>Comida · fuera de la jornada</span>
                             </div>
                         </div>

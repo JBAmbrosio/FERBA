@@ -36,8 +36,6 @@ const TIPO = {
     sin_datos: "Aún sin datos del equipo",
     no_medido: "No medido",
 };
-// Que se suma en "lo medido", en ese orden.
-const PIEZAS = ["antes", "idle", "locked", "offline", "despues"];
 // El tipo en la lista de pausas, donde ya se sabe que es una pausa.
 const TIPO_PAUSA = {
     idle: "Sin teclado ni mouse",
@@ -222,32 +220,45 @@ export class FocoSinAct extends Component {
         return Object.keys(TIPO).filter((k) => hay.has(k)).map((k) => ({ k, label: TIPO[k] }));
     }
 
-    // -------------------------------------------- de que esta hecho el gris
-    get filas() {
+    // -------------------------------------- de que esta hecho el gris, por caja
+    // Probado fuera del equipo / probado en el equipo / sin prueba, con la
+    // senal que pone cada minuto ahi. Lo decide Odoo (foco.pausa._dia) con una
+    // regla con version; aqui solo se dibuja.
+    get grupos() {
         const d = this.state.datos;
-        if (!d) return [];
-        const p = d.piezas, n = d.n;
-        const rango = (tipo) => {
-            const ts = d.tramos.filter((t) => t.tipo === tipo);
-            return ts.length ? ts.map((t) => `${t.ini.slice(0, 5)}–${t.fin.slice(0, 5)}`).join(", ") : "";
+        if (!d || !d.lecturas) return [];
+        const NOTA = {
+            fuera: "una señal medida lo prueba",
+            presente: "una señal medida prueba que estaba frente a la pantalla",
+            sin_prueba: "nadie tocó el equipo y ninguna señal dice dónde estaba",
         };
-        const out = [];
-        for (const k of PIEZAS) {
-            if ((p[k] || 0) < 1 / 3600 && !(n[k])) continue;
-            let detalle = "";
-            if (k === "antes") detalle = d.primera ? `primera actividad a las ${this.hm(d.primera)}` : "";
-            else if (k === "despues") detalle = d.ultima ? `última actividad a las ${this.hm(d.ultima)}` : "";
-            else {
-                // Los minutos son solo los de jornada: la cuenta de veces tambien.
-                const dentro = d.pausas.filter((x) => x.kind === k && x.dentro).length;
-                const fuera = n[k] - dentro;
-                detalle = `${dentro} ${dentro === 1 ? "vez" : "veces"}`
-                    + (fuera ? ` (y ${fuera} fuera de jornada, que no cuenta${fuera === 1 ? "" : "n"})` : "");
-            }
-            out.push({ k, label: TIPO[k], h: p[k] || 0, detalle,
-                       rango: (k === "antes" || k === "despues") ? rango(k) : "" });
-        }
-        return out;
+        return ["fuera", "presente", "sin_prueba"]
+            .map((caja) => ({
+                caja, label: d.cajas_label[caja], nota: NOTA[caja], h: d.cajas[caja] || 0,
+                items: d.lecturas.filter((l) => l.caja === caja).map((l) => ({
+                    ...l,
+                    veces: `${l.n} ${l.n === 1 ? "vez" : "veces"}`,
+                    rangos: l.rangos.join(", "),
+                    detalles: l.detalles.join(" · "),
+                })),
+            }))
+            .filter((g) => g.items.length);
+    }
+    // La misma particion que el tablero (dashboard_summary): lo probado, acotado
+    // al gris, y el resto sin prueba. Asi el numero de la barra es este.
+    get resumen() {
+        const d = this.state.datos;
+        const gris = (d && d.resta.sin_actividad_h) || 0;
+        const fuera = Math.min(gris, (d && d.cajas && d.cajas.fuera) || 0);
+        const presente = Math.min(gris - fuera, (d && d.cajas && d.cajas.presente) || 0);
+        return { fuera, presente, sin: Math.max(0, gris - fuera - presente) };
+    }
+    get carril() {
+        const d = this.state.datos;
+        if (!d || !d.carril) return [];
+        return d.carril.map((c, i) => ({
+            ...c, key: `c${i}`, left: this.pos(c.a), width: this.ancho(c.a, c.b),
+        }));
     }
     get cuadre() {
         const d = this.state.datos;
@@ -264,7 +275,8 @@ export class FocoSinAct extends Component {
         if (!d) return [];
         const f = this.state.filtro;
         return d.pausas.filter((p) => !f || p.kind === f)
-            .map((p) => ({ ...p, tipo: TIPO_PAUSA[p.kind] || p.kind_label }));
+            .map((p) => ({ ...p, tipo: TIPO_PAUSA[p.kind] || p.kind_label,
+                           frente: p.host || p.app || "" }));
     }
     get filtros() {
         const d = this.state.datos;
