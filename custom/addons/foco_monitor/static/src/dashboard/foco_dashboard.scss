@@ -16,6 +16,8 @@
     // ninguno repetido con la zona medida: el rojo LISO es distraccion; el de
     // "sin explicar" va RAYADO y el de "rechazado" es granate.
     --vac: #0d9488; --pen: #dc2626; --rech: #881337; --com: #0ea5e9; --nada: #8b95a6;
+    // Sin actividad PROBADA fuera del equipo (14-oct-2026).
+    --sinf: #39404d;
     --brand: #e30613;
     --raise: 0 1px 2px rgba(16, 21, 31, .06);
     --ease: cubic-bezier(0.23, 1, 0.32, 1);
@@ -35,6 +37,7 @@
         --prod: #22c55e; --nav: #a78bfa; --neu: #94a3b8; --dis: #ef4444; --sis: #64748b;
         --sin: #3a4353; --jus: #3f8f5f; --amb: #f59e0b;
         --vac: #2dd4bf; --pen: #f87171; --rech: #be185d; --com: #38bdf8; --nada: #7c8797;
+        --sinf: #c9d0dc;
         --raise: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
@@ -274,6 +277,14 @@
             &.sinact { background:
                 radial-gradient(circle, color-mix(in srgb, var(--nada) 75%, transparent) 1.2px, transparent 1.6px) 0 0 / 5px 5px,
                 color-mix(in srgb, var(--nada) 14%, transparent); }
+            // El mismo gris, PROBADO fuera del equipo: liso y oscuro. Ya no es
+            // "aqui no hay nada medido": hay una senal que lo prueba.
+            // Con rayas verticales finas: liso se confundia con el gris de
+            // "Neutral y navegador" de la zona 1.
+            &.sinact_fuera { background: repeating-linear-gradient(90deg, var(--sinf) 0 3px,
+                color-mix(in srgb, var(--sinf) 55%, transparent) 3px 4.5px); }
+            &.sinact_presente { background: color-mix(in srgb, var(--nada) 30%, var(--prod) 45%);
+                box-shadow: inset 0 0 0 1px var(--prod); }
             // La comida no es jornada: va al final, con aire antes.
             &.comida { background: color-mix(in srgb, var(--com) 75%, transparent);
                 box-shadow: inset 2px 0 0 var(--card); } }
@@ -291,6 +302,9 @@
     .fd_dot.rechazado { background: var(--rech); }
     .fd_dot.sinact { background: color-mix(in srgb, var(--nada) 22%, transparent);
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--nada) 70%, transparent); }
+    .fd_dot.sinact_fuera { background: repeating-linear-gradient(90deg, var(--sinf) 0 2px,
+        color-mix(in srgb, var(--sinf) 55%, transparent) 2px 3px); }
+    .fd_dot.sinact_presente { background: color-mix(in srgb, var(--nada) 30%, var(--prod) 45%); }
     .fd_dot.comida { background: color-mix(in srgb, var(--com) 75%, transparent); }
 
     // La leyenda en dos grupos: lo que va ANTES de la marca y lo que va despues.

@@ -48,6 +48,12 @@
                         <span class="op">=</span> <b class="res" t-esc="fmt(d.resta.sin_actividad_h)"/>.
                         Es una resta: abajo, lo que de verdad pasó en ese tiempo.
                     </div>
+                    <div class="fsa_cajas" t-if="d.medido and d.resta.sin_actividad_h > 0">
+                        <span class="lead">De esos <b t-esc="fmt(d.resta.sin_actividad_h)"/>:</span>
+                        <span class="it"><span class="cj fuera"/><b t-esc="fmt(resumen.fuera)"/> probado fuera del equipo o en otra cosa</span>
+                        <span class="it" t-if="resumen.presente > 0"><span class="cj presente"/><b t-esc="fmt(resumen.presente)"/> probado en el equipo</span>
+                        <span class="it"><span class="cj sin_prueba"/><b t-esc="fmt(resumen.sin)"/> sin prueba</span>
+                    </div>
                     <p class="fsa_when" t-if="d.es_hoy">
                         Día en curso: los datos del equipo llegan hasta las <b t-esc="hm(d.datos_hasta)"/>
                         (el equipo envía cada 5 min).
@@ -107,11 +113,24 @@
                                       t-att-title="m.titulo" t-att-data-l="m.label"/>
                             </t>
                         </div>
+                        <!-- Debajo, cada minuto del gris en su caja: lo que lo prueba. -->
+                        <div class="fsa_carril" t-if="carril.length" aria-label="Prueba de cada minuto sin actividad">
+                            <t t-foreach="carril" t-as="c" t-key="c.key">
+                                <span t-attf-class="cj {{ c.caja }}" t-attf-style="left:{{ c.left }}%;width:{{ c.width }}%"
+                                      t-att-title="c.titulo"/>
+                            </t>
+                        </div>
                     </div>
                     <div class="fsa_leg">
                         <t t-foreach="leyenda" t-as="l" t-key="l.k">
                             <span class="it"><span t-attf-class="dot {{ l.k }}"/><t t-esc="l.label"/></span>
                         </t>
+                    </div>
+                    <div class="fsa_leg prueba" t-if="carril.length">
+                        <span class="cap">Franja de abajo, la prueba:</span>
+                        <span class="it"><span class="cj fuera"/>Probado fuera del equipo o en otra cosa</span>
+                        <span class="it" t-if="d.cajas.presente > 0"><span class="cj presente"/>Probado en el equipo</span>
+                        <span class="it"><span class="cj sin_prueba"/>Sin prueba</span>
                     </div>
                 </section>
 
@@ -119,21 +138,29 @@
                 <section class="fsa_card" t-if="d.medido">
                     <div class="fsa_card_head">
                         <h2>De qué está hecho</h2>
-                        <span class="hint">solo lo que cae dentro de su jornada</span>
+                        <span class="hint">solo lo que cae dentro de su jornada · regla <t t-esc="d.regla"/></span>
                     </div>
                     <table class="fsa_tab">
                         <tbody>
-                            <t t-foreach="filas" t-as="f" t-key="f.k">
-                                <tr>
-                                    <td class="lbl"><span t-attf-class="dot {{ f.k }}"/><t t-esc="f.label"/></td>
-                                    <td class="det">
-                                        <t t-esc="f.detalle"/>
-                                        <t t-if="f.rango"><span class="rng"> · <t t-esc="f.rango"/></span></t>
-                                    </td>
-                                    <td class="n" t-esc="fmt(f.h)"/>
+                            <t t-foreach="grupos" t-as="g" t-key="g.caja">
+                                <tr t-attf-class="caja {{ g.caja }}">
+                                    <td class="lbl"><span t-attf-class="cj {{ g.caja }}"/><t t-esc="g.label"/></td>
+                                    <td class="det" t-esc="g.nota"/>
+                                    <td class="n" t-esc="fmt(g.h)"/>
                                 </tr>
+                                <t t-foreach="g.items" t-as="f" t-key="f.motivo">
+                                    <tr class="sub">
+                                        <td class="lbl" t-esc="f.label"/>
+                                        <td class="det">
+                                            <t t-esc="f.veces"/>
+                                            <span class="rng"> · <t t-esc="f.rangos"/></span>
+                                            <div t-if="f.detalles" class="evd" t-esc="f.detalles"/>
+                                        </td>
+                                        <td class="n" t-esc="fmt(f.h)"/>
+                                    </tr>
+                                </t>
                             </t>
-                            <tr t-if="!filas.length">
+                            <tr t-if="!grupos.length">
                                 <td class="lbl" colspan="3">Ninguna pausa dentro de su jornada.</td>
                             </tr>
                             <tr class="tot">
@@ -184,6 +211,12 @@
                             </tr>
                         </tbody>
                     </table>
+                    <p class="fsa_nota" t-if="!(d.cajas.presente > 0)">
+                        «Probado: en el equipo» todavía no aparece: sin cámara, lo único que prueba que
+                        alguien estaba frente a la pantalla sin tocarla es que responda un aviso, y eso
+                        es la fase 2. Hasta entonces, un minuto sin tocar nada sin otra señal queda
+                        «sin prueba», aunque la persona haya estado leyendo.
+                    </p>
                 </section>
 
                 <!-- ========================================== CADA PAUSA -->
@@ -208,6 +241,7 @@
                                     <th class="n" title="Lo que cuenta dentro de la jornada: sin el primer minuto (aún cuenta como actividad), sin la comida y sin lo de fuera de horario">Cuenta</th>
                                     <th>Tipo</th>
                                     <th>Al frente cuando paró</th>
+                                    <th title="En qué caja cae esta pausa y qué señal la pone ahí">Prueba</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -218,7 +252,14 @@
                                         <td class="n" t-esc="fmtMin(p.dur_min)"/>
                                         <td class="n" t-esc="p.dentro ? fmtMin(p.cuenta_min) : 'fuera de jornada'"/>
                                         <td><span t-attf-class="dot {{ p.kind }}"/><t t-esc="p.tipo"/></td>
-                                        <td class="app" t-esc="p.app or '—'"/>
+                                        <td class="app" t-esc="p.frente or '—'"/>
+                                        <td class="prueba">
+                                            <span t-attf-class="pill {{ p.caja }}" t-esc="p.motivo_label"/>
+                                            <div t-if="p.detalle" class="evd" t-esc="p.detalle"/>
+                                            <div t-if="p.fuera_chk_min > 0" class="evd">
+                                                <t t-esc="fmtMin(p.fuera_chk_min)"/> fuera de lo checado
+                                            </div>
+                                        </td>
                                     </tr>
                                 </t>
                             </tbody>

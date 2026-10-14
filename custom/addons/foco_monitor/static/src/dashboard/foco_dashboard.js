@@ -41,7 +41,9 @@ const SEG_LABEL = {
     vacaciones: "Vacaciones o permiso",
     sinexp: "Sin justificar",
     rechazado: "Rechazado por ti",
-    sinact: "Sin actividad: pausas de menos de 15 min, llegada o salida",
+    sinact: "Sin actividad, sin prueba",
+    sinact_fuera: "Sin actividad, probado fuera del equipo o en otra cosa",
+    sinact_presente: "Sin actividad, probado en el equipo",
     comida: "Comida (fuera de la jornada)",
 };
 const DESTINO = {
@@ -53,6 +55,8 @@ const DESTINO = {
     rechazado: "clic: lo que rechazaste",
     comida: "clic: sus periodos del día, con la comida",
     sinact: "clic: cada pausa con su hora, y lo que no se midió",
+    sinact_fuera: "clic: cada minuto con la señal que lo prueba",
+    sinact_presente: "clic: cada minuto con la señal que lo prueba",
     sin: "clic: lo que falta clasificar",
     distraccion: "clic: en qué se le fue el tiempo",
     _: "clic: su detalle de uso",
@@ -930,6 +934,10 @@ export class FocoDashboard extends Component {
                 vencido: res.vencido_h || 0,
                 vacaciones: res.vacaciones_h || 0,
                 sinActividad: res.sin_actividad_h || 0,
+                // De ese gris, lo que tiene PRUEBA (14-oct-2026); el resto es
+                // "sin prueba". Ver foco.pausa._dia.
+                sinactFuera: res.sinact_fuera_h || 0,
+                sinactPresente: res.sinact_presente_h || 0,
                 comida: res.comida_h || 0,
                 comidaJust: res.comida_just_h || 0,
                 // Cubierto de su jornada = productivo + justificado. La columna
@@ -1329,7 +1337,14 @@ export class FocoDashboard extends Component {
             ["decidir", e.porDecidir || 0, `Por decidir, espera tu veredicto: ${this.fmt(e.porDecidir || 0)}`],
             ["sinexp", e.unexplained || 0, sinJustEtq(e)],
             ["rechazado", e.rechazado || 0, `${SEG_LABEL.rechazado}: ${this.fmt(e.rechazado || 0)}`],
-            ["sinact", e.sinActividad || 0, `${SEG_LABEL.sinact}: ${this.fmt(e.sinActividad || 0)}`],
+            // El gris partido por su PRUEBA: lo probado fuera del equipo (o en
+            // otra cosa), lo probado en el equipo, y lo que no tiene prueba.
+            ["sinact_fuera", e.sinactFuera || 0,
+             `${SEG_LABEL.sinact_fuera}: ${this.fmt(e.sinactFuera || 0)} de ${this.fmt(e.sinActividad || 0)} sin actividad`],
+            ["sinact_presente", e.sinactPresente || 0,
+             `${SEG_LABEL.sinact_presente}: ${this.fmt(e.sinactPresente || 0)} de ${this.fmt(e.sinActividad || 0)} sin actividad`],
+            ["sinact", Math.max(0, (e.sinActividad || 0) - (e.sinactFuera || 0) - (e.sinactPresente || 0)),
+             `${SEG_LABEL.sinact}: ${this.fmt(Math.max(0, (e.sinActividad || 0) - (e.sinactFuera || 0) - (e.sinactPresente || 0)))} de ${this.fmt(e.sinActividad || 0)} sin actividad`],
             ["comida", e.comida || 0, comidaEtq(e)],
         ];
         // UNA escala para todas las barras: la mas larga manda. Sin esto, a
@@ -1392,6 +1407,8 @@ export class FocoDashboard extends Component {
                      segs: out, fin: null, finTxt: "",
                      marca: pc(meta).toFixed(2), marcaTxt: this.fmt(meta),
                      titulo: `${cuenta}`
+                             + ((e.sinactFuera || 0) > 0.008
+                                ? ` · de la sin actividad, ${this.fmt(e.sinactFuera)} probado fuera del equipo` : "")
                              + ((e.comida || 0) > 0.008 ? ` · comida ${this.fmt(e.comida)} aparte` : "")
                              + ` · productivo ${this.fmt(e.prod)} de ${this.fmt(meta)}`
                              + ` · justificado ${this.fmt(e.justified)} de ${this.fmt(bolsa)}` };
@@ -1613,7 +1630,7 @@ export class FocoDashboard extends Component {
                  ...dias("date")],
                 { search_default_g_app: 1 });
         }
-        if (k === "sinact") {
+        if (k === "sinact" || k === "sinact_fuera" || k === "sinact_presente") {
             // Es una resta, no un registro: su propia pantalla, con la linea del
             // dia y cada pausa medida. Un dia a la vez: el ultimo del periodo.
             return this.action.doAction("foco_monitor.foco_sinact_action", {

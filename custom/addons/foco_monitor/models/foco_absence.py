@@ -724,6 +724,15 @@ class FocoAbsence(models.Model):
             if emp_x:
                 activo_jornada[emp_x.id] = horas or 0.0
         ahora = fields.Datetime.now()
+        # Cuanto del gris "sin actividad" tiene PRUEBA (14-oct-2026): lo que cae
+        # fuera de lo checado, la sesion bloqueada, el equipo apagado, una
+        # distraccion sonando. Con la MISMA lectura que la pagina "Sin
+        # actividad". Si falla, el tablero sigue con el gris entero sin partir.
+        try:
+            probado = self.env['foco.pausa']._cajas_rango(empleados, d_ini, d_fin)
+        except Exception:
+            _logger.exception('Foco: no se pudo leer la prueba del gris')
+            probado = {}
         out = {}
         for employee in empleados:
             tz = Settings._tzinfo_for(employee)
@@ -766,6 +775,11 @@ class FocoAbsence(models.Model):
             activo_h = activo_jornada.get(employee.id, 0.0)
             huecos_h = sum(recs.mapped('expected_seconds')) / 3600.0
             comida_h, comida_just_h = (recs - vacaciones)._horas_en_comida(employee)
+            sin_act = max(0.0, jornada_h - activo_h - huecos_h)
+            prueba = probado.get(employee.id) or {}
+            # Acotado al gris: la barra no puede tener mas prueba que gris.
+            fuera_h = min(sin_act, prueba.get('fuera', 0.0))
+            presente_h = min(sin_act - fuera_h, prueba.get('presente', 0.0))
             out[str(employee.id)] = {
                 # Jornada transcurrida = activo en jornada + huecos de 15 min o
                 # mas (por estado) + sin actividad. Cuadra por construccion: la
@@ -781,7 +795,11 @@ class FocoAbsence(models.Model):
                 # veia en ningun lado. Si el activo se etiqueto 'in' en horas que
                 # no son jornada (quien trabaja en la comida con checador), la
                 # resta puede dar negativa por minutos: se acota a cero.
-                'sin_actividad_h': round(max(0.0, jornada_h - activo_h - huecos_h), 4),
+                'sin_actividad_h': round(sin_act, 4),
+                # De ese gris, lo PROBADO (fuera del equipo / en el equipo). El
+                # resto es "sin prueba". Ver foco.pausa._dia.
+                'sinact_fuera_h': round(fuera_h, 4),
+                'sinact_presente_h': round(presente_h, 4),
                 'comida_h': round(comida_h, 4),
                 'comida_just_h': round(comida_just_h, 4),
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
