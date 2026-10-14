@@ -18,6 +18,17 @@
         <field name="implied_ids" eval="[(4, ref('group_foco_user'))]"/>
     </record>
 
+    <!-- Perfil de RECURSOS HUMANOS (reunion del 14-oct-2026): revisa la
+         asistencia, los periodos sin actividad y las justificaciones, y NADA
+         mas. A proposito NO implica el grupo de consulta: el que vea todo
+         seria ese. Sus menus, vistas, permisos y reglas son suyos (ver
+         foco_menus.xml, ir.model.access.csv y foco_record_rules.xml). -->
+    <record id="group_foco_rrhh" model="res.groups">
+        <field name="name">Foco / Recursos Humanos</field>
+        <field name="comment">Ve solo la asistencia, los periodos sin actividad y las justificaciones, y decide sobre ellas. No ve el uso de apps, los equipos ni nada mas de Foco.</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
     <record id="base.user_admin" model="res.users">
         <field name="group_ids" eval="[(4, ref('group_foco_manager'))]"/>
     </record>

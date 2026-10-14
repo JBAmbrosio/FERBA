@@ -131,6 +131,87 @@
         </field>
     </record>
 
+    <!-- ======================================== PERFIL DE RECURSOS HUMANOS
+         La asistencia, y solo la asistencia: como llego cada quien, sus
+         checadas, minutos tarde, salidas antes y permisos. Lista propia (no
+         heredada) para que una columna nueva de uso en la del administrador
+         no aparezca aqui sin querer; ademas, esos campos son de consulta
+         (groups) y Recursos Humanos ni los puede leer. -->
+    <record id="foco_workday_view_list_rrhh" model="ir.ui.view">
+        <field name="name">foco.workday.list.rrhh</field>
+        <field name="model">foco.workday</field>
+        <field name="priority">90</field>
+        <field name="arch" type="xml">
+            <list string="Asistencia" create="0" delete="0" edit="0">
+                <field name="date"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="adherence" string="Asistencia" widget="badge"
+                       decoration-success="adherence == 'a_tiempo'"
+                       decoration-warning="adherence in ('tarde', 'sin_entrada', 'sin_checada')"
+                       decoration-danger="adherence in ('falto', 'sin_senal')"
+                       decoration-muted="adherence in ('no_laborable', 'sin_jornada', 'sin_dato')"/>
+                <field name="expected_start" string="Su hora" widget="float_time" optional="show"/>
+                <field name="check_in_at" string="Entrada checada" widget="datetime"/>
+                <field name="late_minutes" string="Min. tarde" decoration-warning="late_minutes > 0"/>
+                <field name="check_out_at" string="Salida checada" widget="datetime"/>
+                <field name="left_early" string="Salió antes" decoration-warning="left_early"/>
+                <field name="early_minutes" string="Min. antes" optional="hide"/>
+                <field name="check_in_missing" string="No checó entrada" optional="show"/>
+                <field name="check_out_missing" string="No cerró salida" optional="show"
+                       decoration-warning="check_out_missing"/>
+                <field name="adherence_source" string="Entrada según" optional="show"/>
+                <field name="first_signal" string="Primera señal en su equipo" widget="datetime" optional="hide"/>
+                <field name="leave_name" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_workday_view_search_rrhh" model="ir.ui.view">
+        <field name="name">foco.workday.search.rrhh</field>
+        <field name="model">foco.workday</field>
+        <field name="priority">90</field>
+        <field name="arch" type="xml">
+            <search string="Asistencia">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <filter name="f_tarde" string="Llegó tarde" domain="[('adherence', '=', 'tarde')]"/>
+                <filter name="f_falto" string="Sin registro (faltó)"
+                        domain="[('adherence', 'in', ('falto', 'sin_senal'))]"/>
+                <filter name="f_salio_antes" string="Salió antes" domain="[('left_early', '=', True)]"/>
+                <filter name="f_no_checo" string="No checó entrada" domain="[('check_in_missing', '=', True)]"/>
+                <filter name="f_sin_salida" string="No cerró salida" domain="[('check_out_missing', '=', True)]"/>
+                <filter name="f_permiso" string="Permiso o festivo"
+                        domain="[('adherence', 'in', ('permiso', 'festivo'))]"/>
+                <separator/>
+                <filter name="f_hoy" string="Hoy"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="f_semana" string="Últimos 7 días"
+                        domain="[('date', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_dep" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="g_dia" string="Día" context="{'group_by': 'date'}"/>
+                <filter name="g_adh" string="Asistencia" context="{'group_by': 'adherence'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_rrhh_asistencia_action" model="ir.actions.act_window">
+        <field name="name">Asistencia</field>
+        <field name="res_model">foco.workday</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="foco_workday_view_list_rrhh"/>
+        <field name="search_view_id" ref="foco_workday_view_search_rrhh"/>
+        <field name="domain">[('adherence', 'not in', ('no_laborable', 'sin_jornada', False))]</field>
+        <field name="context">{'search_default_f_hoy': 1, 'search_default_g_adh': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin asistencia medida</p>
+            <p>Cómo llegó cada persona cada día: a tiempo, tarde, sin registro o con
+               permiso, con su entrada y salida checadas y los minutos.</p>
+        </field>
+    </record>
+
     <!-- El KPI del tablero "Sin cerrar salida" abre esta vista, ya filtrada a
          los dias en que alguien checo entrada y nunca cerro. -->
     <record id="foco_workday_sin_salida_action" model="ir.actions.act_window">

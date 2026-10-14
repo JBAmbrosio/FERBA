@@ -54,4 +54,37 @@
         </field>
     </record>
 
+    <!-- Aprobar o rechazar, con nota, lo que alguien sin ventana no pudo
+         justificar. Un dialogo estandar de Odoo: la accion en btn-primary y
+         Descartar al lado. -->
+    <record id="foco_absence_decision_view_form" model="ir.ui.view">
+        <field name="name">foco.absence.decision.form</field>
+        <field name="model">foco.absence.decision</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="alert alert-info" role="alert" invisible="decision != 'aprobar'">
+                    El tiempo queda <b>justificado por ti</b> y cuenta como trabajo, igual que
+                    aceptar lo que pasó de los 90 minutos.
+                </div>
+                <div class="alert alert-warning" role="alert" invisible="decision != 'rechazar'">
+                    El tiempo queda <b>rechazado</b>: no cuenta como trabajo y se ve en el tablero
+                    como «Rechazado por ti».
+                </div>
+                <group>
+                    <field name="decision" invisible="1" force_save="1"/>
+                    <field name="absence_ids" invisible="1" force_save="1"/>
+                    <field name="resumen"/>
+                    <field name="nota" placeholder="Ejemplo: estuvo en el almacén surtiendo la orden 4512."/>
+                </group>
+                <footer>
+                    <button name="action_confirmar" type="object" string="Aprobar"
+                            class="btn-primary" invisible="decision != 'aprobar'" data-hotkey="q"/>
+                    <button name="action_confirmar" type="object" string="Rechazar"
+                            class="btn-primary" invisible="decision != 'rechazar'" data-hotkey="q"/>
+                    <button string="Descartar" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
 </odoo>

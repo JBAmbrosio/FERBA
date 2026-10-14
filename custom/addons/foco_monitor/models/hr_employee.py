@@ -12,18 +12,24 @@ class HrEmployee(models.Model):
     # foco_ventana_inactividad), no por persona: solo los equipos tienen Foco.
     # Ver foco.settings.ventana_computer_ids y foco.policy.conducta_para.
 
+    # prefetch=False en los tres (14-oct-2026): sin el, leer solo el NOMBRE de
+    # un empleado precargaba tambien estos campos, y a quien no es de RR.HH. en
+    # Odoo (el perfil de Recursos Humanos de Foco, por ejemplo) Odoo le niega
+    # todo lo que no es del perfil publico: "The fields foco_token,... are not
+    # available for employee public profiles". Asi solo se leen cuando el
+    # codigo los pide.
     foco_token = fields.Char(
-        string='Token de justificacion', copy=False, readonly=True,
+        string='Token de justificacion', copy=False, readonly=True, prefetch=False,
         help='Token de la liga con la que el empleado justifica sus periodos '
              'sin actividad, sin necesidad de usuario de Odoo.')
     foco_token_expiry = fields.Datetime(
-        string='Vence el', copy=False, readonly=True)
+        string='Vence el', copy=False, readonly=True, prefetch=False)
 
     # Tolerancia de entrada POR PERSONA (10-oct-2026). 0 = la global de Foco
     # (Configuracion > Asistencia y reporte diario). Sirve para la excepcion
     # acordada con alguien, no para ablandar la regla a todos.
     foco_gracia_min = fields.Integer(
-        string='Tolerancia de entrada (min)', default=0,
+        string='Tolerancia de entrada (min)', default=0, prefetch=False,
         help='Minutos de tolerancia para marcar "tarde" a esta persona. 0 usa '
              'la tolerancia global de Foco. Entre 0 y 120.')
 

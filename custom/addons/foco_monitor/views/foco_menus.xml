@@ -17,16 +17,38 @@
          quien mira, asi que un usuario de solo consulta ve Equipos con
          Computadoras dentro pero sin las acciones de administrador, y no ve
          Configuracion en absoluto. -->
+    <!-- La raiz la ven la consulta (y la administracion, que la implica) y el
+         perfil de Recursos Humanos. Por eso TODO lo de primer nivel lleva su
+         grupo explicito: un menu sin grupo heredaria el de la raiz y Recursos
+         Humanos lo veria. -->
     <menuitem id="menu_foco_root" name="Foco" sequence="90"
-              groups="foco_monitor.group_foco_user"/>
+              groups="foco_monitor.group_foco_user,foco_monitor.group_foco_rrhh"/>
+
+    <!-- ================================== PERFIL DE RECURSOS HUMANOS (14-oct)
+         Asistencia, periodos sin actividad y justificaciones, y nada mas. Van
+         primero: al abrir la aplicacion, Odoo entra al primer menu visible. -->
+    <menuitem id="menu_foco_rrhh_tablero" name="Tablero"
+              parent="menu_foco_root" action="foco_rrhh_action" sequence="1"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_asistencia" name="Asistencia"
+              parent="menu_foco_root" action="foco_rrhh_asistencia_action" sequence="2"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_periodos" name="Periodos sin actividad"
+              parent="menu_foco_root" action="foco_rrhh_periodos_action" sequence="3"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_revisar" name="Justificaciones a revisar"
+              parent="menu_foco_root" action="foco_rrhh_revisar_action" sequence="4"
+              groups="foco_monitor.group_foco_rrhh"/>
 
     <!-- Portada -->
     <menuitem id="menu_foco_dashboard" name="Tablero"
-              parent="menu_foco_root" action="foco_dashboard_action" sequence="10"/>
+              parent="menu_foco_root" action="foco_dashboard_action" sequence="10"
+              groups="foco_monitor.group_foco_user"/>
 
     <!-- ============================================ ACTIVIDAD (de la persona) -->
     <menuitem id="menu_foco_sec_actividad" name="Actividad"
-              parent="menu_foco_root" sequence="20"/>
+              parent="menu_foco_root" sequence="20"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_jornada" name="Jornada"
               parent="menu_foco_sec_actividad" action="foco_jornada_client" sequence="10"/>
@@ -72,7 +94,8 @@
 
     <!-- =================================================== EQUIPOS (acciones) -->
     <menuitem id="menu_foco_sec_equipos" name="Equipos"
-              parent="menu_foco_root" sequence="30"/>
+              parent="menu_foco_root" sequence="30"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_computers" name="Computadoras"
               parent="menu_foco_sec_equipos" action="foco_computer_action" sequence="10"/>
@@ -158,7 +181,8 @@
 
     <!-- ================================================= CATALOGO (clasificar) -->
     <menuitem id="menu_foco_sec_catalogo" name="Catalogo"
-              parent="menu_foco_root" sequence="40"/>
+              parent="menu_foco_root" sequence="40"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_apps" name="Aplicaciones"
               parent="menu_foco_sec_catalogo" action="foco_app_action" sequence="10"/>

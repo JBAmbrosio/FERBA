@@ -1261,6 +1261,13 @@ export class FocoDashboard extends Component {
                          detalle: (srv.devueltas_lista || []).slice(0, 5).map((d) => `${d.nombre}: "${d.texto}" (${d.veces} ${d.veces === 1 ? "vez" : "veces"})`),
                          mas: Math.max(srv.devueltas - 5, 0), accion: "abrirDevueltas", tono: "mid" });
         }
+        // Quien NO tiene ventana no puede justificar: lo suyo se decide aqui
+        // (Aprobar o Rechazar con una nota). 14-oct-2026.
+        if (srv.sin_ventana) {
+            items.push({ clave: "sin_ventana", titulo: "Sin ventana de justificación: decide tú (Aprobar o Rechazar)", n: srv.sin_ventana,
+                         detalle: (srv.sin_ventana_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n}, ${r.min} min)`),
+                         mas: Math.max((srv.sin_ventana_por || []).length - 5, 0), accion: "abrirSinVentana", tono: "mid" });
+        }
         if (srv.por_decidir) {
             items.push({ clave: "decidir", titulo: "Justificaciones por decidir: pasaron de sus 90 min del día", n: srv.por_decidir,
                          detalle: (srv.por_decidir_por || []).slice(0, 5).map((r) => `${r.nombre} (${r.n})`),
@@ -1549,6 +1556,14 @@ export class FocoDashboard extends Component {
     /** Consumo de IA por dia y por servicio. */
     abrirIA() {
         this.action.doAction("foco_monitor.foco_ai_usage_action");
+    }
+
+    /** Lo que no pudo justificar quien no tiene ventana: Aprobar o Rechazar. */
+    abrirSinVentana() {
+        this.action.doAction("foco_monitor.foco_absence_action", {
+            additionalContext: { search_default_sin_ventana_decidir: 1, search_default_pendientes: 0,
+                                 search_default_no_justificados: 0, search_default_g_emp: 1 },
+        });
     }
 
     /** Lo que paso de los 90 min del dia y espera Aceptar / Rechazar. */
