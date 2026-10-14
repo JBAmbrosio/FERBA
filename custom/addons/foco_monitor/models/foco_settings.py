@@ -910,9 +910,13 @@ class FocoSettings(models.Model):
             'views': [(self.env.ref('foco_monitor.foco_settings_view_form_movil').id, 'form')],
         }
 
-    @api.model
     def action_alcance(self):
         """Abre la lista de quien tiene acceso, para repartir departamentos.
+
+        SIN @api.model (14-oct-2026): lo llama el boton "Repartir departamentos"
+        del formulario de Accesos, y en Odoo 19 un boton de registro le pasa los
+        ids; con el decorador tronaba "takes 1 positional argument but 2 were
+        given". Ajustes lo sigue llamando sobre el modelo vacio, y funciona igual.
 
         Se limita a las personas con acceso a Foco: repartir alcance a alguien
         que ni siquiera ve la aplicacion no significa nada, y la lista completa
