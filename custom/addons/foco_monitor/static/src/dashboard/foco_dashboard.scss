@@ -12,6 +12,10 @@
     --low: #c0341d;  --low-fill: #dc3545;
     --prod: #16a34a; --nav: #8b5cf6; --neu: #64748b; --dis: #dc3545; --sis: #94a3b8;
     --sin: #cbd3df; --jus: #7cc69a; --amb: #d97706;
+    // El desglose completo de la jornada (13-oct-2026). Un tono por concepto y
+    // ninguno repetido con la zona medida: el rojo LISO es distraccion; el de
+    // "sin explicar" va RAYADO y el de "rechazado" es granate.
+    --vac: #0d9488; --pen: #dc2626; --rech: #881337; --com: #0ea5e9; --nada: #8b95a6;
     --brand: #e30613;
     --raise: 0 1px 2px rgba(16, 21, 31, .06);
     --ease: cubic-bezier(0.23, 1, 0.32, 1);
@@ -30,6 +34,7 @@
         --low: #f87171;  --low-fill: #ef4444;
         --prod: #22c55e; --nav: #a78bfa; --neu: #94a3b8; --dis: #ef4444; --sis: #64748b;
         --sin: #3a4353; --jus: #3f8f5f; --amb: #f59e0b;
+        --vac: #2dd4bf; --pen: #f87171; --rech: #be185d; --com: #38bdf8; --nada: #7c8797;
         --raise: 0 1px 2px rgba(0, 0, 0, .35);
     }
 
@@ -257,7 +262,21 @@
             &.aprobado { background: color-mix(in srgb, var(--jus) 70%, var(--prod)); }
             // Paso la bolsa y NADIE ha decidido: ambar. Nunca verde, porque
             // todavia no se sabe si es productivo (decision del dueno, 12-oct).
-            &.decidir { background: repeating-linear-gradient(135deg, var(--amb) 0 4px, color-mix(in srgb, var(--amb) 50%, transparent) 4px 8px); } }
+            &.decidir { background: repeating-linear-gradient(135deg, var(--amb) 0 4px, color-mix(in srgb, var(--amb) 50%, transparent) 4px 8px); }
+            // Vacaciones o permiso aprobado: explicado de antemano, liso.
+            &.vacaciones { background: var(--vac); }
+            // Nadie lo ha contestado: rojo RAYADO, para no confundirlo con la
+            // distraccion (rojo liso) y porque todavia puede cambiar.
+            &.sinexp { background: repeating-linear-gradient(135deg, var(--pen) 0 4px, color-mix(in srgb, var(--pen) 30%, transparent) 4px 8px); }
+            &.rechazado { background: var(--rech); }
+            // Lo que no llego a 15 min: no hay registro detras, solo la resta.
+            // Punteado, que se lee como "aqui no hay nada medido".
+            &.sinact { background:
+                radial-gradient(circle, color-mix(in srgb, var(--nada) 75%, transparent) 1.2px, transparent 1.6px) 0 0 / 5px 5px,
+                color-mix(in srgb, var(--nada) 14%, transparent); }
+            // La comida no es jornada: va al final, con aire antes.
+            &.comida { background: color-mix(in srgb, var(--com) 75%, transparent);
+                box-shadow: inset 2px 0 0 var(--card); } }
         .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: .55;
             &.fin { opacity: .25; }
             // La linea de la meta: lo que queda a su derecha no cuenta al 100%.
@@ -267,6 +286,50 @@
     .fd_dot.justificado { background: var(--jus); }
     .fd_dot.aprobado { background: color-mix(in srgb, var(--jus) 70%, var(--prod)); }
     .fd_dot.decidir { background: var(--amb); }
+    .fd_dot.vacaciones { background: var(--vac); }
+    .fd_dot.sinexp { background: repeating-linear-gradient(135deg, var(--pen) 0 2px, color-mix(in srgb, var(--pen) 30%, transparent) 2px 4px); }
+    .fd_dot.rechazado { background: var(--rech); }
+    .fd_dot.sinact { background: color-mix(in srgb, var(--nada) 22%, transparent);
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--nada) 70%, transparent); }
+    .fd_dot.comida { background: color-mix(in srgb, var(--com) 75%, transparent); }
+
+    // La leyenda en dos grupos: lo que va ANTES de la marca y lo que va despues.
+    // Doce colores en una sola fila no se leen; partidos por lo que significan, si.
+    .fd_legend_2 { display: grid; gap: 8px;
+        .grp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+        .cap { flex: 0 0 100%; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .05em; color: var(--ink3); } }
+
+    // ---------------------------------------- el desglose en numeros
+    .fd_desg_head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px;
+        padding: 4px 18px 8px; border-top: 1px solid var(--line); margin-top: 2px; }
+    .fd_desg_tog { border: 0; background: none; padding: 6px 0 0; font: inherit; font-size: 13px;
+        font-weight: 650; color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+        i { font-size: 10px; color: var(--ink3); width: 10px; }
+        &:hover { color: var(--accent); }
+        &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; } }
+    .fd_desg_wrap { overflow-x: auto; padding: 0 18px 10px; }
+    .fd_desg { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums;
+        min-width: 860px;
+        th { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+            color: var(--ink3); padding: 6px 8px; text-align: left; white-space: nowrap;
+            border-bottom: 1px solid var(--line);
+            .fd_dot { margin-right: 5px; vertical-align: 1px; } }
+        tr.sup th { border-bottom: 0; padding-bottom: 0;
+            &.grp { text-align: center; border-bottom: 1px solid var(--line); font-weight: 650;
+                text-transform: none; letter-spacing: 0; font-size: 11px; } }
+        td { padding: 6px 8px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+            color: var(--ink2); white-space: nowrap; }
+        .n { text-align: right; }
+        .b { font-weight: 700; color: var(--ink); }
+        .mute { color: var(--ink3); }
+        .warn { color: var(--mid); font-weight: 650; }
+        .bad { color: var(--low); font-weight: 650; }
+        .good { color: var(--good); } .mid { color: var(--mid); } .low { color: var(--low); }
+        td.p .pw { display: flex; align-items: center; gap: 8px; min-width: 0;
+            .nm { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; max-width: 220px; } }
+        tbody tr:hover td { background: color-mix(in srgb, var(--track) 70%, transparent); }
+        tfoot td { border-bottom: 0; border-top: 1.5px solid var(--line); font-weight: 650; color: var(--ink); } }
 
     // ------------------------------------------------- la linea del dia
     .fd_tl { padding: 4px 18px 10px; overflow-x: auto; }

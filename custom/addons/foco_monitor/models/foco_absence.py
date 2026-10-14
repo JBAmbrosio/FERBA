@@ -502,6 +502,42 @@ class FocoAbsence(models.Model):
                     return 'comida'
         return False
 
+    def _horas_en_comida(self, employee):
+        """Horas de estos periodos que caen en la comida del horario, y cuantas
+        de ellas estan justificadas.
+
+        La comida no es jornada: un hueco que cae entero ahi vale 0 en todo lo
+        demas (no gasta los 90 min, no suma a lo justificado). Sin este numero
+        el tablero no tendria con que ensenar que la persona SI contesto: medido
+        el 13-oct-2026, Edgar justifico 31 min a las 13:28 y su barra quedaba
+        vacia, igual que la de quien no contesta nada.
+        """
+        settings = self.env['foco.settings'].sudo()
+        comida = settings.break_intervals(employee.resource_calendar_id) if employee else {}
+        if not comida:
+            return 0.0, 0.0
+        tz = settings._tzinfo_for(employee)
+        total = justificada = 0.0
+        for rec in self:
+            if not rec.start or not rec.stop:
+                continue
+            a = pytz.UTC.localize(rec.start).astimezone(tz)
+            b = pytz.UTC.localize(rec.stop).astimezone(tz)
+            horas = 0.0
+            dia = a.date()
+            while dia <= b.date():
+                base = tz.localize(datetime.combine(dia, time(0, 0)))
+                for h_from, h_to in comida.get(dia.isoweekday()) or []:
+                    ini = max(a, base + timedelta(hours=h_from))
+                    fin = min(b, base + timedelta(hours=h_to))
+                    if fin > ini:
+                        horas += (fin - ini).total_seconds() / 3600.0
+                dia += timedelta(days=1)
+            total += horas
+            if rec.state == 'justificada':
+                justificada += horas
+        return total, justificada
+
     def payload(self):
         """Forma que consumen la ventana del agente y la pagina publica.
 
@@ -594,6 +630,20 @@ class FocoAbsence(models.Model):
         # configurado dice cuanto fue EXTRA. El indice NO cambia (sigue contra
         # la guia). Un dia sin cerrar salida no cuenta como extra.
         chk = Settings._checador_jornada(empleados, d_ini, d_fin)
+        # Lo ACTIVO DENTRO de la jornada, para el desglose completo (13-oct-2026,
+        # pedido del dueno: "Como viene cada quien" debe contar todos los
+        # tiempos de la jornada). Sale de los renglones que el agente etiqueta
+        # 'in' con la misma regla que el resto (checador o calendario). Una sola
+        # lectura para todos.
+        activo_jornada = {}
+        for emp_x, horas in self.env['foco.usage'].sudo()._read_group(
+                [('employee_id', 'in', empleados.ids),
+                 ('date', '>=', d_ini), ('date', '<=', d_fin),
+                 ('shift', '!=', 'off')],
+                ['employee_id'], ['fg_active:sum']):
+            if emp_x:
+                activo_jornada[emp_x.id] = horas or 0.0
+        ahora = fields.Datetime.now()
         out = {}
         for employee in empleados:
             tz = Settings._tzinfo_for(employee)
@@ -621,7 +671,35 @@ class FocoAbsence(models.Model):
             cubre_bolsa = justi - aprob
             pend = recs.filtered(lambda a: a.state == 'pendiente')
             decidir = recs.filtered(lambda a: a.state == 'por_decidir')
+            rechazada = recs.filtered(lambda a: a.state == 'rechazada')
+            vacaciones = recs.filtered(lambda a: a.state == 'auto')
+            # ---- El desglose completo de la jornada ------------------------
+            # La jornada que YA PASO: en un dia en curso, medir contra el dia
+            # entero pintaria a las 10 de la manana seis horas "sin actividad"
+            # que todavia no ocurren.
+            jornada_h = (settings.expected_seconds(employee, ini, min(fin, ahora)) / 3600.0
+                         if ahora > ini else 0.0)
+            activo_h = activo_jornada.get(employee.id, 0.0)
+            huecos_h = sum(recs.mapped('expected_seconds')) / 3600.0
+            comida_h, comida_just_h = (recs - vacaciones)._horas_en_comida(employee)
             out[str(employee.id)] = {
+                # Jornada transcurrida = activo en jornada + huecos de 15 min o
+                # mas (por estado) + sin actividad. Cuadra por construccion: la
+                # ultima pieza es lo que queda. La comida va APARTE: no es
+                # jornada, pero si la persona se fue y contesto, se tiene que ver.
+                'jornada_h': round(jornada_h, 4),
+                'activo_jornada_h': round(activo_h, 4),
+                'rechazado_h': sum(rechazada.mapped('expected_seconds')) / 3600.0,
+                'vacaciones_h': sum(vacaciones.mapped('expected_seconds')) / 3600.0,
+                # Lo que no alcanza el umbral de 15 min y por eso nunca abre una
+                # ventana: pausas cortas, llegar tarde, irse antes, el equipo
+                # apagado. Medido el 13-oct: hasta 3.9 h en una persona y no se
+                # veia en ningun lado. Si el activo se etiqueto 'in' en horas que
+                # no son jornada (quien trabaja en la comida con checador), la
+                # resta puede dar negativa por minutos: se acota a cero.
+                'sin_actividad_h': round(max(0.0, jornada_h - activo_h - huecos_h), 4),
+                'comida_h': round(comida_h, 4),
+                'comida_just_h': round(comida_just_h, 4),
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
                 'justified': sum(cubre_bolsa.mapped('expected_seconds')) / 3600.0,
                 'aprobado_h': sum(aprob.mapped('expected_seconds')) / 3600.0,
