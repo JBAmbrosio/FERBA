@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 
 from odoo import api, fields, models
 
+from .foco_estados_mx import estado_de
+
 
 ESTATUS_VENTAS = [
     ('prospecto', 'Prospecto'),
@@ -52,12 +54,61 @@ class ResPartner(models.Model):
         help='El enlace de Google Maps no traia coordenadas (p.ej. uno acortado): '
              'hay que geolocalizarlo o capturarlo en la primera visita.')
 
+    # La ZONA es el estado. Sale del pin (punto en el mapa de estados) y, si el
+    # cliente no tiene pin, del estado de su direccion. NO del texto de la zona
+    # del Excel: es un municipio y su nombre engana ("San Ignacio R.M." es San
+    # Ignacio Rio Muerto, Sonora, no San Ignacio de BCS).
+    foco_estado_id = fields.Many2one(
+        'res.country.state', string='Zona (estado)', index=True,
+        compute='_compute_foco_estado', store=True,
+        help='El estado en el que esta el cliente: por su ubicacion en el mapa y, '
+             'si no tiene ubicacion, por el estado de su direccion. Es la zona del '
+             'mapa de Vendedores y del telefono.')
+    foco_estado_origen = fields.Selection(
+        [('pin', 'Por su ubicacion'), ('direccion', 'Por su direccion')],
+        string='Zona tomada', compute='_compute_foco_estado', store=True)
+
     foco_visita_ids = fields.One2many('foco.visita', 'partner_id',
                                       string='Visitas')
     foco_visita_count = fields.Integer(string='Numero de visitas',
                                        compute='_compute_foco_visita')
     foco_ultima_visita = fields.Datetime(string='Ultima visita',
                                          compute='_compute_foco_visita')
+
+    @api.depends('foco_cliente_ventas', 'partner_latitude', 'partner_longitude',
+                 'state_id')
+    def _compute_foco_estado(self):
+        State = self.env['res.country.state'].sudo()
+        oficiales = {}
+
+        def oficial(code):
+            if code not in oficiales:
+                oficiales[code] = State.search(
+                    [('country_id.code', '=', 'MX'), ('code', '=', code)], limit=1)
+            return oficiales[code]
+
+        for p in self:
+            est, origen = State.browse(), False
+            if p.foco_cliente_ventas:
+                code, _km = estado_de(p.partner_latitude, p.partner_longitude)
+                if code:
+                    est, origen = oficial(code), 'pin'
+                if not est and p.state_id:
+                    est, origen = self._foco_estado_canonico(p.state_id), 'direccion'
+            p.foco_estado_id = est
+            p.foco_estado_origen = origen if est else False
+
+    @api.model
+    def _foco_estado_canonico(self, state):
+        """El estado OFICIAL con el mismo nombre. En produccion hay copias
+        capturadas a mano ('Baja California Sur' con codigo '23703', 'Baja
+        California' con '22920'): sin esto partirian una zona en dos."""
+        if not state or (state.code or '').isalpha():
+            return state
+        gemelos = self.env['res.country.state'].sudo().search(
+            [('country_id', '=', state.country_id.id), ('name', '=ilike', state.name),
+             ('id', '!=', state.id)])
+        return next((s for s in gemelos if (s.code or '').isalpha()), state)
 
     def _compute_foco_visita(self):
         # sudo A PROPOSITO: este contador se calcula al abrir/guardar CUALQUIER
@@ -99,6 +150,8 @@ class ResPartner(models.Model):
         dom = [('foco_cliente_ventas', '=', True)]
         if filtros.get('vendedor'):
             dom.append(('user_id', '=', int(filtros['vendedor'])))
+        if filtros.get('estado'):
+            dom.append(('foco_estado_id', '=', int(filtros['estado'])))
         if filtros.get('zona'):
             dom.append(('foco_zona', '=', filtros['zona']))
         if filtros.get('cultivo'):
@@ -153,6 +206,8 @@ class ResPartner(models.Model):
                 'lat': c.partner_latitude, 'lng': c.partner_longitude,
                 'estatus': est, 'color': ESTATUS_COLOR.get(est, '#94a3b8'),
                 'empaque': c.foco_empaque or '', 'zona': c.foco_zona or '',
+                'estado': c.foco_estado_id.name or '',
+                'estado_id': c.foco_estado_id.id or False,
                 'cultivo': c.foco_cultivo or '', 'contacto': c.foco_contacto or '',
                 'phone': c.phone or '',
                 'expediente': c.foco_expediente_url or '',
@@ -166,6 +221,12 @@ class ResPartner(models.Model):
 
         # --- catalogos para los filtros ---
         zonas = sorted({c.foco_zona for c in clientes if c.foco_zona})
+        n_estado = {}
+        for c in clientes:
+            if c.foco_estado_id:
+                n_estado[c.foco_estado_id] = n_estado.get(c.foco_estado_id, 0) + 1
+        estados = [{'id': s.id, 'name': s.name, 'n': n}
+                   for s, n in sorted(n_estado.items(), key=lambda x: (-x[1], x[0].name))]
         cultivos = sorted({c.foco_cultivo for c in clientes if c.foco_cultivo})
         vendedores, vistos = [], set()
         for c in clientes:
@@ -197,6 +258,7 @@ class ResPartner(models.Model):
                 'visitas_mes': visitas_mes, 'sin_visita_30': sin_visita_30,
             },
             'filtros': {
+                'estados': estados,
                 'zonas': zonas, 'cultivos': cultivos, 'vendedores': vendedores,
                 'estatus': [{'k': k, 'v': v} for k, v in ESTATUS_VENTAS],
             },

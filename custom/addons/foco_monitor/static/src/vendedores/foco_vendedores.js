@@ -25,9 +25,9 @@ export class FocoVendedores extends Component {
         this.action = useService("action");
         this.state = useState({
             loading: true, dark: false,
-            clientes: [], kpis: {}, cat: { zonas: [], cultivos: [], vendedores: [], estatus: [] },
+            clientes: [], kpis: {}, cat: { estados: [], zonas: [], cultivos: [], vendedores: [], estatus: [] },
             estatusLabels: {}, estatusColor: {},
-            f: { vendedor: "", zona: "", cultivo: "", estatus: "" },
+            f: { vendedor: "", estado: "", zona: "", cultivo: "", estatus: "" },
             sel: null, ultimo: null,
         });
         this.mapEl = useRef("map");
@@ -63,6 +63,7 @@ export class FocoVendedores extends Component {
         const f = this.state.f;
         const d = {};
         if (f.vendedor) d.vendedor = f.vendedor;
+        if (f.estado) d.estado = f.estado;
         if (f.zona) d.zona = f.zona;
         if (f.cultivo) d.cultivo = f.cultivo;
         if (f.estatus) d.estatus = f.estatus;
@@ -76,7 +77,7 @@ export class FocoVendedores extends Component {
             [this.filtrosActivos()]);
         this.state.clientes = r.clientes || [];
         this.state.kpis = r.kpis || {};
-        this.state.cat = r.filtros || { zonas: [], cultivos: [], vendedores: [], estatus: [] };
+        this.state.cat = r.filtros || { estados: [], zonas: [], cultivos: [], vendedores: [], estatus: [] };
         this.state.estatusLabels = r.estatus_labels || {};
         this.state.estatusColor = r.estatus_color || {};
         // si el cliente seleccionado ya no esta en el resultado, lo soltamos
@@ -94,13 +95,13 @@ export class FocoVendedores extends Component {
         this.load();
     }
     limpiar() {
-        this.state.f = { vendedor: "", zona: "", cultivo: "", estatus: "" };
+        this.state.f = { vendedor: "", estado: "", zona: "", cultivo: "", estatus: "" };
         this.load();
     }
 
     get hayFiltros() {
         const f = this.state.f;
-        return !!(f.vendedor || f.zona || f.cultivo || f.estatus);
+        return !!(f.vendedor || f.estado || f.zona || f.cultivo || f.estatus);
     }
 
     // --------------------------------------------------------------- tema

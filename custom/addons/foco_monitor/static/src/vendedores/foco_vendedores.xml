@@ -66,6 +66,15 @@
                     </select>
                 </div>
                 <div class="fv_fi">
+                    <i class="fa fa-globe"/>
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('estado', ev)">
+                        <option value="">Todos los estados</option>
+                        <t t-foreach="state.cat.estados or []" t-as="es" t-key="es.id">
+                            <option t-att-value="es.id" t-att-selected="('' + state.f.estado) === ('' + es.id)"><t t-esc="es.name"/> (<t t-esc="es.n"/>)</option>
+                        </t>
+                    </select>
+                </div>
+                <div class="fv_fi">
                     <i class="fa fa-map-o"/>
                     <select class="form-select form-select-sm" t-on-change="(ev) => this.setFiltro('zona', ev)">
                         <option value="">Todas las zonas</option>
@@ -133,6 +142,7 @@
                             <div t-if="state.sel.empaque"><i class="fa fa-industry"/><span t-esc="state.sel.empaque"/></div>
                             <div t-if="state.sel.contacto"><i class="fa fa-user"/><span t-esc="state.sel.contacto"/></div>
                             <div t-if="state.sel.phone"><i class="fa fa-phone"/><span t-esc="state.sel.phone"/></div>
+                            <div t-if="state.sel.estado"><i class="fa fa-globe"/><span t-esc="state.sel.estado"/></div>
                             <div t-if="state.sel.zona"><i class="fa fa-map-o"/><span t-esc="state.sel.zona"/></div>
                             <div t-if="state.sel.cultivo"><i class="fa fa-leaf"/><span t-esc="state.sel.cultivo"/></div>
                             <div t-if="state.sel.vendedor"><i class="fa fa-briefcase"/><span t-esc="state.sel.vendedor"/></div>
