@@ -76,6 +76,9 @@ ADH_CON_ENTRADA = ('a_tiempo', 'tarde')
 # Los que cuentan como ausencia afirmable en un dia laborable cerrado.
 ADH_AUSENCIA = ('falto', 'sin_senal')
 
+# Quien puede leer lo que la persona HIZO en su equipo (no su asistencia).
+_USO = 'foco_monitor.group_foco_user'
+
 
 class FocoWorkday(models.Model):
     """La jornada de una persona en un dia: a que hora empezo, a que hora termino.
@@ -109,19 +112,23 @@ class FocoWorkday(models.Model):
              'entrada a la oficina: el sistema no sabe eso, sabe a que hora '
              'aparecio en su equipo.')
     last_signal = fields.Datetime(string='Ultima senal', readonly=True)
-    first_kind = fields.Char(string='Como empezo', readonly=True)
-    last_kind = fields.Char(string='Como termino', readonly=True)
+    # Los campos de USO del equipo llevan `groups=_USO`: el perfil de Recursos
+    # Humanos lee la jornada para la asistencia, pero no el tiempo activo ni
+    # nada de lo que hizo en el equipo (14-oct-2026). Con `groups` el campo ni
+    # se le lee, no solo se le esconde en la vista.
+    first_kind = fields.Char(string='Como empezo', readonly=True, groups=_USO)
+    last_kind = fields.Char(string='Como termino', readonly=True, groups=_USO)
 
     span_hours = fields.Float(
-        string='De la primera a la ultima (h)', readonly=True,
+        string='De la primera a la ultima (h)', readonly=True, groups=_USO,
         help='El largo del dia, huecos incluidos. No es tiempo trabajado.')
-    active_hours = fields.Float(string='Activo (h)', readonly=True)
-    idle_hours = fields.Float(string='Sin input (h)', readonly=True)
-    call_hours = fields.Float(string='En llamada (h)', readonly=True)
+    active_hours = fields.Float(string='Activo (h)', readonly=True, groups=_USO)
+    idle_hours = fields.Float(string='Sin input (h)', readonly=True, groups=_USO)
+    call_hours = fields.Float(string='En llamada (h)', readonly=True, groups=_USO)
     in_shift_hours = fields.Float(
-        string='Dentro de jornada (h)', readonly=True)
+        string='Dentro de jornada (h)', readonly=True, groups=_USO)
     off_shift_hours = fields.Float(
-        string='Fuera de jornada (h)', readonly=True,
+        string='Fuera de jornada (h)', readonly=True, groups=_USO,
         help='Tiempo activo medido fuera del horario. No es una falta ni un '
              'merito: es tiempo que antes no se registraba y ahora si, para '
              'que se pueda reconocer a quien devuelve horas o se queda de mas.')
@@ -141,7 +148,7 @@ class FocoWorkday(models.Model):
         help='Cuanto duro la jornada de ese dia segun su fuente: de la entrada '
              'a la salida checadas, o las franjas del calendario laboral.')
     shift_gap_hours = fields.Float(
-        string='Jornada sin senal (h)', readonly=True,
+        string='Jornada sin senal (h)', readonly=True, groups=_USO,
         help='La jornada menos el tiempo con SENAL del equipo dentro de ella '
              '(activo o con una ventana al frente sin input): estuvo checado '
              '(o era su horario) y el equipo no dio senal alguna. Una junta '
@@ -202,12 +209,12 @@ class FocoWorkday(models.Model):
     expected_end = fields.Float(string='Hora de salida (horario)', readonly=True)
     leave_name = fields.Char(string='Permiso o festivo', readonly=True)
 
-    gap_count = fields.Integer(string='Huecos', readonly=True)
+    gap_count = fields.Integer(string='Huecos', readonly=True, groups=_USO)
     unexplained_minutes = fields.Integer(
-        string='Sin explicar (min)', readonly=True,
+        string='Sin explicar (min)', readonly=True, groups=_USO,
         help='Huecos que no cubre ni el calendario ni un evento del equipo ni '
              'una justificacion. Es lo unico que amerita una conversacion.')
-    power_events = fields.Integer(string='Eventos del equipo', readonly=True)
+    power_events = fields.Integer(string='Eventos del equipo', readonly=True, groups=_USO)
 
     state = fields.Selection(
         [('completo', 'Con horario'),

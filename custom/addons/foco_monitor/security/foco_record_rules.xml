@@ -77,6 +77,22 @@
         <field name="groups" eval="[(4, ref('group_foco_user'))]"/>
         <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
     </record>
+    <!-- Recursos Humanos: el mismo alcance por departamento que la consulta, en
+         los dos unicos modelos que ve (periodos y jornada). Sin estas reglas no
+         le aplicaria ninguna y veria a toda la empresa aunque se le acotara. -->
+    <record id="rule_foco_absence_rrhh" model="ir.rule">
+        <field name="name">Foco: ausencias del alcance asignado (RRHH)</field>
+        <field name="model_id" ref="model_foco_absence"/>
+        <field name="groups" eval="[(4, ref('group_foco_rrhh'))]"/>
+        <field name="domain_force">[('employee_id.department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_workday_rrhh" model="ir.rule">
+        <field name="name">Foco: jornadas del alcance asignado (RRHH)</field>
+        <field name="model_id" ref="model_foco_workday"/>
+        <field name="groups" eval="[(4, ref('group_foco_rrhh'))]"/>
+        <field name="domain_force">[('department_id', 'in', user.foco_department_ids.ids)] if user.foco_department_ids else [(1, '=', 1)]</field>
+    </record>
+
     <!-- La jornada y los eventos siguen exactamente el mismo alcance que el
          uso: quien ve a un departamento ve su jornada, y nadie mas. -->
     <record id="rule_foco_event_admin" model="ir.rule">

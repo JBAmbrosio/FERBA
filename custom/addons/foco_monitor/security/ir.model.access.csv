@@ -79,3 +79,9 @@ access_foco_ai_usage_manager,foco.ai.usage manager,model_foco_ai_usage,group_foc
 access_foco_absence_msg_user,foco.absence.msg user,model_foco_absence_msg,group_foco_user,1,0,0,0
 access_foco_absence_msg_manager,foco.absence.msg manager,model_foco_absence_msg,group_foco_manager,1,1,1,1
 access_foco_absence_devolver_manager,foco.absence.devolver manager,model_foco_absence_devolver,group_foco_manager,1,1,1,1
+access_foco_absence_rrhh,foco.absence rrhh,model_foco_absence,group_foco_rrhh,1,0,0,0
+access_foco_absence_msg_rrhh,foco.absence.msg rrhh,model_foco_absence_msg,group_foco_rrhh,1,0,0,0
+access_foco_workday_rrhh,foco.workday rrhh,model_foco_workday,group_foco_rrhh,1,0,0,0
+access_foco_absence_devolver_rrhh,foco.absence.devolver rrhh,model_foco_absence_devolver,group_foco_rrhh,1,1,1,1
+access_foco_absence_decision_manager,foco.absence.decision manager,model_foco_absence_decision,group_foco_manager,1,1,1,1
+access_foco_absence_decision_rrhh,foco.absence.decision rrhh,model_foco_absence_decision,group_foco_rrhh,1,1,1,1

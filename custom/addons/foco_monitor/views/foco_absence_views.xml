@@ -13,6 +13,16 @@
                   decoration-info="state == 'por_decidir'"
                   decoration-danger="state in ('rechazada', 'no_justificado')"
                   decoration-muted="state == 'auto'">
+                <!-- Decidir varios a la vez: se eligen en la lista. Solo aplica a
+                     quien NO tiene ventana (los demas se justifican solos). -->
+                <header>
+                    <button name="action_aprobar_sin_ventana" type="object" string="Aprobar"
+                            class="btn-primary"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <button name="action_rechazar_sin_ventana" type="object" string="Rechazar"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                </header>
+                <field name="ventana" column_invisible="1"/>
                 <field name="start"/>
                 <field name="stop"/>
                 <field name="employee_id"/>
@@ -30,13 +40,23 @@
                        invisible="cubierta_por != 'gracia'"/>
                 <field name="reason"/>
                 <field name="note" optional="show"/>
-                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
-                        class="btn-success btn-sm" invisible="state not in ('por_decidir', 'no_justificado')"/>
+                <field name="decision_nota" optional="show"/>
+                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-thumbs-up"
+                        invisible="state not in ('por_decidir', 'no_justificado') or (not ventana and state == 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
-                        class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
+                        invisible="state != 'por_decidir'"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <button name="action_devolver_mensaje" type="object" string="Devolver"
-                        icon="fa-reply" class="btn-outline-primary btn-sm"
-                        invisible="state != 'no_justificado'"/>
+                        icon="fa-reply" invisible="state != 'no_justificado' or not ventana"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                <!-- Quien NO tiene ventana no puede contestar: se decide por el. -->
+                <button name="action_aprobar_sin_ventana" type="object" string="Aprobar" icon="fa-thumbs-up"
+                        invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                <button name="action_rechazar_sin_ventana" type="object" string="Rechazar" icon="fa-times"
+                        invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <field name="ai_veredicto" optional="hide"/>
                 <field name="ai_pregunta" optional="hide"/>
                 <field name="ai_categoria" optional="show"/>
@@ -73,13 +93,23 @@
                 <field name="ai_pregunta" optional="show"/>
                 <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo"/>
-                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
-                        class="btn-success btn-sm" invisible="state not in ('por_decidir', 'no_justificado')"/>
+                <field name="ventana" column_invisible="1"/>
+                <button name="action_aceptar" type="object" string="Aceptar" icon="fa-thumbs-up"
+                        invisible="state not in ('por_decidir', 'no_justificado') or (not ventana and state == 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
-                        class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
+                        invisible="state != 'por_decidir'"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <button name="action_devolver_mensaje" type="object" string="Devolver"
-                        icon="fa-reply" class="btn-outline-primary btn-sm"
-                        invisible="state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"/>
+                        icon="fa-reply"
+                        invisible="not ventana or state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                <button name="action_aprobar_sin_ventana" type="object" string="Aprobar" icon="fa-thumbs-up"
+                        invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                <button name="action_rechazar_sin_ventana" type="object" string="Rechazar" icon="fa-times"
+                        invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                        groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 <field name="msg_count" string="Mensajes" optional="show"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
                 <field name="rebotes" string="Devuelta (veces)" optional="show"/>
@@ -98,26 +128,42 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_aceptar" type="object" string="Aceptar"
-                            class="btn-success" icon="fa-check"
-                            invisible="state not in ('por_decidir', 'no_justificado')"/>
+                    <button name="action_aceptar" type="object" string="Aceptar" class="oe_highlight"
+                            invisible="state not in ('por_decidir', 'no_justificado') or (not ventana and state == 'no_justificado')"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                     <button name="action_rechazar" type="object" string="Rechazar"
-                            class="btn-danger" icon="fa-times"
-                            invisible="state != 'por_decidir'"/>
-                    <button name="action_devolver_mensaje" type="object"
-                            string="Devolver con mi mensaje" icon="fa-reply"
-                            invisible="state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"/>
-                    <button name="action_reconsiderar" type="object" string="Volver a Por decidir"
-                            invisible="not (state == 'rechazada' or (state == 'justificada' and cubierta_por == 'admin'))"/>
-                    <button name="action_marcar_revisado" type="object" string="Marcar revisado"
-                            class="btn-primary" icon="fa-check"
-                            invisible="review_visto or not ai_requiere_revision"/>
+                            invisible="state != 'por_decidir'"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <!-- Quien NO tiene ventana no puede contestar: se decide por el. -->
+                    <button name="action_aprobar_sin_ventana" type="object" string="Aprobar" class="oe_highlight"
+                            invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <button name="action_rechazar_sin_ventana" type="object" string="Rechazar"
+                            invisible="ventana or state not in ('pendiente', 'no_justificado')"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <button name="action_devolver_mensaje" type="object" string="Devolver con mi mensaje"
+                            invisible="not ventana or state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <button name="action_reconsiderar" type="object" string="Volver a decidir"
+                            invisible="not (state == 'rechazada' or (state == 'justificada' and cubierta_por == 'admin'))"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
+                    <button name="action_marcar_revisado" type="object" string="Marcar revisado" class="oe_highlight"
+                            invisible="review_visto or not ai_requiere_revision"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                     <button name="action_reabrir_revision" type="object" string="Reabrir"
-                            invisible="not review_visto"/>
+                            invisible="not review_visto"
+                            groups="foco_monitor.group_foco_manager,foco_monitor.group_foco_rrhh"/>
                 </header>
                 <sheet>
+                    <field name="ventana" invisible="1"/>
                     <div class="oe_title">
                         <h1><field name="employee_id" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="ventana or state not in ('pendiente', 'no_justificado')">
+                        Esta persona <b>no tiene la ventana de justificación</b>: no puede contestar
+                        este periodo. Decide tú con <b>Aprobar</b> (cuenta como trabajo) o
+                        <b>Rechazar</b> (no cuenta), y deja una nota.
                     </div>
                     <div class="alert alert-info" role="alert" invisible="state != 'por_decidir'">
                         Esta justificacion paso de los minutos justificables del dia de la persona.
@@ -189,6 +235,7 @@
                             <field name="origen_id" readonly="1" invisible="not origen_id"/>
                             <field name="decidido_por" readonly="1" invisible="not decidido_por"/>
                             <field name="decidido_at" readonly="1" invisible="not decidido_at"/>
+                            <field name="decidido_sin_ventana" readonly="1" invisible="not decidido_sin_ventana"/>
                             <field name="decision_nota"/>
                         </group>
                     </group>
@@ -245,6 +292,15 @@
                 <filter name="devueltas" string="Devueltas al empleado ahora"
                         domain="[('rebote_pendiente', '=', True)]"/>
                 <separator/>
+                <!-- Quien no tiene ventana no puede justificar: lo decide el
+                     administrador o Recursos Humanos. -->
+                <filter name="sin_ventana_decidir" string="Sin ventana: por decidir"
+                        domain="[('ventana', '=', False), ('state', 'in', ('pendiente', 'no_justificado'))]"/>
+                <filter name="sin_ventana" string="Personas sin ventana"
+                        domain="[('ventana', '=', False)]"/>
+                <filter name="decididos_sin_ventana" string="Decididos sin ventana"
+                        domain="[('decidido_sin_ventana', '=', True)]"/>
+                <separator/>
                 <filter name="semana" string="Ultimos 7 dias"
                         domain="[('start', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
@@ -297,6 +353,79 @@
                devolverselo). Regla de los 90 minutos: lo que la persona justifica
                se carga a su bolsa del dia; lo que pasa de ahi queda "Por decidir"
                con Aceptar y Rechazar.</p>
+        </field>
+    </record>
+
+    <!-- ======================================== PERFIL DE RECURSOS HUMANOS
+         Las mismas vistas, sin lo que no le toca: el equipo (Recursos Humanos
+         no ve equipos) y sin poder abrir fichas de otros modelos desde aqui
+         (empleado, usuario que decidio). Heredan en modo primario para que
+         todo lo demas siga igual que en las del administrador. -->
+    <record id="foco_absence_view_list_rrhh" model="ir.ui.view">
+        <field name="name">foco.absence.list.rrhh</field>
+        <field name="model">foco.absence</field>
+        <field name="inherit_id" ref="foco_absence_view_list"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="computer_id" position="replace"/>
+        </field>
+    </record>
+
+    <record id="foco_absence_view_form_rrhh" model="ir.ui.view">
+        <field name="name">foco.absence.form.rrhh</field>
+        <field name="model">foco.absence</field>
+        <field name="inherit_id" ref="foco_absence_view_form"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="computer_id" position="replace"/>
+            <field name="employee_id" position="attributes">
+                <attribute name="options">{'no_open': True}</attribute>
+            </field>
+            <field name="decidido_por" position="attributes">
+                <attribute name="options">{'no_open': True}</attribute>
+            </field>
+            <field name="review_por" position="attributes">
+                <attribute name="options">{'no_open': True}</attribute>
+            </field>
+            <field name="origen_id" position="attributes">
+                <attribute name="options">{'no_open': True}</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="foco_rrhh_periodos_action" model="ir.actions.act_window">
+        <field name="name">Periodos sin actividad</field>
+        <field name="res_model">foco.absence</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_absence_view_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('foco_absence_view_list_rrhh')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('foco_absence_view_form_rrhh')})]"/>
+        <field name="context">{'search_default_pendientes': 1, 'search_default_no_justificados': 1, 'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin periodos por revisar</p>
+            <p>Los huecos de 15 minutos o más sin actividad en el equipo. Quien tiene la
+               ventana los justifica el mismo día; lo que pasa de sus 90 minutos queda
+               «Por decidir» con Aceptar y Rechazar. Quien <b>no</b> tiene ventana no puede
+               justificar: sus periodos se deciden aquí con Aprobar o Rechazar y una nota.</p>
+        </field>
+    </record>
+
+    <record id="foco_rrhh_revisar_action" model="ir.actions.act_window">
+        <field name="name">Justificaciones a revisar</field>
+        <field name="res_model">foco.absence</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_absence_view_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('foco_absence_review_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('foco_absence_view_form_rrhh')})]"/>
+        <field name="domain">[('ai_requiere_revision', '=', True)]</field>
+        <field name="context">{'search_default_sin_revisar': 1, 'search_default_g_emp': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nada por revisar</p>
+            <p>Las justificaciones que la IA leyó y marcó como VAGAS: las que no dan ninguna
+               razón. Revísalas con la persona y marca «Revisado». Es evidencia del modelo,
+               nunca un veredicto final.</p>
         </field>
     </record>
 </odoo>

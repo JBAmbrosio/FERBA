@@ -34,5 +34,12 @@ class ResUsers(models.Model):
         if (set(vals) == {'foco_department_ids'}
                 and not self.env.su
                 and self.env.user.has_group('foco_monitor.group_foco_manager')):
-            return super(ResUsers, self.sudo()).write(vals)
-        return super().write(vals)
+            res = super(ResUsers, self.sudo()).write(vals)
+        else:
+            res = super().write(vals)
+        if 'foco_department_ids' in vals:
+            # Odoo guarda en cache, por usuario, el dominio de las reglas de
+            # registro, y cambiar este campo no lo limpia: el alcance nuevo no
+            # aplicaba hasta reiniciar el servidor (medido el 14-oct-2026).
+            self.env.registry.clear_cache()
+        return res

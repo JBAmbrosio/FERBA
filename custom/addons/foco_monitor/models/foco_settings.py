@@ -830,6 +830,16 @@ class FocoSettings(models.Model):
         help='Ademas de ver, clasifican apps y sitios, envian ordenes remotas y '
              'gestionan estos accesos. Incluye de forma automatica el permiso '
              'de consulta.')
+    # Perfil de Recursos Humanos (reunion del 14-oct-2026): solo asistencia,
+    # periodos sin actividad y justificaciones. Quien esta aqui sale de la
+    # lista de consulta: estar en las dos le daria a ver todo.
+    access_rrhh_ids = fields.Many2many(
+        'res.users', string='Recursos Humanos',
+        compute='_compute_accesos', inverse='_inverse_access_rrhh',
+        help='Solo ven la asistencia, los periodos sin actividad y las '
+             'justificaciones, y deciden sobre ellas (aceptar, rechazar, '
+             'aprobar lo de quien no tiene ventana, devolver, marcar revisado). '
+             'No ven el uso de apps, los equipos ni nada mas de Foco.')
 
     def _grupo(self, xmlid):
         return self.env.ref('foco_monitor.' + xmlid, raise_if_not_found=False)
@@ -838,16 +848,20 @@ class FocoSettings(models.Model):
     def _compute_accesos(self):
         g_user = self._grupo('group_foco_user')
         g_admin = self._grupo('group_foco_manager')
+        g_rrhh = self._grupo('group_foco_rrhh')
         for rec in self:
             rec.access_user_ids = g_user.user_ids if g_user else False
             rec.access_manager_ids = g_admin.user_ids if g_admin else False
+            rec.access_rrhh_ids = g_rrhh.user_ids if g_rrhh else False
 
     def _inverse_access_user(self):
         g_user = self._grupo('group_foco_user')
         if not g_user:
             return
         for rec in self:
-            g_user.sudo().user_ids = [(6, 0, rec.access_user_ids.ids)]
+            # Quien es de Recursos Humanos no entra a consulta (veria todo),
+            # sin importar en que orden corran los dos inversos al guardar.
+            g_user.sudo().user_ids = [(6, 0, (rec.access_user_ids - rec.access_rrhh_ids).ids)]
 
     def _inverse_access_manager(self):
         g_admin = self._grupo('group_foco_manager')
@@ -855,6 +869,18 @@ class FocoSettings(models.Model):
             return
         for rec in self:
             g_admin.sudo().user_ids = [(6, 0, rec.access_manager_ids.ids)]
+
+    def _inverse_access_rrhh(self):
+        g_rrhh = self._grupo('group_foco_rrhh')
+        g_user = self._grupo('group_foco_user')
+        if not g_rrhh:
+            return
+        for rec in self:
+            g_rrhh.sudo().user_ids = [(6, 0, rec.access_rrhh_ids.ids)]
+            # Recursos Humanos NO es consulta: si estaba en las dos, veria todo.
+            if g_user and rec.access_rrhh_ids:
+                g_user.sudo().user_ids = [(3, u.id) for u in rec.access_rrhh_ids
+                                          if u in g_user.user_ids]
 
     @api.model
     def action_accesos(self):
@@ -884,9 +910,13 @@ class FocoSettings(models.Model):
             'views': [(self.env.ref('foco_monitor.foco_settings_view_form_movil').id, 'form')],
         }
 
-    @api.model
     def action_alcance(self):
         """Abre la lista de quien tiene acceso, para repartir departamentos.
+
+        SIN @api.model (14-oct-2026): lo llama el boton "Repartir departamentos"
+        del formulario de Accesos, y en Odoo 19 un boton de registro le pasa los
+        ids; con el decorador tronaba "takes 1 positional argument but 2 were
+        given". Ajustes lo sigue llamando sobre el modelo vacio, y funciona igual.
 
         Se limita a las personas con acceso a Foco: repartir alcance a alguien
         que ni siquiera ve la aplicacion no significa nada, y la lista completa
@@ -894,8 +924,10 @@ class FocoSettings(models.Model):
         """
         g_ver = self._grupo('group_foco_user')
         g_admin = self._grupo('group_foco_manager')
+        g_rrhh = self._grupo('group_foco_rrhh')
         usuarios = (g_ver.user_ids if g_ver else self.env['res.users'])
         usuarios |= (g_admin.user_ids if g_admin else self.env['res.users'])
+        usuarios |= (g_rrhh.user_ids if g_rrhh else self.env['res.users'])
         return {
             'type': 'ir.actions.act_window',
             'name': 'Que ve cada quien',
