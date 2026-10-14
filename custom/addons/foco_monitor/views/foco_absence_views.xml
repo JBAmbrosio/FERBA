@@ -6,11 +6,12 @@
         <field name="arch" type="xml">
             <!-- Regla de los 90 min: verde = justificada (cabe en su bolsa o la
                  acepto el admin); azul = por decidir (paso de la bolsa); rojo =
-                 rechazada; ambar = sin justificar. -->
+                 rechazada o NO JUSTIFICADO (se le paso el dia); ambar = por
+                 justificar todavia hoy. -->
             <list decoration-success="state == 'justificada'"
                   decoration-warning="state == 'pendiente'"
                   decoration-info="state == 'por_decidir'"
-                  decoration-danger="state == 'rechazada'"
+                  decoration-danger="state in ('rechazada', 'no_justificado')"
                   decoration-muted="state == 'auto'">
                 <field name="start"/>
                 <field name="stop"/>
@@ -21,7 +22,7 @@
                        decoration-success="state == 'justificada'"
                        decoration-warning="state == 'pendiente'"
                        decoration-info="state == 'por_decidir'"
-                       decoration-danger="state == 'rechazada'"/>
+                       decoration-danger="state in ('rechazada', 'no_justificado')"/>
                 <field name="cubierta_por" optional="show"/>
                 <field name="gracia_min" string="De sus 90" optional="show"
                        invisible="cubierta_por != 'gracia'"/>
@@ -30,9 +31,12 @@
                 <field name="reason"/>
                 <field name="note" optional="show"/>
                 <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
-                        class="btn-success btn-sm" invisible="state != 'por_decidir'"/>
+                        class="btn-success btn-sm" invisible="state not in ('por_decidir', 'no_justificado')"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
                         class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
+                <button name="action_devolver_mensaje" type="object" string="Devolver"
+                        icon="fa-reply" class="btn-outline-primary btn-sm"
+                        invisible="state != 'no_justificado'"/>
                 <field name="ai_veredicto" optional="hide"/>
                 <field name="ai_pregunta" optional="hide"/>
                 <field name="ai_categoria" optional="show"/>
@@ -63,19 +67,19 @@
                        decoration-success="state == 'justificada'"
                        decoration-warning="state == 'pendiente'"
                        decoration-info="state == 'por_decidir'"
-                       decoration-danger="state == 'rechazada'"/>
+                       decoration-danger="state in ('rechazada', 'no_justificado')"/>
                 <field name="ai_veredicto" widget="badge"
                        decoration-warning="ai_veredicto in ('vaga', 'insuficiente')"/>
                 <field name="ai_pregunta" optional="show"/>
                 <field name="ai_categoria" optional="show"/>
                 <field name="ai_motivo"/>
                 <button name="action_aceptar" type="object" string="Aceptar" icon="fa-check"
-                        class="btn-success btn-sm" invisible="state != 'por_decidir'"/>
+                        class="btn-success btn-sm" invisible="state not in ('por_decidir', 'no_justificado')"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
                         class="btn-outline-danger btn-sm" invisible="state != 'por_decidir'"/>
                 <button name="action_devolver_mensaje" type="object" string="Devolver"
                         icon="fa-reply" class="btn-outline-primary btn-sm"
-                        invisible="state not in ('por_decidir', 'justificada', 'rechazada')"/>
+                        invisible="state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"/>
                 <field name="msg_count" string="Mensajes" optional="show"/>
                 <field name="ai_confianza" widget="percentage" optional="show"/>
                 <field name="rebotes" string="Devuelta (veces)" optional="show"/>
@@ -96,13 +100,13 @@
                 <header>
                     <button name="action_aceptar" type="object" string="Aceptar"
                             class="btn-success" icon="fa-check"
-                            invisible="state != 'por_decidir'"/>
+                            invisible="state not in ('por_decidir', 'no_justificado')"/>
                     <button name="action_rechazar" type="object" string="Rechazar"
                             class="btn-danger" icon="fa-times"
                             invisible="state != 'por_decidir'"/>
                     <button name="action_devolver_mensaje" type="object"
                             string="Devolver con mi mensaje" icon="fa-reply"
-                            invisible="state not in ('por_decidir', 'justificada', 'rechazada')"/>
+                            invisible="state not in ('por_decidir', 'justificada', 'rechazada', 'no_justificado')"/>
                     <button name="action_reconsiderar" type="object" string="Volver a Por decidir"
                             invisible="not (state == 'rechazada' or (state == 'justificada' and cubierta_por == 'admin'))"/>
                     <button name="action_marcar_revisado" type="object" string="Marcar revisado"
@@ -119,6 +123,12 @@
                         Esta justificacion paso de los minutos justificables del dia de la persona.
                         No cuenta como cubierta hasta que la aceptes. Si la rechazas, queda como
                         tiempo sin cubrir.
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'no_justificado'">
+                        Se le paso el dia sin contestarlo. Los periodos se justifican el mismo
+                        dia; despues ya no se le preguntan. Si conoces la razon, puedes
+                        aceptarlo; o devolverselo con tu mensaje, y lo podra contestar hasta
+                        que termine hoy.
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="not ai_requiere_revision or review_visto">
@@ -206,8 +216,10 @@
             <search>
                 <field name="employee_id"/>
                 <field name="reason"/>
-                <filter name="pendientes" string="Por justificar"
+                <filter name="pendientes" string="Por justificar (hoy)"
                         domain="[('state', '=', 'pendiente')]"/>
+                <filter name="no_justificados" string="No justificados (se les paso el dia)"
+                        domain="[('state', '=', 'no_justificado')]"/>
                 <filter name="justificadas" string="Justificadas"
                         domain="[('state', '=', 'justificada')]"/>
                 <filter name="por_decidir" string="Por decidir (pasaron de sus 90 min)"
@@ -272,15 +284,19 @@
         <field name="res_model">foco.absence</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="foco_absence_view_search"/>
-        <field name="context">{'search_default_pendientes': 1, 'search_default_g_emp': 1}</field>
+        <!-- Los dos filtros van en el mismo grupo, asi que se suman (OR): de
+             entrada se ve TODO lo que no tiene justificacion, lo de hoy y lo
+             que se les paso. -->
+        <field name="context">{'search_default_pendientes': 1, 'search_default_no_justificados': 1, 'search_default_g_emp': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Sin periodos registrados</p>
             <p>Aqui aparecen los huecos de la jornada que el sistema no puede
-               explicar solo. Los que caen fuera del horario o en la comida del
-               calendario entran como "Explicadas por calendario" y nadie tiene
-               que contestarlas. Regla de los 90 minutos: lo que la persona
-               justifica se carga a su bolsa del dia; lo que pasa de ahi queda
-               "Por decidir" con Aceptar y Rechazar.</p>
+               explicar solo. Regla del mismo dia: un periodo se justifica el dia
+               en que paso; lo que no se contesta ese dia queda "No justificado"
+               y ya no se le pregunta a la persona (tu todavia puedes aceptarlo o
+               devolverselo). Regla de los 90 minutos: lo que la persona justifica
+               se carga a su bolsa del dia; lo que pasa de ahi queda "Por decidir"
+               con Aceptar y Rechazar.</p>
         </field>
     </record>
 </odoo>

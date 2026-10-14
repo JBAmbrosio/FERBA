@@ -37,6 +37,14 @@ KINDS = [
     # Registro de Windows (UserPnP 20001/20003), solo clases de ENTRADA: mouse,
     # teclado, HID. Un jiggler de hardware o un telefono como mouse entran aqui.
     ('dispositivo_nuevo', 'Dispositivo de entrada nuevo'),
+    # La ventana de justificacion deja RASTRO (13-oct-2026). Antes no habia
+    # forma de saber si a alguien le salio y se fue, o si se fue antes de que
+    # saliera: el caso de Miguel Adrian a las 16:19 no se pudo probar. Viven
+    # aqui ANTES que en el agente: un tipo que el servidor no conoce se
+    # descarta en silencio.
+    ('ventana_abierta', 'Le salio la ventana de justificacion'),
+    ('ventana_justificada', 'Justifico en la ventana'),
+    ('ventana_cerrada', 'Cerraron la ventana sin justificar'),
 ]
 
 class FocoEvent(models.Model):

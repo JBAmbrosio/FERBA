@@ -18,7 +18,10 @@ _logger = logging.getLogger(__name__)
 # Sin esto, ese reinicio marcaba el inicio de la jornada a las 3 a.m. y el dia
 # se leia como de veinte horas.
 CON_PERSONA = ('agente_inicio', 'agente_fin', 'desbloqueo', 'bloqueo',
-               'llamada_inicio', 'llamada_fin')
+               'llamada_inicio', 'llamada_fin',
+               # La ventana solo se abre con alguien delante (input en los
+               # ultimos 2 min), y contestarla o cerrarla a la fuerza es una mano.
+               'ventana_abierta', 'ventana_justificada', 'ventana_cerrada')
 
 # 'apagado_solicitado' (evento 1074) es el caso mixto: lo puede pedir la persona
 # o un servicio. Se resuelve mirando QUIEN lo pidio, que el propio evento trae.
@@ -295,8 +298,11 @@ class FocoWorkday(models.Model):
                     'expected_hours': ajustes.expected_seconds(
                         emp, ini_utc, fin_utc) / 3600.0,
                     'gap_count': len(huecos),
+                    # Lo pendiente de hoy y lo que se cerro sin justificar (regla
+                    # del mismo dia): las dos cosas son tiempo sin explicacion.
                     'unexplained_minutes': int(round(sum(
-                        h.duration for h in huecos if h.state == 'pendiente') * 60)),
+                        h.duration for h in huecos
+                        if h.state in ('pendiente', 'no_justificado')) * 60)),
                     'power_events': len(eventos),
                 }
                 # La jornada del dia y su fuente. Las etiquetas in/off ya vienen
