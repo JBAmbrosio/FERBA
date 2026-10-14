@@ -259,7 +259,7 @@
                     <section class="fd_card">
                         <div class="fd_card_head">
                             <h2><t t-esc="state.days === 1 ? (esHoy ? 'Hoy, cómo viene cada quien' : 'Cómo vino cada quien') : 'Cómo vino cada quien en el periodo'"/></h2>
-                            <span class="fd_card_hint">el 100% son <t t-esc="fmt(state.meta)"/> de trabajo productivo · lo justificable va DESPUÉS de la marca y no suma · <b>clic en un tramo</b> para abrir sus registros</span>
+                            <span class="fd_card_hint">el 100% son <t t-esc="fmt(state.meta)"/> de trabajo productivo · todo lo demás de la jornada va DESPUÉS de la marca y no suma · <b>clic en un tramo</b> para abrir sus registros</span>
                         </div>
                         <div class="fd_bars">
                             <t t-foreach="state.barras" t-as="b" t-key="b.id">
@@ -284,14 +284,106 @@
                                 </div>
                             </t>
                         </div>
-                        <div class="fd_legend">
-                            <span class="fd_leg"><span class="fd_dot productiva"/>Productivo</span>
-                            <span class="fd_leg"><span class="fd_dot aprobado"/>Aprobado por ti (cuenta igual)</span>
-                            <span class="fd_leg"><span class="fd_dot neutral"/>Neutral y navegador</span>
-                            <span class="fd_leg"><span class="fd_dot distraccion"/>Distracción</span>
-                            <span class="fd_leg"><span class="fd_dot sin"/>Sin clasificar</span>
-                            <span class="fd_leg"><span class="fd_dot justificado"/>Justificado · a la derecha, no suma</span>
-                            <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir · espera tu veredicto</span>
+                        <div class="fd_legend fd_legend_2">
+                            <div class="grp">
+                                <span class="cap">Antes de la marca · trabajo medido</span>
+                                <span class="fd_leg"><span class="fd_dot productiva"/>Productivo</span>
+                                <span class="fd_leg"><span class="fd_dot aprobado"/>Aprobado por ti (cuenta igual)</span>
+                                <span class="fd_leg"><span class="fd_dot neutral"/>Neutral y navegador</span>
+                                <span class="fd_leg"><span class="fd_dot distraccion"/>Distracción</span>
+                                <span class="fd_leg"><span class="fd_dot sin"/>Sin clasificar</span>
+                            </div>
+                            <div class="grp">
+                                <span class="cap">Después de la marca · no suma</span>
+                                <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (de sus 90 min)</span>
+                                <span class="fd_leg"><span class="fd_dot vacaciones"/>Vacaciones o permiso</span>
+                                <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir · espera tu veredicto</span>
+                                <span class="fd_leg"><span class="fd_dot sinexp"/>Sin explicar · no ha contestado</span>
+                                <span class="fd_leg"><span class="fd_dot rechazado"/>Rechazado por ti</span>
+                                <span class="fd_leg"><span class="fd_dot sinact"/>Sin actividad · pausas de menos de 15 min, llegada o salida</span>
+                                <span class="fd_leg"><span class="fd_dot comida"/>Comida · fuera de la jornada</span>
+                            </div>
+                        </div>
+
+                        <!-- El mismo desglose, en NUMEROS. Cada fila cuadra:
+                             jornada = activo + huecos + sin actividad; la comida
+                             va aparte porque no es jornada. -->
+                        <div class="fd_desg_head">
+                            <button class="fd_desg_tog" t-on-click="toggleDesglose"
+                                    t-att-aria-expanded="state.verDesglose ? 'true' : 'false'">
+                                <i t-attf-class="fa {{ state.verDesglose ? 'fa-chevron-down' : 'fa-chevron-right' }}"/>
+                                Desglose de la jornada en horas
+                            </button>
+                            <span class="fd_card_hint">cada fila cuadra: <b>jornada transcurrida = activo + huecos de 15 min o más + sin actividad</b> · la comida va aparte</span>
+                        </div>
+                        <div class="fd_desg_wrap" t-if="state.verDesglose and state.desglose.filas.length">
+                            <table class="fd_desg">
+                                <thead>
+                                    <tr class="sup">
+                                        <th/>
+                                        <th class="n"/>
+                                        <th class="n"/>
+                                        <th class="n grp" colspan="6">Huecos de 15 min o más, por cómo terminaron</th>
+                                        <th class="n"/>
+                                        <th class="n"/>
+                                        <th class="n"/>
+                                    </tr>
+                                    <tr>
+                                        <th>Persona</th>
+                                        <th class="n" title="La jornada de su horario que ya pasó. En un día en curso, hasta ahora.">Jornada</th>
+                                        <th class="n" title="Teclado o mouse dentro de la jornada.">Activo</th>
+                                        <th class="n"><span class="fd_dot justificado"/>Justif.</th>
+                                        <th class="n"><span class="fd_dot aprobado"/>Aprob.</th>
+                                        <th class="n"><span class="fd_dot vacaciones"/>Vacac.</th>
+                                        <th class="n"><span class="fd_dot decidir"/>Por decidir</th>
+                                        <th class="n"><span class="fd_dot sinexp"/>Sin explicar</th>
+                                        <th class="n"><span class="fd_dot rechazado"/>Rechaz.</th>
+                                        <th class="n" title="Lo que queda de la jornada: pausas de menos de 15 min (nunca abren ventana), llegar tarde, irse antes o el equipo apagado."><span class="fd_dot sinact"/>Sin activ.</th>
+                                        <th class="n" title="Lo que se fue en su hora de comida. No es jornada: no gasta sus 90 min."><span class="fd_dot comida"/>Comida</th>
+                                        <th class="n">Índice</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="state.desglose.filas" t-as="f" t-key="f.id">
+                                        <tr>
+                                            <td class="p"><div class="pw">
+                                                <span class="fd_ava sm" t-attf-style="--h:{{ f.hue }}">
+                                                    <t t-esc="f.initials"/>
+                                                    <img t-attf-src="/web/image/hr.employee/{{ f.id }}/avatar_128" t-att-alt="f.name" loading="lazy"/>
+                                                </span>
+                                                <span class="nm" t-esc="f.name"/>
+                                            </div></td>
+                                            <td class="n b" t-esc="f.txt.jornada"/>
+                                            <td class="n" t-esc="f.txt.activoJornada"/>
+                                            <td class="n" t-esc="f.txt.justified"/>
+                                            <td class="n" t-esc="f.txt.aprobado"/>
+                                            <td class="n" t-esc="f.txt.vacaciones"/>
+                                            <td t-attf-class="n {{ f.porDecidir > 0.008 ? 'warn' : '' }}" t-esc="f.txt.porDecidir"/>
+                                            <td t-attf-class="n {{ f.unexplained > 0.008 ? 'bad' : '' }}" t-esc="f.txt.unexplained"/>
+                                            <td class="n" t-esc="f.txt.rechazado"/>
+                                            <td class="n" t-esc="f.txt.sinActividad"/>
+                                            <td class="n mute" t-esc="f.txt.comida"/>
+                                            <td t-attf-class="n b {{ f.meter }}"><t t-esc="f.index"/>%</td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td class="p">Equipo</td>
+                                        <td class="n b" t-esc="state.desglose.total.jornada"/>
+                                        <td class="n" t-esc="state.desglose.total.activoJornada"/>
+                                        <td class="n" t-esc="state.desglose.total.justified"/>
+                                        <td class="n" t-esc="state.desglose.total.aprobado"/>
+                                        <td class="n" t-esc="state.desglose.total.vacaciones"/>
+                                        <td class="n" t-esc="state.desglose.total.porDecidir"/>
+                                        <td class="n" t-esc="state.desglose.total.unexplained"/>
+                                        <td class="n" t-esc="state.desglose.total.rechazado"/>
+                                        <td class="n" t-esc="state.desglose.total.sinActividad"/>
+                                        <td class="n mute" t-esc="state.desglose.total.comida"/>
+                                        <td class="n"/>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     </section>
                 </t>

@@ -36,13 +36,23 @@ const CAT_ORDER = ["productiva", "navegador", "neutral", "distraccion", "sistema
 // Etiquetas de los tramos que no son categorias de uso.
 const SEG_LABEL = {
     aprobado: "Aprobado por ti (cuenta como productivo)",
-    justificado: "Justificado",
+    justificado: "Justificado (de sus 90 min)",
     decidir: "Por decidir",
+    vacaciones: "Vacaciones o permiso",
+    sinexp: "Sin explicar: no ha contestado",
+    rechazado: "Rechazado por ti",
+    sinact: "Sin actividad: pausas de menos de 15 min, llegada o salida",
+    comida: "Comida (fuera de la jornada)",
 };
 const DESTINO = {
     decidir: "clic: justificaciones que esperan tu veredicto",
     justificado: "clic: sus justificaciones del periodo",
     aprobado: "clic: sus justificaciones del periodo",
+    vacaciones: "clic: sus periodos de vacaciones o permiso",
+    sinexp: "clic: los periodos que no ha contestado",
+    rechazado: "clic: lo que rechazaste",
+    comida: "clic: sus periodos del día, con la comida",
+    sinact: "clic: su detalle de uso (no hay registro que abrir: es lo que no llegó a 15 min)",
     sin: "clic: lo que falta clasificar",
     distraccion: "clic: en qué se le fue el tiempo",
     _: "clic: su detalle de uso",
@@ -85,6 +95,9 @@ export class FocoDashboard extends Component {
             serie7: [], cintas: { dias: [], ventana: [8, 20] },
             online: [], conectados: 0, asistenciaLista: [], atencion: [], atencionN: 0,
             barras: [], tl: { horas: [], cols: 1, ahora: null, filas: [] }, grupos: [],
+            // El desglose en numeros de "Como viene cada quien" (13-oct-2026).
+            // Abierto de fabrica: es la informacion completa que se pidio.
+            desglose: { filas: [], total: {} }, verDesglose: true,
             // Las varas del grafico (Ajustes): la meta que vale el 100% y la
             // bolsa justificable, que va DESPUES de la meta y no suma.
             meta: 7, bolsa: 1.5,
@@ -905,6 +918,17 @@ export class FocoDashboard extends Component {
                 // Rechazar. No cuenta como cubierto y en el grafico va en ambar:
                 // todavia no se sabe si es productivo (decision del dueno, 12-oct).
                 porDecidir: res.por_decidir_h || 0,
+                // El desglose COMPLETO de la jornada (13-oct-2026): lo arma el
+                // servidor y aqui solo se reparte. Jornada transcurrida = activo
+                // en jornada + huecos (por estado) + sin actividad; la comida va
+                // aparte porque no es jornada.
+                jornadaH: res.jornada_h || 0,
+                activoJornada: res.activo_jornada_h || 0,
+                rechazado: res.rechazado_h || 0,
+                vacaciones: res.vacaciones_h || 0,
+                sinActividad: res.sin_actividad_h || 0,
+                comida: res.comida_h || 0,
+                comidaJust: res.comida_just_h || 0,
                 // Cubierto de su jornada = productivo + justificado. La columna
                 // "Jornada" lo muestra como «cubierto / 8:30» con barra.
                 covered, coveredPct: expected > 0 ? Math.min(100, Math.round(covered / expected * 100)) : 0,
@@ -1273,12 +1297,34 @@ export class FocoDashboard extends Component {
         const conJornada = employees.filter((e) => !e.sinUso && e.expected > 0);
         const bolsaDe = (e) => BOLSA1 * (e.nDias || 1);
         const metaDe = (e) => e.metaH || (this.state.meta || 7);
+        // Lo que va DESPUES de la meta: TODO lo de la jornada que no es trabajo
+        // medido, cada cosa con su color (13-oct-2026, pedido del dueno: que un
+        // analista vea todos los tiempos). Ninguno suma al 100%. El orden va de
+        // lo explicado a lo que no tiene explicacion, y la comida al final
+        // porque no es jornada. Antes solo estaban justificado y por decidir, y
+        // quien no contestaba se veia IGUAL que quien no tuvo nada que contestar.
+        const comidaEtq = (e) => {
+            const sinCont = Math.max(0, e.comida - e.comidaJust);
+            return sinCont > 0.008
+                ? `${SEG_LABEL.comida}: ${this.fmt(e.comida)} · justificada ${this.fmt(e.comidaJust)}, sin contestar ${this.fmt(sinCont)}`
+                : `${SEG_LABEL.comida}: ${this.fmt(e.comida)}, justificada`;
+        };
+        const zona2De = (e) => [
+            ["justificado", e.justified || 0, `${SEG_LABEL.justificado}: ${this.fmt(e.justified || 0)}`],
+            ["vacaciones", e.vacaciones || 0, `${SEG_LABEL.vacaciones}: ${this.fmt(e.vacaciones || 0)}`],
+            ["decidir", e.porDecidir || 0, `Por decidir, espera tu veredicto: ${this.fmt(e.porDecidir || 0)}`],
+            ["sinexp", e.unexplained || 0, `${SEG_LABEL.sinexp}: ${this.fmt(e.unexplained || 0)}`],
+            ["rechazado", e.rechazado || 0, `${SEG_LABEL.rechazado}: ${this.fmt(e.rechazado || 0)}`],
+            ["sinact", e.sinActividad || 0, `${SEG_LABEL.sinact}: ${this.fmt(e.sinActividad || 0)}`],
+            ["comida", e.comida || 0, comidaEtq(e)],
+        ];
         // UNA escala para todas las barras: la mas larga manda. Sin esto, a
         // quien gasto toda su bolsa el ambar le quedaba FUERA de la barra y no
         // se veia -justo lo que hay que ver-; y con una escala por fila, la
         // linea de la meta caia en un sitio distinto en cada renglon.
         const escala = Math.max(0.01, ...conJornada.map((e) =>
-            metaDe(e) + Math.max(bolsaDe(e), e.justified || 0) + (e.porDecidir || 0)));
+            metaDe(e) + Math.max(bolsaDe(e) - (e.justified || 0), 0)
+            + zona2De(e).reduce((s, [, v]) => s + Math.max(0, v), 0)));
         this.state.barras = conJornada.map((e) => {
             const meta = metaDe(e);
             const bolsa = bolsaDe(e);
@@ -1305,28 +1351,67 @@ export class FocoDashboard extends Component {
                 x += w;
             }
             // Zona 2: siempre arranca en la meta, aunque la zona 1 vaya a medias.
-            // Aqui solo vive lo que NO cuenta: lo que cupo en la bolsa de 90 min
-            // y lo que espera tu veredicto.
+            // Aqui vive TODO lo que no cuenta, cada cosa con su color.
             let y = pc(meta);
-            for (const [k, v, etq] of [["justificado", e.justified, "Justificado"],
-                                       ["decidir", e.porDecidir || 0, "Por decidir: espera tu veredicto"]]) {
+            for (const [k, v, etq] of zona2De(e)) {
                 const w = pc(v);
                 if (w > 0.2) {
-                    out.push({ k, left: y.toFixed(2), width: w.toFixed(2),
-                               label: `${etq}: ${this.fmt(v)}`,
-                               titulo: `${etq}: ${this.fmt(v)} — ${DESTINO[k] || DESTINO._}` });
+                    out.push({ k, left: y.toFixed(2), width: w.toFixed(2), label: etq,
+                               titulo: `${etq} — ${DESTINO[k] || DESTINO._}` });
                 }
                 y += w;
             }
+            // El tooltip de la barra entera es la CUENTA: cuanto de su jornada
+            // fue cada cosa, y que suma. Es lo que un analista quiere leer de
+            // corrido sin pasar el mouse tramo por tramo.
+            const partes = [["activo", e.activoJornada], ["justificado", e.justified],
+                ["aprobado", e.aprobado], ["vacaciones", e.vacaciones],
+                ["por decidir", e.porDecidir], ["sin explicar", e.unexplained],
+                ["rechazado", e.rechazado], ["sin actividad", e.sinActividad]]
+                .filter(([, v]) => (v || 0) > 0.008)
+                .map(([n, v]) => `${n} ${this.fmt(v)}`);
+            const cuenta = e.jornadaH > 0
+                ? `Jornada transcurrida ${this.fmt(e.jornadaH)} = ${partes.join(" + ") || "sin dato"}`
+                : "Sin jornada en el periodo";
             return { id: e.id, name: e.name, hue: e.hue, initials: e.initials,
                      index: e.index, meter: e.meter,
                      segs: out, fin: null, finTxt: "",
                      marca: pc(meta).toFixed(2), marcaTxt: this.fmt(meta),
-                     titulo: `productivo ${this.fmt(e.prod)} de ${this.fmt(meta)}`
-                             + ((e.aprobado || 0) > 0 ? ` (+${this.fmt(e.aprobado)} que aceptaste)` : "")
-                             + ` · justificado ${this.fmt(e.justified)} de ${this.fmt(bolsa)}`
-                             + ((e.porDecidir || 0) > 0 ? ` · por decidir ${this.fmt(e.porDecidir)}` : "") };
+                     titulo: `${cuenta}`
+                             + ((e.comida || 0) > 0.008 ? ` · comida ${this.fmt(e.comida)} aparte` : "")
+                             + ` · productivo ${this.fmt(e.prod)} de ${this.fmt(meta)}`
+                             + ` · justificado ${this.fmt(e.justified)} de ${this.fmt(bolsa)}` };
         }).sort((a, b) => b.index - a.index);
+
+        // 4b) El mismo desglose en NUMEROS, debajo de las barras, en el orden de
+        //     las barras. Una barra dice la forma; un analista necesita la cifra,
+        //     y que la fila cuadre: jornada = activo + huecos + sin actividad.
+        const COLS = ["activoJornada", "justified", "aprobado", "vacaciones", "porDecidir",
+                      "unexplained", "rechazado", "sinActividad", "comida"];
+        const orden = new Map(this.state.barras.map((b, i) => [b.id, i]));
+        const filas = conJornada
+            .slice()
+            .sort((a, b) => (orden.get(a.id) ?? 0) - (orden.get(b.id) ?? 0))
+            .map((e) => {
+                const celdas = {};
+                for (const c of COLS) celdas[c] = e[c] || 0;
+                return { id: e.id, name: e.name, hue: e.hue, initials: e.initials,
+                         jornada: e.jornadaH || 0, index: e.index, meter: e.meter, ...celdas };
+            });
+        const total = { jornada: 0 };
+        for (const c of COLS) total[c] = 0;
+        for (const f of filas) {
+            total.jornada += f.jornada;
+            for (const c of COLS) total[c] += f[c];
+        }
+        // Cada celda ya formateada (0 se ve como un guion: un cero en una tabla
+        // de doce columnas es ruido que esconde lo que si hay).
+        const celda = (v) => (v > 0.008 ? this.fmt(v) : "—");
+        this.state.desglose = {
+            filas: filas.map((f) => ({ ...f, txt: Object.fromEntries(
+                ["jornada", ...COLS].map((c) => [c, celda(f[c])])) })),
+            total: Object.fromEntries(["jornada", ...COLS].map((c) => [c, celda(total[c])])),
+        };
 
         // 5) La linea del dia (solo en un dia), lista para dibujar: cada
         //    segmento y cada checada ya en porcentaje de la ventana comun.
@@ -1455,6 +1540,17 @@ export class FocoDashboard extends Component {
         const [desde, hasta] = this.state.rango || [this.hoyYmd, this.hoyYmd];
         const emp = ["employee_id", "=", b.id];
         const dias = (campo) => [[campo, ">=", desde], [campo, "<=", hasta]];
+        // Para un campo FECHA-HORA el dia es el LOCAL (el del navegador) llevado
+        // a UTC, que es como guarda Odoo. Con la fecha sola, '<= 2026-10-13' se
+        // lee como la medianoche UTC del 13 y deja fuera el dia que se miraba.
+        const diasDt = (campo) => {
+            const utc = (ymd, mas) => {
+                const d = new Date(`${ymd}T00:00:00`);
+                d.setDate(d.getDate() + mas);
+                return d.toISOString().slice(0, 19).replace("T", " ");
+            };
+            return [[campo, ">=", utc(desde, 0)], [campo, "<", utc(hasta, 1)]];
+        };
         const ventana = (nombre, model, domain, context, vistas) => this.action.doAction({
             type: "ir.actions.act_window",
             name: `${nombre} · ${b.name}`,
@@ -1465,11 +1561,31 @@ export class FocoDashboard extends Component {
         if (k === "decidir") {
             // Lo que paso de su bolsa y espera Aceptar / Rechazar.
             return ventana("Por decidir", "foco.absence",
-                [emp, ["state", "=", "por_decidir"], ...dias("start")]);
+                [emp, ["state", "=", "por_decidir"], ...diasDt("start")]);
         }
         if (k === "justificado" || k === "aprobado") {
             return ventana("Justificado", "foco.absence",
-                [emp, ["state", "=", "justificada"], ...dias("start")]);
+                [emp, ["state", "=", "justificada"], ...diasDt("start")]);
+        }
+        if (k === "sinexp") {
+            // Lo que nadie ha contestado: la ventana no salio, o salio y no la
+            // contesto. Es lo que hay que perseguir.
+            return ventana("Sin explicar", "foco.absence",
+                [emp, ["state", "=", "pendiente"], ...diasDt("start")]);
+        }
+        if (k === "rechazado") {
+            return ventana("Rechazado", "foco.absence",
+                [emp, ["state", "=", "rechazada"], ...diasDt("start")]);
+        }
+        if (k === "vacaciones") {
+            return ventana("Vacaciones o permiso", "foco.absence",
+                [emp, ["state", "=", "auto"], ...diasDt("start")]);
+        }
+        if (k === "comida") {
+            // Un dominio no sabe cuales periodos tocan la comida: se abren todos
+            // los del periodo, en orden, y la comida se reconoce por la hora.
+            return ventana("Periodos del día", "foco.absence",
+                [emp, ["state", "!=", "auto"], ...diasDt("start")]);
         }
         if (k === "sin") {
             // La cola de clasificacion de ESA persona: lo que todavia no pesa.
@@ -1486,6 +1602,10 @@ export class FocoDashboard extends Component {
         // Productivo, neutral o la fila entera: su detalle de uso, que es donde
         // se ve el arbol app > sitio > pagina y se puede clasificar desde ahi.
         return this.abrirUso({ id: b.id });
+    }
+
+    toggleDesglose() {
+        this.state.verDesglose = !this.state.verDesglose;
     }
 
     abrirIntegridad() {
