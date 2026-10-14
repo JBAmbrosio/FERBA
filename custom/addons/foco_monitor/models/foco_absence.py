@@ -183,13 +183,25 @@ class FocoAbsence(models.Model):
     # Rechazar. Solo lo justificado consume la bolsa: las apps neutras o de
     # distraccion no la tocan. Lo justificado antes de la regla sigue contando
     # tal cual (cubierta_por vacio).
+    # Regla del MISMO DIA (13-oct-2026, decision del dueno): un periodo se
+    # justifica el dia en que paso o ya no se justifica. Al dia siguiente la
+    # gente no recuerda, reconstruye ("st", "Permiso") y lo unico que gana es
+    # que le devuelvan la computadora. Lo que no se contesto ese dia se cierra
+    # como 'no_justificado': un estado FINAL, que se queda a la vista y que el
+    # admin todavia puede aceptar o devolver.
     state = fields.Selection(
         [('auto', 'Explicado por vacaciones'),
          ('pendiente', 'Por justificar'),
          ('justificada', 'Justificada'),
          ('por_decidir', 'Por decidir (admin)'),
-         ('rechazada', 'Rechazada por el admin')],
+         ('rechazada', 'Rechazada por el admin'),
+         ('no_justificado', 'No justificado (se le paso el dia)')],
         string='Estado', default='pendiente', index=True, required=True)
+    devuelta_admin_at = fields.Datetime(
+        string='Devuelta por el admin el', readonly=True,
+        help='Cuando el administrador la devolvio con su mensaje. Le abre a la '
+             'persona un nuevo "mismo dia": puede contestarla hasta que termine '
+             'ese dia, aunque el periodo sea de antes.')
     cubierta_por = fields.Selection(
         [('gracia', 'De sus 90 min'),
          ('admin', 'Aceptada por el admin')],
@@ -457,25 +469,93 @@ class FocoAbsence(models.Model):
                     stored += 1         # fuera de la jornada: ni se registra
                     continue
             expected = settings.expected_seconds(employee, start, fin, con_asistencia=True)
+            # Regla del mismo dia: un hueco que empezo un dia que YA TERMINO
+            # -se fue a las 16:26, dejo la PC prendida y el hueco se cierra al
+            # tocarla a la manana siguiente- ya no se le pregunta. Entra cerrado.
+            if de_vacaciones:
+                estado = 'auto'
+            elif employee and self._dia_local(employee, start) < \
+                    self._dia_local(employee, fields.Datetime.now()):
+                estado = 'no_justificado'
+            else:
+                estado = 'pendiente'
             self.sudo().create({
                 'computer_id': computer.id,
                 'start': start,
                 'stop': fin,
                 'kind': gap.get('kind') if gap.get('kind') in kinds else 'idle',
                 'expected_seconds': expected,
-                'state': 'auto' if de_vacaciones else 'pendiente',
+                'state': estado,
             })
             stored += 1
         return stored
 
+    # ------------------------------------------------- la regla del mismo dia
+    @api.model
+    def _dia_local(self, employee, dt_utc):
+        """La fecha LOCAL de la persona en ese momento UTC."""
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(employee)
+        return pytz.UTC.localize(dt_utc).astimezone(tz).date()
+
+    def _es_de_hoy(self):
+        """El periodo empezo HOY, en el dia de la persona."""
+        self.ensure_one()
+        if not self.start:
+            return False
+        hoy = self._dia_local(self.employee_id, fields.Datetime.now())
+        return self._dia_local(self.employee_id, self.start) == hoy
+
+    def _abierta_hoy(self):
+        """Su "mismo dia" es hoy: empezo hoy, o el admin la devolvio hoy (su
+        mensaje le abre a la persona un nuevo mismo dia, que vence solo)."""
+        self.ensure_one()
+        if self._es_de_hoy():
+            return True
+        if self.devuelta_admin_at:
+            hoy = self._dia_local(self.employee_id, fields.Datetime.now())
+            return self._dia_local(self.employee_id, self.devuelta_admin_at) == hoy
+        return False
+
+    def _vigente(self):
+        """Todavia se le puede preguntar: esta por justificar y su dia es hoy."""
+        self.ensure_one()
+        return self.state == 'pendiente' and self._abierta_hoy()
+
+    def _vencer(self):
+        """Cierra como 'no_justificado' lo que ya no se puede contestar."""
+        vencidos = self.filtered(lambda r: r.state == 'pendiente' and not r._vigente())
+        if vencidos:
+            vencidos.sudo().write({'state': 'no_justificado', 'rebote_pendiente': False})
+        return vencidos
+
+    @api.model
+    def _cron_vencer(self):
+        """Cada hora: lo que se quedo por justificar de un dia que ya termino.
+
+        Cada hora y no a medianoche, porque "el dia" es el de cada persona, en
+        su zona: un solo corte a una hora fija se lo aplicaria tarde o temprano
+        a alguien. Y porque si el servidor estuvo caido a medianoche, la hora
+        siguiente lo alcanza. La ventana y la pagina ya filtran por su cuenta;
+        esto deja el ESTADO al dia para el tablero y los reportes.
+        """
+        vencidos = self.sudo().search([('state', '=', 'pendiente')])._vencer()
+        if vencidos:
+            _logger.info("Foco: %s periodos cerrados como no justificados", len(vencidos))
+        return len(vencidos)
+
     # ------------------------------------------------------------- consulta
     @api.model
     def pending_for_employee(self, employee, limit=20):
+        """Lo que la ventana y la pagina le preguntan a la persona: SOLO lo de
+        hoy (regla del mismo dia). Lo de dias pasados ya no se le pide: se
+        cierra como no justificado en el camino, sin esperar al cron."""
         if not employee:
             return self.browse()
-        return self.sudo().search(
+        pendientes = self.sudo().search(
             [('employee_id', '=', employee.id), ('state', '=', 'pendiente')],
-            order='start desc', limit=limit)
+            order='start desc')
+        pendientes._vencer()
+        return pendientes.filtered(lambda r: r.state == 'pendiente')[:limit]
 
     def _suggested_reason(self):
         """Si el periodo traslapa la comida del calendario, se presugiere.
@@ -670,6 +750,10 @@ class FocoAbsence(models.Model):
             aprob = justi.filtered(lambda a: a.cubierta_por == 'admin')
             cubre_bolsa = justi - aprob
             pend = recs.filtered(lambda a: a.state == 'pendiente')
+            # Regla del mismo dia: lo que se le paso el dia sin contestar. Junto
+            # con lo pendiente es "sin justificar"; aparte, para decir cuanto de
+            # eso ya no tiene remedio.
+            vencido = recs.filtered(lambda a: a.state == 'no_justificado')
             decidir = recs.filtered(lambda a: a.state == 'por_decidir')
             rechazada = recs.filtered(lambda a: a.state == 'rechazada')
             vacaciones = recs.filtered(lambda a: a.state == 'auto')
@@ -712,7 +796,12 @@ class FocoAbsence(models.Model):
                 # huecos SIN justificar. Antes el tablero lo derivaba restando
                 # (esperado - activo - justificado), que a media jornada daba un
                 # numero enorme porque el esperado es el dia completo.
-                'unexplained_h': sum(pend.mapped('expected_seconds')) / 3600.0,
+                # Desde la regla del mismo dia: lo pendiente de hoy MAS lo que
+                # se cerro sin justificar. `vencido_h` dice cuanto de eso ya no
+                # se puede contestar, y `no_justificados` cuantos periodos son.
+                'unexplained_h': sum((pend | vencido).mapped('expected_seconds')) / 3600.0,
+                'vencido_h': sum(vencido.mapped('expected_seconds')) / 3600.0,
+                'no_justificados': len(vencido),
                 # Minutos del checador a la PC: promedio de los dias checados.
                 # None cuando no hay ningun dia con checada: el tablero no lo
                 # dibuja, en vez de pintar un 0 que afirmaria "llego al instante".
@@ -857,6 +946,16 @@ class FocoAbsence(models.Model):
             return {'ok': False, 'error': 'ya_justificada',
                     'reason': self.reason,
                     'reason_label': dict(REASONS).get(self.reason, '')}
+        # Regla del mismo dia: si se le paso el dia, ya no se recibe. Se contesta
+        # con 'ya_justificada' A PROPOSITO: es el codigo con el que la ventana
+        # que ya esta instalada en los equipos (2026.10.09.1) pasa al siguiente
+        # periodo. Cualquier codigo nuevo lo pintaria como "No se pudo guardar"
+        # y dejaria a la persona atorada en un periodo que ya no puede cerrar.
+        if self.state == 'pendiente':
+            self._vencer()
+        if self.state == 'no_justificado':
+            return {'ok': False, 'error': 'ya_justificada', 'vencida': True,
+                    'reason': False, 'reason_label': ''}
         self.sudo().write({
             'reason': reason,
             'note': note or False,
@@ -1040,7 +1139,12 @@ class FocoAbsence(models.Model):
         # decidir" del admin (antes seguia contando como justificada: asi
         # contaron 5h17 de "." y "Trabajo" de Teodolo el 9-oct).
         settings = self.env['foco.settings'].sudo().get_settings()
-        if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX:
+        # Regla del mismo dia: devolverle a la persona un periodo de un dia que
+        # ya termino no sirve -ya no lo puede contestar-. Pasa directo al admin,
+        # como cuando se agotan los rebotes. Pasa si la IA se atraso, o si
+        # contesto a ultima hora y la IA juzgo despues de medianoche.
+        if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX \
+                and self._abierta_hoy():
             vals.update({
                 'state': 'pendiente',
                 'rebote_pendiente': True,
@@ -1163,9 +1267,13 @@ class FocoAbsence(models.Model):
 
     # ------------------------------------------------- decision del admin
     def action_aceptar(self):
-        """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta."""
+        """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta.
+
+        Tambien sobre lo NO JUSTIFICADO (regla del mismo dia): es la salida para
+        quien si tuvo una razon que el admin ya conoce -andaba en junta, en
+        campo con el- y no la contesto a tiempo."""
         ahora = fields.Datetime.now()
-        for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+        for rec in self.filtered(lambda r: r.state in ('por_decidir', 'no_justificado')):
             rec._registrar_msg('admin', 'Aceptada por el administrador.',
                                user_id=self.env.user.id)
             rec.sudo().write({'state': 'justificada', 'cubierta_por': 'admin', 'gracia_min': 0,
@@ -1204,6 +1312,9 @@ class FocoAbsence(models.Model):
             'state': 'pendiente',
             'rebote_pendiente': True,
             'ai_pregunta': mensaje,
+            # Le abre un nuevo "mismo dia": la puede contestar hasta que termine
+            # HOY, aunque el periodo sea de antes (regla del mismo dia).
+            'devuelta_admin_at': fields.Datetime.now(),
             'nota_rechazada': (self.note or '').strip()[:200] or False,
             # Que lo pida la VENTANA, no el correo (igual que el rebote de la IA).
             'notified': True,

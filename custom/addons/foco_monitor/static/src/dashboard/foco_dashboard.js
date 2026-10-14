@@ -39,7 +39,7 @@ const SEG_LABEL = {
     justificado: "Justificado (de sus 90 min)",
     decidir: "Por decidir",
     vacaciones: "Vacaciones o permiso",
-    sinexp: "Sin explicar: no ha contestado",
+    sinexp: "Sin justificar",
     rechazado: "Rechazado por ti",
     sinact: "Sin actividad: pausas de menos de 15 min, llegada o salida",
     comida: "Comida (fuera de la jornada)",
@@ -49,7 +49,7 @@ const DESTINO = {
     justificado: "clic: sus justificaciones del periodo",
     aprobado: "clic: sus justificaciones del periodo",
     vacaciones: "clic: sus periodos de vacaciones o permiso",
-    sinexp: "clic: los periodos que no ha contestado",
+    sinexp: "clic: lo que no justificó (lo de hoy y lo que se le pasó el día)",
     rechazado: "clic: lo que rechazaste",
     comida: "clic: sus periodos del día, con la comida",
     sinact: "clic: su detalle de uso (no hay registro que abrir: es lo que no llegó a 15 min)",
@@ -925,6 +925,9 @@ export class FocoDashboard extends Component {
                 jornadaH: res.jornada_h || 0,
                 activoJornada: res.activo_jornada_h || 0,
                 rechazado: res.rechazado_h || 0,
+                // De lo sin justificar, lo que ya se le paso el dia (regla del
+                // mismo dia): ya no se le pregunta.
+                vencido: res.vencido_h || 0,
                 vacaciones: res.vacaciones_h || 0,
                 sinActividad: res.sin_actividad_h || 0,
                 comida: res.comida_h || 0,
@@ -1309,11 +1312,22 @@ export class FocoDashboard extends Component {
                 ? `${SEG_LABEL.comida}: ${this.fmt(e.comida)} · justificada ${this.fmt(e.comidaJust)}, sin contestar ${this.fmt(sinCont)}`
                 : `${SEG_LABEL.comida}: ${this.fmt(e.comida)}, justificada`;
         };
+        // Regla del mismo dia: lo sin justificar de hoy todavia se puede
+        // contestar; lo de un dia que ya termino, no. La etiqueta lo distingue.
+        const sinJustEtq = (e) => {
+            const v = e.unexplained || 0, venc = Math.min(e.vencido || 0, v), hoy = v - venc;
+            if (venc > 0.008 && hoy > 0.008) {
+                return `${SEG_LABEL.sinexp}: ${this.fmt(v)} · ${this.fmt(venc)} ya se le pasó el día, ${this.fmt(hoy)} todavía puede contestar hoy`;
+            }
+            return venc > 0.008
+                ? `${SEG_LABEL.sinexp}: ${this.fmt(v)} · se le pasó el día, ya no se le pregunta`
+                : `${SEG_LABEL.sinexp}: ${this.fmt(v)} · todavía puede contestar hoy`;
+        };
         const zona2De = (e) => [
             ["justificado", e.justified || 0, `${SEG_LABEL.justificado}: ${this.fmt(e.justified || 0)}`],
             ["vacaciones", e.vacaciones || 0, `${SEG_LABEL.vacaciones}: ${this.fmt(e.vacaciones || 0)}`],
             ["decidir", e.porDecidir || 0, `Por decidir, espera tu veredicto: ${this.fmt(e.porDecidir || 0)}`],
-            ["sinexp", e.unexplained || 0, `${SEG_LABEL.sinexp}: ${this.fmt(e.unexplained || 0)}`],
+            ["sinexp", e.unexplained || 0, sinJustEtq(e)],
             ["rechazado", e.rechazado || 0, `${SEG_LABEL.rechazado}: ${this.fmt(e.rechazado || 0)}`],
             ["sinact", e.sinActividad || 0, `${SEG_LABEL.sinact}: ${this.fmt(e.sinActividad || 0)}`],
             ["comida", e.comida || 0, comidaEtq(e)],
@@ -1366,7 +1380,7 @@ export class FocoDashboard extends Component {
             // corrido sin pasar el mouse tramo por tramo.
             const partes = [["activo", e.activoJornada], ["justificado", e.justified],
                 ["aprobado", e.aprobado], ["vacaciones", e.vacaciones],
-                ["por decidir", e.porDecidir], ["sin explicar", e.unexplained],
+                ["por decidir", e.porDecidir], ["sin justificar", e.unexplained],
                 ["rechazado", e.rechazado], ["sin actividad", e.sinActividad]]
                 .filter(([, v]) => (v || 0) > 0.008)
                 .map(([n, v]) => `${n} ${this.fmt(v)}`);
@@ -1568,10 +1582,10 @@ export class FocoDashboard extends Component {
                 [emp, ["state", "=", "justificada"], ...diasDt("start")]);
         }
         if (k === "sinexp") {
-            // Lo que nadie ha contestado: la ventana no salio, o salio y no la
-            // contesto. Es lo que hay que perseguir.
-            return ventana("Sin explicar", "foco.absence",
-                [emp, ["state", "=", "pendiente"], ...diasDt("start")]);
+            // Lo que no justifico: lo de hoy (todavia puede) y lo que se le paso
+            // el dia (regla del mismo dia). Es lo que hay que perseguir.
+            return ventana("Sin justificar", "foco.absence",
+                [emp, ["state", "in", ["pendiente", "no_justificado"]], ...diasDt("start")]);
         }
         if (k === "rechazado") {
             return ventana("Rechazado", "foco.absence",

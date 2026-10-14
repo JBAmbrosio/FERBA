@@ -298,7 +298,7 @@
                                 <span class="fd_leg"><span class="fd_dot justificado"/>Justificado (de sus 90 min)</span>
                                 <span class="fd_leg"><span class="fd_dot vacaciones"/>Vacaciones o permiso</span>
                                 <span class="fd_leg"><span class="fd_dot decidir"/>Por decidir · espera tu veredicto</span>
-                                <span class="fd_leg"><span class="fd_dot sinexp"/>Sin explicar · no ha contestado</span>
+                                <span class="fd_leg"><span class="fd_dot sinexp"/>Sin justificar · se contesta el mismo día o queda así</span>
                                 <span class="fd_leg"><span class="fd_dot rechazado"/>Rechazado por ti</span>
                                 <span class="fd_leg"><span class="fd_dot sinact"/>Sin actividad · pausas de menos de 15 min, llegada o salida</span>
                                 <span class="fd_leg"><span class="fd_dot comida"/>Comida · fuera de la jornada</span>
@@ -336,7 +336,7 @@
                                         <th class="n"><span class="fd_dot aprobado"/>Aprob.</th>
                                         <th class="n"><span class="fd_dot vacaciones"/>Vacac.</th>
                                         <th class="n"><span class="fd_dot decidir"/>Por decidir</th>
-                                        <th class="n"><span class="fd_dot sinexp"/>Sin explicar</th>
+                                        <th class="n" title="Lo que no justificó: lo de hoy todavía lo puede contestar; lo de un día que ya terminó, ya no (regla del mismo día)."><span class="fd_dot sinexp"/>Sin justificar</th>
                                         <th class="n"><span class="fd_dot rechazado"/>Rechaz.</th>
                                         <th class="n" title="Lo que queda de la jornada: pausas de menos de 15 min (nunca abren ventana), llegar tarde, irse antes o el equipo apagado."><span class="fd_dot sinact"/>Sin activ.</th>
                                         <th class="n" title="Lo que se fue en su hora de comida. No es jornada: no gasta sus 90 min."><span class="fd_dot comida"/>Comida</th>

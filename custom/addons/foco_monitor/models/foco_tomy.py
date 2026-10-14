@@ -503,15 +503,19 @@ class FocoTomy(models.AbstractModel):
                'employee_id': emp_opt}, ['desde', 'hasta', 'tipo']),
             t('ausencias',
               'Periodos sin actividad dentro del horario (huecos) con su motivo, estado y nota. Con estado='
-              'pendiente trae solo las que faltan por justificar. Regla de los 90 minutos: cada persona '
+              'pendiente trae solo las que faltan por justificar HOY. Regla del mismo dia: un periodo se '
+              'justifica el dia en que paso; lo que no se contesto ese dia queda no_justificado (final, '
+              'el admin aun puede aceptarlo o devolverlo). Regla de los 90 minutos: cada persona '
               'tiene al dia 90 min justificables sin decision del admin (cuenta_por = De sus 90 min); lo '
               'que pasa de ahi queda por_decidir (no cuenta como cubierto hasta que el admin acepte) o '
               'rechazada.',
               {'desde': fecha, 'hasta': fecha, 'employee_id': emp_opt,
                'estado': {'type': 'string',
-                          'enum': ['pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto', 'todas'],
-                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar; '
-                                         'por_decidir = paso de sus 90 min y espera al admin'}},
+                          'enum': ['pendiente', 'no_justificado', 'justificada', 'por_decidir',
+                                   'rechazada', 'auto', 'todas'],
+                          'description': 'opcional: solo las de ese estado; pendiente = sin justificar y '
+                                         'todavia puede contestar hoy; no_justificado = se le paso el dia '
+                                         'sin contestar; por_decidir = paso de sus 90 min y espera al admin'}},
               ['desde', 'hasta']),
             t('llamadas',
               'Llamadas de WhatsApp hechas desde la laptop y analizadas: cuantas, minutos de trabajo y personales, '
@@ -799,7 +803,7 @@ class FocoTomy(models.AbstractModel):
         dominio = [('start', '>=', self._utc(d, zona=corte)), ('start', '<=', self._utc(h, fin=True, zona=corte))]
         if emp:
             dominio.append(('employee_id', '=', emp.id))
-        ESTADOS = ('pendiente', 'justificada', 'por_decidir', 'rechazada', 'auto')
+        ESTADOS = ('pendiente', 'no_justificado', 'justificada', 'por_decidir', 'rechazada', 'auto')
         if estado in ESTADOS:
             dominio.append(('state', '=', estado))
         regs = Abs.search(dominio, order='start desc')
@@ -815,6 +819,9 @@ class FocoTomy(models.AbstractModel):
             'filtro_estado': estado if estado in ESTADOS else 'todas',
             'total': len(regs),
             'pendientes_de_justificar': len(regs.filtered(lambda x: x.state == 'pendiente')),
+            'no_justificados_se_paso_el_dia': len(regs.filtered(lambda x: x.state == 'no_justificado')),
+            'horas_no_justificadas': _hm(sum(regs.filtered(
+                lambda x: x.state == 'no_justificado').mapped('duration'))),
             'horas_justificadas': _hm(sum(regs.filtered(lambda x: x.state == 'justificada').mapped('duration'))),
             'por_decidir_del_admin': len(decidir),
             'horas_por_decidir': _hm(sum(decidir.mapped('duration'))),
@@ -968,7 +975,9 @@ class FocoTomy(models.AbstractModel):
         res.update({'periodo': {'desde': str(d), 'hasta': str(h)}, 'nota': nota or None})
         if res['ultimas']:
             self._tabla(artefactos, 'Ausencias%s (%s a %s)' % (
-                {'pendiente': ' pendientes de justificar', 'justificada': ' justificadas',
+                {'pendiente': ' pendientes de justificar',
+                 'no_justificado': ' no justificadas (se les paso el dia)',
+                 'justificada': ' justificadas',
                  'por_decidir': ' por decidir del admin (pasaron de sus 90 min)',
                  'rechazada': ' rechazadas por el admin',
                  'auto': ' fuera de horario'}.get(estado, ''), d, h),
