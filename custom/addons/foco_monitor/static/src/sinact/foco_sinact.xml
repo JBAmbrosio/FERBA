@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="foco_monitor.SinAct">
+        <div t-ref="root" t-attf-class="foco_sa {{ state.dark ? 'fsa-dark' : '' }}">
+
+            <!-- ============================================== ENCABEZADO -->
+            <header class="fsa_head">
+                <button class="fsa_back" t-on-click="volver" title="Volver al tablero">
+                    <i class="fa fa-arrow-left"/> Tablero
+                </button>
+                <div class="fsa_title">
+                    <h1>Sin actividad</h1>
+                    <p>El tramo gris punteado del tablero, explicado solo con lo que midió el equipo.</p>
+                </div>
+                <div class="fsa_ctrl">
+                    <select class="fsa_sel" t-on-change="setEmpleado" aria-label="Persona">
+                        <t t-foreach="state.empleados" t-as="e" t-key="e.id">
+                            <option t-att-value="e.id" t-att-selected="e.id === state.empleadoId" t-esc="e.name"/>
+                        </t>
+                    </select>
+                    <div class="fsa_datenav">
+                        <button t-on-click="() => this.mover(-1)" title="Día anterior (←)"><i class="fa fa-chevron-left"/></button>
+                        <input type="date" t-att-value="state.fecha" t-att-max="hoy" t-on-change="setFecha" aria-label="Día"/>
+                        <button t-on-click="() => this.mover(1)" t-att-disabled="!puedeAdelante" title="Día siguiente (→)"><i class="fa fa-chevron-right"/></button>
+                    </div>
+                </div>
+            </header>
+
+            <t t-if="state.loading">
+                <div class="fsa_loading">Cargando…</div>
+            </t>
+            <t t-elif="state.error">
+                <div class="fsa_card fsa_msg" t-esc="state.error"/>
+            </t>
+            <t t-elif="state.datos">
+                <t t-set="d" t-value="state.datos"/>
+
+                <!-- ============================================ LA CUENTA -->
+                <section class="fsa_card fsa_cuenta">
+                    <div class="fsa_big">
+                        <span class="n" t-esc="fmt(d.resta.sin_actividad_h)"/>
+                        <span class="u">sin actividad · <t t-esc="fechaLabel"/></span>
+                    </div>
+                    <div class="fsa_formula">
+                        Así lo calcula el tablero: jornada <b t-esc="fmt(d.resta.jornada_h)"/>
+                        <span class="op">−</span> con actividad <b t-esc="fmt(d.resta.activo_h)"/>
+                        <span class="op">−</span> huecos de 15 min o más <b t-esc="fmt(d.resta.huecos_h)"/>
+                        <span class="op">=</span> <b class="res" t-esc="fmt(d.resta.sin_actividad_h)"/>.
+                        Es una resta: abajo, lo que de verdad pasó en ese tiempo.
+                    </div>
+                    <p class="fsa_when" t-if="d.es_hoy">
+                        Día en curso: los datos del equipo llegan hasta las <b t-esc="hm(d.datos_hasta)"/>
+                        (el equipo envía cada 5 min).
+                    </p>
+                </section>
+
+                <!-- ============================== AVISOS: LO QUE NO SE MIDIO -->
+                <t t-if="!d.medido">
+                    <div class="fsa_card fsa_aviso">
+                        <i class="fa fa-info-circle"/>
+                        <div>
+                            <b>Este día no tiene las pausas medidas.</b>
+                            El agente empezó a guardar cada pausa con su hora en la versión
+                            2026.10.14.1; antes las de menos de 15 minutos se detectaban y se
+                            descartaban. De este día solo se sabe la resta de arriba: no se
+                            puede decir cuándo fueron ni de qué tipo, y aquí no se adivina.
+                        </div>
+                    </div>
+                </t>
+                <t t-elif="d.desde and d.cuadre.no_medido_h * 60 >= 0.5">
+                    <div class="fsa_card fsa_aviso">
+                        <i class="fa fa-info-circle"/>
+                        <div>
+                            El agente empezó a medir este día a las <b t-esc="hm(d.desde)"/>
+                            (se instaló o se actualizó). Lo de la jornada antes de esa hora sale
+                            como <b>no medido</b>.
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ======================================= LA LINEA DEL DIA -->
+                <section class="fsa_card" t-if="d.medido or d.eventos.length">
+                    <div class="fsa_card_head">
+                        <h2>La línea del día</h2>
+                        <span class="hint">la franja clara es su jornada · la rayada, la comida · pasa el mouse sobre un tramo</span>
+                    </div>
+                    <div class="fsa_tl">
+                        <div class="fsa_axis">
+                            <t t-foreach="horas" t-as="hh" t-key="hh.t">
+                                <span t-attf-style="left:{{ hh.left }}%" t-esc="hh.label"/>
+                            </t>
+                        </div>
+                        <div class="fsa_track">
+                            <t t-foreach="bandas" t-as="b" t-key="b.key">
+                                <span class="banda" t-attf-style="left:{{ b.left }}%;width:{{ b.width }}%"/>
+                            </t>
+                            <t t-foreach="comidas" t-as="c" t-key="c.key">
+                                <span class="comida" t-attf-style="left:{{ c.left }}%;width:{{ c.width }}%"/>
+                            </t>
+                            <t t-foreach="tramos" t-as="t" t-key="t.key">
+                                <span t-attf-class="tr {{ t.tipo }} {{ t.estado or '' }} {{ t.tenue ? 'tenue' : '' }}"
+                                      t-attf-style="left:{{ t.left }}%;width:{{ t.width }}%"
+                                      t-att-title="t.titulo"/>
+                            </t>
+                            <t t-foreach="marcas" t-as="m" t-key="m.k">
+                                <span t-attf-class="pin {{ m.k }}" t-attf-style="left:{{ m.left }}%"
+                                      t-att-title="m.titulo" t-att-data-l="m.label"/>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="fsa_leg">
+                        <t t-foreach="leyenda" t-as="l" t-key="l.k">
+                            <span class="it"><span t-attf-class="dot {{ l.k }}"/><t t-esc="l.label"/></span>
+                        </t>
+                    </div>
+                </section>
+
+                <!-- ===================================== DE QUE ESTA HECHO -->
+                <section class="fsa_card" t-if="d.medido">
+                    <div class="fsa_card_head">
+                        <h2>De qué está hecho</h2>
+                        <span class="hint">solo lo que cae dentro de su jornada</span>
+                    </div>
+                    <table class="fsa_tab">
+                        <tbody>
+                            <t t-foreach="filas" t-as="f" t-key="f.k">
+                                <tr>
+                                    <td class="lbl"><span t-attf-class="dot {{ f.k }}"/><t t-esc="f.label"/></td>
+                                    <td class="det">
+                                        <t t-esc="f.detalle"/>
+                                        <t t-if="f.rango"><span class="rng"> · <t t-esc="f.rango"/></span></t>
+                                    </td>
+                                    <td class="n" t-esc="fmt(f.h)"/>
+                                </tr>
+                            </t>
+                            <tr t-if="!filas.length">
+                                <td class="lbl" colspan="3">Ninguna pausa dentro de su jornada.</td>
+                            </tr>
+                            <tr class="tot">
+                                <td class="lbl">Medido, con hora</td>
+                                <td class="det"/>
+                                <td class="n" t-esc="fmt(cuadre.medido_h)"/>
+                            </tr>
+                            <tr t-if="cuadre.sin_datos_h * 60 >= 0.5">
+                                <td class="lbl"><span class="dot sin_datos"/>Aún sin datos</td>
+                                <td class="det">entre el último envío del equipo y ahora</td>
+                                <td class="n" t-esc="fmt(cuadre.sin_datos_h)"/>
+                            </tr>
+                            <tr t-if="cuadre.dobles_h * 60 >= 0.5" class="ajuste">
+                                <td class="lbl">Primer minuto de los huecos</td>
+                                <td class="det">
+                                    <t t-if="cuadre.n_huecos === 1">el tablero resta dos veces el primer minuto del hueco de 15 min o más: como actividad y dentro del hueco</t>
+                                    <t t-else="">el tablero resta dos veces el primer minuto de cada uno de los <t t-esc="cuadre.n_huecos"/> huecos de 15 min o más: como actividad y dentro del hueco</t>
+                                </td>
+                                <td class="n">− <t t-esc="fmt(cuadre.dobles_h)"/></td>
+                            </tr>
+                            <tr t-if="cuadre.no_restado_h * 60 >= 0.5" class="ajuste">
+                                <td class="lbl">Huecos que el tablero no resta</td>
+                                <td class="det">la parte de un hueco que cae fuera de lo checado: el tablero no la cuenta como jornada del hueco</td>
+                                <td class="n">+ <t t-esc="fmt(cuadre.no_restado_h)"/></td>
+                            </tr>
+                            <tr t-if="!cuadraAlMinuto" class="sinhora">
+                                <td class="lbl"><span class="dot no_medido"/>Sin hora</td>
+                                <td class="det">
+                                    <t t-if="cuadre.diferencia_h > 0">el tablero cuenta esto de más sobre lo medido.</t>
+                                    <t t-else="">lo medido pasa al tablero por esto.</t>
+                                    <t t-if="cuadre.no_medido_h * 60 >= 0.5 and d.desde">
+                                        Este día las pausas solo se midieron desde las <t t-esc="hm(d.desde)"/>: lo de antes no tiene hora.
+                                    </t>
+                                    <t t-else=""> Nada de lo medido lo explica y no se le pone causa.</t>
+                                </td>
+                                <td class="n dif"><t t-esc="cuadre.diferencia_h > 0 ? '+' : '−'"/><t t-esc="fmt(Math.abs(cuadre.diferencia_h))"/></td>
+                            </tr>
+                            <tr class="cuadre">
+                                <td class="lbl">El tablero</td>
+                                <td class="det">
+                                    <t t-if="cuadraAlMinuto">cuadra al minuto con lo medido</t>
+                                    <t t-else="">jornada − con actividad − huecos</t>
+                                </td>
+                                <td t-attf-class="n {{ cuadraAlMinuto ? 'ok' : '' }}">
+                                    <t t-esc="fmt(cuadre.resta_h)"/>
+                                    <i t-if="cuadraAlMinuto" class="fa fa-check"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <!-- ========================================== CADA PAUSA -->
+                <section class="fsa_card" t-if="d.medido">
+                    <div class="fsa_card_head">
+                        <h2>Cada pausa <span class="cnt" t-esc="d.pausas.length"/></h2>
+                        <div class="fsa_chips">
+                            <t t-foreach="filtros" t-as="c" t-key="c.k">
+                                <button t-attf-class="chip {{ c.on ? 'on' : '' }}" t-on-click="() => this.setFiltro(c.k)">
+                                    <span t-attf-class="dot {{ c.k }}"/><t t-esc="c.label"/> <b t-esc="c.n"/>
+                                </button>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="fsa_tabwrap" t-if="pausas.length">
+                        <table class="fsa_list">
+                            <thead>
+                                <tr>
+                                    <th title="Último toque de teclado o mouse antes de la pausa">Paró</th>
+                                    <th title="El siguiente toque">Volvió</th>
+                                    <th class="n">Duró</th>
+                                    <th class="n" title="Lo que cuenta dentro de la jornada: sin el primer minuto (aún cuenta como actividad), sin la comida y sin lo de fuera de horario">Cuenta</th>
+                                    <th>Tipo</th>
+                                    <th>Al frente cuando paró</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="pausas" t-as="p" t-key="p.id">
+                                    <tr t-attf-class="{{ p.dentro ? '' : 'fuera' }}">
+                                        <td class="t" t-esc="p.ini"/>
+                                        <td class="t" t-esc="p.fin"/>
+                                        <td class="n" t-esc="fmtMin(p.dur_min)"/>
+                                        <td class="n" t-esc="p.dentro ? fmtMin(p.cuenta_min) : 'fuera de jornada'"/>
+                                        <td><span t-attf-class="dot {{ p.kind }}"/><t t-esc="p.tipo"/></td>
+                                        <td class="app" t-esc="p.app or '—'"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="fsa_empty" t-else="">Ninguna pausa de 1 minuto o más este día.</p>
+                    <p class="fsa_nota">
+                        Cómo se mide: una pausa empieza en el último toque de teclado o mouse y
+                        termina en el siguiente. El agente da por inactiva a la persona después de
+                        <b t-esc="cuadre.umbral_s"/> s sin tocar nada; ese primer tramo cuenta como
+                        actividad, por eso «Cuenta» es menor que «Duró». Una llamada cuenta como
+                        actividad aunque no se toque nada. Las de 15 min o más no están aquí: son los
+                        huecos, que tienen su propio tramo en el tablero.
+                    </p>
+                </section>
+
+                <!-- ==================== DIAS SIN MEDIR: LOS EVENTOS DEL EQUIPO -->
+                <section class="fsa_card" t-if="!d.medido and d.eventos.length">
+                    <div class="fsa_card_head">
+                        <h2>Lo que sí quedó registrado ese día</h2>
+                        <span class="hint">eventos del equipo, con su hora · no dicen cuándo hubo pausas</span>
+                    </div>
+                    <ul class="fsa_ev">
+                        <t t-foreach="d.eventos" t-as="e" t-key="e_index">
+                            <li><span class="t" t-esc="e.h"/><t t-esc="e.label"/></li>
+                        </t>
+                    </ul>
+                </section>
+            </t>
+        </div>
+    </t>
+</templates>

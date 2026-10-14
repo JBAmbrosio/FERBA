@@ -52,7 +52,7 @@ const DESTINO = {
     sinexp: "clic: lo que no justificó (lo de hoy y lo que se le pasó el día)",
     rechazado: "clic: lo que rechazaste",
     comida: "clic: sus periodos del día, con la comida",
-    sinact: "clic: su detalle de uso (no hay registro que abrir: es lo que no llegó a 15 min)",
+    sinact: "clic: cada pausa con su hora, y lo que no se midió",
     sin: "clic: lo que falta clasificar",
     distraccion: "clic: en qué se le fue el tiempo",
     _: "clic: su detalle de uso",
@@ -1612,6 +1612,16 @@ export class FocoDashboard extends Component {
                 [emp, ["category_id.weight", "<=", 0], ["category_id.is_system", "=", false],
                  ...dias("date")],
                 { search_default_g_app: 1 });
+        }
+        if (k === "sinact") {
+            // Es una resta, no un registro: su propia pantalla, con la linea del
+            // dia y cada pausa medida. Un dia a la vez: el ultimo del periodo.
+            return this.action.doAction("foco_monitor.foco_sinact_action", {
+                additionalContext: {
+                    foco_employee_id: b.id,
+                    foco_fecha: hasta > this.hoyYmd ? this.hoyYmd : hasta,
+                },
+            });
         }
         // Productivo, neutral o la fila entera: su detalle de uso, que es donde
         // se ve el arbol app > sitio > pagina y se puede clasificar desde ahi.
