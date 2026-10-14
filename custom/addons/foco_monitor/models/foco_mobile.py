@@ -731,20 +731,17 @@ class FocoMobileDevice(models.Model):
 
     # ------------------------------------------------------- visitas de campo
     def clientes_para(self):
-        """Cartera de clientes de ventas para la pantalla de Visita del telefono.
-        Si el vendedor (usuario del empleado del equipo) tiene cartera asignada,
-        devuelve la suya; si no (aun no se asignan), devuelve todos. Campos
-        minimos para ubicar y elegir en el telefono."""
+        """Cartera de clientes de ventas para las pestanas Visita y Mapa del
+        telefono: TODOS los clientes de ventas, para todos los vendedores
+        (decision del 14-oct-2026). Antes, si el usuario del telefono tenia
+        aunque fuera un cliente asignado, solo veia los suyos; como registrar un
+        prospecto desde el telefono se lo asigna, al primer prospecto el
+        vendedor perdia el resto de la cartera. Campos minimos para ubicar y
+        elegir en el telefono."""
         self.ensure_one()
         Partner = self.env['res.partner'].sudo()
-        base = [('foco_cliente_ventas', '=', True)]
-        emp = self.employee_id
-        user = emp.user_id if emp else Partner.env['res.users']
-        dom = base
-        if user and Partner.search_count(base + [('user_id', '=', user.id)]):
-            dom = base + [('user_id', '=', user.id)]
         filas = []
-        for c in Partner.search(dom, limit=3000):
+        for c in Partner.search([('foco_cliente_ventas', '=', True)], limit=3000):
             filas.append({
                 'id': c.id, 'name': c.display_name,
                 'lat': c.partner_latitude, 'lon': c.partner_longitude,
@@ -755,6 +752,8 @@ class FocoMobileDevice(models.Model):
                 'estado': c.foco_estado_id.name or '',
                 'estado_code': c.foco_estado_id.code or '',
                 'contacto': c.foco_contacto or '',
+                # todos ven a todos: la ficha dice de quien es el cliente
+                'vendedor': c.user_id.name or '',
                 'ultima_visita': (fields.Datetime.to_string(c.foco_ultima_visita)
                                   if c.foco_ultima_visita else ''),
             })
