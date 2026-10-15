@@ -28,6 +28,8 @@ _logger = logging.getLogger(__name__)
 # a la misma hora exacta que su /foco/policy; el tercero paso.
 _PG_REINTENTAR = (errorcodes.LOCK_NOT_AVAILABLE, errorcodes.SERIALIZATION_FAILURE,
                   errorcodes.DEADLOCK_DETECTED)
+# Ademas de los que se reintentan: la transaccion ya abortada por uno de ellos.
+_PG_NO_SE_TRAGA = _PG_REINTENTAR + (errorcodes.IN_FAILED_SQL_TRANSACTION,)
 
 
 def _reintentando(fn, intentos=3):
@@ -45,6 +47,24 @@ def _reintentando(fn, intentos=3):
                 request.env.reset()
             _logger.info('Foco: reintento %d por concurrencia (%s)', intento + 1, e.pgcode)
             time.sleep(0.2 * (intento + 1))
+
+
+def _no_se_traga(e):
+    """True si `e` NO se puede atrapar dentro del envio y seguir como si nada.
+
+    Un choque de concurrencia salta al vaciar lo pendiente ANTES del SAVEPOINT
+    (el envio del agente y el reporte del servicio escriben la misma fila del
+    equipo en el mismo segundo) y aborta la transaccion ENTERA. Tragarselo
+    dejaba la transaccion muerta: todo lo que seguia fallaba con «current
+    transaction is aborted» y el envio acababa en 500 sin reintento, porque el
+    error que llegaba a `_reintentando` ya no era el de concurrencia
+    (FbT218LIM, 15-oct-2026: 4 de 10 envios). Hay que dejarlo subir para que
+    `_reintentando` deshaga todo y repita desde cero."""
+    while e is not None:
+        if isinstance(e, psycopg2.Error) and e.pgcode in _PG_NO_SE_TRAGA:
+            return True
+        e = e.__cause__ or e.__context__
+    return False
 
 
 def _tomy_texto_a_html(texto):
@@ -207,7 +227,11 @@ class FocoController(http.Controller):
         Usage = request.env['foco.usage'].sudo()
 
         info = data.get('computer') or {}
-        vals = {'last_seen': fields.Datetime.now()}
+        # Este envio ENTRO: se acaba la racha de fallos que el equipo venia
+        # contando en el sondeo (ver `_estado_envio`).
+        vals = {'last_seen': fields.Datetime.now(), 'push_ok_at': fields.Datetime.now()}
+        if computer.push_fails or computer.push_error:
+            vals.update({'push_fails': 0, 'push_error': False, 'push_error_since': False})
         Comp = request.env['foco.computer'].sudo()
         Review = request.env['foco.call.review'].sudo()
 
@@ -432,13 +456,17 @@ class FocoController(http.Controller):
             with request.env.cr.savepoint():
                 pausas_stored = request.env['foco.pausa'].sudo().record_pausas(
                     computer, data.get('pausas') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: pausas de %s', computer.id)
         try:
             with request.env.cr.savepoint():
                 actividad_stored = request.env['foco.actividad'].sudo().record_actividad(
                     computer, data.get('actividad') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: actividad de %s', computer.id)
 
         # --- que le paso al EQUIPO ------------------------------------------
@@ -451,7 +479,9 @@ class FocoController(http.Controller):
         try:
             with request.env.cr.savepoint():
                 events_stored = Event.record_events(computer, data.get('events') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: eventos de %s', computer.id)
             events_stored = None
 
@@ -463,7 +493,9 @@ class FocoController(http.Controller):
             with request.env.cr.savepoint():
                 tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
                     computer, data.get('tabs') or [], data.get('tab_hosts') or {})
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
 
@@ -476,7 +508,9 @@ class FocoController(http.Controller):
         try:
             with request.env.cr.savepoint():
                 wa_header_names = WaGroup.resolver_headers(data.get('wa_headers') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: encabezados de WhatsApp de %s', computer.id)
             wa_header_names = {}
 
@@ -518,7 +552,9 @@ class FocoController(http.Controller):
                 with request.env.cr.savepoint():
                     request.env['foco.workday'].sudo().rebuild(
                         computer.employee_id, sorted(d for d in dias if d))
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: jornada de %s', computer.id)
             # Y los hechos de integridad de esos mismos dias: barato (una
             # persona, uno o dos dias) y asi se ven al momento, no de noche.
@@ -526,7 +562,9 @@ class FocoController(http.Controller):
                 with request.env.cr.savepoint():
                     request.env['foco.integrity.fact'].sudo().rebuild(
                         computer.employee_id, sorted(d for d in dias if d))
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
         Command = request.env['foco.command'].sudo()
@@ -1487,7 +1525,9 @@ class FocoController(http.Controller):
             cmds.write({'state': 'sent', 'sent_at': fields.Datetime.now()})
         # El latido va aqui tambien: si el agente pregunta cada 25 s, el equipo
         # deja de verse «sin senal» por esperar al envio pesado.
-        computer.write({'last_seen': fields.Datetime.now()})
+        vals = {'last_seen': fields.Datetime.now()}
+        vals.update(self._estado_envio(computer, self._body() or {}))
+        computer.write(vals)
 
         # LO QUE HACE FALTA PARA OBEDECER VIAJA CON LA ORDEN.
         #
@@ -1525,6 +1565,47 @@ class FocoController(http.Controller):
                                   .monitor_sitios_para(computer.employee_id),
             },
         })
+
+    @staticmethod
+    def _estado_envio(computer, data):
+        """Lo que el agente (desde 2026.10.15.1) cuenta en el sondeo sobre su
+        envio de datos y su version. Solo lo que CAMBIO: este sondeo llega cada
+        25 s y no debe reescribir la fila del equipo de mas.
+
+        La version va aqui tambien porque la del envio de datos solo se
+        actualiza cuando un envio ENTRA: un equipo cuyos envios fallan se veia
+        en Odoo con la version vieja aunque ya tuviera la nueva (15-oct-2026)."""
+        vals = {}
+        version = str(data.get('version') or '')[:32]
+        if version and version != (computer.agent_version or ''):
+            vals['agent_version'] = version
+            try:
+                vals['agent_version_code'] = int(data.get('version_code') or 0)
+            except (TypeError, ValueError):
+                pass
+        envio = data.get('envio')
+        if not isinstance(envio, dict):
+            return vals
+        Event = request.env['foco.event']
+        try:
+            fallos = max(0, int(envio.get('fallos') or 0))
+        except (TypeError, ValueError):
+            fallos = 0
+        nuevo = {
+            'push_fails': fallos,
+            'push_error': (str(envio.get('error') or '')[:240] or False) if fallos else False,
+            'push_error_since': (Event._parse_utc(envio.get('desde')) or False) if fallos else False,
+        }
+        # El ultimo envio que entro lo pone el SERVIDOR al recibirlo (_ingest);
+        # la hora del equipo solo llena el hueco de un equipo que no ha logrado
+        # entrar desde que existe este campo.
+        ok_at = Event._parse_utc(envio.get('ultimo_ok'))
+        if ok_at and not computer.push_ok_at:
+            nuevo['push_ok_at'] = ok_at
+        for campo, valor in nuevo.items():
+            if computer[campo] != valor:
+                vals[campo] = valor
+        return vals
 
     # ------------------------------------------------------------- capturas
     @http.route('/foco/capture', type='http', auth='public',
@@ -1674,9 +1755,12 @@ class FocoController(http.Controller):
         if data is None:
             return request.make_json_response({'error': 'bad_json'}, status=400)
 
-        # Version del servicio, si la reporta (desde 2026.09.25).
-        if data.get('version_agente'):
-            computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
+        # Version del servicio, si la reporta (desde 2026.09.25). Solo cuando
+        # cambia: este reporte llega cada ciclo y cada escritura de mas a la
+        # fila del equipo es otra oportunidad de chocar con el envio del agente.
+        version_servicio = str(data.get('version_agente') or '')[:32]
+        if version_servicio and version_servicio != (computer.service_version or ''):
+            computer.sudo().write({'service_version': version_servicio})
 
         # Navegadores no permitidos que el servicio cerro desde su ultimo
         # reporte (desde 2026.09.26). Van a Actividad como eventos con la hora
@@ -1702,7 +1786,9 @@ class FocoController(http.Controller):
                 try:
                     with request.env.cr.savepoint():
                         request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
-                except Exception:
+                except Exception as e:
+                    if _no_se_traga(e):
+                        raise
                     _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
 
         aplicada = (data.get('applied') or '').strip()[:64]
@@ -1714,7 +1800,9 @@ class FocoController(http.Controller):
             # tumbar el reporte del equipo, asi que va en su propio try.
             try:
                 computer.sudo().notificar_politica(aplicada, detalle)
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: no se pudo notificar la politica de %s',
                                   computer.id)
             vals = {'policy_version': aplicada}

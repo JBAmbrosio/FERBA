@@ -21,6 +21,9 @@
                 <field name="agent_outdated" column_invisible="1"/>
                 <field name="agent_version" string="Version"
                        decoration-warning="agent_outdated" optional="show"/>
+                <field name="push_fails" column_invisible="1"/>
+                <field name="push_error" string="Envio de datos" optional="show"
+                       decoration-danger="push_fails > 0"/>
                 <field name="minutes_since_seen" string="Min. sin reportar" optional="hide"/>
                 <field name="policy_id" string="Navegacion" optional="show"/>
                 <field name="policy_sync" string="Bloqueo"
@@ -86,6 +89,14 @@
                             <field name="agent_version"/>
                             <field name="service_version"/>
                             <field name="agent_outdated"/>
+                        </group>
+                        <!-- Lo cuenta el equipo en el sondeo de ordenes: cuando el
+                             envio de datos es el que falla, el no puede decir por que. -->
+                        <group string="Envio de datos">
+                            <field name="push_ok_at"/>
+                            <field name="push_fails"/>
+                            <field name="push_error_since" invisible="not push_fails"/>
+                            <field name="push_error" invisible="not push_fails"/>
                         </group>
                         <!-- Consentimiento POR PERSONA: sin esta marca el equipo no
                              graba aunque el interruptor general este encendido. -->

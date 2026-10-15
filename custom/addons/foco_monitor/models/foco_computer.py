@@ -213,6 +213,28 @@ class FocoComputer(models.Model):
         help='El codigo de version que reporta es menor que el publicado en '
              'Configuracion. Se actualiza solo en su siguiente ciclo.')
 
+    # ------------------------------------------------- envio de datos
+    # Lo reporta el agente en el SONDEO DE ORDENES (cada ~25 s, unos cientos de
+    # bytes), no en el envio de datos: cuando el que falla es el envio, ese
+    # mismo envio no puede contar por que. Nace del 15-oct-2026: dos equipos
+    # sondeaban sin problema y ningun envio de datos llegaba a Odoo, y la
+    # razon solo se podia leer entrando a la computadora.
+    push_fails = fields.Integer(
+        string='Envios de datos fallidos seguidos', readonly=True,
+        help='Cuantos envios de datos seguidos no pudo hacer el equipo. 0 = el '
+             'ultimo envio entro.')
+    push_error = fields.Char(
+        string='Motivo del ultimo envio fallido', readonly=True,
+        help='Lo que vio el equipo al intentar mandar sus datos: la respuesta '
+             'de Odoo, un corte de red o un error al armar el envio.')
+    push_error_since = fields.Datetime(
+        string='Envios fallando desde', readonly=True,
+        help='Primer envio fallido de la racha actual, segun el equipo.')
+    push_ok_at = fields.Datetime(
+        string='Ultimo envio de datos que entro', readonly=True,
+        help='Segun el equipo. Si es viejo y el equipo sigue sondeando, el '
+             'motivo de arriba dice por que no entran sus datos.')
+
     @api.depends('agent_version_code')
     def _compute_agent_outdated(self):
         objetivo = self.env['foco.settings'].sudo().get_settings_global().agent_version_code or 0
