@@ -12,7 +12,7 @@ class FocoDistribucion(http.Controller):
 
     @http.route('/foco/instalar', type='http', auth='public', website=False)
     def instalar(self, **kw):
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         return request.render('foco_monitor.instalar_page', {
             'hay_app': s.mobile_apk_ready(),
             'version': s.mobile_apk_version_name or '',
@@ -23,7 +23,7 @@ class FocoDistribucion(http.Controller):
     def app_token(self, **kw):
         """Acuña un token efimero y devuelve el QR (PNG en data URL) que apunta a
         la descarga. Lo llama el codigo de teclas de /foco/instalar."""
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_apk_ready():
             return request.make_json_response({'ok': False})
         tok = request.env['foco.app.token'].sudo().emitir(s.mobile_apk_token_minutes)
@@ -41,7 +41,7 @@ class FocoDistribucion(http.Controller):
         tok = request.env['foco.app.token'].sudo().consumir(t)
         if not tok:
             return request.render('foco_monitor.instalar_caducado', {})
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_apk:
             return request.not_found()
         content = base64.b64decode(s.mobile_apk)
@@ -59,7 +59,7 @@ class FocoDistribucion(http.Controller):
         tok = request.env['foco.app.token'].sudo().consumir(t)
         if not tok:
             return request.render('foco_monitor.instalar_caducado', {})
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_stub_apk:
             return request.not_found()
         content = base64.b64decode(s.mobile_stub_apk)
@@ -78,7 +78,7 @@ class FocoDistribucion(http.Controller):
         tok = request.env['foco.app.token'].sudo().consumir(t)
         if not tok:
             return request.not_found()
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_apk:
             return request.not_found()
         content = base64.b64decode(s.mobile_apk)
@@ -113,7 +113,7 @@ class FocoDistribucion(http.Controller):
         compara con su versionCode y decide si se actualiza."""
         if not self._auth_movil():
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_apk:
             return request.make_json_response({'ok': True, 'version_code': 0})
         return request.make_json_response({
@@ -128,7 +128,7 @@ class FocoDistribucion(http.Controller):
         autentica con su llave)."""
         if not self._auth_movil():
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.mobile_apk:
             return request.not_found()
         content = base64.b64decode(s.mobile_apk)

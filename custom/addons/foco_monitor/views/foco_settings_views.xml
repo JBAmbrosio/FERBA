@@ -20,6 +20,11 @@
                             concede aqui, de forma explicita, y solo quien
                             administra Foco puede cambiarlo.
                         </p>
+                        <p class="text-muted">
+                            Estos accesos son de toda la plataforma. QUE empresas ve cada
+                            persona lo deciden sus empresas permitidas en Odoo: quien solo
+                            tiene Peru, en Foco solo ve a la gente de Peru.
+                        </p>
                     </div>
                     <group>
                         <field name="access_user_ids" widget="many2many_tags"
@@ -90,6 +95,7 @@
                         </p>
                     </div>
                     <group>
+                        <field name="company_id" readonly="1"/>
                         <field name="gap_min_minutes"/>
                     </group>
                     <group>

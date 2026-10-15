@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <list string="Perfiles de navegacion">
                 <field name="name"/>
+                <field name="company_id" optional="show" groups="base.group_multi_company"/>
                 <field name="computer_count" string="Equipos"/>
                 <field name="rule_count" string="Reglas"/>
                 <!-- Lo que de verdad esta pasando, en la lista y no solo dentro:
@@ -29,6 +30,10 @@
                         <label for="name"/>
                         <h1><field name="name" placeholder="Ventas, Diseno, Planta..."/></h1>
                     </div>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"
+                               options="{'no_create': True}"/>
+                    </group>
 
                     <!-- ESTADO, arriba del todo. La pregunta que trae a esta
                          pantalla no es "que reglas tiene" sino "por que no pasa

@@ -289,10 +289,18 @@ class FocoPolicyMovil(models.Model):
         """Los celulares que se rigen por estos perfiles, incluidos los que no
         tienen perfil propio si alguno de estos es el perfil por omision."""
         Dev = self.env['foco.mobile.device'].sudo()
+        Settings = self.env['foco.settings'].sudo()
         equipos = Dev.search([('policy_id', 'in', self.ids)])
-        omision = self.env['foco.settings'].sudo().get_settings().default_policy_id
-        if omision and omision in self:
-            equipos |= Dev.search([('policy_id', '=', False)])
+        for p in self:
+            # Los celulares sin perfil se rigen por el de omision DE SU EMPRESA.
+            ajustes = Settings.de_empresa(p.company_id, crear=False)
+            if ajustes.default_policy_id != p:
+                continue
+            dom = [('policy_id', '=', False)]
+            de_empresa = ajustes._dom_equipos_empresa() if len(ajustes) == 1 else []
+            if de_empresa:
+                dom = ['&'] + de_empresa + dom
+            equipos |= Dev.search(dom)
         return equipos
 
     def write(self, vals):
@@ -934,7 +942,9 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_perfil(self):
         self.ensure_one()
         propio = self.policy_id.filtered('active')
-        return propio or self.env['foco.settings'].sudo().get_settings().default_policy_id.filtered('active')
+        # Sin perfil propio: el de omision de la empresa de su empleado.
+        return propio or self.env['foco.settings'].sudo().de_equipo(self, crear=False)\
+            .default_policy_id.filtered('active')
 
     def _mdm_codigo(self):
         """El codigo de invitacion que Foco usa para conectarse sola. Estable:
@@ -960,7 +970,8 @@ class FocoMobileDeviceMdm(models.Model):
         recalcularlo dos veces."""
         self.ensure_one()
         perfil = self._mdm_perfil() if perfil is None else perfil
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        # El interruptor de bloqueo de la empresa del empleado del telefono.
+        ajustes = self.env['foco.settings'].sudo().de_equipo(self)
         if perfil:
             r = {
                 'modo': perfil.mobile_play_mode or 'lista',
@@ -1187,7 +1198,7 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_enviar(self, forzar=False, lanzar=False):
         """Manda la politica de cada telefono a Google si cambio. Devuelve
         cuantas se enviaron. Sin empresa registrada no hace nada."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             if lanzar:
                 self.env['foco.amapi'].empresa()      # levanta el mensaje claro
@@ -1216,7 +1227,7 @@ class FocoMobileDeviceMdm(models.Model):
         (un solo envio por telefono aunque cambien diez cosas)."""
         if not self:
             return
-        if not self.env['foco.settings'].sudo().get_settings().amapi_enterprise:
+        if not self.env['foco.settings'].sudo().get_settings_global().amapi_enterprise:
             return
         datos = self.env.cr.precommit.data
         pendientes = datos.setdefault('foco.mdm.pendientes', set())
@@ -1243,7 +1254,7 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_sync(self, lanzar=False):
         """Lee de Google todos los telefonos de la empresa: estado, si cumplen,
         y que tienen instalado."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             if lanzar:
                 self.env['foco.amapi'].empresa()
@@ -1336,7 +1347,7 @@ class FocoMobileDeviceMdm(models.Model):
 
     @api.model
     def _mdm_cron(self):
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             return
         self._mdm_sync()

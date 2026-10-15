@@ -257,11 +257,19 @@ class FocoPausa(models.Model):
             [('host', 'in', list(hosts))])} if hosts else {}
         ctx['apps'] = {a.exe: a for a in self.env['foco.app'].sudo().search(
             [('exe', 'in', list(exes))])} if exes else {}
-        try:
-            default_pol = settings.default_policy_id.filtered('active')
-        except Exception:
-            default_pol = self.env['foco.policy']
-        ctx['perfil'] = {c.id: (c.policy_id.filtered('active') or default_pol)[:1].id for c in comps}
+        # El perfil por omision es el de la empresa del empleado de cada equipo.
+        omision = {}
+
+        def defecto(c):
+            empresa = c.employee_id.company_id
+            if empresa.id not in omision:
+                try:
+                    omision[empresa.id] = Settings.de_empresa(empresa, crear=False)\
+                        .default_policy_id.filtered('active')
+                except Exception:
+                    omision[empresa.id] = self.env['foco.policy']
+            return omision[empresa.id]
+        ctx['perfil'] = {c.id: (c.policy_id.filtered('active') or defecto(c))[:1].id for c in comps}
         por_sitio, por_app = {}, {}
         pols = [x for x in set(ctx['perfil'].values()) if x]
         if pols:

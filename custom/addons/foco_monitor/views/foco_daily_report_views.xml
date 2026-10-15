@@ -335,7 +335,9 @@
                             hora se manda el reporte del día.
                         </p>
                     </div>
+                    <field name="foco_es_principal" invisible="1"/>
                     <group string="Adherencia al turno">
+                        <field name="company_id" readonly="1"/>
                         <field name="adherencia_gracia_min"/>
                     </group>
                     <div class="alert alert-info" role="alert">
@@ -347,21 +349,26 @@
                         subir la tolerancia a todos. Una persona puede tener su propia tolerancia en su ficha
                         de empleado (pestaña Foco).
                     </div>
-                    <group string="Reporte diario por correo">
+                    <div class="alert alert-secondary" role="status" invisible="foco_es_principal">
+                        El reporte diario por correo todavía es uno solo para todo el grupo y se configura
+                        en la empresa principal. El reporte de cada empresa, con solo su gente y sus
+                        destinatarios, llega en la siguiente actualización de Foco.
+                    </div>
+                    <group string="Reporte diario por correo" invisible="not foco_es_principal">
                         <field name="reporte_diario_activo"/>
                         <field name="reporte_diario_hora" widget="float_time"/>
                         <field name="reporte_diario_user_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         <field name="reporte_diario_emails" placeholder="correo@dominio.com, otro@dominio.com"/>
                         <field name="reporte_diario_ultimo"/>
                     </group>
-                    <div>
+                    <div invisible="not foco_es_principal">
                         <button name="action_ver_reporte_hoy" type="object" string="Ver el reporte de hoy"
                                 class="btn btn-secondary"/>
                         <button name="action_enviar_reporte_ahora" type="object" string="Generar y enviar ahora"
                                 class="btn btn-primary"
                                 confirm="Se armará el reporte de hoy con los números de este momento y se enviará a los destinatarios. ¿Continuar?"/>
                     </div>
-                    <div class="alert alert-warning mt-3" role="alert">
+                    <div class="alert alert-warning mt-3" role="alert" invisible="not foco_es_principal">
                         La hora es la local de la empresa (calendario laboral). El proceso revisa cada 15 minutos
                         y envía una sola vez por día; los días sin jornada esperada (domingo, festivo general)
                         no se envía nada. Los números del correo son los del tablero a la hora del corte y
