@@ -69,18 +69,35 @@ class FocoSettings(models.Model):
             if r.gap_min_minutes and not (1 <= r.gap_min_minutes <= 60):
                 raise ValidationError('Los minutos de inactividad van de 1 a 60.')
 
+    def _dom_equipos_empresa(self):
+        """Los equipos de ESTA configuracion: los de los empleados de su empresa
+        (la principal se queda ademas con los que aun no tienen empleado)."""
+        self.ensure_one()
+        cid = self.company_id.id
+        if not cid:
+            return []
+        if self.foco_es_principal:
+            return ['|', ('employee_id', '=', False), ('employee_id.company_id', '=', cid)]
+        return [('employee_id.company_id', '=', cid)]
+
     @api.depends_context('uid')
     def _compute_ventana_equipos(self):
-        eqs = self.env['foco.computer'].sudo().search([('foco_ventana_inactividad', '=', True)])
-        for rec in self:
-            rec.ventana_computer_ids = eqs
-
-    def _inverse_ventana_equipos(self):
         Comp = self.env['foco.computer'].sudo()
         for rec in self:
-            actuales = Comp.search([('foco_ventana_inactividad', '=', True)])
-            (actuales - rec.ventana_computer_ids).write({'foco_ventana_inactividad': False})
-            rec.ventana_computer_ids.sudo().write({'foco_ventana_inactividad': True})
+            rec.ventana_computer_ids = Comp.search(
+                [('foco_ventana_inactividad', '=', True)] + rec._dom_equipos_empresa())
+
+    def _inverse_ventana_equipos(self):
+        # Solo toca los equipos de SU empresa: guardar la lista de Peru no puede
+        # apagar la ventana de los equipos de Industrias.
+        Comp = self.env['foco.computer'].sudo()
+        for rec in self:
+            dom = rec._dom_equipos_empresa()
+            actuales = Comp.search([('foco_ventana_inactividad', '=', True)] + dom)
+            propios = rec.ventana_computer_ids.sudo().filtered_domain(dom) if dom \
+                else rec.ventana_computer_ids.sudo()
+            (actuales - propios).write({'foco_ventana_inactividad': False})
+            propios.write({'foco_ventana_inactividad': True})
 
     @api.model
     def action_ventana(self):
@@ -753,17 +770,19 @@ class FocoSettings(models.Model):
         sin codigo de version, o con la actualizacion sola apagada. Solo se
         publica una version que tenga huella calculada.
         """
-        self.ensure_one()
-        if not (self.agent_autoupdate and self.installer
-                and self.installer_sha256 and self.agent_version_code):
+        # El instalador es de la PLATAFORMA: lo mismo para los equipos de
+        # cualquier empresa, sin importar sobre que configuracion se llame.
+        g = self.get_settings_global()
+        if not (g.agent_autoupdate and g.installer
+                and g.installer_sha256 and g.agent_version_code):
             return {'ok': True, 'version_code': 0}
         return {
             'ok': True,
-            'version_code': self.agent_version_code,
-            'version_name': self.agent_version_name or '',
-            'sha256': self.installer_sha256,
-            'size': self.installer_size,
-            'name': self.installer_name or 'FERBA-Foco-Setup.exe',
+            'version_code': g.agent_version_code,
+            'version_name': g.agent_version_name or '',
+            'sha256': g.installer_sha256,
+            'size': g.installer_size,
+            'name': g.installer_name or 'FERBA-Foco-Setup.exe',
         }
 
     # ---- app movil (APK) para repartir por QR ---------------------------
@@ -788,9 +807,8 @@ class FocoSettings(models.Model):
              'codigo de teclas.')
 
     def mobile_apk_ready(self):
-        """True si hay un APK publicado para repartir."""
-        self.ensure_one()
-        return bool(self.mobile_apk)
+        """True si hay un APK publicado para repartir (es de la plataforma)."""
+        return bool(self.get_settings_global().mobile_apk)
 
     # ---- APK "stub" de ALTA (pasa Play Protect en el QR) ----------------
     # Google Play Protect BLOQUEA el Foco completo al instalarlo por QR (micro,
@@ -811,8 +829,8 @@ class FocoSettings(models.Model):
 
     def mobile_stub_ready(self):
         """True si hay stub de alta publicado (y el Foco completo que baja)."""
-        self.ensure_one()
-        return bool(self.mobile_stub_apk) and bool(self.mobile_apk)
+        g = self.get_settings_global()
+        return bool(g.mobile_stub_apk) and bool(g.mobile_apk)
 
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
@@ -941,9 +959,132 @@ class FocoSettings(models.Model):
                     '"Quien puede ver Foco".</p>',
         }
 
+    # ---- UNA configuracion POR EMPRESA (15-oct-2026) ----------------------
+    #
+    # Foco funciona por compania: cada empresa tiene sus empleados, sus
+    # metricas y SU configuracion (umbrales, bolsa de 90 min, ventana, IA,
+    # alarma de bateria, perfiles...). `get_settings()` devuelve la de la
+    # empresa en curso: la del selector de empresas en la pantalla, o la del
+    # empleado del equipo/telefono que esta hablando con Odoo (contexto
+    # `foco_company_id`, lo pone el controlador al autenticarlo).
+    #
+    # Lo que NO es de una empresa sino de la plataforma -el instalador del
+    # agente, el APK, la cuenta de Google, la retencion, el tope de tokens de
+    # IA- vive solo en la configuracion de la empresa PRINCIPAL y se lee con
+    # `get_settings_global()`. Las llaves de IA y los accesos ya eran de
+    # plataforma: viven en parametros del sistema y en grupos.
+    company_id = fields.Many2one(
+        'res.company', string='Empresa', index=True, readonly=True,
+        default=lambda self: self.env.company,
+        help='La empresa a la que pertenece esta configuracion.')
+    foco_es_principal = fields.Boolean(
+        compute='_compute_foco_es_principal',
+        help='La configuracion de la empresa principal tambien guarda lo que es '
+             'de toda la plataforma (instalador del agente, APK, consumo de IA).')
+
+    _empresa_uniq = models.Constraint(
+        'unique(company_id)', 'Cada empresa tiene una sola configuracion de Foco.')
+
+    CAMPOS_PLATAFORMA = (
+        'installer', 'installer_name', 'agent_version_name', 'agent_version_code',
+        'agent_autoupdate', 'installer_sha256', 'installer_size', 'installer_uploaded_at',
+        'mobile_apk', 'mobile_apk_name', 'mobile_apk_version_name', 'mobile_apk_version_code',
+        'mobile_apk_token_minutes', 'mobile_stub_apk', 'mobile_stub_apk_name',
+        'mobile_stub_apk_version_code',
+        'amapi_enterprise', 'amapi_enterprise_display', 'amapi_signup_name',
+        'amapi_ultima_sync', 'amapi_ultimo_error',
+        'retention_months', 'retention_last_run', 'retention_last_deleted', 'retention_pending',
+        'ia_tokens_umbral_dia',
+    )
+
     @api.model
-    def get_settings(self):
-        return self.search([], limit=1) or self.create({})
+    def _foco_principal(self):
+        return (self.env.ref('base.main_company', raise_if_not_found=False)
+                or self.env['res.company'].sudo().search([], order='id', limit=1))
+
+    def _compute_foco_es_principal(self):
+        principal = self._foco_principal()
+        for rec in self:
+            rec.foco_es_principal = rec.company_id == principal
+
+    @api.model
+    def _foco_empresa(self):
+        """La empresa en curso: la del equipo que habla con Odoo, o la del selector."""
+        cid = self.env.context.get('foco_company_id')
+        if cid:
+            empresa = self.env['res.company'].sudo().browse(int(cid)).exists()
+            if empresa:
+                return empresa
+        return self.env.company
+
+    @api.model
+    def get_settings(self, crear=True):
+        """La configuracion de la empresa en curso. Si esa empresa todavia no
+        tiene, nace como COPIA de la de la empresa principal (decision del
+        15-oct-2026), con sus perfiles. `crear=False` no la crea (desde un
+        calculo no se crean registros): devuelve la de la principal."""
+        empresa = self._foco_empresa()
+        rec = self.search([('company_id', '=', empresa.id)], limit=1)
+        if rec:
+            return rec
+        if not crear:
+            return self.get_settings_global()
+        return self.browse(self.sudo()._foco_crear_para(empresa).id)
+
+    @api.model
+    def get_settings_global(self):
+        """La configuracion de la PLATAFORMA: la de la empresa principal."""
+        principal = self._foco_principal()
+        rec = self.sudo().search([('company_id', '=', principal.id)], limit=1)
+        if not rec:
+            rec = self.sudo()._foco_crear_para(principal)
+        return self.browse(rec.id)
+
+    @api.model
+    def de_empresa(self, empresa, crear=True):
+        """La configuracion de ESA empresa (sin empresa: la en curso)."""
+        if not empresa:
+            return self.get_settings(crear=crear)
+        return self.with_context(foco_company_id=empresa.id).get_settings(crear=crear)
+
+    @api.model
+    def de_equipo(self, equipo, crear=True):
+        """La configuracion que rige a un equipo o telefono: la de la empresa de
+        su empleado. Sin empleado, la de la empresa en curso."""
+        emp = equipo.sudo().employee_id if equipo else False
+        return self.de_empresa(emp.company_id if emp else False, crear=crear)
+
+    @api.model
+    def _foco_crear_para(self, empresa):
+        """Crea la configuracion de una empresa (sudo).
+
+        La PRINCIPAL adopta el registro que existia antes de que Foco fuera por
+        empresa. Cualquier otra nace como copia de la principal -sin lo de
+        plataforma- y con copia de sus perfiles (reglas, clasificacion y apps
+        del telefono), con el perfil por omision apuntando a SU copia. El
+        registro se crea ANTES de copiar los perfiles: lo que corre al crearlos
+        pide la configuracion de esta empresa y ya debe existir."""
+        principal = self._foco_principal()
+        if empresa == principal:
+            huerfano = self.search([('company_id', '=', False)], order='id', limit=1)
+            if huerfano:
+                huerfano.company_id = empresa.id
+                return huerfano
+            return self.create({'company_id': empresa.id})
+        maestro = self.search([('company_id', '=', principal.id)], limit=1) \
+            or self._foco_crear_para(principal)
+        vals = maestro.copy_data()[0]
+        for campo in self.CAMPOS_PLATAFORMA + ('default_policy_id', 'reporte_diario_ultimo', 'name'):
+            vals.pop(campo, None)
+        vals.update({'company_id': empresa.id, 'name': 'Configuracion · %s' % empresa.name})
+        rec = self.create(vals)
+        mapa = self.env['foco.policy'].with_context(foco_company_id=empresa.id)\
+            ._foco_copiar_para(empresa, principal)
+        if maestro.default_policy_id and mapa.get(maestro.default_policy_id.id):
+            rec.default_policy_id = mapa[maestro.default_policy_id.id].id
+        _logger.info('Foco: configuracion de la empresa %s (%s) creada como copia de la '
+                     'principal, con %d perfiles', empresa.id, empresa.name, len(mapa))
+        return rec
 
     # ---- la jornada: checador primero, calendario despues -----------------
     #
@@ -1464,7 +1605,8 @@ class FocoSettings(models.Model):
         un proceso de borrado que corre en silencio, y del que no se sabe si
         hizo algo, es peor que no tenerlo.
         """
-        ajustes = self.get_settings()
+        # La retencion es de la plataforma: una sola purga para todas las empresas.
+        ajustes = self.get_settings_global()
 
         # Las capturas se purgan SIEMPRE que tengan plazo, aunque la retencion
         # general este apagada. Son dos decisiones distintas: alguien puede

@@ -395,6 +395,16 @@
         <field name="arch" type="xml">
             <form string="Monitoreo movil">
                 <sheet>
+                    <field name="foco_es_principal" invisible="1"/>
+                    <group>
+                        <field name="company_id" readonly="1"/>
+                    </group>
+                    <div class="alert alert-info" role="status" invisible="foco_es_principal">
+                        Esta es la configuracion de esta empresa: aplica a los telefonos y
+                        equipos de SUS empleados. La llave de la IA, el consumo de IA, el
+                        instalador del agente y la app movil son de toda la plataforma y se
+                        administran desde la empresa principal.
+                    </div>
                     <div class="alert alert-warning" role="alert">
                         Estos telefonos son PROPIEDAD DE LA EMPRESA. El aviso de
                         privacidad firmado debe cubrir ubicacion y llamadas antes
@@ -480,7 +490,7 @@
                             descubrirlas y las que pida el administrador.
                         </div>
                     </group>
-                    <group string="Inteligencia artificial (Claude)">
+                    <group string="Inteligencia artificial (Claude)" invisible="not foco_es_principal">
                         <field name="anthropic_api_key" password="True"/>
                         <div class="text-muted" colspan="2">
                             La IA principal de Foco. La usan el veredicto por vision,
@@ -491,7 +501,7 @@
                     <group string="Analisis de llamadas de WhatsApp en la laptop (lo mas invasivo)">
                         <field name="call_review_enabled"/>
                         <field name="openai_api_key" password="True"
-                               invisible="not call_review_enabled"/>
+                               invisible="not call_review_enabled or not foco_es_principal"/>
                         <field name="call_review_apps"
                                invisible="not call_review_enabled"/>
                         <field name="call_review_context"
@@ -543,7 +553,7 @@
                             la lista al frente queda como "Musica de fondo" sin consultar al modelo.
                         </div>
                     </group>
-                    <group string="Consumo de IA">
+                    <group string="Consumo de IA" invisible="not foco_es_principal">
                         <field name="ia_tokens_umbral_dia"/>
                         <div class="text-muted" colspan="2">
                             Cada llamada al modelo (Tomy, veredictos, justificaciones, pestañas,
@@ -553,7 +563,7 @@
                             en rojo al pasar este umbral.
                         </div>
                     </group>
-                    <group string="Agente de escritorio (instalador .exe) y actualizacion sola">
+                    <group string="Agente de escritorio (instalador .exe) y actualizacion sola" invisible="not foco_es_principal">
                         <field name="installer" filename="installer_name"/>
                         <field name="installer_name"/>
                         <field name="agent_version_name"/>
@@ -572,7 +582,7 @@
                             para la descarga manual.
                         </div>
                     </group>
-                    <group string="App movil (APK) para repartir por QR">
+                    <group string="App movil (APK) para repartir por QR" invisible="not foco_es_principal">
                         <field name="mobile_apk" filename="mobile_apk_name"/>
                         <field name="mobile_apk_name"/>
                         <field name="mobile_apk_version_name"/>
@@ -588,7 +598,7 @@
                             permitir instalar de origen desconocido.
                         </div>
                     </group>
-                    <group string="APK de alta (stub) para el QR">
+                    <group string="APK de alta (stub) para el QR" invisible="not foco_es_principal">
                         <field name="mobile_stub_apk" filename="mobile_stub_apk_name"/>
                         <field name="mobile_stub_apk_name"/>
                         <field name="mobile_stub_apk_version_code"/>

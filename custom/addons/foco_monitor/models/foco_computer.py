@@ -215,7 +215,7 @@ class FocoComputer(models.Model):
 
     @api.depends('agent_version_code')
     def _compute_agent_outdated(self):
-        objetivo = self.env['foco.settings'].sudo().get_settings().agent_version_code or 0
+        objetivo = self.env['foco.settings'].sudo().get_settings_global().agent_version_code or 0
         for c in self:
             c.agent_outdated = bool(objetivo and (c.agent_version_code or 0) < objetivo)
 
@@ -229,10 +229,16 @@ class FocoComputer(models.Model):
     @api.depends('policy_id', 'policy_id.version', 'policy_id.active',
                  'policy_version', 'policy_verified_at', 'policy_drift')
     def _compute_policy_sync(self):
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        Settings = self.env['foco.settings'].sudo()
         Policy = self.env['foco.policy'].sudo()
         ahora = fields.Datetime.now()
+        por_empresa = {}
         for c in self:
+            # El interruptor de bloqueo es el de la EMPRESA del empleado.
+            empresa = c.sudo().employee_id.company_id
+            if empresa.id not in por_empresa:
+                por_empresa[empresa.id] = Settings.de_empresa(empresa, crear=False)
+            ajustes = por_empresa[empresa.id]
             # La MISMA decision que publica la lista al equipo, no una copia:
             # un perfil archivado ya no se aplica, y aqui tiene que verse igual.
             perfil = Policy._perfil_vigente(c)
@@ -459,14 +465,20 @@ class FocoComputer(models.Model):
         paginar por un error transitorio). Avisa al aparecer y reavisa cada
         REALERT_HOURS; limpia el marcador al recuperarse. La ausencia (equipo sin
         reportar) la cubre la vigilancia de salud del agente."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
-        if not ajustes.block_enabled:
+        # El bloqueo se enciende POR EMPRESA: se revisan los equipos de las
+        # empresas que lo tienen encendido.
+        Settings = self.env['foco.settings'].sudo()
+        encendidas = Settings.search([('block_enabled', '=', True)])
+        if not encendidas:
             return
         ahora = fields.Datetime.now()
         umbral = ahora - timedelta(minutes=POLICY_STALE_MINUTES)
         # Prefiltro barato con campos ALMACENADOS; la clasificacion fina va en
         # Python porque block_attention depende de la hora y no se almacena.
-        candidatos = self.sudo().search([
+        de_empresas = [('employee_id.company_id', 'in', encendidas.mapped('company_id').ids)]
+        if any(s.foco_es_principal for s in encendidas):
+            de_empresas = ['|', ('employee_id', '=', False)] + de_empresas
+        candidatos = self.sudo().search(de_empresas + [
             ('active', '=', True),
             ('policy_id', '!=', False),
             '|', ('policy_drift', '=', True),

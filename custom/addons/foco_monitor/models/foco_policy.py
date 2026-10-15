@@ -37,10 +37,17 @@ class FocoPolicy(models.Model):
     _description = 'Perfil de navegacion'
     _order = 'name'
 
-    _nombre_uniq = models.Constraint('unique(name)',
-                                     'Ya existe un perfil con ese nombre.')
+    # Unico POR EMPRESA (15-oct-2026): cada empresa tiene sus perfiles, y la
+    # copia de "Oficina tecnica" de Peru se llama igual que la de Industrias.
+    _nombre_uniq = models.Constraint('unique(name, company_id)',
+                                     'Ya existe un perfil con ese nombre en esta empresa.')
 
     name = fields.Char(string='Perfil', required=True)
+    company_id = fields.Many2one(
+        'res.company', string='Empresa', index=True,
+        default=lambda self: self.env.company,
+        help='Los perfiles son de cada empresa: el bloqueo, la conducta del agente '
+             'y la clasificacion de productividad de Peru no son los de Industrias.')
     active = fields.Boolean(default=True)
     note = fields.Text(
         string='Para que es',
@@ -181,7 +188,7 @@ class FocoPolicy(models.Model):
         contra las reglas que DE VERDAD estan puestas en el equipo.
         """
         perfil = self._perfil_vigente(computer)
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().de_equipo(computer)
         if perfil:
             bloque = {
                 'idle_secs': max(10, min(3600, perfil.idle_secs or 60)),
@@ -270,8 +277,10 @@ class FocoPolicy(models.Model):
             nuevos.write({'policy_id': p.id})
 
     def _compute_activo_global(self):
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        Settings = self.env['foco.settings'].sudo()
         for p in self:
+            # El interruptor y el perfil por omision de LA EMPRESA DEL PERFIL.
+            ajustes = Settings.de_empresa(p.company_id, crear=False)
             p.activo_global = ajustes.block_enabled
             if not p.active:
                 # Va PRIMERO: un perfil archivado no se aplica aunque el
@@ -296,8 +305,9 @@ class FocoPolicy(models.Model):
                                  % (n, '' if n == 1 else 's'))
 
     def action_encender_bloqueo(self):
-        """Enciende el interruptor general sin salir de esta pantalla."""
-        self.env['foco.settings'].sudo().get_settings().block_enabled = True
+        """Enciende el interruptor general (el de la empresa del perfil) sin
+        salir de esta pantalla."""
+        self.env['foco.settings'].sudo().de_empresa(self[:1].company_id).block_enabled = True
         return {'type': 'ir.actions.client', 'tag': 'reload'}
 
     # El hash del contenido. El servicio del equipo lo compara con el que tiene
@@ -421,19 +431,41 @@ class FocoPolicy(models.Model):
         en Odoo y la lista que se PUBLICA al equipo tienen que salir de la
         misma decision. Si se separan, la pantalla dice una cosa y la maquina
         hace otra, que es el unico error de esta funcion que nadie notaria.
+
+        El perfil por omision es el de la EMPRESA DEL EMPLEADO del equipo.
         """
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().de_equipo(computer, crear=False)
         propio = computer.policy_id.sudo().filtered('active')
         return propio or ajustes.default_policy_id.sudo().filtered('active')
+
+    @api.model
+    def _foco_copiar_para(self, empresa, origen):
+        """Copia a `empresa` los perfiles de la empresa `origen` -con sus reglas
+        de bloqueo, su clasificacion de productividad y las apps aprobadas del
+        telefono- y devuelve {id del perfil de origen: su copia}. Los equipos
+        asignados NO se copian: los de cada empresa se asignan alla."""
+        Policy = self.sudo().with_context(active_test=False)
+        mapa = {}
+        for p in Policy.search([('company_id', '=', origen.id)]):
+            nuevo = p.copy({'company_id': empresa.id, 'name': p.name, 'active': p.active})
+            for r in p.rule_ids:
+                r.copy({'policy_id': nuevo.id})
+            for c in p.category_ids:
+                c.copy({'policy_id': nuevo.id})
+            if 'mobile_grant_ids' in p._fields:
+                for g in p.mobile_grant_ids:
+                    g.copy({'policy_id': nuevo.id, 'request_id': False})
+            mapa[p.id] = nuevo
+        return mapa
 
     def payload_for(self, computer):
         """Lo que se le manda al equipo. Siempre un dict, nunca None.
 
         Un equipo sin perfil toma el perfil por omision de la configuracion; si
         tampoco hay, la lista va vacia -que significa 'no bloquees nada', no
-        'bloquea todo'-.
+        'bloquea todo'-. El interruptor es el de la empresa del empleado.
         """
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().de_equipo(computer)
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.

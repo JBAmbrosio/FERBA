@@ -234,7 +234,7 @@ class FocoAmapi(models.AbstractModel):
     @api.model
     def empresa(self):
         exigir_admin(self.env)
-        e = self.env['foco.settings'].sudo().get_settings().amapi_enterprise
+        e = self.env['foco.settings'].sudo().get_settings_global().amapi_enterprise
         if not e:
             raise UserError('La empresa todavía no está registrada en Google. En Foco > '
                             'Configuración > Monitoreo móvil > Android Enterprise, pulsa '

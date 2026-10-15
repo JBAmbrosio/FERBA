@@ -128,9 +128,25 @@ def _sin_nul(v):
 
 class FocoController(http.Controller):
 
+    def _con_empresa(self, rec, empleado=None):
+        """Foco es por empresa (15-oct-2026): lo que pida un equipo o un
+        telefono se atiende con la configuracion de la EMPRESA DE SU EMPLEADO.
+        Se fija en el entorno de toda la peticion (contexto `foco_company_id`),
+        asi cualquier `get_settings()` que corra despues -aunque viva lejos de
+        aqui- lee la de esa empresa y no la del usuario publico."""
+        try:
+            emp = empleado if empleado is not None else (rec.sudo().employee_id if rec else False)
+            cid = emp.sudo().company_id.id if emp else False
+        except Exception:
+            cid = False
+        if not cid:
+            return rec
+        request.update_env(context=dict(request.env.context, foco_company_id=cid))
+        return rec.with_context(foco_company_id=cid) if rec else rec
+
     def _auth(self):
         key = request.httprequest.headers.get('X-Foco-Key')
-        return request.env['foco.computer']._authenticate(key)
+        return self._con_empresa(request.env['foco.computer']._authenticate(key))
 
     def _body(self):
         try:
@@ -793,7 +809,7 @@ class FocoController(http.Controller):
     # servidor: apagado, no se guarda NADA aunque el telefono lo mande.
     def _auth_mobile(self):
         key = request.httprequest.headers.get('X-Foco-Key')
-        return request.env['foco.mobile.device']._authenticate(key)
+        return self._con_empresa(request.env['foco.mobile.device']._authenticate(key))
 
     @http.route('/foco/mobile/avatar', type='http', auth='public',
                 methods=['GET', 'POST'], csrf=False)
@@ -831,6 +847,8 @@ class FocoController(http.Controller):
         inv = request.env['foco.invitation']._resolve(data.get('token'))
         if not inv:
             return request.make_json_response({'error': 'invalid_or_expired'}, status=403)
+        # La configuracion que se le entrega es la de la empresa del empleado.
+        self._con_empresa(None, empleado=inv.sudo().employee_id)
         info = data.get('device') or {}
         Dev = request.env['foco.mobile.device'].sudo()
         dev = inv.mobile_id
@@ -1195,7 +1213,7 @@ class FocoController(http.Controller):
     def amapi_callback(self, enterpriseToken=None, **kw):
         if not request.env.user.has_group('foco_monitor.group_foco_manager'):
             return request.not_found()
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         destino = '/odoo/action-foco_monitor.foco_settings_movil_action'
         if not enterpriseToken or not s.amapi_signup_name:
             return request.redirect(destino)
@@ -1210,7 +1228,7 @@ class FocoController(http.Controller):
 
     @http.route('/foco/download', type='http', auth='public', methods=['GET'])
     def download(self, **kw):
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.installer:
             return request.not_found()
         content = base64.b64decode(s.installer)
@@ -1231,7 +1249,7 @@ class FocoController(http.Controller):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         return request.make_json_response(s.agent_latest())
 
     @http.route('/foco/agent/binario', type='http', auth='public', methods=['GET'])
@@ -1239,7 +1257,7 @@ class FocoController(http.Controller):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not (s.installer and s.agent_autoupdate and s.installer_sha256):
             return request.not_found()
         content = base64.b64decode(s.installer)
@@ -1297,6 +1315,8 @@ class FocoController(http.Controller):
         employee = request.env['hr.employee']._foco_by_token(token)
         if not employee:
             return request.render('foco_monitor.justify_invalid', {})
+        # Las reglas de justificacion son las de la empresa de esa persona.
+        self._con_empresa(None, empleado=employee)
 
         Absence = request.env['foco.absence'].sudo()
         if request.httprequest.method == 'POST':

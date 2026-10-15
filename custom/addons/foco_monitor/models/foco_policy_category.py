@@ -57,21 +57,26 @@ class FocoPolicyCategory(models.Model):
         quedaria con la categoria vieja)."""
         Usage = self.env['foco.usage'].sudo()
         Comp = self.env['foco.computer'].sudo()
-        try:
-            default_pol = self.env['foco.settings'].sudo().get_settings()\
-                .default_policy_id.filtered('active')
-        except Exception:
-            default_pol = self.env['foco.policy']
+        Settings = self.env['foco.settings'].sudo()
         rows = Usage.browse()
         for o in self:
             if not o.policy_id:
                 continue
             comps = Comp.search([('policy_id', '=', o.policy_id.id)])
-            # Si este perfil es el de omision, tambien los equipos sin perfil
-            # propio (o con el suyo archivado) lo adoptan.
+            # Si este perfil es el de omision DE SU EMPRESA, tambien los equipos
+            # sin perfil propio (o con el suyo archivado) DE ESA EMPRESA lo
+            # adoptan; los de otra empresa se rigen por el de la suya.
+            try:
+                ajustes = Settings.de_empresa(o.policy_id.company_id, crear=False)
+                default_pol = ajustes.default_policy_id.filtered('active')
+            except Exception:
+                ajustes, default_pol = Settings.browse(), self.env['foco.policy']
             if default_pol and o.policy_id == default_pol:
-                comps |= Comp.search(['|', ('policy_id', '=', False),
-                                      ('policy_id.active', '=', False)])
+                dom = ['|', ('policy_id', '=', False), ('policy_id.active', '=', False)]
+                de_empresa = ajustes._dom_equipos_empresa() if len(ajustes) == 1 else []
+                if de_empresa:
+                    dom = ['&'] + de_empresa + dom
+                comps |= Comp.search(dom)
             if not comps:
                 continue
             dom = [('computer_id', 'in', comps.ids)]

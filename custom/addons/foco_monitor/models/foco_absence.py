@@ -1532,6 +1532,9 @@ class FocoAbsence(models.Model):
         adh = self.env['foco.workday'].sudo().adherencia(d, d)
         personas = adh.get('personas') or {}
         emps = self.env['hr.employee'].sudo().browse([int(k) for k in personas]).exists()
+        # La asistencia sale con sudo: se acota a mano a las EMPRESAS activas del
+        # selector, igual que la regla por empresa acota todo lo demas.
+        emps = emps.filtered(lambda e: e.company_id in self.env.companies)
         if user.foco_department_ids and not user.has_group('foco_monitor.group_foco_manager'):
             emps = emps.filtered(lambda e: e.department_id in user.foco_department_ids)
 
