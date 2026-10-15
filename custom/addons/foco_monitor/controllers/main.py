@@ -12,9 +12,10 @@ import pytz
 from markupsafe import escape
 from psycopg2 import errorcodes
 
-from odoo import fields, http
-from odoo.exceptions import UserError
+from odoo import api, fields, http
+from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
+from odoo.modules.registry import Registry
 
 _logger = logging.getLogger(__name__)
 
@@ -885,6 +886,64 @@ class FocoController(http.Controller):
             return request.make_json_response({'error': 'unauthorized'}, status=401)
         return request.make_json_response(
             {'ok': True, 'clientes': dev.sudo().clientes_para()})
+
+    # ---- ventas en el celular: buscar y enviar cotizaciones (15-oct-2026) ----
+    # Todo corre con el usuario de Odoo del vendedor (ver foco.mobile.device):
+    # sus permisos y la aprobacion de cotizaciones aplican tal cual. Un error de
+    # Odoo (sin aprobar, sin correo, sin permiso) vuelve como 422 con su mensaje.
+    #
+    # En una transaccion PROPIA abierta como el vendedor, no en la del request:
+    # estas rutas son auth='public' y Odoo revisa los contactos que se agregan a
+    # un mensaje (la actividad del aprobador, el correo al cliente) con el usuario
+    # que ABRIO la transaccion (`_check_sudo_commands`), que ahi es el publico;
+    # con `with_user` no basta. Si la accion falla, esa transaccion se deshace.
+    def _ventas(self, accion):
+        dev = self._auth_mobile()
+        if not dev:
+            return None, request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body() or {}
+        uid = dev.sudo()._vendedor().id or request.env.uid
+        ctx = {k: v for k, v in dev.env.context.items() if k != 'guest'}
+        try:
+            with Registry(request.db).cursor() as cr:
+                env = api.Environment(cr, uid, ctx)
+                return accion(env['foco.mobile.device'].sudo().browse(dev.id), data), None
+        except (UserError, AccessError) as e:
+            _logger.info('foco ventas movil (%s): %s', dev.name, e,
+                         exc_info=isinstance(e, AccessError))
+            return None, request.make_json_response(
+                {'ok': False, 'error': 'odoo', 'mensaje': str(e)}, status=422)
+
+    @http.route('/foco/mobile/cotizaciones', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizaciones(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizaciones_para(
+            partner_id=data.get('partner_id'), q=data.get('q') or ''))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cotizacion_pdf', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_pdf(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_pdf(data.get('id')))
+        if error:
+            return error
+        nombre, pdf = res
+        return request.make_response(pdf, headers=[
+            ('Content-Type', 'application/pdf'),
+            ('Content-Disposition', content_disposition(nombre)),
+        ])
+
+    @http.route('/foco/mobile/cotizacion_correo', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_correo(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_correo(data.get('id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cotizacion_revision', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_revision(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_revision(data.get('id')))
+        return error or request.make_json_response(res)
 
     @http.route('/foco/mobile/visita', type='http', auth='public',
                 methods=['POST'], csrf=False)

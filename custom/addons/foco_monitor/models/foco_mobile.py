@@ -27,6 +27,7 @@ from datetime import datetime, timedelta, time
 import pytz
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 # En linea si su ultima señal es de hace menos de esto. Mismo criterio que el
 # resto de Foco (3 envios perdidos del movil ~ 15 min).
@@ -756,8 +757,166 @@ class FocoMobileDevice(models.Model):
                 'vendedor': c.user_id.name or '',
                 'ultima_visita': (fields.Datetime.to_string(c.foco_ultima_visita)
                                   if c.foco_ultima_visita else ''),
+                # Todos sus telefonos (el del cliente y los de sus contactos):
+                # el vendedor elige a cual llamar o escribir (15-oct-2026).
+                'telefonos': self._telefonos_de(c),
             })
         return filas
+
+    @api.model
+    def _telefonos_de(self, partner):
+        """[{nombre, numero}] del cliente y de sus contactos, sin repetir numero."""
+        salida, vistos = [], set()
+        for p in partner | partner.child_ids.filtered('active'):
+            numero = (p.phone or '').strip()
+            digitos = ''.join(ch for ch in numero if ch.isdigit())
+            if len(digitos) < 7 or digitos[-10:] in vistos:
+                continue
+            vistos.add(digitos[-10:])
+            salida.append({'nombre': p.name if p != partner else (partner.foco_contacto or ''),
+                           'numero': numero})
+        return salida
+
+    # ------------------------------------------------- ventas en el celular
+    #
+    # Acordado con el Ing. Francisco el 14-oct-2026: en el telefono el vendedor
+    # BUSCA sus cotizaciones y las MANDA por WhatsApp o por correo (crearlas
+    # desde el telefono no). Todo corre CON EL USUARIO DE ODOO DEL VENDEDOR
+    # (`with_user`), asi que valen sus permisos -"solo sus documentos"- y la
+    # aprobacion de cotizaciones de FERBA tal cual: sin aprobar no se genera el
+    # PDF ni se envia, porque el candado vive en el motor de reportes y en
+    # action_quotation_send, no en esta pantalla.
+
+    def _vendedor(self):
+        self.ensure_one()
+        return self.sudo().employee_id.user_id
+
+    @api.model
+    def _requiere_aprobacion(self, orden):
+        return ('aprobacion_state' in orden._fields and orden.requiere_aprobacion
+                and orden.aprobacion_state != 'aprobada')
+
+    @api.model
+    def _es_aprobador(self, user):
+        grupo = self.env.ref('ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones',
+                             raise_if_not_found=False)
+        return bool(grupo) and grupo in user.all_group_ids
+
+    def cotizaciones_para(self, partner_id=None, q='', limite=60):
+        """Las cotizaciones que el vendedor de este telefono ve en Odoo."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            return {'ok': False, 'error': 'sin_usuario',
+                    'mensaje': 'Tu teléfono no está ligado a un usuario de Odoo. Pídele al '
+                               'administrador que lo ligue en tu ficha de empleado.'}
+        if 'sale.order' not in self.env:
+            return {'ok': False, 'error': 'sin_ventas', 'mensaje': 'Ventas no está instalado en Odoo.'}
+        # las etiquetas (Cotizacion, Pedido de venta...) en el idioma del vendedor
+        SO = self.env['sale.order'].with_user(user).with_context(lang=user.lang or 'es_MX')
+        dom = [('state', '!=', 'cancel')]
+        if partner_id:
+            cliente = self.env['res.partner'].sudo().browse(int(partner_id)).exists()
+            if not cliente:
+                return {'ok': True, 'cotizaciones': []}
+            dom.append(('partner_id', 'child_of', cliente.commercial_partner_id.id))
+        q = (q or '').strip()
+        if q:
+            dom += ['|', '|', ('name', 'ilike', q), ('partner_id', 'ilike', q),
+                    ('client_order_ref', 'ilike', q)]
+        try:
+            etq_estado = dict(SO._fields['state']._description_selection(SO.env))
+        except Exception:
+            etq_estado = dict(SO._fields['state'].selection)
+        etq_aprob = (dict(SO._fields['aprobacion_state'].selection)
+                     if 'aprobacion_state' in SO._fields else {})
+        filas = []
+        for o in SO.search(dom, order='date_order desc, id desc', limit=int(limite or 60)):
+            bloqueada = self._requiere_aprobacion(o)
+            aprob = o.aprobacion_state if 'aprobacion_state' in o._fields else ''
+            productos = o.order_line.filtered(lambda l: not l.display_type and l.product_id)
+            filas.append({
+                'id': o.id, 'name': o.name,
+                'fecha': fields.Datetime.to_string(o.date_order) if o.date_order else '',
+                'vigencia': fields.Date.to_string(o.validity_date) if o.validity_date else '',
+                'monto': o.amount_total, 'moneda': o.currency_id.name or '',
+                'simbolo': o.currency_id.symbol or '$',
+                'estado': o.state, 'estado_txt': etq_estado.get(o.state, o.state),
+                'aprobacion': aprob,
+                'aprobacion_txt': etq_aprob.get(aprob, '') if bloqueada or aprob == 'aprobada' else '',
+                'motivo_rechazo': (o.aprobacion_motivo or '') if aprob == 'rechazada' else '',
+                'puede_enviar': not bloqueada,
+                # el mismo boton «Enviar a revision» de Odoo: sin revisar o rechazada
+                'puede_revision': bloqueada and aprob in ('sin', 'rechazada'),
+                'cliente': o.partner_id.display_name or '',
+                'cliente_id': o.partner_id.commercial_partner_id.id,
+                'correo': o.partner_id.email or '',
+                # a cual de sus numeros mandarla por WhatsApp
+                'telefonos': self._telefonos_de(o.partner_id.commercial_partner_id.sudo()),
+                'vendedor': o.user_id.name or '',
+                'productos': [l.product_id.display_name for l in productos[:3]],
+                'n_lineas': len(productos),
+                'url': '%s/odoo/sales/%d' % (o.get_base_url(), o.id),
+            })
+        return {'ok': True, 'cotizaciones': filas, 'vendedor': user.name}
+
+    def _orden_del_vendedor(self, order_id):
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        orden = self.env['sale.order'].with_user(user).browse(int(order_id or 0)).exists()
+        if not orden:
+            raise UserError('Esa cotización ya no existe.')
+        if not orden.has_access('read'):
+            raise UserError('La cotización %s no es tuya: con tus permisos de Odoo no la '
+                            'puedes ver ni enviar.' % orden.sudo().name)
+        return orden, user
+
+    def cotizacion_pdf(self, order_id):
+        """(nombre de archivo, bytes del PDF) de la cotizacion, generado CON EL
+        USUARIO del vendedor: si no esta aprobada, el candado de FERBA lo detiene
+        y aqui se devuelve su mensaje tal cual."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        if self._requiere_aprobacion(orden):
+            raise UserError('La cotización %s todavía no está aprobada: en cuanto la aprueben '
+                            'la podrás enviar.' % orden.name)
+        pdf, _tipo = self.env['ir.actions.report'].with_user(user)._render_qweb_pdf(
+            'sale.report_saleorder', [orden.id])
+        nombre = 'Cotizacion %s.pdf' % (orden.name or orden.id)
+        orden.sudo().message_post(
+            body='%s descargó la cotización desde su teléfono para enviarla por WhatsApp.' % user.name,
+            message_type='notification', subtype_xmlid='mail.mt_note')
+        return nombre, pdf
+
+    def cotizacion_correo(self, order_id):
+        """Manda la cotizacion por correo al cliente con la plantilla de Odoo, como
+        el boton «Enviar por correo», con el usuario del vendedor."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        if not (orden.partner_id.email or '').strip():
+            raise UserError('%s no tiene correo en Odoo. Agrégaselo en su ficha o mándala por WhatsApp.'
+                            % orden.partner_id.display_name)
+        # Un aprobador pasa: action_quotation_send la aprueba en el acto, como en Odoo.
+        if self._requiere_aprobacion(orden) and not self._es_aprobador(user):
+            raise UserError('La cotización %s todavía no está aprobada: en cuanto la aprueben '
+                            'la podrás enviar.' % orden.name)
+        accion = orden.action_quotation_send()
+        ctx = dict((accion or {}).get('context') or {})
+        composer = self.env['mail.compose.message'].with_user(user).with_context(ctx).create({})
+        composer.action_send_mail()
+        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, orden.partner_id.email)}
+
+    def cotizacion_revision(self, order_id):
+        """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
+        llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        if not hasattr(orden, 'action_enviar_revision'):
+            raise UserError('La aprobación de cotizaciones no está instalada en Odoo.')
+        orden.action_enviar_revision()
+        return {'ok': True, 'mensaje': 'Mandaste %s a revisión. Cuando la aprueben te llega '
+                                      'un chat y ya la puedes enviar.' % orden.name}
 
     def registrar_visitas(self, visitas):
         """Crea foco.visita desde el telefono (check-in del boton 'Llegue').
