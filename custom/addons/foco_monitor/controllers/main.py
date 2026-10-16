@@ -1052,6 +1052,22 @@ class FocoController(http.Controller):
         request.env.user.sudo().write({'foco_ir_a': False, 'foco_ir_a_at': False})
         return True
 
+    @http.route('/foco/ir_a/tomar', type='jsonrpc', auth='user')
+    def foco_ir_a_tomar(self, **kw):
+        """La app de Odoo volvio al frente sin recargar (estaba viva en segundo
+        plano): si hay un aviso fresco de "ir a", se entrega y se borra en el acto.
+        Solo dentro de la app (su navegador dice "OdooMobile/")."""
+        from ..models.foco_ir_http import UA_APP_ODOO, VIGENCIA_IR_A_S
+        if UA_APP_ODOO not in (request.httprequest.user_agent.string or ''):
+            return False
+        u = request.env.user.sudo()
+        if not (u.foco_ir_a and u.foco_ir_a_at
+                and u.foco_ir_a_at >= fields.Datetime.now() - timedelta(seconds=VIGENCIA_IR_A_S)):
+            return False
+        url = u.foco_ir_a
+        u.write({'foco_ir_a': False, 'foco_ir_a_at': False})
+        return url
+
     @http.route('/foco/mobile/visita', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_visita(self, **kw):
