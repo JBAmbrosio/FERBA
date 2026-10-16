@@ -1036,6 +1036,22 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.odoo_acceso())
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/odoo_ir_a', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_odoo_ir_a(self, **kw):
+        """El vendedor quiere ver esta cotizacion en la app de Odoo: se deja el
+        aviso para que la pantalla de Odoo salte ahi al abrir (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.odoo_ir_a(
+            data.get('res_model'), data.get('res_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/ir_a/listo', type='jsonrpc', auth='user')
+    def foco_ir_a_listo(self, **kw):
+        """La pantalla de Odoo ya uso el aviso de "ir a": se borra para que un
+        recargar no vuelva a saltar."""
+        request.env.user.sudo().write({'foco_ir_a': False, 'foco_ir_a_at': False})
+        return True
+
     @http.route('/foco/mobile/visita', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_visita(self, **kw):

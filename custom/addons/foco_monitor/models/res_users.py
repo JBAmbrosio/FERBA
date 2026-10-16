@@ -21,6 +21,12 @@ class ResUsers(models.Model):
              'uso, los equipos y los periodos sin actividad de esas areas. '
              'Quien administra Foco ve todo, sin importar esta lista.')
 
+    # A donde quiere ir el vendedor al abrir la app oficial de Odoo desde Foco
+    # (el boton "Odoo" de una cotizacion en el celular). Lo consume la pantalla
+    # de Odoo al arrancar dentro de la app (ver foco_ir_http, 16-oct-2026).
+    foco_ir_a = fields.Char(copy=False)
+    foco_ir_a_at = fields.Datetime(copy=False)
+
     @property
     def SELF_READABLE_FIELDS(self):
         return super().SELF_READABLE_FIELDS + ['foco_department_ids']

@@ -14,6 +14,7 @@ from . import foco_capture
 from . import foco_watch
 from . import foco_mobile
 from . import foco_mobile_login
+from . import foco_ir_http
 from . import foco_app_token
 from . import foco_settings
 from . import foco_openai
