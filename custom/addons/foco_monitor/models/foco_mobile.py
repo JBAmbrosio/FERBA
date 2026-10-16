@@ -961,6 +961,23 @@ class FocoMobileDevice(models.Model):
         return {'ok': True, 'servidor': urlparse(base).netloc or base, 'url': base,
                 'login': user.login, 'codigo': codigo, 'vence_s': VIGENCIA_S}
 
+    def odoo_ir_a(self, res_model, res_id):
+        """El vendedor quiere ver esta cotizacion en la app oficial de Odoo: se
+        deja el aviso en su usuario y la pantalla de Odoo salta ahi al arrancar
+        dentro de la app (foco_ir_http, 16-oct-2026). Solo lo que el ve."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        if res_model != 'sale.order':
+            raise UserError('Eso no se puede abrir desde el teléfono.')
+        orden = self.env['sale.order'].with_user(user).browse(int(res_id or 0)).exists()
+        if not orden or not orden.has_access('read'):
+            raise UserError('Esa cotización ya no existe o no la puedes ver con tus permisos.')
+        user.sudo().write({'foco_ir_a': '/odoo/sales/%d' % orden.id,
+                           'foco_ir_a_at': fields.Datetime.now()})
+        return {'ok': True}
+
     def cliente_telefono(self, partner_id, numero):
         """Guarda en el cliente el numero que el vendedor escribio en el telefono
         para mandarle una cotizacion por WhatsApp (16-oct-2026). Con SUS permisos."""
