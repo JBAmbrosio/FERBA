@@ -55,7 +55,7 @@ TRAMOS = {
     'aprobado': ('Aprobado por ti (cuenta como productivo)', '#5dbb82'),
     'otro': ('Neutral y navegador', '#64748b'),
     'distraccion': ('Distracción', '#dc3545'),
-    'sin': ('Sin clasificar', '#cbd3df'),
+    'sin': ('Sin clasificar', '#b7c1d1'),
     'justificado': ('Justificado (de su bolsa de %d min)', '#9ad3b1'),
     'vacaciones': ('Vacaciones o permiso', '#0d9488'),
     'decidir': ('Por decidir, espera tu veredicto', '#e8a04a'),
@@ -63,11 +63,13 @@ TRAMOS = {
     'rechazado': ('Rechazado por ti', '#881337'),
     'sinact_fuera': ('Sin actividad, probado fuera del equipo', '#4a515d'),
     'sinact_presente': ('Sin actividad, probado en el equipo', '#8cc7a5'),
-    'sinact': ('Sin actividad, sin prueba', '#d9dde4'),
+    'sinact': ('Sin actividad, sin prueba', '#e3e6ec'),
     'comida': ('Comida (fuera de la jornada)', '#4bbbef'),
 }
 # Lo que queda antes de la meta sin trabajo medido, y despues de lo dibujado.
-HUECO, RESTO = '#eef1f6', '#ffffff'
+# Medido con datos reales (14-oct): sin clasificar y sin actividad salian casi
+# del mismo gris; ahora van del mas oscuro (sin clasificar) al mas claro (hueco).
+HUECO, RESTO = '#f3f5f8', '#ffffff'
 # Debajo de esto un tramo no se dibuja: en un correo una celda de 1 px se
 # pierde o, peor, Outlook la ensancha y empuja la marca de la meta.
 TRAMO_MIN_PCT = 0.4
@@ -586,9 +588,10 @@ class FocoDailyReport(models.Model):
         meta_h = ajustes.meta_productiva_h or 7.0
         bolsa_h = (ajustes.justify_gracia_min or 0) / 60.0
         serie = self._serie_indice(dia)
-        # El punto de HOY es la cifra de la tarjeta: misma formula, pero el
-        # tablero y este reporte cuentan solo a los equipos con persona; asi la
-        # columna del dia y el numero grande no se contradicen.
+        # El punto del dia del reporte es la cifra de la tarjeta. Es la misma
+        # formula (medido el 14-oct: 50 y 50), pero la serie suma el uso de todos
+        # los equipos y la tarjeta el de los empleados con equipo; si alguna vez
+        # difieren, la columna del dia no contradice al numero grande.
         for p in serie['puntos']:
             if p['es_dia']:
                 p['indice_serie'] = p['indice']

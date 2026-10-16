@@ -190,7 +190,7 @@
                                         </t>
                                     </tr>
                                 </table>
-                                <div style="font-size:11px; color:#8b95a6; margin-top:6px;">100% = <t t-esc="g.get('meta_txt') or '7h 00m'"/> productivas por persona. Sin fines de semana ni festivos.</div>
+                                <div style="font-size:11px; color:#8b95a6; margin-top:6px;">100% = <t t-esc="g.get('meta_txt') or '7h 00m'"/> productivas por persona. Solo días con jornada en el horario laboral.</div>
                             </t>
                             <t t-else=""><div style="font-size:12.5px; color:#8b95a6;">Sin días laborables con dato.</div></t>
                         </td>
