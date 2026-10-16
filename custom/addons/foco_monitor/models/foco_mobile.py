@@ -23,11 +23,14 @@ import base64
 import secrets
 import math
 from datetime import datetime, timedelta, time
+from urllib.parse import urlparse
 
 import pytz
 
 from odoo import api, fields, models, tools
 from odoo.exceptions import UserError
+
+from .foco_mobile_login import VIGENCIA_S
 
 # En linea si su ultima señal es de hace menos de esto. Mismo criterio que el
 # resto de Foco (3 envios perdidos del movil ~ 15 min).
@@ -938,6 +941,25 @@ class FocoMobileDevice(models.Model):
         # servidor de correo archivado).
         return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, nuevo),
                 'verificar': {'orden': orden.id, 'antes': sorted(antes), 'partner': destino.id}}
+
+    def odoo_acceso(self):
+        """Lo que necesita el robot de Foco para entrar a la app oficial de Odoo
+        como el vendedor de este telefono: servidor, usuario y un codigo de un
+        solo uso en lugar de la contraseña (ver foco_mobile_login, 16-oct-2026)."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user or not user.active or user.share:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo. Pídele al '
+                            'administrador que lo ligue en tu ficha de empleado.')
+        ICP = self.env['ir.config_parameter'].sudo()
+        if (user.has_group('base.group_system')
+                and (ICP.get_param('foco.acceso_movil_admins') or '').lower() not in ('1', 'true', 'si', 'sí')):
+            raise UserError('Entrar a Odoo desde el celular no está disponible para usuarios '
+                            'administradores. Entra con tu contraseña.')
+        codigo = self.env['foco.mobile.login'].emitir(self, user)
+        base = (ICP.get_param('web.base.url') or '').rstrip('/')
+        return {'ok': True, 'servidor': urlparse(base).netloc or base, 'url': base,
+                'login': user.login, 'codigo': codigo, 'vence_s': VIGENCIA_S}
 
     def cliente_telefono(self, partner_id, numero):
         """Guarda en el cliente el numero que el vendedor escribio en el telefono
