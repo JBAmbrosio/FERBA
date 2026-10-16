@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, time
 
 import pytz
 
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
 from odoo.exceptions import UserError
 
 # En linea si su ultima señal es de hace menos de esto. Mismo criterio que el
@@ -889,31 +889,72 @@ class FocoMobileDevice(models.Model):
             message_type='notification', subtype_xmlid='mail.mt_note')
         return nombre, pdf
 
-    def cotizacion_correo(self, order_id):
+    def cotizacion_correo(self, order_id, correo=None, guardar=True):
         """Manda la cotizacion por correo al cliente con la plantilla de Odoo, como
-        el boton «Enviar por correo», con el usuario del vendedor."""
+        el boton «Enviar por correo», con el usuario del vendedor.
+
+        `correo` (16-oct-2026): el vendedor puede corregirlo en el telefono -el
+        de Odoo ya no es, o el cliente lo quiere en otro-. Con `guardar` queda en
+        el contacto de la cotizacion; sin el, va solo esta vez, a un contacto del
+        cliente con ese correo (el existente o uno nuevo), como en Odoo."""
         self.ensure_one()
         orden, user = self._orden_del_vendedor(order_id)
-        if not (orden.partner_id.email or '').strip():
-            raise UserError('%s no tiene correo en Odoo. Agrégaselo en su ficha o mándala por WhatsApp.'
+        actual = (orden.partner_id.email or '').strip()
+        nuevo = (correo or '').strip() or actual
+        if not nuevo:
+            raise UserError('%s no tiene correo en Odoo. Escríbelo o mándala por WhatsApp.'
                             % orden.partner_id.display_name)
+        normal = tools.email_normalize(nuevo)
+        if not normal:
+            raise UserError('«%s» no es un correo válido.' % nuevo)
         # Un aprobador pasa: action_quotation_send la aprueba en el acto, como en Odoo.
         if self._requiere_aprobacion(orden) and not self._es_aprobador(user):
             raise UserError('La cotización %s todavía no está aprobada: en cuanto la aprueben '
                             'la podrás enviar.' % orden.name)
+        destino = orden.partner_id
+        if normal != tools.email_normalize(actual):
+            if guardar:
+                # con SUS permisos: si no puede editar contactos, Odoo lo dice
+                orden.partner_id.with_user(user).write({'email': nuevo})
+            else:
+                Partner = self.env['res.partner'].with_user(user)
+                cliente = orden.partner_id.commercial_partner_id
+                destino = (Partner.search([('email_normalized', '=', normal),
+                                           ('commercial_partner_id', '=', cliente.id)], limit=1)
+                           or Partner.create({'name': nuevo, 'email': nuevo,
+                                              'parent_id': cliente.id, 'type': 'contact'}))
         accion = orden.action_quotation_send()
         ctx = dict((accion or {}).get('context') or {})
         Mail = self.env['mail.mail'].sudo()
         antes = set(Mail.search([('model', '=', 'sale.order'), ('res_id', '=', orden.id)]).ids)
         composer = self.env['mail.compose.message'].with_user(user).with_context(ctx).create({})
+        if destino != orden.partner_id:
+            composer.partner_ids = [(6, 0, destino.ids)]
         composer.action_send_mail()
         # Odoo manda el correo DESPUES del commit (postcommit), asi que aqui
         # todavia no se sabe si salio. `verificar` le dice al controlador que
         # correos revisar ya confirmada la transaccion: antes el telefono decia
         # "Se envio" con el correo atorado (16-oct-2026, la plantilla tenia un
         # servidor de correo archivado).
-        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, orden.partner_id.email),
-                'verificar': {'orden': orden.id, 'antes': sorted(antes)}}
+        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, nuevo),
+                'verificar': {'orden': orden.id, 'antes': sorted(antes), 'partner': destino.id}}
+
+    def cliente_telefono(self, partner_id, numero):
+        """Guarda en el cliente el numero que el vendedor escribio en el telefono
+        para mandarle una cotizacion por WhatsApp (16-oct-2026). Con SUS permisos."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        numero = (numero or '').strip()
+        if len([c for c in numero if c.isdigit()]) < 7:
+            raise UserError('«%s» no parece un número de teléfono.' % numero)
+        cliente = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not cliente:
+            raise UserError('Ese cliente ya no existe en Odoo.')
+        cliente = cliente.commercial_partner_id
+        cliente.write({'phone': numero})
+        return {'ok': True, 'mensaje': 'Guardé %s en %s.' % (numero, cliente.display_name)}
 
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le

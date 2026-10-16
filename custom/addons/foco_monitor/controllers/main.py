@@ -980,7 +980,8 @@ class FocoController(http.Controller):
     @http.route('/foco/mobile/cotizacion_correo', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_cotizacion_correo(self, **kw):
-        res, error = self._ventas(lambda dev, data: dev.cotizacion_correo(data.get('id')))
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_correo(
+            data.get('id'), correo=data.get('correo'), guardar=data.get('guardar', True)))
         if error:
             return error
         motivo = self._correo_fallido(res.pop('verificar', None))
@@ -999,12 +1000,14 @@ class FocoController(http.Controller):
         with Registry(request.db).cursor() as cr:
             env = api.Environment(cr, SUPERUSER_ID, {})
             orden = env['sale.order'].browse(verificar['orden'])
-            # Solo el correo AL CLIENTE: un aviso a un seguidor interno que falle
-            # por su lado no quiere decir que la cotizacion no llego.
+            # Solo el correo AL CLIENTE (o al contacto al que se mando esta vez): un
+            # aviso a un seguidor interno que falle por su lado no quiere decir que
+            # la cotizacion no llego.
+            cliente = env['res.partner'].browse(verificar.get('partner') or orden.partner_id.id)
             fallido = env['mail.mail'].search([
                 ('model', '=', 'sale.order'), ('res_id', '=', orden.id),
                 ('id', 'not in', verificar.get('antes') or []), ('state', '=', 'exception'),
-                ('recipient_ids', 'in', orden.partner_id.ids)], limit=1)
+                ('recipient_ids', 'in', cliente.ids)], limit=1)
             if fallido:
                 return 'El correo de %s no salió: %s' % (
                     orden.name, (fallido.failure_reason or 'Odoo no pudo enviarlo').strip()[:200])
@@ -1014,6 +1017,15 @@ class FocoController(http.Controller):
                 methods=['POST'], csrf=False)
     def mobile_cotizacion_revision(self, **kw):
         res, error = self._ventas(lambda dev, data: dev.cotizacion_revision(data.get('id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cliente_telefono', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cliente_telefono(self, **kw):
+        """El numero que el vendedor escribio para mandar por WhatsApp, guardado en
+        el cliente (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.cliente_telefono(
+            data.get('partner_id'), data.get('numero')))
         return error or request.make_json_response(res)
 
     @http.route('/foco/mobile/visita', type='http', auth='public',
