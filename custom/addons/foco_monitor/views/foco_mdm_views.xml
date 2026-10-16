@@ -81,6 +81,14 @@
                         <span invisible="install_type != 'play'"> Resuélvelo y pulsa
                         <b>Reintentar instalación</b>.</span>
                     </div>
+                    <group string="Instalación por Play" invisible="install_type != 'play' or (not play_detalle and not play_attempts)">
+                        <group>
+                            <field name="play_attempts"/>
+                            <field name="play_last_at"/>
+                        </group>
+                        <field name="play_detalle" colspan="2" nolabel="1" readonly="1"
+                               invisible="not play_detalle" class="font-monospace small"/>
+                    </group>
                     <div class="text-muted" invisible="state not in ('pendiente', 'rechazada')">
                         Usa <b>Buscar en Google Play</b> para hallar la app y copiar su
                         <b>paquete</b> (el de la URL, …/details?id=&lt;paquete&gt;); pégalo en

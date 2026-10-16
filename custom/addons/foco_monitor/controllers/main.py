@@ -1028,6 +1028,14 @@ class FocoController(http.Controller):
             data.get('partner_id'), data.get('numero')))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_odoo_acceso(self, **kw):
+        """Servidor, usuario y codigo de un solo uso para que el robot de Foco
+        entre a la app oficial de Odoo como el vendedor (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.odoo_acceso())
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/visita', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_visita(self, **kw):

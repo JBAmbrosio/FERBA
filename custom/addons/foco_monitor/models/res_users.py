@@ -1,4 +1,6 @@
 from odoo import fields, models
+from odoo.exceptions import AccessDenied
+from odoo.http import request
 
 
 class ResUsers(models.Model):
@@ -22,6 +24,21 @@ class ResUsers(models.Model):
     @property
     def SELF_READABLE_FIELDS(self):
         return super().SELF_READABLE_FIELDS + ['foco_department_ids']
+
+    def _check_credentials(self, credential, env):
+        """La contraseña de siempre, y si no, el codigo de un solo uso que Foco
+        le dio al celular del vendedor (foco.mobile.login). El codigo SOLO vale en
+        la pagina de acceso web, de forma interactiva: ni por API ni para
+        confirmar la contraseña dentro de Odoo."""
+        try:
+            return super()._check_credentials(credential, env)
+        except AccessDenied:
+            path = request.httprequest.path if request else ''
+            if (credential.get('type') == 'password' and (env or {}).get('interactive', True)
+                    and path.startswith('/web/login')
+                    and self.env['foco.mobile.login'].canjear(self.env.user, credential.get('password') or '')):
+                return {'uid': self.env.user.id, 'auth_method': 'password', 'mfa': 'default'}
+            raise
 
     def write(self, vals):
         """Permite a quien administra Foco fijar el alcance, y NADA mas.
