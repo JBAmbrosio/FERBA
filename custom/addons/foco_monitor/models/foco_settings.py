@@ -625,6 +625,37 @@ class FocoSettings(models.Model):
         string='Ultimo enviado', readonly=True,
         help='El dia del ultimo reporte enviado por el proceso automatico. Se '
              'envia una vez por dia.')
+    # 16-oct-2026: el reporte salia "enviado" y no llegaba. El remitente era el
+    # correo de la empresa, ningun servidor de salida de Odoo lo cubre y Odoo
+    # lo mandaba por el de marketing con remitente @ferba.odoo.com, que el
+    # proveedor de correo rebota. Con un buzon que tenga su servidor en Odoo,
+    # sale autenticado por ese servidor.
+    reporte_diario_remitente = fields.Char(
+        string='Remitente del reporte',
+        help='Buzon con el que sale el reporte. Tiene que tener su servidor de '
+             'correo saliente en Odoo (Ajustes > Tecnico > Servidores de correo '
+             'saliente, con ese buzon en "Filtro DE"); si no, Odoo lo manda con '
+             'otro remitente por otro servidor y el correo puede rebotar. Vacio = '
+             'el correo de la empresa.')
+    reporte_diario_remitente_aviso = fields.Char(
+        string='Por donde sale', compute='_compute_reporte_diario_remitente_aviso')
+
+    @api.depends('reporte_diario_remitente')
+    def _compute_reporte_diario_remitente_aviso(self):
+        for r in self:
+            remitente = (r.reporte_diario_remitente or '').strip() or (r.company_id.email or '')
+            try:
+                servidor, smtp_from = self.env['ir.mail_server'].sudo()._find_mail_server(remitente)
+            except Exception:
+                r.reporte_diario_remitente_aviso = False
+                continue
+            nombre = servidor.name if servidor else 'el servidor de Odoo.sh'
+            if smtp_from and remitente and smtp_from.strip().lower() == remitente.lower():
+                r.reporte_diario_remitente_aviso = 'Sale como %s por %s.' % (remitente, nombre)
+            else:
+                r.reporte_diario_remitente_aviso = (
+                    'Odoo no tiene servidor para %s: lo mandaria como %s por %s y puede '
+                    'rebotar.' % (remitente or '(sin correo)', smtp_from or '?', nombre))
 
     @api.constrains('adherencia_gracia_min', 'reporte_diario_hora')
     def _check_adherencia(self):

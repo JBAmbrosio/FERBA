@@ -1,10 +1,13 @@
 import json
 import logging
+import re
 from datetime import datetime, time, timedelta
 
 import pytz
+from markupsafe import Markup
 
 from odoo import api, fields, models
+from odoo.tools import formataddr
 
 from .foco_workday import ADHERENCIA_ETQ, ADH_AUSENCIA
 
@@ -39,6 +42,56 @@ def _hhmm(h):
 
 def _fecha_es(d):
     return '%s %d de %s' % (DIAS_ES[d.weekday()], d.day, MESES_ES[d.month - 1])
+
+
+DIAS_CORTOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']
+
+# Los tramos de la barra "Como viene cada quien", en el orden y con los tonos
+# del tablero (foco_dashboard.scss). En LISO: el correo no dibuja degradados
+# (Outlook usa el motor de Word), asi que lo que en el tablero va rayado o
+# punteado aqui es un tono mas claro del mismo color.
+TRAMOS = {
+    'productiva': ('Productivo', '#16a34a'),
+    'aprobado': ('Aprobado por ti (cuenta como productivo)', '#5dbb82'),
+    'otro': ('Neutral y navegador', '#64748b'),
+    'distraccion': ('Distracción', '#dc3545'),
+    'sin': ('Sin clasificar', '#cbd3df'),
+    'justificado': ('Justificado (de su bolsa de %d min)', '#9ad3b1'),
+    'vacaciones': ('Vacaciones o permiso', '#0d9488'),
+    'decidir': ('Por decidir, espera tu veredicto', '#e8a04a'),
+    'sinexp': ('Sin justificar', '#e87272'),
+    'rechazado': ('Rechazado por ti', '#881337'),
+    'sinact_fuera': ('Sin actividad, probado fuera del equipo', '#4a515d'),
+    'sinact_presente': ('Sin actividad, probado en el equipo', '#8cc7a5'),
+    'sinact': ('Sin actividad, sin prueba', '#d9dde4'),
+    'comida': ('Comida (fuera de la jornada)', '#4bbbef'),
+}
+# Lo que queda antes de la meta sin trabajo medido, y despues de lo dibujado.
+HUECO, RESTO = '#eef1f6', '#ffffff'
+# Debajo de esto un tramo no se dibuja: en un correo una celda de 1 px se
+# pierde o, peor, Outlook la ensancha y empuja la marca de la meta.
+TRAMO_MIN_PCT = 0.4
+
+
+def _nombre_corto(nombre):
+    """Nombre y primer apellido, para la columna angosta de la grafica:
+    'Jose Maximiliano Alvarado Guevara' -> 'Jose Alvarado'. Con cuatro palabras
+    o mas, el primer apellido es la penultima; con tres, la segunda. Los que
+    vienen en MAYUSCULAS en RRHH se escriben normal."""
+    partes = (nombre or '').split()
+    if len(partes) >= 4:
+        partes = [partes[0], partes[-2]]
+    elif len(partes) == 3:
+        partes = partes[:2]
+    corto = ' '.join(partes)
+    return corto.title() if corto.isupper() else corto
+
+
+def _color_indice(i):
+    """El mismo semaforo de las tarjetas: verde, ambar o rojo."""
+    if i is None:
+        return '#c4cbd6'
+    return '#15803d' if i >= 70 else ('#b45309' if i >= 40 else '#c0341d')
 
 
 class FocoDailyReport(models.Model):
@@ -141,7 +194,7 @@ class FocoDailyReport(models.Model):
         meta_h = self.env['foco.settings'].sudo().get_settings().meta_productiva_h or 7.0
         equipo = {'cubierto': 0.0, 'esperado': 0.0, 'prod': 0.0, 'activo': 0.0,
                   'distr': 0.0, 'justificado': 0.0, 'sin_explicar': 0.0, 'con_dato': 0,
-                  'idle': 0.0, 'meta': 0.0, 'aprobado': 0.0}
+                  'idle': 0.0, 'meta': 0.0, 'aprobado': 0.0, 'sin_clasificar': 0.0}
         for emp in empleados:
             e = por[emp.id]
             res = resumen.get(str(emp.id)) or {}
@@ -164,6 +217,17 @@ class FocoDailyReport(models.Model):
             # Lo que el admin acepto pasada la bolsa cuenta como PRODUCTIVO
             # (12-oct-2026): suma al indice igual que el tiempo medido.
             e['aprobado'] = res.get('aprobado_h') or 0.0
+            # El desglose completo de la jornada, el mismo que dibuja la barra de
+            # "Como viene cada quien" del tablero (29.9.0): lo arma el servidor
+            # en dashboard_summary y aqui solo se reparte.
+            e['por_decidir'] = res.get('por_decidir_h') or 0.0
+            e['vacaciones'] = res.get('vacaciones_h') or 0.0
+            e['rechazado'] = res.get('rechazado_h') or 0.0
+            e['sin_actividad'] = res.get('sin_actividad_h') or 0.0
+            e['sinact_fuera'] = res.get('sinact_fuera_h') or 0.0
+            e['sinact_presente'] = res.get('sinact_presente_h') or 0.0
+            e['comida'] = res.get('comida_h') or 0.0
+            e['jornada'] = res.get('jornada_h') or 0.0
             e['cubierto'] = e['prod'] + e['justificado'] + e['aprobado']
             # La meta de ESTA persona ese dia: cuenta solo si tenia jornada.
             e['meta'] = meta_h if e['esperado'] > 0 else 0.0
@@ -180,6 +244,7 @@ class FocoDailyReport(models.Model):
             equipo['prod'] += e['prod']
             equipo['activo'] += e['activo']
             equipo['distr'] += e['distr']
+            equipo['sin_clasificar'] += e['sin_clasificar']
             equipo['idle'] += e['idle']
             equipo['justificado'] += e['justificado']
             equipo['sin_explicar'] += e['sin_explicar']
@@ -195,6 +260,131 @@ class FocoDailyReport(models.Model):
         distracciones = sorted(distr_equipo.values(), key=lambda d: -d['horas'])
         return por, equipo, [{'nombre': d['nombre'], 'horas': round(d['horas'], 3),
                               'personas': len(d['personas'])} for d in distracciones[:6]]
+
+    # ------------------------------------------------------------ graficas
+    @api.model
+    def _barras_jornada(self, filas, meta_h, bolsa_h):
+        """La barra de "Como viene cada quien" del tablero, persona por persona
+        (foco_dashboard.js, paso 4). Dos zonas separadas por la META:
+        a la izquierda lo medido -productivo, aprobado, neutral, distraccion,
+        sin clasificar- recortado a la meta; a la derecha todo lo que NO suma
+        -justificado, vacaciones, por decidir, sin justificar, rechazado, sin
+        actividad, comida-. UNA escala para todas las filas (la mas larga
+        manda), para que la linea de la meta caiga en el mismo sitio en cada
+        renglon. Anchos en % listos para celdas de tabla."""
+        personas = [f for f in filas if f['con_dato'] and f['esperado'] > 0]
+
+        def zona2(f):
+            sinact = max(0.0, f['sin_actividad'] - f['sinact_fuera'] - f['sinact_presente'])
+            return [('justificado', f['justificado']), ('vacaciones', f['vacaciones']),
+                    ('decidir', f['por_decidir']), ('sinexp', f['sin_explicar']),
+                    ('rechazado', f['rechazado']), ('sinact_fuera', f['sinact_fuera']),
+                    ('sinact_presente', f['sinact_presente']), ('sinact', sinact),
+                    ('comida', f['comida'])]
+
+        escala = max([0.01] + [meta_h + max(bolsa_h - f['justificado'], 0.0)
+                               + sum(max(0.0, v) for _, v in zona2(f)) for f in personas])
+        meta_pct = round(meta_h / escala * 100, 2)
+        bolsa_min = int(round(bolsa_h * 60))
+
+        def etiqueta(k):
+            e = TRAMOS[k][0]
+            return e % bolsa_min if '%d' in e else e
+
+        usados, barras = set(), []
+        for f in sorted(personas, key=lambda f: (-f['indice'], f['nombre'])):
+            segs, x = [], 0.0
+            otro = max(f['activo'] - f['prod'] - f['distr'] - f['sin_clasificar'], 0.0)
+            queda = meta_h
+            for k, v in (('productiva', f['prod']), ('aprobado', f['aprobado']), ('otro', otro),
+                         ('distraccion', f['distr']), ('sin', f['sin_clasificar'])):
+                h = min(max(v, 0.0), queda)
+                queda -= h
+                w = round(h / escala * 100, 2)
+                if w >= TRAMO_MIN_PCT:
+                    segs.append({'k': k, 'w': w, 'c': TRAMOS[k][1], 't': '%s %s' % (etiqueta(k), _hm(v))})
+                    usados.add(k)
+                    x += w
+            if meta_pct - x >= TRAMO_MIN_PCT:
+                segs.append({'k': 'hueco', 'w': round(meta_pct - x, 2), 'c': HUECO, 't': ''})
+            x = meta_pct
+            antes_de_meta = len(segs)
+            for k, v in zona2(f):
+                w = round(max(v, 0.0) / escala * 100, 2)
+                if w >= TRAMO_MIN_PCT:
+                    segs.append({'k': k, 'w': w, 'c': TRAMOS[k][1], 't': '%s %s' % (etiqueta(k), _hm(v))})
+                    usados.add(k)
+                    x += w
+            if 100 - x >= TRAMO_MIN_PCT:
+                segs.append({'k': 'resto', 'w': round(100 - x, 2), 'c': RESTO, 't': ''})
+            sobra = round(sum(s['w'] for s in segs) - 100, 2)
+            if sobra > 0 and segs:
+                segs[-1]['w'] = round(max(0.0, segs[-1]['w'] - sobra), 2)
+            # La linea de la meta: el borde izquierdo del primer tramo de la
+            # zona 2 (o el derecho del ultimo, si la meta cae al final).
+            if antes_de_meta < len(segs):
+                segs[antes_de_meta]['marca'] = 'izq'
+            elif segs:
+                segs[-1]['marca'] = 'der'
+            barras.append({
+                'nombre': f['nombre'], 'corto': _nombre_corto(f['nombre']),
+                'indice': f['indice'], 'color': _color_indice(f['indice']),
+                'prod': round(f['prod'] + f['aprobado'], 3), 'segs': segs,
+                'justificado': round(f['justificado'], 3), 'sin_explicar': round(f['sin_explicar'], 3),
+            })
+        orden = ['productiva', 'aprobado', 'otro', 'distraccion', 'sin', 'justificado', 'vacaciones',
+                 'decidir', 'sinexp', 'rechazado', 'sinact_fuera', 'sinact_presente', 'sinact', 'comida']
+        return {
+            'barras': barras, 'meta_pct': meta_pct, 'meta_txt': _hm(meta_h),
+            'bolsa_txt': '%d min' % bolsa_min,
+            'leyenda': [{'t': etiqueta(k), 'c': TRAMOS[k][1]} for k in orden if k in usados],
+        }
+
+    @api.model
+    def _serie_indice(self, dia, n=10):
+        """El indice del equipo en los ultimos `n` dias CON META (laborables),
+        con la formula unica de Foco (`foco.usage._indice`): la misma de la
+        chispa del tablero, pero sin los fines de semana, que con dos horas de
+        alguien que entro a revisar el correo darian puntos que no dicen nada."""
+        desde = dia - timedelta(days=max(21, n * 2))
+        Usage = self.env['foco.usage'].sudo()
+        por_dia = {}
+        for d, activo, productivo in Usage._read_group(
+                [('date', '>=', desde), ('date', '<=', dia)],
+                ['date:day'], ['active_hours:sum', 'productive_hours:sum']):
+            por_dia[d] = (activo or 0.0, productivo or 0.0)
+        cub = self.env['foco.absence'].sudo().cubierto_por_dia(desde, dia).get('dias') or {}
+        puntos, d = [], desde
+        while d <= dia:
+            k = fields.Date.to_string(d)
+            c = cub.get(k) or {}
+            if (c.get('meta') or 0.0) > 0:
+                activo, productivo = por_dia.get(d, (0.0, 0.0))
+                idx = Usage._indice(productivo, c, activo)
+                puntos.append({'fecha': k, 'dia': DIAS_CORTOS[d.weekday()], 'num': d.day,
+                               'indice': int(round(idx)) if idx is not None else None,
+                               'es_dia': d == dia})
+            d += timedelta(days=1)
+        return {'puntos': puntos[-n:]}
+
+    @api.model
+    def _reparto_activo(self, equipo):
+        """En que se fue el tiempo ACTIVO del equipo: las cuatro clases que suman
+        exactamente el activo (lo neutral y el navegador se derivan, como en la
+        dona del tablero)."""
+        act = equipo['activo']
+        if act <= 0:
+            return []
+        otro = max(act - equipo['prod'] - equipo['distr'] - equipo['sin_clasificar'], 0.0)
+        partes = [('productiva', equipo['prod']), ('otro', otro),
+                  ('distraccion', equipo['distr']), ('sin', equipo['sin_clasificar'])]
+        salida = []
+        for k, v in partes:
+            pct = v / act * 100
+            if pct >= TRAMO_MIN_PCT:
+                salida.append({'t': TRAMOS[k][0], 'c': TRAMOS[k][1], 'w': round(pct, 2),
+                               'pct': int(round(pct)), 'h': _hm(v)})
+        return salida
 
     @api.model
     def _dia_previo_con_dato(self, dia, empleados, max_atras=7):
@@ -281,6 +471,12 @@ class FocoDailyReport(models.Model):
                 'activo': round(e['activo'], 3), 'prod': round(e['prod'], 3),
                 'distr': round(e['distr'], 3), 'idle': round(e['idle'], 3),
                 'llamada': round(e['llamada'], 3), 'sin_clasificar': round(e['sin_clasificar'], 3),
+                'aprobado': round(e['aprobado'], 3), 'por_decidir': round(e['por_decidir'], 3),
+                'vacaciones': round(e['vacaciones'], 3), 'rechazado': round(e['rechazado'], 3),
+                'sin_actividad': round(e['sin_actividad'], 3),
+                'sinact_fuera': round(e['sinact_fuera'], 3),
+                'sinact_presente': round(e['sinact_presente'], 3),
+                'comida': round(e['comida'], 3), 'jornada': round(e['jornada'], 3),
                 'indice': e['indice'],
                 'pendientes': e['pendientes'], 'lag_min': e['lag_min'],
                 'top_app': apps[0][0] if apps else '', 'top_app_h': round(apps[0][1], 3) if apps else 0.0,
@@ -386,6 +582,23 @@ class FocoDailyReport(models.Model):
                        if esperado_neto > 0 else equipo['indice'])
         resumen = 'Indice %d%% · %d a tiempo · %d tarde · %d sin registro · %d con permiso' % (
             equipo['indice'], len(a_tiempo), len(tarde), len(faltaron), len(permiso))
+        ajustes = self.env['foco.settings'].sudo().get_settings()
+        meta_h = ajustes.meta_productiva_h or 7.0
+        bolsa_h = (ajustes.justify_gracia_min or 0) / 60.0
+        serie = self._serie_indice(dia)
+        # El punto de HOY es la cifra de la tarjeta: misma formula, pero el
+        # tablero y este reporte cuentan solo a los equipos con persona; asi la
+        # columna del dia y el numero grande no se contradicen.
+        for p in serie['puntos']:
+            if p['es_dia']:
+                p['indice_serie'] = p['indice']
+                p['indice'] = equipo['indice']
+        # Columnas de hasta 84 px; la linea del 100% a la misma altura en todas.
+        tope = max([100] + [p['indice'] or 0 for p in serie['puntos']])
+        for p in serie['puntos']:
+            p['alto'] = int(round((p['indice'] or 0) / tope * 84)) if p['indice'] else 0
+            p['color'] = _color_indice(p['indice'])
+        serie['alto_meta'] = int(round(100 / tope * 84))
         datos = {
             'fecha': fields.Date.to_string(dia), 'fecha_txt': _fecha_es(dia),
             'es_hoy': es_hoy, 'corte': ahora.strftime('%H:%M'),
@@ -409,7 +622,15 @@ class FocoDailyReport(models.Model):
                 'delta_semana': (equipo['indice'] - eq_sem['indice']) if eq_sem and eq_sem['con_dato'] else None,
                 'en_linea': len([f for f in filas if f['salud'] == 'ok']) if es_hoy else None,
                 'sin_senal': len(sin_senal_hoy),
+                'meta': round(equipo['meta'], 3), 'aprobado': round(equipo['aprobado'], 3),
+                'sin_clasificar': round(equipo['sin_clasificar'], 3),
+                'meta_h': meta_h, 'bolsa_min': int(round(bolsa_h * 60)),
             },
+            # Las graficas (16-oct-2026): la barra de la jornada del tablero, la
+            # tendencia de los dias laborables y el reparto del tiempo activo.
+            'grafica': self._barras_jornada(filas, meta_h, bolsa_h),
+            'serie': serie,
+            'reparto': self._reparto_activo(equipo),
             'asistencia': {
                 'gracia': gracia,
                 'a_tiempo': len(a_tiempo), 'tarde': len(tarde), 'falto': len(faltaron),
@@ -437,6 +658,11 @@ class FocoDailyReport(models.Model):
         datos = self._armar(dia)
         html = self.env['ir.qweb'].sudo()._render(
             'foco_monitor.reporte_diario_html', {'d': datos, 'hm': _hm})
+        # Sin la sangria de la plantilla: en HTML un salto de linea con espacios
+        # se ve igual que un espacio, y la sangria es casi la mitad del peso.
+        # Importa porque Gmail recorta el correo pasando ~102 KB ("Mensaje
+        # recortado") y con las graficas de 16 personas se pasaba.
+        html = Markup(re.sub(r'\s*\n\s*', ' ', str(html)))
         vals = {'date': dia, 'html': html, 'datos': json.dumps(datos, ensure_ascii=False),
                 'resumen': datos['resumen'], 'generated_at': fields.Datetime.now(),
                 'corte': datos['corte']}
@@ -475,21 +701,31 @@ class FocoDailyReport(models.Model):
         base = self.get_base_url()
         datos = json.loads(self.datos or '{}')
         eq = datos.get('equipo') or {}
-        asunto = 'Foco · %s · indice %s%% · %s' % (
-            datos.get('fecha_txt', self.date), eq.get('indice', 0), self.resumen or '')
-        remitente = (self.env.company.partner_id.email_formatted
-                     or self.env.user.email_formatted or False)
-        pie = ('<p style="font-family:Arial,sans-serif;font-size:11px;color:#8b95a6;">'
-               'Generado por Foco a las %s · <a href="%s/odoo/action-foco_monitor.foco_dashboard_action" '
-               'style="color:#2f6fed;">Abrir el tablero</a></p>' % (self.corte or '', base))
+        # El resumen ya empieza con el indice: antes iba dos veces en el asunto.
+        asunto = 'Foco · %s · %s' % (datos.get('fecha_txt', self.date),
+                                     self.resumen or 'indice %s%%' % eq.get('indice', 0))
+        # Con un remitente configurado, sale por SU servidor (ver
+        # foco.settings.reporte_diario_remitente: sin el, Odoo lo reenviaba por
+        # el de marketing con otro remitente y el proveedor lo rebotaba).
+        propio = (self.env['foco.settings'].sudo().get_settings().reporte_diario_remitente or '').strip()
+        remitente = (formataddr(('Foco · FERBA', propio)) if propio else
+                     (self.env.company.partner_id.email_formatted
+                      or self.env.user.email_formatted or False))
+        # Markup: `self.html` es un campo Html (Markup) y sumarle un str lo
+        # ESCAPA; el pie llegaba como texto "<p style=..." (correo del 15-oct).
+        pie = Markup('<p style="font-family:Arial,sans-serif;font-size:11px;color:#8b95a6;">'
+                     'Generado por Foco a las %s · <a href="%s/odoo/action-foco_monitor.foco_dashboard_action" '
+                     'style="color:#2f6fed;">Abrir el tablero</a></p>') % (self.corte or '', base)
         mail = self.env['mail.mail'].sudo().create({
             'subject': asunto,
-            'body_html': (self.html or '') + pie,
+            'body_html': Markup(self.html or '') + pie,
             'email_to': ', '.join(correos),
             'email_from': remitente,
             'auto_delete': False,
         })
         mail.send(raise_exception=False)
+        if mail.state == 'exception':
+            _logger.warning('Foco: el reporte diario de %s no salio: %s', self.date, mail.failure_reason)
         self.sudo().write({'state': 'enviado', 'sent_at': fields.Datetime.now(),
                            'sent_to': ', '.join(correos)})
         _logger.info('Foco: reporte diario de %s enviado a %s', self.date, correos)
