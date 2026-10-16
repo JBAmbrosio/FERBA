@@ -903,9 +903,17 @@ class FocoMobileDevice(models.Model):
                             'la podrás enviar.' % orden.name)
         accion = orden.action_quotation_send()
         ctx = dict((accion or {}).get('context') or {})
+        Mail = self.env['mail.mail'].sudo()
+        antes = set(Mail.search([('model', '=', 'sale.order'), ('res_id', '=', orden.id)]).ids)
         composer = self.env['mail.compose.message'].with_user(user).with_context(ctx).create({})
         composer.action_send_mail()
-        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, orden.partner_id.email)}
+        # Odoo manda el correo DESPUES del commit (postcommit), asi que aqui
+        # todavia no se sabe si salio. `verificar` le dice al controlador que
+        # correos revisar ya confirmada la transaccion: antes el telefono decia
+        # "Se envio" con el correo atorado (16-oct-2026, la plantilla tenia un
+        # servidor de correo archivado).
+        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, orden.partner_id.email),
+                'verificar': {'orden': orden.id, 'antes': sorted(antes)}}
 
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
