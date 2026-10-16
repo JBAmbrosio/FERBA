@@ -79,6 +79,8 @@ PLAY_ESPERA_MIN = 20
 # Por que no se instalo, segun lo que el robot vio (detalle del telefono, 1.61+).
 PLAY_MOTIVOS = {
     'sin_play': 'la Play no llegó a abrirse',
+    'ciega': 'Foco no pudo leer la pantalla de la Play (así se esconde la Play cuando pide '
+             'iniciar sesión: revisa que el teléfono tenga una cuenta de Google)',
     'sin_boton': 'la Play no mostró el botón «Instalar»',
     'sin_terminar': 'la descarga arrancó pero no terminó',
     'sesion': 'la Play pide iniciar sesión con una cuenta de Google',
