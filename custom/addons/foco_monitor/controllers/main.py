@@ -12,7 +12,7 @@ import pytz
 from markupsafe import escape
 from psycopg2 import errorcodes
 
-from odoo import api, fields, http
+from odoo import SUPERUSER_ID, api, fields, http
 from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
 from odoo.modules.registry import Registry
@@ -981,7 +981,34 @@ class FocoController(http.Controller):
                 methods=['POST'], csrf=False)
     def mobile_cotizacion_correo(self, **kw):
         res, error = self._ventas(lambda dev, data: dev.cotizacion_correo(data.get('id')))
-        return error or request.make_json_response(res)
+        if error:
+            return error
+        motivo = self._correo_fallido(res.pop('verificar', None))
+        if motivo:
+            return request.make_json_response({'ok': False, 'error': 'correo', 'mensaje': motivo}, status=422)
+        return request.make_json_response(res)
+
+    @staticmethod
+    def _correo_fallido(verificar):
+        """El motivo si el correo que acaba de mandar `cotizacion_correo` quedo en
+        "excepcion"; None si salio o sigue en cola. Se lee en una transaccion
+        NUEVA: Odoo lo intenta al confirmar la de la accion (postcommit), y la
+        del request ya tiene su foto de antes."""
+        if not verificar:
+            return None
+        with Registry(request.db).cursor() as cr:
+            env = api.Environment(cr, SUPERUSER_ID, {})
+            orden = env['sale.order'].browse(verificar['orden'])
+            # Solo el correo AL CLIENTE: un aviso a un seguidor interno que falle
+            # por su lado no quiere decir que la cotizacion no llego.
+            fallido = env['mail.mail'].search([
+                ('model', '=', 'sale.order'), ('res_id', '=', orden.id),
+                ('id', 'not in', verificar.get('antes') or []), ('state', '=', 'exception'),
+                ('recipient_ids', 'in', orden.partner_id.ids)], limit=1)
+            if fallido:
+                return 'El correo de %s no salió: %s' % (
+                    orden.name, (fallido.failure_reason or 'Odoo no pudo enviarlo').strip()[:200])
+        return None
 
     @http.route('/foco/mobile/cotizacion_revision', type='http', auth='public',
                 methods=['POST'], csrf=False)
