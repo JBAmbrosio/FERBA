@@ -649,13 +649,23 @@ class FocoSettings(models.Model):
             except Exception:
                 r.reporte_diario_remitente_aviso = False
                 continue
-            nombre = servidor.name if servidor else 'el servidor de Odoo.sh'
-            if smtp_from and remitente and smtp_from.strip().lower() == remitente.lower():
-                r.reporte_diario_remitente_aviso = 'Sale como %s por %s.' % (remitente, nombre)
+            if not servidor:
+                # El servidor de Odoo.sh SI entrega: si el remitente no es de su
+                # dominio usa su propia direccion y conserva el nombre (probado el
+                # 16-oct-2026 con el servidor de marketing archivado).
+                igual = (smtp_from or '').strip().lower() == remitente.lower()
+                r.reporte_diario_remitente_aviso = (
+                    'Sale por el servidor de Odoo.sh como %s.' % smtp_from if igual else
+                    'Sale por el servidor de Odoo.sh como %s: Odoo usa su propia direccion '
+                    'y conserva el nombre del remitente.' % (smtp_from or '?'))
+            elif not servidor.from_filter or servidor._match_from_filter(remitente, servidor.from_filter):
+                r.reporte_diario_remitente_aviso = 'Sale como %s por %s.' % (remitente, servidor.name)
             else:
+                # El caso del 15-oct: ningun servidor cubre al remitente y Odoo
+                # toma el primero que hay, con otro remitente.
                 r.reporte_diario_remitente_aviso = (
                     'Odoo no tiene servidor para %s: lo mandaria como %s por %s y puede '
-                    'rebotar.' % (remitente or '(sin correo)', smtp_from or '?', nombre))
+                    'rebotar.' % (remitente or '(sin correo)', smtp_from or '?', servidor.name))
 
     @api.constrains('adherencia_gracia_min', 'reporte_diario_hora')
     def _check_adherencia(self):
