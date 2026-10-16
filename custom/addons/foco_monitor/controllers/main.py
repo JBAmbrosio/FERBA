@@ -942,6 +942,12 @@ class FocoController(http.Controller):
         data = self._body() or {}
         uid = dev.sudo()._vendedor().id or request.env.uid
         ctx = {k: v for k, v in dev.env.context.items() if k != 'guest'}
+        # Y el request tambien queda como el vendedor: las plantillas del PDF de
+        # FERBA (reportes_custom) leen el membrete con `request.env['x_reporte']`,
+        # que aqui era el usuario publico -> "You are not allowed to access
+        # 'Reporte'" al mandar una cotizacion desde el telefono (16-oct-2026).
+        if uid != request.env.uid:
+            request.update_env(user=uid)
         try:
             with Registry(request.db).cursor() as cr:
                 env = api.Environment(cr, uid, ctx)
