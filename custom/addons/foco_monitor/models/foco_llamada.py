@@ -32,8 +32,8 @@ from .foco_visita import (
 # Contexto que se antepone a la transcripcion para que la IA sepa que es una
 # llamada (no una visita en sitio) y que solo se escucha al vendedor.
 NOTA_LLAMADA = (
-    "CONTEXTO: esto es una LLAMADA TELEFONICA por WhatsApp, no una visita en "
-    "sitio. Solo se capto el audio del VENDEDOR (su microfono); la parte del "
+    "CONTEXTO: esto es una LLAMADA TELEFONICA (por WhatsApp o celular), no una "
+    "visita en sitio. Solo se capto el audio del VENDEDOR (su microfono); la parte del "
     "CLIENTE no se grabo, asi que se infiere por las respuestas del vendedor. "
     "No inventes lo que dijo el cliente: deducelo de lo que el vendedor "
     "contesta o pregunta."
@@ -67,6 +67,14 @@ class FocoLlamada(models.Model):
     partner_id = fields.Many2one('res.partner', string='Cliente',
                                  domain=[('foco_cliente_ventas', '=', True)])
     grabacion_consentida = fields.Boolean(string='Grabacion con aviso')
+    origen = fields.Selection([
+        ('whatsapp', 'WhatsApp'),
+        ('celular', 'Llamada celular'),
+        ('otro', 'Otra'),
+    ], string='Origen', default='whatsapp', index=True,
+       help='De donde salio la llamada. En celular Android solo deja captar al '
+            'vendedor por VOICE_RECOGNITION; en WhatsApp, igual. Los dos lados solo '
+            'los daria la grabadora del sistema, cuyo archivo es privado.')
 
     # --- audio + coaching (calcado de foco.visita) ---
     audio = fields.Binary(string='Audio de la llamada', attachment=True)
@@ -217,6 +225,7 @@ class FocoLlamada(models.Model):
             'id': self.id,
             'fecha': fields.Datetime.to_string(self.started_at or self.create_date) or '',
             'duracion_s': self.duration_s or 0,
+            'origen': self.origen or 'whatsapp',
             'estado': self.audio_estado,
             'puntaje': self.analisis_puntaje or 0,
             'resumen': self.analisis_resumen or '',

@@ -1133,10 +1133,11 @@ class FocoController(http.Controller):
         except (TypeError, ValueError):
             started = None
         consent = (h.get('X-Consent') or '').strip() in ('1', 'true', 'si', 'yes')
+        origen = (h.get('X-Origen') or 'whatsapp').strip().lower()
         data = request.httprequest.get_data(cache=False, as_text=False) or b''
         if not uuid or not data:
             return request.make_json_response({'error': 'bad_request'}, status=400)
-        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent)
+        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent, origen)
         return request.make_json_response(res)
 
     @http.route('/foco/mobile/llamada_coaching', type='http', auth='public',
