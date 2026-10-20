@@ -175,6 +175,10 @@
               parent="menu_foco_sec_ventas" action="foco_visita_action" sequence="20"
               groups="foco_monitor.group_foco_manager"/>
 
+    <menuitem id="menu_foco_vendedores_llamadas" name="Coaching de llamadas"
+              parent="menu_foco_sec_ventas" action="foco_llamada_action" sequence="25"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_vendedores_import" name="Importar Hoja Maestra"
               parent="menu_foco_sec_ventas" action="foco_vendedor_import_action" sequence="30"
               groups="foco_monitor.group_foco_manager"/>
