@@ -9,6 +9,7 @@
             <list string="Llamadas" default_order="started_at desc">
                 <field name="started_at"/>
                 <field name="employee_id"/>
+                <field name="origen" widget="badge"/>
                 <field name="partner_id" optional="show"/>
                 <field name="duration_text" string="Duracion"/>
                 <field name="analisis_puntaje" string="Puntaje"/>
@@ -42,6 +43,7 @@
                         </group>
                         <group>
                             <field name="started_at" readonly="1"/>
+                            <field name="origen" readonly="1"/>
                             <field name="duration_text" string="Duracion" readonly="1"/>
                             <field name="analisis_puntaje" readonly="1"/>
                             <field name="analizado_el" readonly="1"/>
