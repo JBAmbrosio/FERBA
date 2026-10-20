@@ -2,6 +2,8 @@ import logging
 import secrets
 from datetime import timedelta
 
+from markupsafe import Markup, escape
+
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
@@ -407,6 +409,14 @@ class FocoComputer(models.Model):
              'aviso en cada ciclo; se limpia al recuperarse.')
     block_alert_at = fields.Datetime(string='Bloqueo avisado el', readonly=True, copy=False)
 
+    # Aviso de SALUD del agente (dejo de reportar en horario). Mismo patron que el
+    # aviso de bloqueo: de-duplica para no repetir cada ciclo y se limpia al volver.
+    health_alert_state = fields.Char(
+        string='Ultimo aviso de salud', readonly=True, copy=False,
+        help='Estado por el que se aviso que el agente dejo de reportar. Evita '
+             'repetir el aviso en cada ciclo; se limpia cuando el equipo vuelve.')
+    health_alert_at = fields.Datetime(string='Salud avisada el', readonly=True, copy=False)
+
     @api.depends('policy_sync', 'health', 'minutes_since_seen', 'service_state')
     def _compute_block_attention(self):
         for c in self:
@@ -692,18 +702,68 @@ class FocoComputer(models.Model):
                 out[eid]['integrity'] = rec.integrity_alert
         return out
 
+    def _alerta_salud(self):
+        """Avisa (campanita + nota en el chatter, y correo a la lista del reporte)
+        que un equipo dejo de reportar EN HORARIO: el agente podria estar detenido,
+        sin internet, o la PC apagada. A los administradores de Foco."""
+        self.ensure_one()
+        grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
+        destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
+        persona = self.employee_id.name or '-'
+        desde = (fields.Datetime.context_timestamp(self, self.last_seen).strftime('%d/%m %H:%M')
+                 if self.last_seen else 'nunca')
+        titulo = 'Foco · equipo SIN SEÑAL en horario'
+        cuerpo = ('%s (%s) dejo de reportar: ultima senal %s, hace %d min. El agente '
+                  'podria estar detenido, sin internet, o la PC apagada. Revisar el '
+                  'equipo: reiniciarlo relanza el agente.'
+                  % (self.name, persona, desde, self.minutes_since_seen or 0))
+        for p in destinatarios:
+            p._bus_send('simple_notification', {
+                'type': 'warning', 'title': titulo, 'message': cuerpo, 'sticky': False})
+        self.message_post(body=cuerpo, subject=titulo,
+                          message_type='comment', subtype_xmlid='mail.mt_note')
+        # Correo a la lista del reporte diario (francisco et al.), para enterarse
+        # sin abrir Odoo. Se reutiliza la misma lista configurada.
+        try:
+            correos = self.env['foco.daily.report'].sudo()._destinatarios()
+            if correos:
+                self.env['mail.mail'].sudo().create({
+                    'subject': '%s · %s' % (titulo, self.name),
+                    'body_html': Markup('<p style="font-family:Arial,sans-serif">%s</p>') % escape(cuerpo),
+                    'email_to': ', '.join(correos),
+                    'auto_delete': True,
+                }).send(raise_exception=False)
+        except Exception:
+            _logger.exception('Foco: no se pudo mandar el correo de salud de %s', self.id)
+
     @api.model
     def _cron_check_health(self):
-        """Avisa de agentes callados EN HORARIO. Sin esto, un agente caido pasa
-        por empleado improductivo."""
-        caidos = self.sudo().search([('employee_id', '!=', False)]).filtered(
-            lambda c: c.health in ('stale', 'never'))
+        """Avisa de agentes callados EN HORARIO (campanita + nota + correo), no solo
+        lo registra: sin esto un agente caido pasa por empleado improductivo y nadie
+        se entera hasta el tablero o el reporte de la noche (caso FbT3316DNC, 19-oct).
+        De-duplica por equipo y re-avisa una vez al dia; limpia el marcador cuando el
+        equipo vuelve a reportar. Solo 'stale' (deberia estar trabajando y esta mudo);
+        'never' es alta sin agente, no una caida."""
+        ahora = fields.Datetime.now()
+        equipos = self.sudo().search([('employee_id', '!=', False), ('active', '=', True)])
+        caidos = equipos.filtered(lambda c: c.health == 'stale')
+        for c in caidos:
+            reavisar = bool(c.health_alert_at) and (
+                ahora - c.health_alert_at) >= timedelta(hours=REALERT_HOURS)
+            if not c.health_alert_at or c.health_alert_state != 'stale' or reavisar:
+                try:
+                    c._alerta_salud()
+                except Exception:
+                    _logger.exception('Foco: no se pudo avisar de la salud de %s', c.id)
+                c.sudo().write({'health_alert_state': 'stale', 'health_alert_at': ahora})
+        # Los que ya volvieron (o salieron de horario): limpiar el marcador para que
+        # la proxima caida vuelva a avisar desde cero.
+        for c in equipos.filtered(lambda c: c.health_alert_state and c.health != 'stale'):
+            c.sudo().write({'health_alert_state': False, 'health_alert_at': False})
         if caidos:
             _logger.warning(
                 "Foco: %s equipo(s) sin señal en horario: %s", len(caidos),
-                ", ".join("%s (%s, %s min)" % (c.name, c.employee_id.name,
-                                               c.minutes_since_seen)
-                          for c in caidos))
+                ", ".join("%s (%s)" % (c.name, c.employee_id.name) for c in caidos))
         return len(caidos)
 
     def _compute_counts(self):
