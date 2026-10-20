@@ -507,13 +507,18 @@
         <field name="code">action = model.action_asistencia()</field>
     </record>
 
-    <!-- El proceso: cada 15 min pregunta si ya es hora. -->
+    <!-- El proceso: cada minuto pregunta si ya es la hora configurada. Cada
+         minuto (no cada 15) porque la hora puede ser 23:59: un tic de 15 min
+         (:00/:15/:30/:45) nunca cae en esa ventana y el reporte no salia nunca.
+         La comprobacion es barata (lee ajustes y compara fechas); si ya se mando
+         hoy, retorna de inmediato. _cron_enviar ademas es robusto al cruce de
+         medianoche: si el tic cae pasada las 00:00 manda el dia que termino. -->
     <record id="cron_foco_reporte_diario" model="ir.cron">
         <field name="name">Foco: enviar el reporte diario</field>
         <field name="model_id" ref="foco_monitor.model_foco_daily_report"/>
         <field name="state">code</field>
         <field name="code">model._cron_enviar()</field>
-        <field name="interval_number">15</field>
+        <field name="interval_number">1</field>
         <field name="interval_type">minutes</field>
         <field name="active" eval="True"/>
     </record>

@@ -741,25 +741,37 @@ class FocoDailyReport(models.Model):
 
     @api.model
     def _cron_enviar(self):
-        """Cada 15 minutos: si ya es la hora configurada y hoy no se ha
-        enviado, arma el de hoy y lo manda. Una vez por dia."""
+        """Corre cada minuto: si ya paso la hora configurada y el dia que termina
+        no se ha enviado, lo arma y lo manda. Una vez por dia.
+
+        ROBUSTO al cruce de medianoche. Con la hora en 23:59, un tic puede caer a
+        las 23:59 (manda HOY) o ya pasada la medianoche (entonces manda el dia de
+        AYER, el que acaba de terminar): de un modo u otro ese dia sale, nunca se
+        pierde. El error anterior era exigir que el tic cayera el MISMO dia
+        calendario despues de la hora -imposible a las 23:59 con un cron de 15
+        min-, asi que no salia nunca."""
         ajustes = self.env['foco.settings'].sudo().get_settings()
         if not ajustes.reporte_diario_activo:
             return False
         zona = self._zona()
         ahora = datetime.now(zona)
-        hoy = ahora.date()
-        if ajustes.reporte_diario_ultimo == hoy:
-            return False
-        if ahora.hour + ahora.minute / 60.0 < (ajustes.reporte_diario_hora or 0.0):
-            return False
-        rep = self.generar(hoy)
+        hora = ajustes.reporte_diario_hora or 0.0
+        # El dia a reportar: hoy si ya paso la hora; si no, el de ayer (tic
+        # despues de medianoche cuyo dia aun no se mando).
+        if ahora.hour + ahora.minute / 60.0 >= hora:
+            dia = ahora.date()
+        else:
+            dia = ahora.date() - timedelta(days=1)
+        ultimo = ajustes.reporte_diario_ultimo
+        if ultimo and ultimo >= dia:
+            return False   # ese dia (o uno posterior) ya se mando
+        rep = self.generar(dia)
         datos = json.loads(rep.datos or '{}')
         if not (datos.get('equipo') or {}).get('esperado'):
-            # Nadie tenia jornada hoy (domingo, festivo general): no hay que
+            # Nadie tenia jornada ese dia (domingo, festivo general): no hay que
             # reportar nada, pero se marca para no volver a intentar.
-            ajustes.write({'reporte_diario_ultimo': hoy})
+            ajustes.write({'reporte_diario_ultimo': dia})
             return False
         rep.enviar()
-        ajustes.write({'reporte_diario_ultimo': hoy})
+        ajustes.write({'reporte_diario_ultimo': dia})
         return True
