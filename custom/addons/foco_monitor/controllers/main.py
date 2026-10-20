@@ -1107,6 +1107,54 @@ class FocoController(http.Controller):
         res = dev.sudo().guardar_audio_visita(uuid, data, dur, name)
         return request.make_json_response(res)
 
+    @http.route('/foco/mobile/llamada_audio', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_llamada_audio(self, **kw):
+        """Sube el WAV de una llamada de WhatsApp (cuerpo binario crudo). La
+        llamada se identifica por su uuid en la cabecera. Queda pendiente para el
+        coaching de la IA (misma rubrica que las visitas)."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        h = request.httprequest.headers
+        uuid = h.get('X-Llamada-Uuid') or ''
+        name = h.get('X-Audio-Name') or 'llamada.wav'
+        try:
+            dur = int(h.get('X-Duracion') or '0')
+        except (TypeError, ValueError):
+            dur = 0
+        # El telefono manda el inicio en milisegundos (System.currentTimeMillis).
+        started = None
+        try:
+            ms = int(h.get('X-Started') or '0')
+            if ms > 0:
+                started = fields.Datetime.to_string(
+                    datetime.utcfromtimestamp(ms / 1000.0))
+        except (TypeError, ValueError):
+            started = None
+        consent = (h.get('X-Consent') or '').strip() in ('1', 'true', 'si', 'yes')
+        data = request.httprequest.get_data(cache=False, as_text=False) or b''
+        if not uuid or not data:
+            return request.make_json_response({'error': 'bad_request'}, status=400)
+        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent)
+        return request.make_json_response(res)
+
+    @http.route('/foco/mobile/llamada_coaching', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_llamada_coaching(self, **kw):
+        """Le regresa al telefono el coaching de sus llamadas ya analizadas, para
+        que el vendedor lo lea en la app."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body() or {}
+        try:
+            limite = int(data.get('limite') or 20)
+        except (TypeError, ValueError):
+            limite = 20
+        return request.make_json_response(
+            {'ok': True, 'llamadas': dev.sudo().mis_llamadas_coaching(limite)})
+
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_beacon(self, **kw):

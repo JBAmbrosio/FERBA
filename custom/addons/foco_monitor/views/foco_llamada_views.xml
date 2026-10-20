@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================================================== LLAMADA -->
+    <record id="view_foco_llamada_list" model="ir.ui.view">
+        <field name="name">foco.llamada.list</field>
+        <field name="model">foco.llamada</field>
+        <field name="arch" type="xml">
+            <list string="Llamadas" default_order="started_at desc">
+                <field name="started_at"/>
+                <field name="employee_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="duration_text" string="Duracion"/>
+                <field name="analisis_puntaje" string="Puntaje"/>
+                <field name="audio_estado"
+                       decoration-success="audio_estado == 'listo'"
+                       decoration-warning="audio_estado in ('pendiente','procesando')"
+                       decoration-danger="audio_estado == 'error'"
+                       widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_foco_llamada_form" model="ir.ui.view">
+        <field name="name">foco.llamada.form</field>
+        <field name="model">foco.llamada</field>
+        <field name="arch" type="xml">
+            <form string="Llamada">
+                <header>
+                    <button name="action_analizar" type="object"
+                            string="Analizar" class="btn-primary"
+                            invisible="audio_estado not in ('pendiente','error')"/>
+                    <field name="audio_estado" widget="statusbar"
+                           statusbar_visible="pendiente,procesando,listo"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="device_id" readonly="1"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="started_at" readonly="1"/>
+                            <field name="duration_text" string="Duracion" readonly="1"/>
+                            <field name="analisis_puntaje" readonly="1"/>
+                            <field name="analizado_el" readonly="1"/>
+                            <field name="grabacion_consentida" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook invisible="audio_estado == 'sin_audio'">
+                        <page string="Coaching de la IA" name="coaching">
+                            <group string="Resumen">
+                                <field name="analisis_resumen" nolabel="1"/>
+                            </group>
+                            <group>
+                                <group string="Fortalezas">
+                                    <field name="analisis_fortalezas" nolabel="1"/>
+                                </group>
+                                <group string="Debilidades">
+                                    <field name="analisis_debilidades" nolabel="1"/>
+                                </group>
+                            </group>
+                            <group string="Mejoras sugeridas">
+                                <field name="analisis_mejoras" nolabel="1"/>
+                            </group>
+                        </page>
+                        <page string="Conversación" name="dialogo">
+                            <field name="dialogo_html" nolabel="1" readonly="1"/>
+                        </page>
+                        <page string="Transcripcion" name="transcripcion">
+                            <field name="audio" filename="audio_name" widget="binary"/>
+                            <field name="audio_name" invisible="1"/>
+                            <field name="transcripcion" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_llamada_action" model="ir.actions.act_window">
+        <field name="name">Coaching de llamadas</field>
+        <field name="res_model">foco.llamada</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aun no hay llamadas analizadas</p>
+            <p>El telefono graba el lado del vendedor de sus llamadas de WhatsApp
+               y aqui aparece el coaching de la IA (la misma rubrica que las visitas).</p>
+        </field>
+    </record>
+
+</odoo>

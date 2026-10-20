@@ -39,6 +39,8 @@ from . import foco_menu_visibility
 # Flujo de vendedores: el cliente es un res.partner, la oportunidad un crm.lead.
 from . import res_partner
 from . import foco_visita
+# Despues de foco_visita: reusa su rubrica de coaching (SISTEMA_VISITA).
+from . import foco_llamada
 from . import foco_vendedor_import
 # Al final a proposito: extienden foco.settings y foco.invitation, que tienen
 # que estar ya definidos cuando Odoo arma el registro. Importados antes, el

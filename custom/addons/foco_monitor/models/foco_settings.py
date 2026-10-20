@@ -232,6 +232,15 @@ class FocoSettings(models.Model):
         string='Duracion maxima de grabacion (min)', default=90,
         help='Tope de seguridad: la grabacion se corta a los N minutos aunque '
              'el telefono siga en el sitio.')
+    # --- Coaching de llamadas de WhatsApp (lado del vendedor) ---
+    # El telefono graba el lado del vendedor de una llamada de WhatsApp y lo sube
+    # para el MISMO coaching que las visitas. Encendido de fabrica (el telefono ya
+    # graba con aviso); apagarlo aqui rechaza los audios que lleguen.
+    coaching_llamadas = fields.Boolean(
+        string='Coaching de llamadas de WhatsApp', default=True,
+        help='Apagado, Odoo rechaza el audio de llamadas que suba el telefono y '
+             'no genera coaching. La grabacion del telefono va con aviso en el '
+             'aviso de privacidad que firma el vendedor.')
     # PIN de proteccion (anti-desinstalacion) para equipos que NO se pueden
     # aprovisionar como Device Owner (telefonos ya en uso). El telefono lo pide
     # antes de dejar desinstalar Foco, forzar su detencion o desactivar su
