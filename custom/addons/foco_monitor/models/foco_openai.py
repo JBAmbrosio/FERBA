@@ -272,19 +272,37 @@ class FocoOpenAI(models.AbstractModel):
     @api.model
     def _json_por_texto(self, system, messages, esquema, max_tokens, modelo, timeout=120,
                         servicio=None, ref=None):
-        """JSON estructurado SIN tool forzado (Sonnet/Opus 5.x no lo soportan):
-        se pide el JSON por texto, con el esquema en el sistema, y se parsea.
-        Devuelve (dict, tokens). Levanta UserError si no vino JSON valido."""
+        """JSON estructurado SIN tool forzado (Sonnet/Opus 5.x no lo soportan): se
+        pide el JSON por texto con el esquema en el sistema y se FUERZA con un
+        prefill '{' del turno del asistente -Claude continua la respuesta DESDE la
+        llave, asi no mete prosa ni fences y el JSON sale limpio-. Si aun asi se
+        corto por longitud (stop_reason=max_tokens), se reintenta UNA vez con el
+        doble de espacio. Devuelve (dict, tokens). Levanta UserError si no vino
+        JSON valido."""
         sis = ((system + '\n\n') if system else '')
         sis += ('Responde UNICAMENTE con un objeto JSON valido que cumpla este JSON Schema, '
                 'sin ningun texto antes ni despues y sin ```:\n' + _esquema_a_texto(esquema))
         if not servicio:
             servicio = SERVICIO_POR_ESQUEMA.get((esquema or {}).get('name'), 'otro')
-        j = self._anthropic(sis, messages, max_tokens, modelo, timeout=timeout, servicio=servicio, ref=ref)
-        res = _extraer_json(self._texto(j))
-        if not isinstance(res, dict):
-            raise UserError('Anthropic: respuesta sin JSON valido')
-        return res, self._tokens(j)
+        # El prefill '{' no viaja en la respuesta (Anthropic solo devuelve la
+        # continuacion), por eso se antepone al parsear.
+        msgs = list(messages) + [{'role': 'assistant', 'content': '{'}]
+        tok = int(max_tokens or 700)
+        total = 0
+        j = None
+        for intento in (1, 2):
+            j = self._anthropic(sis, msgs, tok, modelo, timeout=timeout, servicio=servicio, ref=ref)
+            total += self._tokens(j)
+            res = _extraer_json('{' + self._texto(j))
+            if isinstance(res, dict):
+                return res, total
+            if j.get('stop_reason') == 'max_tokens' and intento == 1:
+                tok = min(tok * 2, 8000)        # se trunco: mas espacio y reintenta
+                continue
+            break
+        raise UserError('Anthropic: respuesta sin JSON valido'
+                        + (' (truncado por max_tokens)'
+                           if (j or {}).get('stop_reason') == 'max_tokens' else ''))
 
     # ---- traductores entre el formato OpenAI (que usan los que llaman) y Anthropic
     @api.model
