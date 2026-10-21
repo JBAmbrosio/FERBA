@@ -36,8 +36,9 @@ export class FocoGpt extends Component {
             loading: true, dark: true, puede: null, nombre: "",
             threadId: null, titulo: "Conversacion", mensajes: [], hilos: [],
             texto: "", cargando: false, adjuntos: [],
-            sidebar: false, colapsada: this.leerColapsada(),
+            sidebar: false, colapsada: this.leerColapsada(), arrastrando: false,
         });
+        this._dragN = 0;   // profundidad de dragenter/leave (evita el parpadeo)
         onWillStart(() => this.cargar());
         onMounted(() => {
             this.detectTheme();
@@ -148,7 +149,12 @@ export class FocoGpt extends Component {
     pedirArchivo() { if (this.file.el) this.file.el.click(); }
 
     async onFile(ev) {
-        const files = Array.from((ev.target && ev.target.files) || []);
+        await this.agregarArchivos((ev.target && ev.target.files) || []);
+        if (ev.target) ev.target.value = "";
+    }
+
+    async agregarArchivos(fileList) {
+        const files = Array.from(fileList || []);
         for (const f of files) {
             if (f.size > MAX_MB * 1024 * 1024) {
                 this.notificar(new Error(`"${f.name}" pesa más de ${MAX_MB} MB.`));
@@ -164,7 +170,36 @@ export class FocoGpt extends Component {
                 this.notificar(new Error(`No pude leer "${f.name}".`));
             }
         }
-        if (ev.target) ev.target.value = "";
+    }
+
+    // ---------- arrastrar y soltar (como ChatGPT) ----------
+    traeArchivos(ev) {
+        try { return Array.from((ev.dataTransfer && ev.dataTransfer.types) || []).includes("Files"); }
+        catch { return false; }
+    }
+    onDragEnter(ev) {
+        if (!this.traeArchivos(ev)) return;
+        ev.preventDefault();
+        this._dragN += 1;
+        this.state.arrastrando = true;
+    }
+    onDragOver(ev) {
+        if (!this.traeArchivos(ev)) return;
+        ev.preventDefault();
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = "copy";
+    }
+    onDragLeave(ev) {
+        if (!this.traeArchivos(ev)) return;
+        this._dragN -= 1;
+        if (this._dragN <= 0) { this._dragN = 0; this.state.arrastrando = false; }
+    }
+    async onDrop(ev) {
+        if (!this.traeArchivos(ev)) return;
+        ev.preventDefault();
+        this._dragN = 0;
+        this.state.arrastrando = false;
+        await this.agregarArchivos(ev.dataTransfer && ev.dataTransfer.files);
+        this.foco();
     }
 
     leerArchivo(f) {

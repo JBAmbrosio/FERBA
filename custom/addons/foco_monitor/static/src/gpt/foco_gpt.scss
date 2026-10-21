@@ -14,6 +14,7 @@
     --send-fg: #ffffff;
     --accent: #2f6fed;
     --danger: #e5484d;
+    --drop-bg: rgba(255, 255, 255, 0.82);
     --ease: cubic-bezier(0.23, 1, 0.32, 1);
 
     position: absolute;
@@ -42,6 +43,7 @@
         --send-bg: #ffffff;
         --send-fg: #171717;
         --accent: #7ab7ff;
+        --drop-bg: rgba(0, 0, 0, 0.62);
     }
 
     // ---------------------------------------------------- cargando / gate
@@ -68,6 +70,26 @@
     // ---------------------------------------------------- layout
     .fgpt-app { flex: 1; display: flex; min-height: 0; position: relative; }
     .fgpt-scrim { display: none; }
+
+    // ---------------------------------------------------- arrastrar y soltar
+    .fgpt-drop {
+        position: absolute; inset: 0; z-index: 60; pointer-events: none;
+        display: grid; place-items: center; padding: 24px;
+        background: var(--drop-bg); backdrop-filter: blur(2px);
+        animation: fgpt-fade 0.14s var(--ease);
+        &::before {
+            content: ""; position: absolute; inset: 16px;
+            border: 2px dashed var(--accent); border-radius: 18px;
+        }
+        &__box { text-align: center; position: relative; }
+        &__img {
+            width: 76px; height: 76px; border-radius: 50%; margin-bottom: 14px;
+            animation: fgpt-pop 0.28s var(--ease);
+        }
+        &__h { font-size: 21px; font-weight: 700; color: var(--ink); }
+        &__p { color: var(--ink2); margin: 7px auto 0; max-width: 360px; line-height: 1.45; }
+    }
+    @keyframes fgpt-fade { from { opacity: 0; } to { opacity: 1; } }
 
     // ---------------------------------------------------- barra lateral
     .fgpt-side {

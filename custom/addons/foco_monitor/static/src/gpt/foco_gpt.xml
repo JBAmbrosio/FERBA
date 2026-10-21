@@ -20,7 +20,20 @@
             </div>
 
             <!-- app -->
-            <div t-else="" class="fgpt-app">
+            <div t-else="" class="fgpt-app"
+                 t-on-dragenter="(ev) => this.onDragEnter(ev)"
+                 t-on-dragover="(ev) => this.onDragOver(ev)"
+                 t-on-dragleave="(ev) => this.onDragLeave(ev)"
+                 t-on-drop="(ev) => this.onDrop(ev)">
+
+                <!-- capa de arrastrar y soltar (como ChatGPT) -->
+                <div t-if="state.arrastrando" class="fgpt-drop">
+                    <div class="fgpt-drop__box">
+                        <img class="fgpt-drop__img" t-att-src="img('tomy_responde')" alt=""/>
+                        <div class="fgpt-drop__h">Agrega lo que quieras</div>
+                        <div class="fgpt-drop__p">Suelta aquí tus documentos o imágenes para agregarlos a la conversación</div>
+                    </div>
+                </div>
 
                 <!-- fondo para cerrar la barra en movil -->
                 <div class="fgpt-scrim" t-on-click="() => this.state.sidebar = false"/>
