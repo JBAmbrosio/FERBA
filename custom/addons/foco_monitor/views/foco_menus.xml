@@ -289,6 +289,6 @@
               action="foco_gpt_action"
               groups="foco_monitor.group_foco_gpt,foco_monitor.group_foco_manager"/>
     <record id="menu_foco_gpt_root" model="ir.ui.menu">
-        <field name="web_icon">foco_monitor,static/description/icon.png</field>
+        <field name="web_icon">foco_monitor,static/src/gpt/img/app_icon.png</field>
     </record>
 </odoo>

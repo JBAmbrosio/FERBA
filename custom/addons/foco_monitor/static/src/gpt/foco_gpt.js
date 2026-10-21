@@ -4,10 +4,12 @@ import { Component, useState, useRef, onWillStart, onMounted, onWillUnmount, use
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
-// Tommy GPT: el asistente de IA de uso general. Es una pantalla de chat estilo
-// ChatGPT (barra de conversaciones a la izquierda, platica a la derecha) montada
-// sobre la misma API de Claude que ya usa Foco. Se pueden adjuntar documentos e
-// imagenes: el servidor los manda como bloques de contenido a Claude.
+// Tommy GPT: el asistente de IA de uso general. Pantalla de chat con la misma
+// apariencia que ChatGPT: barra lateral oscura con el historial de
+// conversaciones que se repliega, y la platica a la derecha. Montado sobre la
+// misma API de Claude que ya usa Foco. Se pueden adjuntar documentos e
+// imagenes: el servidor los manda como bloques de contenido a Claude. El avatar
+// es un tomate con audifonos que cambia segun la situacion.
 
 const SUGERENCIAS = [
     "Redacta un correo formal para un cliente",
@@ -16,8 +18,9 @@ const SUGERENCIAS = [
     "Revisa la ortografía y mejora este texto",
 ];
 
-// Tope del archivo en el navegador (el servidor tambien valida).
-const MAX_MB = 12;
+const MAX_MB = 12;                       // tope por archivo (el servidor tambien valida)
+const LS_COLAPSADA = "fgpt_colapsada";   // recuerda si la barra quedo replegada
+const BASE_IMG = "/foco_monitor/static/src/gpt/img";
 
 export class FocoGpt extends Component {
     static template = "foco_monitor.FocoGpt";
@@ -29,9 +32,10 @@ export class FocoGpt extends Component {
         this.input = useRef("input");
         this.file = useRef("file");
         this.state = useState({
-            loading: true, dark: false, puede: null, nombre: "",
+            loading: true, dark: true, puede: null, nombre: "",
             threadId: null, titulo: "Conversacion", mensajes: [], hilos: [],
-            texto: "", cargando: false, adjuntos: [], sidebar: false,
+            texto: "", cargando: false, adjuntos: [],
+            sidebar: false, colapsada: this.leerColapsada(),
         });
         onWillStart(() => this.cargar());
         onMounted(() => {
@@ -48,6 +52,28 @@ export class FocoGpt extends Component {
     }
 
     get sugerencias() { return SUGERENCIAS; }
+
+    img(nombre) { return `${BASE_IMG}/${nombre}.png`; }
+
+    // Avatar del tomate segun la situacion.
+    get avatarHero() { return this.img("tomy_saluda"); }
+    get avatarBot() { return this.img("tomy_idle"); }
+    get avatarPiensa() { return this.img("tomy_piensa"); }
+
+    // ----------------------------------------------------------- barra
+    leerColapsada() {
+        try { return localStorage.getItem(LS_COLAPSADA) === "1"; } catch { return false; }
+    }
+    toggleColapsar() {
+        this.state.colapsada = !this.state.colapsada;
+        try { localStorage.setItem(LS_COLAPSADA, this.state.colapsada ? "1" : "0"); } catch { /* sin memoria, da igual */ }
+    }
+    // El boton de la cabecera de la barra: en escritorio repliega; en movil
+    // (la barra es un panel flotante) la cierra.
+    onToggleBarra() {
+        if (window.innerWidth <= 820) { this.state.sidebar = false; }
+        else { this.toggleColapsar(); }
+    }
 
     // ----------------------------------------------------------- datos
     async cargar() {

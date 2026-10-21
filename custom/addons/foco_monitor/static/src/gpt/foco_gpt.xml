@@ -2,7 +2,8 @@
 <templates xml:space="preserve">
 
     <t t-name="foco_monitor.FocoGpt">
-        <div class="fgpt" t-att-class="{ 'fgpt--dark': state.dark }">
+        <div class="fgpt"
+             t-att-class="{ 'fgpt--dark': state.dark, 'fgpt--col': state.colapsada, 'fgpt--sb': state.sidebar }">
 
             <!-- cargando -->
             <div t-if="state.loading" class="fgpt-load">
@@ -12,23 +13,48 @@
             <!-- sin acceso -->
             <div t-elif="state.puede === false" class="fgpt-gate">
                 <div class="fgpt-gate__card">
-                    <div class="fgpt-gate__orb">✦</div>
+                    <img class="fgpt-gate__img" t-att-src="avatarBot"/>
                     <h3>Tommy GPT</h3>
                     <p>Aún no tienes acceso al asistente. Pídeselo al administrador de Foco.</p>
                 </div>
             </div>
 
             <!-- app -->
-            <div t-else="" class="fgpt-app" t-att-class="{ 'fgpt-app--open': state.sidebar }">
+            <div t-else="" class="fgpt-app">
 
                 <!-- fondo para cerrar la barra en movil -->
                 <div class="fgpt-scrim" t-on-click="() => this.state.sidebar = false"/>
 
+                <!-- =============================== BARRA LATERAL (historial) -->
                 <aside class="fgpt-side">
+                    <div class="fgpt-side__top">
+                        <button class="fgpt-ico" title="Replegar barra" t-on-click="() => this.onToggleBarra()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                                <line x1="9" y1="4" x2="9" y2="20"/>
+                            </svg>
+                        </button>
+                        <button class="fgpt-ico" title="Nueva conversación" t-on-click="() => this.nuevo()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                            </svg>
+                        </button>
+                    </div>
+
                     <button class="fgpt-nueva" t-on-click="() => this.nuevo()">
-                        <span class="fgpt-nueva__ic">＋</span> Nueva conversación
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                        </svg>
+                        <span>Nueva conversación</span>
                     </button>
-                    <div class="fgpt-hilos">
+
+                    <div class="fgpt-hist">
+                        <div t-if="state.hilos.length" class="fgpt-hist__lbl">Conversaciones</div>
                         <t t-foreach="state.hilos" t-as="h" t-key="h.id">
                             <div class="fgpt-hilo"
                                  t-att-class="{ 'fgpt-hilo--act': h.id === state.threadId }"
@@ -38,94 +64,150 @@
                                         t-on-click="(ev) => this.borrarHilo(h.id, ev)">×</button>
                             </div>
                         </t>
-                        <div t-if="!state.hilos.length" class="fgpt-hilos__vacio">
+                        <div t-if="!state.hilos.length" class="fgpt-hist__vacio">
                             Sin conversaciones todavía.
                         </div>
                     </div>
-                    <div class="fgpt-side__foot">Asistente de FERBA</div>
+
+                    <div class="fgpt-side__foot">
+                        <img class="fgpt-side__logo" t-att-src="avatarBot" alt="Tommy GPT"/>
+                        <span>Tommy GPT · FERBA</span>
+                    </div>
                 </aside>
 
-                <section class="fgpt-main">
+                <!-- =============================================== PRINCIPAL -->
+                <main class="fgpt-main">
                     <header class="fgpt-top">
-                        <button class="fgpt-burger" t-on-click="() => this.state.sidebar = !this.state.sidebar">☰</button>
-                        <span class="fgpt-top__t" t-esc="state.titulo"/>
+                        <button class="fgpt-ico fgpt-top__open" title="Abrir barra"
+                                t-on-click="() => this.toggleColapsar()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                                <line x1="9" y1="4" x2="9" y2="20"/>
+                            </svg>
+                        </button>
+                        <button class="fgpt-ico fgpt-burger" title="Menú"
+                                t-on-click="() => this.state.sidebar = !this.state.sidebar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                                <line x1="9" y1="4" x2="9" y2="20"/>
+                            </svg>
+                        </button>
+                        <button class="fgpt-ico fgpt-top__new" title="Nueva conversación"
+                                t-on-click="() => this.nuevo()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                            </svg>
+                        </button>
+                        <span class="fgpt-brand">
+                            <img t-att-src="avatarBot" alt=""/> Tommy GPT
+                        </span>
                     </header>
 
-                    <div class="fgpt-lista" t-ref="lista">
-
-                        <div t-if="!state.mensajes.length" class="fgpt-welcome">
-                            <div class="fgpt-welcome__orb">✦</div>
-                            <h2>Hola<t t-if="state.nombre">, <t t-esc="state.nombre"/></t></h2>
-                            <p>Soy tu asistente. Pregúntame lo que quieras o adjunta un documento o una imagen para que los analice.</p>
+                    <!-- estado vacio: hero centrado con el compositor -->
+                    <div t-if="!state.mensajes.length" class="fgpt-hero">
+                        <div class="fgpt-hero__box">
+                            <img class="fgpt-hero__img" t-att-src="avatarHero" alt="Tommy GPT"/>
+                            <h1 class="fgpt-hero__h">
+                                ¿Por dónde empezamos<t t-if="state.nombre">, <t t-esc="state.nombre"/></t>?
+                            </h1>
+                            <div class="fgpt-hero__comp">
+                                <t t-call="foco_monitor.FocoGptComposer"/>
+                            </div>
                             <div class="fgpt-chips">
                                 <t t-foreach="sugerencias" t-as="s" t-key="s_index">
                                     <button class="fgpt-chip" t-on-click="() => this.usarSugerencia(s)" t-esc="s"/>
                                 </t>
                             </div>
                         </div>
+                    </div>
 
-                        <t t-foreach="state.mensajes" t-as="m" t-key="m.id">
-                            <div class="fgpt-msg"
-                                 t-att-class="{ 'fgpt-msg--user': m.role === 'user', 'fgpt-msg--bot': m.role !== 'user', 'fgpt-msg--err': m.error }">
-                                <div class="fgpt-av">
-                                    <t t-if="m.role === 'user'" t-esc="(state.nombre || '?').slice(0,1).toUpperCase()"/>
-                                    <t t-else="">✦</t>
-                                </div>
-                                <div class="fgpt-bub">
-                                    <div t-if="m.adjuntos.length" class="fgpt-adj">
-                                        <t t-foreach="m.adjuntos" t-as="a" t-key="a_index">
-                                            <a t-if="a.esImagen and a.data" class="fgpt-adj__img"
-                                               t-att-href="a.data" target="_blank">
-                                                <img t-att-src="a.data" t-att-alt="a.name"/>
-                                            </a>
-                                            <span t-else="" class="fgpt-adj__file">
-                                                <span class="fgpt-adj__ic">📄</span>
-                                                <span t-esc="a.name"/>
-                                            </span>
-                                        </t>
+                    <!-- conversacion -->
+                    <div t-else="" class="fgpt-lista" t-ref="lista">
+                        <div class="fgpt-thread">
+                            <t t-foreach="state.mensajes" t-as="m" t-key="m.id">
+                                <div class="fgpt-msg"
+                                     t-att-class="{ 'fgpt-msg--user': m.role === 'user', 'fgpt-msg--bot': m.role !== 'user', 'fgpt-msg--err': m.error }">
+                                    <img t-if="m.role !== 'user'" class="fgpt-av" t-att-src="avatarBot" alt="Tommy GPT"/>
+                                    <div class="fgpt-bub">
+                                        <div t-if="m.adjuntos.length" class="fgpt-adj">
+                                            <t t-foreach="m.adjuntos" t-as="a" t-key="a_index">
+                                                <a t-if="a.esImagen and a.data" class="fgpt-adj__img"
+                                                   t-att-href="a.data" target="_blank">
+                                                    <img t-att-src="a.data" t-att-alt="a.name"/>
+                                                </a>
+                                                <span t-else="" class="fgpt-adj__file">
+                                                    <span class="fgpt-adj__ic">📄</span>
+                                                    <span t-esc="a.name"/>
+                                                </span>
+                                            </t>
+                                        </div>
+                                        <div t-if="m.texto" class="fgpt-txt" t-out="m.html"/>
                                     </div>
-                                    <div t-if="m.texto" class="fgpt-txt" t-out="m.html"/>
+                                </div>
+                            </t>
+
+                            <div t-if="state.cargando" class="fgpt-msg fgpt-msg--bot">
+                                <img class="fgpt-av" t-att-src="avatarPiensa" alt="Tommy GPT"/>
+                                <div class="fgpt-bub">
+                                    <div class="fgpt-typing"><span/><span/><span/></div>
                                 </div>
                             </div>
-                        </t>
-
-                        <div t-if="state.cargando" class="fgpt-msg fgpt-msg--bot">
-                            <div class="fgpt-av">✦</div>
-                            <div class="fgpt-bub">
-                                <div class="fgpt-typing"><span/><span/><span/></div>
-                            </div>
                         </div>
                     </div>
 
-                    <div class="fgpt-composer">
-                        <div t-if="state.adjuntos.length" class="fgpt-pend">
-                            <t t-foreach="state.adjuntos" t-as="a" t-key="a_index">
-                                <span class="fgpt-pend__it">
-                                    <span class="fgpt-pend__ic" t-esc="a.esImagen ? '🖼' : '📄'"/>
-                                    <span class="fgpt-pend__n" t-esc="a.name"/>
-                                    <button class="fgpt-pend__x" t-on-click="() => this.quitarAdjunto(a_index)">×</button>
-                                </span>
-                            </t>
-                        </div>
-                        <div class="fgpt-inrow">
-                            <button class="fgpt-clip" title="Adjuntar documento o imagen"
-                                    t-on-click="() => this.pedirArchivo()">📎</button>
-                            <input type="file" t-ref="file" class="fgpt-file" multiple="multiple"
-                                   accept="image/*,.pdf,.txt,.csv,.json,.md,.xml,.log,.tsv,.yml,.yaml,.xlsx,.docx,application/pdf"
-                                   t-on-change="(ev) => this.onFile(ev)"/>
-                            <textarea t-ref="input" class="fgpt-ta" rows="1"
-                                      placeholder="Escribe tu mensaje…"
-                                      t-model="state.texto"
-                                      t-on-keydown="(ev) => this.tecla(ev)"
-                                      t-att-disabled="state.cargando"/>
-                            <button class="fgpt-send"
-                                    t-att-disabled="state.cargando or (!state.texto.trim() and !state.adjuntos.length)"
-                                    t-on-click="() => this.enviar()">↑</button>
-                        </div>
-                        <div class="fgpt-foot">Tommy GPT puede equivocarse. Verifica lo importante. · Con la llave de FERBA.</div>
+                    <!-- compositor fijo abajo (cuando ya hay platica) -->
+                    <div t-if="state.mensajes.length" class="fgpt-dock">
+                        <t t-call="foco_monitor.FocoGptComposer"/>
                     </div>
-                </section>
+                </main>
             </div>
+        </div>
+    </t>
+
+    <!-- ========================================= COMPOSITOR (reutilizable) -->
+    <t t-name="foco_monitor.FocoGptComposer">
+        <div class="fgpt-comp">
+            <div t-if="state.adjuntos.length" class="fgpt-pend">
+                <t t-foreach="state.adjuntos" t-as="a" t-key="a_index">
+                    <span class="fgpt-pend__it">
+                        <span class="fgpt-pend__ic" t-esc="a.esImagen ? '🖼' : '📄'"/>
+                        <span class="fgpt-pend__n" t-esc="a.name"/>
+                        <button class="fgpt-pend__x" t-on-click="() => this.quitarAdjunto(a_index)">×</button>
+                    </span>
+                </t>
+            </div>
+            <div class="fgpt-inrow">
+                <button class="fgpt-plus" title="Adjuntar documento o imagen"
+                        t-on-click="() => this.pedirArchivo()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                </button>
+                <input type="file" t-ref="file" class="fgpt-file" multiple="multiple"
+                       accept="image/*,.pdf,.txt,.csv,.json,.md,.xml,.log,.tsv,.yml,.yaml,.xlsx,.docx,application/pdf"
+                       t-on-change="(ev) => this.onFile(ev)"/>
+                <textarea t-ref="input" class="fgpt-ta" rows="1"
+                          placeholder="Escribe tu mensaje…"
+                          t-model="state.texto"
+                          t-on-keydown="(ev) => this.tecla(ev)"
+                          t-att-disabled="state.cargando"/>
+                <button class="fgpt-send"
+                        t-att-disabled="state.cargando or (!state.texto.trim() and !state.adjuntos.length)"
+                        t-on-click="() => this.enviar()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"/>
+                        <polyline points="6 11 12 5 18 11"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="fgpt-foot">Tommy GPT puede equivocarse. Verifica lo importante. · Con la llave de FERBA.</div>
         </div>
     </t>
 
