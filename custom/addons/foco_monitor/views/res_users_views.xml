@@ -32,11 +32,17 @@
                         <field name="foco_department_ids" widget="many2many_tags"
                                options="{'no_create': True}"
                                placeholder="Todos los departamentos"/>
+                        <field name="foco_gpt_enabled"/>
                     </group>
                     <div class="text-muted">
                         Si se deja vacio, esta persona ve la actividad de toda
                         la empresa. Quien administra Foco ve todo en cualquier
                         caso.
+                    </div>
+                    <div class="text-muted">
+                        "Acceso a Tommy GPT" deja que esta persona use el
+                        asistente de IA de uso general con la llave de la
+                        empresa; no le da acceso a ningun otro dato de Foco.
                     </div>
                 </page>
             </xpath>

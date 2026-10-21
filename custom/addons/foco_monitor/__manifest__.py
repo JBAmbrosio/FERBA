@@ -1,6 +1,6 @@
 {
     'name': 'Foco - Monitor de Productividad',
-    'version': '19.0.29.29.0',
+    'version': '19.0.29.30.0',
     'summary': 'Mide el uso real de aplicaciones (primer plano vs segundo plano) '
                'por empleado, con control remoto de equipos.',
     'description': """
@@ -36,9 +36,11 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'data/foco_llamada_data.xml',
         'data/foco_invite_action.xml',
         'data/foco_call_review_data.xml',
+        'data/foco_gpt_data.xml',
         'views/foco_category_views.xml',
         'views/foco_call_review_views.xml',
         'views/foco_tomy_views.xml',
+        'views/foco_gpt_views.xml',
         'views/foco_integrity_views.xml',
         'data/foco_integrity_data.xml',
         'views/foco_integrity_verdict_views.xml',
@@ -103,6 +105,9 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
             'foco_monitor/static/src/tomy/tomy_panel.js',
             'foco_monitor/static/src/tomy/tomy_panel.xml',
             'foco_monitor/static/src/tomy/tomy_panel.scss',
+            'foco_monitor/static/src/gpt/foco_gpt.js',
+            'foco_monitor/static/src/gpt/foco_gpt.xml',
+            'foco_monitor/static/src/gpt/foco_gpt.scss',
             'foco_monitor/static/src/vendedores/foco_vendedores.js',
             'foco_monitor/static/src/vendedores/foco_vendedores.xml',
             'foco_monitor/static/src/vendedores/foco_vendedores.scss',

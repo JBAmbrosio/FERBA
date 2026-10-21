@@ -201,6 +201,36 @@
         <field name="domain_force">[(1, '=', 1)]</field>
     </record>
 
+    <!-- Conversaciones con Tommy GPT: cada quien ve y edita las suyas (es un
+         asistente personal); los administradores de Foco las ven todas para
+         auditar y para la clasificacion de trabajo/distraccion. La regla propia
+         cuelga de base.group_user porque quien usa el asistente puede no tener
+         ningun otro grupo de Foco. -->
+    <record id="rule_foco_gpt_thread_propias" model="ir.rule">
+        <field name="name">Foco: conversaciones de Tommy GPT propias</field>
+        <field name="model_id" ref="model_foco_gpt_thread"/>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_foco_gpt_thread_admin" model="ir.rule">
+        <field name="name">Foco: conversaciones de Tommy GPT, los administradores ven todas</field>
+        <field name="model_id" ref="model_foco_gpt_thread"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="rule_foco_gpt_message_propios" model="ir.rule">
+        <field name="name">Foco: mensajes de Tommy GPT propios</field>
+        <field name="model_id" ref="model_foco_gpt_message"/>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="domain_force">[('thread_id.user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_foco_gpt_message_admin" model="ir.rule">
+        <field name="name">Foco: mensajes de Tommy GPT, los administradores ven todos</field>
+        <field name="model_id" ref="model_foco_gpt_message"/>
+        <field name="groups" eval="[(4, ref('group_foco_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
     <!-- Hechos de integridad: mismo alcance que el uso. -->
     <record id="rule_foco_integrity_admin" model="ir.rule">
         <field name="name">Foco: hechos de integridad, los administradores ven todo</field>

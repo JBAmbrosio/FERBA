@@ -62,6 +62,10 @@ access_foco_tomy_thread_user,foco.tomy.thread user,model_foco_tomy_thread,group_
 access_foco_tomy_thread_manager,foco.tomy.thread manager,model_foco_tomy_thread,group_foco_manager,1,1,1,1
 access_foco_tomy_message_user,foco.tomy.message user,model_foco_tomy_message,group_foco_user,1,1,1,0
 access_foco_tomy_message_manager,foco.tomy.message manager,model_foco_tomy_message,group_foco_manager,1,1,1,1
+access_foco_gpt_thread_internal,foco.gpt.thread internal,model_foco_gpt_thread,base.group_user,1,1,1,0
+access_foco_gpt_thread_manager,foco.gpt.thread manager,model_foco_gpt_thread,group_foco_manager,1,1,1,1
+access_foco_gpt_message_internal,foco.gpt.message internal,model_foco_gpt_message,base.group_user,1,1,1,0
+access_foco_gpt_message_manager,foco.gpt.message manager,model_foco_gpt_message,group_foco_manager,1,1,1,1
 access_foco_mobile_grant_user,foco.mobile.grant user,model_foco_mobile_grant,group_foco_user,1,0,0,0
 access_foco_mobile_grant_manager,foco.mobile.grant manager,model_foco_mobile_grant,group_foco_manager,1,1,1,1
 access_foco_mobile_installed_user,foco.mobile.installed user,model_foco_mobile_installed,group_foco_user,1,0,0,0

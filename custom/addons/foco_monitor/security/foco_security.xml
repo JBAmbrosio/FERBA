@@ -33,6 +33,16 @@
         <field name="group_ids" eval="[(4, ref('group_foco_manager'))]"/>
     </record>
 
+    <!-- Acceso a Tommy GPT (el asistente de IA de uso general). Es un grupo
+         suelto, que NO implica ver nada de Foco: solo abre el menu y la pantalla
+         del asistente. El administrador lo enciende por persona con la casilla
+         "Acceso a Tommy GPT" (res.users.foco_gpt_enabled), que sincroniza este
+         grupo. Administrar Foco ya incluye el acceso. -->
+    <record id="group_foco_gpt" model="res.groups">
+        <field name="name">Foco / Asistente Tommy GPT</field>
+        <field name="comment">Deja usar el asistente de IA de uso general (Tommy GPT). No da acceso a ningun otro dato de Foco.</field>
+    </record>
+
     <!-- Rol de VENDEDOR con las apps acotadas. Es un marcador: a quien lo tenga,
          Foco le oculta un conjunto de apps (Aplicaciones, Sitio web, Aprobaciones,
          Mantenimiento, Empleados) SIN tocar a los demas usuarios. Odoo no permite

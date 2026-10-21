@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="foco_monitor.FocoGpt">
+        <div class="fgpt" t-att-class="{ 'fgpt--dark': state.dark }">
+
+            <!-- cargando -->
+            <div t-if="state.loading" class="fgpt-load">
+                <div class="fgpt-spin"/>
+            </div>
+
+            <!-- sin acceso -->
+            <div t-elif="state.puede === false" class="fgpt-gate">
+                <div class="fgpt-gate__card">
+                    <div class="fgpt-gate__orb">✦</div>
+                    <h3>Tommy GPT</h3>
+                    <p>Aún no tienes acceso al asistente. Pídeselo al administrador de Foco.</p>
+                </div>
+            </div>
+
+            <!-- app -->
+            <div t-else="" class="fgpt-app" t-att-class="{ 'fgpt-app--open': state.sidebar }">
+
+                <!-- fondo para cerrar la barra en movil -->
+                <div class="fgpt-scrim" t-on-click="() => this.state.sidebar = false"/>
+
+                <aside class="fgpt-side">
+                    <button class="fgpt-nueva" t-on-click="() => this.nuevo()">
+                        <span class="fgpt-nueva__ic">＋</span> Nueva conversación
+                    </button>
+                    <div class="fgpt-hilos">
+                        <t t-foreach="state.hilos" t-as="h" t-key="h.id">
+                            <div class="fgpt-hilo"
+                                 t-att-class="{ 'fgpt-hilo--act': h.id === state.threadId }"
+                                 t-on-click="() => this.abrirHilo(h.id)">
+                                <span class="fgpt-hilo__t" t-esc="h.titulo"/>
+                                <button class="fgpt-hilo__x" title="Borrar conversación"
+                                        t-on-click="(ev) => this.borrarHilo(h.id, ev)">×</button>
+                            </div>
+                        </t>
+                        <div t-if="!state.hilos.length" class="fgpt-hilos__vacio">
+                            Sin conversaciones todavía.
+                        </div>
+                    </div>
+                    <div class="fgpt-side__foot">Asistente de FERBA</div>
+                </aside>
+
+                <section class="fgpt-main">
+                    <header class="fgpt-top">
+                        <button class="fgpt-burger" t-on-click="() => this.state.sidebar = !this.state.sidebar">☰</button>
+                        <span class="fgpt-top__t" t-esc="state.titulo"/>
+                    </header>
+
+                    <div class="fgpt-lista" t-ref="lista">
+
+                        <div t-if="!state.mensajes.length" class="fgpt-welcome">
+                            <div class="fgpt-welcome__orb">✦</div>
+                            <h2>Hola<t t-if="state.nombre">, <t t-esc="state.nombre"/></t></h2>
+                            <p>Soy tu asistente. Pregúntame lo que quieras o adjunta un documento o una imagen para que los analice.</p>
+                            <div class="fgpt-chips">
+                                <t t-foreach="sugerencias" t-as="s" t-key="s_index">
+                                    <button class="fgpt-chip" t-on-click="() => this.usarSugerencia(s)" t-esc="s"/>
+                                </t>
+                            </div>
+                        </div>
+
+                        <t t-foreach="state.mensajes" t-as="m" t-key="m.id">
+                            <div class="fgpt-msg"
+                                 t-att-class="{ 'fgpt-msg--user': m.role === 'user', 'fgpt-msg--bot': m.role !== 'user', 'fgpt-msg--err': m.error }">
+                                <div class="fgpt-av">
+                                    <t t-if="m.role === 'user'" t-esc="(state.nombre || '?').slice(0,1).toUpperCase()"/>
+                                    <t t-else="">✦</t>
+                                </div>
+                                <div class="fgpt-bub">
+                                    <div t-if="m.adjuntos.length" class="fgpt-adj">
+                                        <t t-foreach="m.adjuntos" t-as="a" t-key="a_index">
+                                            <a t-if="a.esImagen and a.data" class="fgpt-adj__img"
+                                               t-att-href="a.data" target="_blank">
+                                                <img t-att-src="a.data" t-att-alt="a.name"/>
+                                            </a>
+                                            <span t-else="" class="fgpt-adj__file">
+                                                <span class="fgpt-adj__ic">📄</span>
+                                                <span t-esc="a.name"/>
+                                            </span>
+                                        </t>
+                                    </div>
+                                    <div t-if="m.texto" class="fgpt-txt" t-out="m.html"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <div t-if="state.cargando" class="fgpt-msg fgpt-msg--bot">
+                            <div class="fgpt-av">✦</div>
+                            <div class="fgpt-bub">
+                                <div class="fgpt-typing"><span/><span/><span/></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fgpt-composer">
+                        <div t-if="state.adjuntos.length" class="fgpt-pend">
+                            <t t-foreach="state.adjuntos" t-as="a" t-key="a_index">
+                                <span class="fgpt-pend__it">
+                                    <span class="fgpt-pend__ic" t-esc="a.esImagen ? '🖼' : '📄'"/>
+                                    <span class="fgpt-pend__n" t-esc="a.name"/>
+                                    <button class="fgpt-pend__x" t-on-click="() => this.quitarAdjunto(a_index)">×</button>
+                                </span>
+                            </t>
+                        </div>
+                        <div class="fgpt-inrow">
+                            <button class="fgpt-clip" title="Adjuntar documento o imagen"
+                                    t-on-click="() => this.pedirArchivo()">📎</button>
+                            <input type="file" t-ref="file" class="fgpt-file" multiple="multiple"
+                                   accept="image/*,.pdf,.txt,.csv,.json,.md,.xml,.log,.tsv,.yml,.yaml,.xlsx,.docx,application/pdf"
+                                   t-on-change="(ev) => this.onFile(ev)"/>
+                            <textarea t-ref="input" class="fgpt-ta" rows="1"
+                                      placeholder="Escribe tu mensaje…"
+                                      t-model="state.texto"
+                                      t-on-keydown="(ev) => this.tecla(ev)"
+                                      t-att-disabled="state.cargando"/>
+                            <button class="fgpt-send"
+                                    t-att-disabled="state.cargando or (!state.texto.trim() and !state.adjuntos.length)"
+                                    t-on-click="() => this.enviar()">↑</button>
+                        </div>
+                        <div class="fgpt-foot">Tommy GPT puede equivocarse. Verifica lo importante. · Con la llave de FERBA.</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </t>
+
+</templates>

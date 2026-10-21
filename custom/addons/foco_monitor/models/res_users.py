@@ -27,9 +27,44 @@ class ResUsers(models.Model):
     foco_ir_a = fields.Char(copy=False)
     foco_ir_a_at = fields.Datetime(copy=False)
 
+    # Acceso a Tommy GPT (el asistente de IA de uso general). Es una casilla por
+    # persona que el administrador de Foco enciende sin dar acceso a nada mas:
+    # por dentro agrega o quita al usuario del grupo group_foco_gpt, que es lo
+    # que abre el menu y la pantalla (ver foco_gpt.py).
+    foco_gpt_enabled = fields.Boolean(
+        string='Acceso a Tommy GPT', compute='_compute_foco_gpt_enabled',
+        inverse='_inverse_foco_gpt_enabled', search='_search_foco_gpt_enabled',
+        help='Deja que esta persona use el asistente de IA de uso general, con la '
+             'llave de la empresa. No le da acceso a ningun otro dato de Foco.')
+
+    def _grupo_gpt(self):
+        return self.env.ref('foco_monitor.group_foco_gpt', raise_if_not_found=False)
+
+    def _compute_foco_gpt_enabled(self):
+        grp = self._grupo_gpt()
+        for u in self:
+            u.foco_gpt_enabled = bool(grp) and grp in u.all_group_ids
+
+    def _inverse_foco_gpt_enabled(self):
+        grp = self._grupo_gpt()
+        if not grp:
+            return
+        for u in self:
+            # sudo: un administrador de Foco (que no es admin de Odoo) puede
+            # encender la casilla; mover la membresia del grupo necesita el
+            # privilegio, acotado a este solo grupo.
+            u.sudo().write({'group_ids': [(4 if u.foco_gpt_enabled else 3, grp.id)]})
+
+    def _search_foco_gpt_enabled(self, operator, value):
+        grp = self._grupo_gpt()
+        if not grp:
+            return [('id', '=', 0)] if (operator == '=') == bool(value) else []
+        positivo = (operator in ('=', 'in')) == bool(value)
+        return [('all_group_ids', 'in', grp.ids)] if positivo else [('all_group_ids', 'not in', grp.ids)]
+
     @property
     def SELF_READABLE_FIELDS(self):
-        return super().SELF_READABLE_FIELDS + ['foco_department_ids']
+        return super().SELF_READABLE_FIELDS + ['foco_department_ids', 'foco_gpt_enabled']
 
     def _check_credentials(self, credential, env):
         """La contraseña de siempre, y si no, el codigo de un solo uso que Foco
@@ -54,7 +89,8 @@ class ResUsers(models.Model):
         mas. La excepcion se acota a este unico campo: cualquier otra cosa en
         la misma escritura la vuelve a someter a los permisos normales.
         """
-        if (set(vals) == {'foco_department_ids'}
+        campos_foco = {'foco_department_ids', 'foco_gpt_enabled'}
+        if (vals and set(vals) <= campos_foco
                 and not self.env.su
                 and self.env.user.has_group('foco_monitor.group_foco_manager')):
             res = super(ResUsers, self.sudo()).write(vals)

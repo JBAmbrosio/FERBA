@@ -21,6 +21,8 @@ from . import foco_openai
 from . import foco_ai_usage
 from . import foco_call_review
 from . import foco_tomy
+# Tommy GPT: asistente de IA de uso general. Usa foco.openai y foco.ai.usage.
+from . import foco_gpt
 from . import foco_integrity
 from . import foco_integrity_verdict
 from . import foco_invitation

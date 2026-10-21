@@ -250,6 +250,15 @@
               parent="menu_foco_config" action="foco_tomy_thread_action" sequence="12"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- Tommy GPT (asistente de IA de uso general): quien puede usarlo y el
+         registro de sus conversaciones ya clasificadas. -->
+    <menuitem id="menu_foco_gpt_acceso" name="Acceso a Tommy GPT"
+              parent="menu_foco_config" action="foco_gpt_access_action" sequence="13"
+              groups="foco_monitor.group_foco_manager"/>
+    <menuitem id="menu_foco_gpt_conversaciones" name="Conversaciones (Tommy GPT)"
+              parent="menu_foco_config" action="foco_gpt_thread_action" sequence="14"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- La tabla generica sigue accesible, pero deja de ser la puerta: abrir
          una pestana en tabla dinamica es pedirle al usuario que construya la
          pregunta antes de poder verla. Vive en Configuracion, como herramienta
@@ -267,6 +276,19 @@
          <menuitem>: el esquema de Odoo 19 solo admite id, name, sequence,
          groups y active. Se asigna como campo del registro. -->
     <record id="menu_foco_root" model="ir.ui.menu">
+        <field name="web_icon">foco_monitor,static/description/icon.png</field>
+    </record>
+
+    <!-- ============================================ TOMMY GPT (app propia)
+         El asistente de IA de uso general vive en su propia aplicacion, no
+         dentro de Foco: quien lo usa (p. ej. la contadora) puede no tener
+         acceso a nada mas de Foco. Lo ven quienes tienen el acceso y los
+         administradores. Es una sola pantalla, asi que la accion cuelga del
+         propio menu raiz. -->
+    <menuitem id="menu_foco_gpt_root" name="Tommy GPT" sequence="92"
+              action="foco_gpt_action"
+              groups="foco_monitor.group_foco_gpt,foco_monitor.group_foco_manager"/>
+    <record id="menu_foco_gpt_root" model="ir.ui.menu">
         <field name="web_icon">foco_monitor,static/description/icon.png</field>
     </record>
 </odoo>
