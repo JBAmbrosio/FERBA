@@ -28,6 +28,7 @@ export class FocoGpt extends Component {
 
     setup() {
         this.orm = useService("orm");
+        this.action = useService("action");
         this.lista = useRef("lista");
         this.input = useRef("input");
         this.file = useRef("file");
@@ -54,6 +55,10 @@ export class FocoGpt extends Component {
     get sugerencias() { return SUGERENCIAS; }
 
     img(nombre) { return `${BASE_IMG}/${nombre}.png`; }
+
+    // Volver al menu principal de Odoo (la rejilla de aplicaciones). La pantalla
+    // ocupa toda la ventana, asi que hace falta una salida clara.
+    salir() { window.location.assign("/odoo"); }
 
     // Avatar del tomate segun la situacion.
     get avatarHero() { return this.img("tomy_saluda"); }

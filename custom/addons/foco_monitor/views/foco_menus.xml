@@ -279,16 +279,8 @@
         <field name="web_icon">foco_monitor,static/description/icon.png</field>
     </record>
 
-    <!-- ============================================ TOMMY GPT (app propia)
-         El asistente de IA de uso general vive en su propia aplicacion, no
-         dentro de Foco: quien lo usa (p. ej. la contadora) puede no tener
-         acceso a nada mas de Foco. Lo ven quienes tienen el acceso y los
-         administradores. Es una sola pantalla, asi que la accion cuelga del
-         propio menu raiz. -->
-    <menuitem id="menu_foco_gpt_root" name="Tommy GPT" sequence="92"
-              action="foco_gpt_action"
-              groups="foco_monitor.group_foco_gpt,foco_monitor.group_foco_manager"/>
-    <record id="menu_foco_gpt_root" model="ir.ui.menu">
-        <field name="web_icon">foco_monitor,static/src/gpt/img/app_icon.png</field>
-    </record>
+    <!-- Tommy GPT NO es una aplicacion del lanzador: se abre desde el boton de
+         la barra de arriba (systray, static/src/gpt/foco_gpt_systray.js), que
+         solo le aparece a quien tiene acceso. La accion cliente foco_gpt_action
+         (views/foco_gpt_views.xml) es la que abre ese boton. -->
 </odoo>

@@ -31,4 +31,14 @@ class IrHttp(models.AbstractModel):
                     info['foco_ir_a'] = u.foco_ir_a
         except Exception:
             pass
+        # Lanzador de Tommy GPT en la barra de arriba (systray): solo le aparece a
+        # quien tiene acceso (grupo del asistente o administrador de Foco). El
+        # componente del systray lee esta bandera para registrarse o no.
+        try:
+            u = self.env.user
+            info['foco_gpt_puede'] = bool(
+                u and u.id and (u.has_group('foco_monitor.group_foco_gpt')
+                                or u.has_group('foco_monitor.group_foco_manager')))
+        except Exception:
+            info['foco_gpt_puede'] = False
         return info
