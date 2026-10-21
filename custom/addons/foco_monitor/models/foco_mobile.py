@@ -995,6 +995,34 @@ class FocoMobileDevice(models.Model):
         cliente.write({'phone': numero})
         return {'ok': True, 'mensaje': 'Guardé %s en %s.' % (numero, cliente.display_name)}
 
+    def cliente_ubicacion(self, partner_id, lat, lon, precision=0.0):
+        """Corrige el PIN (ubicacion) de un cliente con el GPS actual del
+        vendedor, cuando la direccion que trae esta mal. Con SUS permisos. Mueve
+        el mismo registro que ve la cartera (no el comercial), porque es el que
+        usa la verificacion 'en sitio' de las visitas."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (TypeError, ValueError):
+            raise UserError('No tengo una ubicación válida para fijar.')
+        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+            raise UserError('No tengo una ubicación válida para fijar.')
+        cliente = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not cliente:
+            raise UserError('Ese cliente ya no existe en Odoo.')
+        cliente.write({'partner_latitude': lat, 'partner_longitude': lon})
+        try:
+            cliente.message_post(body='Ubicación corregida desde el teléfono (%.6f, %.6f%s).'
+                                      % (lat, lon, ', ±%dm' % int(precision) if precision else ''))
+        except Exception:
+            pass
+        return {'ok': True, 'lat': lat, 'lon': lon,
+                'mensaje': 'Actualicé la ubicación de %s.' % cliente.display_name}
+
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
         llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""
@@ -1051,7 +1079,10 @@ class FocoMobileDevice(models.Model):
                 if uuid not in guardados:
                     guardados.append(uuid)
                 continue
-            # LLEGADA: crear la visita (idempotente si ya estaba).
+            # LLEGADA (check-in con GPS) o MANUAL (registrada sin estar en sitio):
+            # crear la visita (idempotente si ya estaba). La manual se captura
+            # completa de una vez (resultado incluido) y no lleva coordenadas.
+            manual = (fase == 'manual')
             if existing:
                 if uuid not in guardados:
                     guardados.append(uuid)
@@ -1063,7 +1094,9 @@ class FocoMobileDevice(models.Model):
                 partner = Partner.browse(int(v['partner_id']))
                 if not partner.exists():
                     partner = None
-            if partner is None and (v.get('nuevo_nombre') or '').strip():
+            # Un prospecto nuevo se crea con su pin SOLO desde el GPS, no a mano
+            # (una manual no tiene coordenadas que darle de pin).
+            if partner is None and not manual and (v.get('nuevo_nombre') or '').strip():
                 partner = Partner.create({
                     'name': v['nuevo_nombre'].strip()[:120],
                     'company_type': 'company',
@@ -1081,10 +1114,12 @@ class FocoMobileDevice(models.Model):
                 'check_in': v.get('at') or fields.Datetime.now(),
                 'latitude': lat, 'longitude': lon,
                 'precision_m': v.get('accuracy') or 0.0,
-                'origen': 'gps',
+                'origen': 'manual' if manual else 'gps',
                 'nota': (v.get('nota') or '').strip() or False,
                 'grabacion_consentida': bool(v.get('grabacion_consentida')),
             }
+            if manual:
+                vals['check_out'] = v.get('at') or fields.Datetime.now()
             res = (v.get('resultado') or '').strip()
             if res in dict(Visita._fields['resultado'].selection):
                 vals['resultado'] = res

@@ -1028,6 +1028,16 @@ class FocoController(http.Controller):
             data.get('partner_id'), data.get('numero')))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/cliente_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cliente_ubicacion(self, **kw):
+        """Corrige el pin de un cliente con el GPS actual del vendedor (cuando la
+        direccion esta mal). Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.cliente_ubicacion(
+            data.get('partner_id'), data.get('lat'), data.get('lon'),
+            data.get('accuracy') or 0.0))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_odoo_acceso(self, **kw):
