@@ -722,10 +722,12 @@ class FocoComputer(models.Model):
                 'type': 'warning', 'title': titulo, 'message': cuerpo, 'sticky': False})
         self.message_post(body=cuerpo, subject=titulo,
                           message_type='comment', subtype_xmlid='mail.mt_note')
-        # Correo a la lista del reporte diario (francisco et al.), para enterarse
-        # sin abrir Odoo. Se reutiliza la misma lista configurada.
+        # Correo SOLO a los ADMINISTRADORES de Foco (usuarios del grupo), NO a la
+        # lista del reporte diario: este aviso por equipo es de operacion/TI y no
+        # debe llenar de correo al dueno (francisco@ferba.net), que recibe el
+        # reporte diario resumido y no cada incidencia de un equipo.
         try:
-            correos = self.env['foco.daily.report'].sudo()._destinatarios()
+            correos = [p.email for p in destinatarios if p.email]
             if correos:
                 self.env['mail.mail'].sudo().create({
                     'subject': '%s · %s' % (titulo, self.name),
