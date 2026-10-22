@@ -810,6 +810,95 @@ class FocoController(http.Controller):
              ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '', cuerpo)
         return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
 
+    # --------------------------------------------------------- Tommy GPT
+    def _gpt_mensaje(self, message_id):
+        """El mensaje del asistente, si el usuario puede verlo (las reglas de
+        registro de foco.gpt.message deciden: suyo o administrador)."""
+        msg = request.env['foco.gpt.message'].browse(message_id).exists()
+        if not msg or msg.role != 'assistant':
+            return None
+        return msg
+
+    @http.route('/foco/gpt/imprimir/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def gpt_imprimir(self, message_id, **kw):
+        """La respuesta de Tommy GPT como pagina limpia para imprimir o guardar
+        en PDF (con sus graficas dibujadas y sus tablas)."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        cuerpo = msg._cuerpo_html()
+        graficas = json.dumps(msg._graficas(), ensure_ascii=False)
+        pregunta = request.env['foco.gpt.message'].search(
+            [('thread_id', '=', msg.thread_id.id), ('role', '=', 'user'), ('id', '<', msg.id)],
+            order='id desc', limit=1)
+        cuando = (fields.Datetime.context_timestamp(msg, msg.create_date).strftime('%d/%m/%Y %H:%M')
+                  if msg.create_date else '')
+        html = (
+            '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tommy GPT</title>'
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>'
+            '<style>body{font:14px/1.55 "Segoe UI",system-ui,Arial,sans-serif;color:#1a1a1a;margin:40px auto;max-width:820px;padding:0 24px}'
+            'h1{font-size:19px;margin:0 0 4px}h3{font-size:15px;margin:16px 0 6px}h4.tt{font-size:13px;margin:14px 0 4px;color:#333}'
+            '.meta{color:#5a6577;font-size:12px;margin-bottom:16px}p{margin:0 0 9px}ul{padding-left:22px}li{margin:3px 0}'
+            'code{font-family:Consolas,monospace;background:#f0f0f0;padding:1px 4px;border-radius:4px}'
+            '.pregunta{background:#f3f5f9;border-left:3px solid #2f6fed;padding:10px 14px;margin:0 0 16px;border-radius:6px}'
+            'table{border-collapse:collapse;width:100%%;font-size:12.5px;margin:8px 0}th,td{border:1px solid #c8c8c8;padding:5px 8px;text-align:left}'
+            'th{background:#2b2b2b;color:#fff}.gwrap{max-width:620px;height:300px;margin:6px 0 16px}'
+            '.btn{position:fixed;top:14px;right:14px;padding:8px 14px;border:1px solid #cfd6e2;border-radius:8px;background:#fff;cursor:pointer;font:inherit}'
+            '@media print{.btn{display:none}body{margin:0}}</style></head><body>'
+            '<button class="btn" onclick="window.print()">Imprimir / guardar PDF</button>'
+            '<h1>Tommy GPT &middot; FERBA</h1><div class="meta">%s &middot; %s</div>%s'
+            '<div class="cuerpo">%s</div><div id="gs"></div>'
+            '<script>const G=%s,P=["#2f6fed","#10b981","#f59e0b","#ef4444","#8b5cf6","#0ea5e9"],c=document.getElementById("gs");'
+            'G.forEach(function(g){var h=document.createElement("h4");h.className="tt";h.textContent=g.titulo||"";c.appendChild(h);'
+            'var w=document.createElement("div");w.className="gwrap";var cv=document.createElement("canvas");w.appendChild(cv);c.appendChild(w);'
+            'var tp=g.grafica==="lineas"?"line":g.grafica==="dona"?"doughnut":"bar";'
+            'var ds=(g.series||[]).map(function(s,j){return{label:s.nombre,data:s.valores,'
+            'backgroundColor:tp==="doughnut"?(g.etiquetas||[]).map(function(_,k){return P[k%%P.length]}):P[j%%P.length],'
+            'borderColor:P[j%%P.length],borderWidth:2,tension:0.3,borderRadius:4}});'
+            'new Chart(cv,{type:tp,data:{labels:g.etiquetas||[],datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,'
+            'plugins:{legend:{display:(g.series||[]).length>1||tp==="doughnut"},title:{display:false}},'
+            'scales:tp==="doughnut"?{}:{y:{beginAtZero:true,ticks:{callback:function(v){return v+(g.unidad||"")}}}}}})});</script>'
+            '</body></html>'
+        ) % (escape(request.env.user.name), escape(cuando),
+             ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '',
+             cuerpo, graficas)
+        return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
+
+    @http.route('/foco/gpt/word/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def gpt_word(self, message_id, **kw):
+        """La respuesta como documento de Word (.doc). Lleva el texto y las
+        tablas; las graficas van en el PDF."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        nota = ('<p style="color:#888;font-size:11px">[Las graficas se pueden guardar desde la '
+                'version PDF.]</p>') if msg._graficas() else ''
+        html = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;line-height:1.5}'
+                'h3,h4{margin:12px 0 5px}table{border-collapse:collapse;width:100%%}'
+                'th,td{border:1px solid #c8c8c8;padding:5px 8px;text-align:left}th{background:#2b2b2b;color:#fff}'
+                '</style></head><body>%s%s</body></html>') % (msg._cuerpo_html(), nota)
+        nombre = ((msg.thread_id.name or 'respuesta')[:40].strip() or 'respuesta') + '.doc'
+        return request.make_response(html.encode('utf-8'), headers=[
+            ('Content-Type', 'application/msword'),
+            ('Content-Disposition', content_disposition(nombre))])
+
+    @http.route('/foco/gpt/excel/<int:message_id>/<int:idx>', type='http', auth='user', methods=['GET'])
+    def gpt_excel(self, message_id, idx, **kw):
+        """Una tabla de la respuesta como archivo .xlsx."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        try:
+            data, titulo = msg._excel_de_tabla(int(idx))
+        except UserError as e:
+            return request.make_response(str(e), status=400,
+                                         headers=[('Content-Type', 'text/plain; charset=utf-8')])
+        nombre = ((titulo or 'tabla')[:40].strip() or 'tabla') + '.xlsx'
+        return request.make_response(data, headers=[
+            ('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+            ('Content-Disposition', content_disposition(nombre))])
+
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def enroll(self, **kw):

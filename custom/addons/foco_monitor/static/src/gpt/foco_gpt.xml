@@ -177,6 +177,43 @@
                                             </t>
                                         </div>
                                         <div t-if="m.texto" class="fgpt-txt" t-out="m.html"/>
+
+                                        <!-- artefactos: tablas y graficas -->
+                                        <t t-foreach="m.artefactos" t-as="art" t-key="art_index">
+                                            <div t-if="art.tipo === 'tabla'" class="fgpt-tabla">
+                                                <div class="fgpt-tabla__cab">
+                                                    <span class="fgpt-tabla__t" t-esc="art.titulo"/>
+                                                    <button class="fgpt-mini" title="Descargar en Excel"
+                                                            t-on-click="() => this.descargarExcel(m, art.tablaIdx)">⬇ Excel</button>
+                                                </div>
+                                                <div class="fgpt-tabla__scroll">
+                                                    <table>
+                                                        <thead><tr>
+                                                            <t t-foreach="art.columnas" t-as="c" t-key="c_index"><th t-esc="c"/></t>
+                                                        </tr></thead>
+                                                        <tbody>
+                                                            <t t-foreach="art.filas" t-as="fila" t-key="fila_index">
+                                                                <tr><t t-foreach="fila" t-as="celda" t-key="celda_index"><td t-esc="celda"/></t></tr>
+                                                            </t>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div t-if="art.tipo === 'grafica'" class="fgpt-graf">
+                                                <div t-if="art.titulo" class="fgpt-graf__t" t-esc="art.titulo"/>
+                                                <div class="fgpt-graf__wrap">
+                                                    <canvas t-att-id="'fgpt_c_' + m.id + '_' + art_index"/>
+                                                </div>
+                                            </div>
+                                        </t>
+
+                                        <!-- descargar la respuesta -->
+                                        <div t-if="m.puedeExportar" class="fgpt-acc">
+                                            <button class="fgpt-mini" title="Abrir para imprimir o guardar en PDF"
+                                                    t-on-click="() => this.exportar(m, 'pdf')">⬇ PDF</button>
+                                            <button class="fgpt-mini" title="Descargar en Word"
+                                                    t-on-click="() => this.exportar(m, 'word')">⬇ Word</button>
+                                        </div>
                                     </div>
                                 </div>
                             </t>
