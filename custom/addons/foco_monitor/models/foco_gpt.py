@@ -231,7 +231,7 @@ class FocoGptThread(models.Model):
         return salida
 
     # ----------------------------------------------------------- cerebro
-    def _system(self, web_on=False, img_on=False):
+    def _system(self, web_on=False, img_on=False, cod_on=False):
         self.ensure_one()
         try:
             tz = pytz.timezone(self.env.user.tz or 'America/Mazatlan')
@@ -241,6 +241,15 @@ class FocoGptThread(models.Model):
         dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
         nombre = (self.env.user.name or '').split(' ')[0]
         extra = ''
+        if cod_on:
+            extra += (
+                "\n- 'code_execution': ejecuta Python en un entorno seguro (tienes pandas, numpy, "
+                "openpyxl). USALA para calculos exactos y analisis de datos: cuando haya muchos "
+                "numeros, una hoja de calculo que sumar/filtrar/cruzar, estadistica, o cualquier "
+                "aritmetica donde no debas equivocarte. Es mejor que calcular 'a mano'. Carga los "
+                "datos que ves en el documento o que te dieron, corre el codigo, y luego presenta "
+                "el resultado en el texto y, si ayuda, con las herramientas 'tabla' o 'grafica'. "
+                "No describas el codigo salvo que te lo pidan; da el resultado.")
         if web_on:
             extra += (
                 "\n- 'web_search': busca en internet. Usala cuando la pregunta dependa de "
@@ -254,13 +263,15 @@ class FocoGptThread(models.Model):
                 "pidan generar/crear/disenar una IMAGEN. Para graficas de datos usa 'grafica'. "
                 "Escribe el prompt con detalle (estilo, colores, composicion).")
         hint = ''
-        if web_on or img_on:
-            partes_hint = []
-            if web_on:
-                partes_hint.append('buscar en internet')
-            if img_on:
-                partes_hint.append('generar imagenes')
-            hint = ' Tambien puedes %s.' % ' y '.join(partes_hint)
+        partes_hint = []
+        if cod_on:
+            partes_hint.append('hacer calculos y analisis con codigo')
+        if web_on:
+            partes_hint.append('buscar en internet')
+        if img_on:
+            partes_hint.append('generar imagenes')
+        if partes_hint:
+            hint = ' Tambien puedes %s.' % ', '.join(partes_hint)
         return (
             "Eres el asistente de IA de FERBA (Industrias Tecnologicas EMP), basado en Claude de "
             "Anthropic. Ayudas a %s con lo que te pida: redactar y corregir textos, resumir, "
@@ -299,7 +310,9 @@ class FocoGptThread(models.Model):
                     'artefactos': [], 'error': 'sin api key'}
         web_on = OpenAI._param('foco.gpt_web', '1') != '0'
         img_on = bool(OpenAI._openai_key()) and OpenAI._param('foco.gpt_imagenes', '1') != '0'
-        mensajes = [{'role': 'system', 'content': self._system(web_on=web_on, img_on=img_on)}]
+        cod_on = OpenAI._param('foco.gpt_codigo', '1') != '0'
+        mensajes = [{'role': 'system',
+                     'content': self._system(web_on=web_on, img_on=img_on, cod_on=cod_on)}]
         previos = self.message_ids.sorted('id')
         if len(previos) > HISTORIAL:
             previos = previos[-HISTORIAL:]
@@ -316,7 +329,7 @@ class FocoGptThread(models.Model):
         except (TypeError, ValueError):
             tope = 8000
         herramientas = self._herramientas(img_on=img_on)
-        nativas = []
+        nativas, beta = [], []
         if web_on:
             # Herramienta de servidor de Anthropic: busca y cita, sin que demos
             # vuelta por ella. GA, no exige cabecera beta. Claude decide si la usa.
@@ -326,6 +339,14 @@ class FocoGptThread(models.Model):
                 maxweb = 5
             nativas.append({'type': 'web_search_20250305', 'name': 'web_search',
                             'max_uses': max(1, min(maxweb, 10))})
+        if cod_on:
+            # Ejecuta Python en el SANDBOX de Anthropic (como el "Code Interpreter"
+            # de ChatGPT): para calculos exactos y analisis de datos, sin ejecutar
+            # nada en nuestro servidor. Es beta: exige la cabecera. Claude decide
+            # cuando usarlo; presenta el resultado con grafica/tabla.
+            nativas.append({'type': OpenAI._param('foco.gpt_codigo_tool', 'code_execution_20250522'),
+                            'name': 'code_execution'})
+            beta.append(OpenAI._param('foco.gpt_codigo_beta', 'code-execution-2025-05-22'))
         artefactos, error = [], ''
         tin_total = tout_total = vueltas = 0
         texto_final = ''
@@ -333,15 +354,17 @@ class FocoGptThread(models.Model):
         while True:
             try:
                 resp = OpenAI.chat(mensajes, tools=herramientas, native_tools=nativas,
-                                   max_tokens=tope, model=modelo,
+                                   beta=(beta or None), max_tokens=tope, model=modelo,
                                    servicio='gpt', ref='gpt hilo %s' % self.id)
             except UserError as e:
-                # Si la cuenta no tiene habilitada la busqueda en internet, la API
-                # rechaza esa herramienta y tumbaria TODO el chat: se reintenta una
-                # vez sin ella para no dejar a la persona sin respuesta.
-                if nativas:
-                    _logger.warning('Tommy GPT: la busqueda web fallo (%s); reintento sin ella', e)
-                    nativas = []
+                # Si la cuenta no tiene habilitadas las herramientas de servidor
+                # (buscar en internet o ejecutar codigo), la API rechaza la llamada
+                # y tumbaria TODO el chat: se reintenta una vez sin ellas para no
+                # dejar a la persona sin respuesta.
+                if nativas or beta:
+                    _logger.warning('Tommy GPT: una herramienta de servidor fallo (%s); '
+                                    'reintento sin ellas', e)
+                    nativas, beta = [], []
                     continue
                 error = str(e)
                 texto_final = ('No pude responder en este momento (%s). Intenta de nuevo en un '
