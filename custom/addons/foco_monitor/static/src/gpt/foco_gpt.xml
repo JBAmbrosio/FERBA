@@ -205,6 +205,13 @@
                                                     <canvas t-att-id="'fgpt_c_' + m.id + '_' + art_index"/>
                                                 </div>
                                             </div>
+                                            <div t-if="art.tipo === 'imagen'" class="fgpt-img">
+                                                <a t-att-href="art.url" target="_blank" title="Ver en grande">
+                                                    <img class="fgpt-img__i" t-att-src="art.url" t-att-alt="art.prompt"/>
+                                                </a>
+                                                <a class="fgpt-mini fgpt-img__dl" t-att-href="art.url + '?dl=1'"
+                                                   title="Descargar la imagen">⬇ Imagen</a>
+                                            </div>
                                         </t>
 
                                         <!-- descargar la respuesta -->

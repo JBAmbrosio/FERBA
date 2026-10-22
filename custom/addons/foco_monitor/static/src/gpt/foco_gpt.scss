@@ -256,6 +256,14 @@
     .fgpt-graf__t { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
     .fgpt-graf__wrap { position: relative; width: 100%; max-width: 560px; height: 300px; }
 
+    // imagen generada por Tommy GPT
+    .fgpt-img { margin: 12px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .fgpt-img__i {
+        max-width: min(100%, 420px); border-radius: 14px; border: 1px solid var(--line);
+        display: block; background: var(--hover);
+    }
+    .fgpt-img__dl { text-decoration: none; }
+
     .fgpt-acc { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .fgpt-mini {
         display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px;

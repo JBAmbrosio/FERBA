@@ -899,6 +899,25 @@ class FocoController(http.Controller):
             ('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
             ('Content-Disposition', content_disposition(nombre))])
 
+    @http.route('/foco/gpt/imagen/<int:att_id>', type='http', auth='user', methods=['GET'])
+    def gpt_imagen(self, att_id, dl=None, **kw):
+        """Una imagen que Tommy GPT genero. Se sirve inline para pintarla en el
+        panel; con ?dl=1 se descarga. El permiso es el del mensaje que la lleva:
+        la imagen esta ligada a un foco.gpt.message y sus reglas deciden quien lo ve."""
+        att = request.env['ir.attachment'].sudo().browse(att_id).exists()
+        if not att or att.res_model != 'foco.gpt.message' or not att.res_id:
+            return request.not_found()
+        # browse con los permisos del usuario: si no puede ver el mensaje, exists() es vacio.
+        msg = request.env['foco.gpt.message'].browse(att.res_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        headers = [('Content-Type', att.mimetype or 'image/png')]
+        if dl:
+            headers.append(('Content-Disposition', content_disposition(att.name or 'imagen.png')))
+        else:
+            headers.append(('Content-Disposition', 'inline'))
+        return request.make_response(att.raw, headers=headers)
+
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def enroll(self, **kw):

@@ -30,6 +30,10 @@ SERVICIOS = [
     ('movil', 'Movil (apps)'),
     ('transcripcion', 'Transcripcion de audio (OpenAI)'),
     ('chat', 'Chat sin herramientas'),
+    ('gpt', 'Tommy GPT (chat libre)'),
+    ('busqueda', 'Buscar en internet'),
+    ('imagen', 'Generar imagenes (OpenAI)'),
+    ('codigo', 'Ejecutar codigo (sandbox)'),
     ('otro', 'Otro'),
 ]
 

@@ -213,6 +213,12 @@ class FocoGptThread(models.Model):
                                 'content': res['texto'], 'tokens': res['tokens'],
                                 'artifacts': json.dumps(res.get('artefactos') or [], ensure_ascii=False),
                                 'error': res.get('error') or False})
+        # Las imagenes generadas se crearon con res_id=0 (el mensaje aun no existia);
+        # ahora se ligan al mensaje para que el permiso de lectura sea el del mensaje.
+        img_ids = [a.get('att_id') for a in (res.get('artefactos') or [])
+                   if a.get('tipo') == 'imagen' and a.get('att_id')]
+        if img_ids:
+            self.env['ir.attachment'].sudo().browse(img_ids).write({'res_id': respuesta.id})
         vals = {'tokens': thread.tokens + res['tokens'],
                 'costo_usd': thread.costo_usd + res['costo'],
                 'last_at': fields.Datetime.now(), 'clasificar_pendiente': True}
@@ -225,7 +231,7 @@ class FocoGptThread(models.Model):
         return salida
 
     # ----------------------------------------------------------- cerebro
-    def _system(self):
+    def _system(self, web_on=False, img_on=False):
         self.ensure_one()
         try:
             tz = pytz.timezone(self.env.user.tz or 'America/Mazatlan')
@@ -234,11 +240,32 @@ class FocoGptThread(models.Model):
         hoy = datetime.now(tz)
         dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
         nombre = (self.env.user.name or '').split(' ')[0]
+        extra = ''
+        if web_on:
+            extra += (
+                "\n- 'web_search': busca en internet. Usala cuando la pregunta dependa de "
+                "informacion ACTUAL o posterior a tu conocimiento (noticias, precios, leyes o "
+                "tramites vigentes, datos de una empresa, un dato que no sabes de memoria). Cita "
+                "la fuente en el texto. No la uses para cosas que ya sabes o para calculos.")
+        if img_on:
+            extra += (
+                "\n- 'generar_imagen': crea una imagen desde una descripcion (un logo, una "
+                "ilustracion, un diagrama conceptual, una grafica artistica). Usala SOLO cuando "
+                "pidan generar/crear/disenar una IMAGEN. Para graficas de datos usa 'grafica'. "
+                "Escribe el prompt con detalle (estilo, colores, composicion).")
+        hint = ''
+        if web_on or img_on:
+            partes_hint = []
+            if web_on:
+                partes_hint.append('buscar en internet')
+            if img_on:
+                partes_hint.append('generar imagenes')
+            hint = ' Tambien puedes %s.' % ' y '.join(partes_hint)
         return (
             "Eres el asistente de IA de FERBA (Industrias Tecnologicas EMP), basado en Claude de "
             "Anthropic. Ayudas a %s con lo que te pida: redactar y corregir textos, resumir, "
             "explicar, traducir, hacer calculos, y analizar los documentos e imagenes que adjunte "
-            "(los ves directamente). Eres util, directo y honesto.\n\n"
+            "(los ves directamente).%s Eres util, directo y honesto.\n\n"
             "- Responde en espanol de Mexico, salvo que te pidan otro idioma.\n"
             "- Si no sabes algo o no puedes verificarlo, dilo; no inventes datos, cifras ni citas.\n"
             "- Para texto largo usa parrafos cortos, guiones '- ' para listas y **negritas** para "
@@ -260,8 +287,8 @@ class FocoGptThread(models.Model):
             "- 'tabla': muestra una tabla descargable a Excel. Usala para desgloses y listados "
             "(p. ej. el desglose de un finiquito, una cotizacion, un comparativo). Despues de "
             "llamar la herramienta, resume en el texto lo importante; NO repitas toda la tabla en "
-            "el texto."
-            % (nombre or 'la persona', dias[hoy.weekday()], hoy.strftime('%d/%m/%Y')))
+            "el texto.%s"
+            % (nombre or 'la persona', hint, dias[hoy.weekday()], hoy.strftime('%d/%m/%Y'), extra))
 
     def _responder(self):
         self.ensure_one()
@@ -270,7 +297,9 @@ class FocoGptThread(models.Model):
             return {'texto': 'El asistente no esta configurado: falta la API key de Anthropic en '
                              'Foco > Configuracion.', 'tokens': 0, 'costo': 0.0, 'modelo': '',
                     'artefactos': [], 'error': 'sin api key'}
-        mensajes = [{'role': 'system', 'content': self._system()}]
+        web_on = OpenAI._param('foco.gpt_web', '1') != '0'
+        img_on = bool(OpenAI._openai_key()) and OpenAI._param('foco.gpt_imagenes', '1') != '0'
+        mensajes = [{'role': 'system', 'content': self._system(web_on=web_on, img_on=img_on)}]
         previos = self.message_ids.sorted('id')
         if len(previos) > HISTORIAL:
             previos = previos[-HISTORIAL:]
@@ -286,16 +315,34 @@ class FocoGptThread(models.Model):
             tope = int(OpenAI._param('foco.gpt_max_tokens', '8000') or 8000)
         except (TypeError, ValueError):
             tope = 8000
-        herramientas = self._herramientas()
+        herramientas = self._herramientas(img_on=img_on)
+        nativas = []
+        if web_on:
+            # Herramienta de servidor de Anthropic: busca y cita, sin que demos
+            # vuelta por ella. GA, no exige cabecera beta. Claude decide si la usa.
+            try:
+                maxweb = int(OpenAI._param('foco.gpt_web_max', '5') or 5)
+            except (TypeError, ValueError):
+                maxweb = 5
+            nativas.append({'type': 'web_search_20250305', 'name': 'web_search',
+                            'max_uses': max(1, min(maxweb, 10))})
         artefactos, error = [], ''
         tin_total = tout_total = vueltas = 0
         texto_final = ''
         t0 = time.time()
         while True:
             try:
-                resp = OpenAI.chat(mensajes, tools=herramientas, max_tokens=tope, model=modelo,
+                resp = OpenAI.chat(mensajes, tools=herramientas, native_tools=nativas,
+                                   max_tokens=tope, model=modelo,
                                    servicio='gpt', ref='gpt hilo %s' % self.id)
             except UserError as e:
+                # Si la cuenta no tiene habilitada la busqueda en internet, la API
+                # rechaza esa herramienta y tumbaria TODO el chat: se reintenta una
+                # vez sin ella para no dejar a la persona sin respuesta.
+                if nativas:
+                    _logger.warning('Tommy GPT: la busqueda web fallo (%s); reintento sin ella', e)
+                    nativas = []
+                    continue
                 error = str(e)
                 texto_final = ('No pude responder en este momento (%s). Intenta de nuevo en un '
                                'minuto.' % str(e)[:150])
@@ -312,8 +359,14 @@ class FocoGptThread(models.Model):
             if vueltas > 6 or (time.time() - t0) > 110:
                 texto_final = (msg.get('content') or '').strip()
                 break
-            mensajes.append({'role': 'assistant', 'content': msg.get('content') or None,
-                             'tool_calls': llamadas})
+            raw = (resp.get('raw') or {}).get('content')
+            if raw:
+                # Conserva los bloques tal cual (incluye los de busqueda web, que
+                # Anthropic pide ver en el siguiente turno).
+                mensajes.append({'role': 'assistant', '_raw_blocks': raw})
+            else:
+                mensajes.append({'role': 'assistant', 'content': msg.get('content') or None,
+                                 'tool_calls': llamadas})
             for tc in llamadas:
                 fn = tc.get('function') or {}
                 try:
@@ -330,12 +383,12 @@ class FocoGptThread(models.Model):
                 'costo': costo, 'modelo': modelo, 'error': error}
 
     # ---------------------------------------------------- herramientas
-    def _herramientas(self):
+    def _herramientas(self, img_on=False):
         def t(name, desc, props, req):
             return {'type': 'function', 'function': {
                 'name': name, 'description': desc,
                 'parameters': {'type': 'object', 'properties': props, 'required': req}}}
-        return [
+        tools = [
             t('grafica',
               'Dibuja una grafica en la respuesta (la pinta la interfaz). Usala cuando el usuario '
               'pida un grafico, un comparativo visual o una tendencia. Pasa los datos YA calculados.',
@@ -357,6 +410,21 @@ class FocoGptThread(models.Model):
                          'items': {'type': ['string', 'number']}}}},
               ['titulo', 'columnas', 'filas']),
         ]
+        if img_on:
+            tools.append(t(
+                'generar_imagen',
+                'Crea una imagen desde una descripcion de texto (logo, ilustracion, diagrama '
+                'conceptual, arte). Usala SOLO cuando el usuario pida GENERAR o CREAR una imagen; '
+                'para graficas de datos usa la herramienta grafica. La interfaz muestra la imagen '
+                'y el usuario la descarga.',
+                {'descripcion': {'type': 'string',
+                                 'description': 'Prompt detallado: que se ve, estilo, colores, '
+                                                'composicion. En ingles o espanol.'},
+                 'tamano': {'type': 'string', 'enum': ['cuadrada', 'horizontal', 'vertical'],
+                            'description': 'cuadrada=1024x1024, horizontal=1536x1024, '
+                                           'vertical=1024x1536'}},
+                ['descripcion']))
+        return tools
 
     def _ejecutar(self, nombre, args, artefactos):
         try:
@@ -364,6 +432,8 @@ class FocoGptThread(models.Model):
                 return self._tool_grafica(artefactos, **args)
             if nombre == 'tabla':
                 return self._tool_tabla(artefactos, **args)
+            if nombre == 'generar_imagen':
+                return self._tool_generar_imagen(artefactos, **args)
             return {'error': 'No tengo una herramienta llamada %s.' % nombre}
         except Exception as e:  # noqa: BLE001 - una herramienta rota no tumba la respuesta
             _logger.exception('Tommy GPT: fallo la herramienta %s', nombre)
@@ -392,6 +462,22 @@ class FocoGptThread(models.Model):
         artefactos.append(art)
         return {'ok': True, 'nota': 'Tabla "%s" con %d filas lista para descargar.'
                 % (art['titulo'], len(fil))}
+
+    # Tamanos admitidos por el modelo de imagen (OpenAI gpt-image-1 / dall-e-3).
+    _TAM_IMG = {'cuadrada': '1024x1024', 'horizontal': '1536x1024', 'vertical': '1024x1536'}
+
+    def _tool_generar_imagen(self, artefactos, descripcion=None, tamano='cuadrada'):
+        desc = (descripcion or '').strip()
+        if not desc:
+            return {'error': 'Falta la descripcion de la imagen.'}
+        size = self._TAM_IMG.get(tamano, '1024x1024')
+        raw, mime = self.env['foco.openai'].generar_imagen(desc, size=size)
+        att = self.env['ir.attachment'].sudo().create({
+            'name': (desc[:60] or 'imagen') + '.png', 'raw': raw, 'mimetype': mime or 'image/png',
+            'res_model': 'foco.gpt.message', 'res_id': 0})     # se liga al mensaje al crearlo
+        artefactos.append({'tipo': 'imagen', 'att_id': att.id, 'prompt': desc[:200]})
+        return {'ok': True, 'nota': 'Imagen generada y mostrada al usuario. Describela en una '
+                                    'frase; no digas que no puedes generar imagenes.'}
 
     # ----------------------------------------------------------- clasificacion
     @api.model
@@ -729,5 +815,18 @@ class FocoGptMessage(models.Model):
             adjuntos.append({'id': a.id, 'name': a.name or 'adjunto', 'mime': mime,
                              'es_imagen': mime in IMAGENES or mime == 'image/jpg'})
         return {'id': self.id, 'role': self.role, 'content': self.content or '',
-                'adjuntos': adjuntos, 'artefactos': self._artefactos(),
+                'adjuntos': adjuntos, 'artefactos': self._artefactos_panel(),
                 'error': bool(self.error) and not self.content}
+
+    def _artefactos_panel(self):
+        """Los artefactos para la interfaz: a cada imagen generada se le pone su
+        URL (se sirve por el endpoint que valida que el mensaje sea del usuario)."""
+        self.ensure_one()
+        salida = []
+        for art in self._artefactos():
+            if art.get('tipo') == 'imagen' and art.get('att_id'):
+                salida.append({'tipo': 'imagen', 'prompt': art.get('prompt') or '',
+                               'url': '/foco/gpt/imagen/%s' % art['att_id']})
+            else:
+                salida.append(art)
+        return salida

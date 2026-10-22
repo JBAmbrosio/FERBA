@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import re
@@ -228,10 +229,11 @@ class FocoOpenAI(models.AbstractModel):
     # --------------------------------------------------------- nucleo Anthropic
     @api.model
     def _anthropic(self, system, messages, max_tokens, modelo, tools=None,
-                   tool_choice=None, timeout=120, servicio=None, ref=None):
+                   tool_choice=None, timeout=120, servicio=None, ref=None, beta=None):
         """Una llamada a /v1/messages. Sin `temperature` (la familia Claude 5 ya
         no lo acepta). Levanta UserError si falla: quien llama decide si reintenta.
-        Cada respuesta deja su fila en el contador de consumo (foco.ai.usage)."""
+        Cada respuesta deja su fila en el contador de consumo (foco.ai.usage).
+        `beta`: lista de cabeceras anthropic-beta (code execution, files...)."""
         key = self.api_key()
         if not key:
             raise UserError('Falta la API key de Anthropic (Foco > Configuracion).')
@@ -244,6 +246,8 @@ class FocoOpenAI(models.AbstractModel):
             cuerpo['tool_choice'] = tool_choice
         headers = {'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION,
                    'content-type': 'application/json'}
+        if beta:
+            headers['anthropic-beta'] = ','.join(beta) if isinstance(beta, (list, tuple)) else beta
         try:
             r = requests.post(ANTHROPIC_API, headers=headers, json=cuerpo, timeout=timeout)
         except requests.RequestException as e:
@@ -328,6 +332,12 @@ class FocoOpenAI(models.AbstractModel):
                 else:
                     salida.append({'role': 'user', 'content': [bloque]})
             elif rol == 'assistant':
+                # Si quien llama guardo los bloques CRUDOS de una respuesta previa
+                # (para conservar los de herramientas de servidor como la busqueda
+                # web, que Anthropic exige en el historial), se pasan tal cual.
+                if m.get('_raw_blocks') is not None:
+                    salida.append({'role': 'assistant', 'content': m['_raw_blocks']})
+                    continue
                 bloques = []
                 if m.get('content'):
                     bloques.append({'type': 'text', 'text': m['content']})
@@ -403,16 +413,62 @@ class FocoOpenAI(models.AbstractModel):
                                             nota='audio de %d KB' % (len(wav_bytes or b'') // 1024))
         return (r.json().get('text') or '').strip()
 
+    # --------------------------------------------------- imagenes (OpenAI)
+    @api.model
+    def generar_imagen(self, prompt, size='1024x1024', calidad=None):
+        """Genera una imagen desde texto con OpenAI (Claude no genera imagenes).
+        Devuelve (bytes_png, 'image/png'). Usa la MISMA llave de OpenAI que la
+        transcripcion. Levanta UserError si falla o no hay llave. Cada imagen deja
+        su fila en el contador de consumo (es un costo por imagen, no por token)."""
+        key = self._openai_key()
+        if not key:
+            raise UserError('Generar imagenes usa OpenAI (Claude no genera imagenes). '
+                            'Pon una API key de OpenAI en Configuracion, o desactiva '
+                            'la generacion de imagenes de Tommy GPT.')
+        modelo = self._param('foco.gpt_image_model', 'gpt-image-1')
+        cuerpo = {'model': modelo, 'prompt': (prompt or '')[:4000], 'size': size or '1024x1024', 'n': 1}
+        cal = calidad or self._param('foco.gpt_image_quality', '')
+        if cal:
+            cuerpo['quality'] = cal        # gpt-image-1: low/medium/high; dall-e-3: standard/hd
+        try:
+            r = requests.post(OPENAI_API + '/images/generations',
+                              headers={'Authorization': 'Bearer ' + key,
+                                       'Content-Type': 'application/json'},
+                              json=cuerpo, timeout=240)
+        except requests.RequestException as e:
+            raise UserError('OpenAI imagen: sin respuesta (%s)' % e)
+        if r.status_code != 200:
+            raise UserError('OpenAI imagen %s: %s' % (r.status_code, r.text[:300]))
+        dato = (r.json().get('data') or [{}])[0]
+        b64 = dato.get('b64_json')
+        if b64:
+            raw = base64.b64decode(b64)
+        elif dato.get('url'):                # dall-e-3 puede devolver url
+            try:
+                img = requests.get(dato['url'], timeout=120)
+                raw = img.content
+            except requests.RequestException as e:
+                raise UserError('OpenAI imagen: no se pudo descargar (%s)' % e)
+        else:
+            raise UserError('OpenAI imagen: respuesta vacia.')
+        self.env['foco.ai.usage'].registrar('imagen', modelo, 0, 0, nota=(prompt or '')[:60])
+        return raw, 'image/png'
+
     # ----------------------------------------------------------- chat (Claude)
     @api.model
     def chat(self, messages, tools=None, response_format=None, max_tokens=900, model=None,
-             servicio=None, ref=None):
+             servicio=None, ref=None, native_tools=None, beta=None):
         """Una vuelta de conversacion. Devuelve {'message', 'usage', 'modelo'}
         con `message` en forma OpenAI ('content' o 'tool_calls'), para no tocar a
         Tomy. Si `response_format` pide un json_schema, se resuelve por texto y el
         JSON viene como cadena en `message.content` (como antes). `servicio` dice
         quien llama para el contador de consumo; si no viene se deduce (Tomy si
-        trae herramientas, el esquema si pide JSON)."""
+        trae herramientas, el esquema si pide JSON).
+
+        `native_tools`: herramientas NATIVAS de Anthropic (p.ej. buscar en
+        internet, ejecutar codigo) que se pasan TAL CUAL, sin traducir -las
+        resuelve el servidor de Anthropic, no damos vuelta por ellas-. `beta`:
+        cabeceras anthropic-beta que esas herramientas exigen."""
         modelo = model or self._param('foco.ai_chat_model', 'claude-sonnet-5-5')
         system, amsgs = self._traducir_mensajes(messages)
         if response_format and response_format.get('type') == 'json_schema':
@@ -422,15 +478,15 @@ class FocoOpenAI(models.AbstractModel):
             return {'message': {'role': 'assistant',
                                 'content': json.dumps(res, ensure_ascii=False), 'tool_calls': []},
                     'usage': {'total_tokens': tokens}, 'modelo': modelo}
-        atools = self._traducir_tools(tools) if tools else None
+        atools = (self._traducir_tools(tools) if tools else []) + list(native_tools or [])
         # tool_choice se deja en automatico (ni "tool" ni "any": Sonnet/Opus 5.x
         # no los aceptan, y Tomy necesita que el modelo decida).
-        j = self._anthropic(system, amsgs, max_tokens or 900, modelo, tools=atools,
-                            servicio=servicio or ('tomy' if tools else 'chat'), ref=ref)
+        j = self._anthropic(system, amsgs, max_tokens or 900, modelo, tools=(atools or None),
+                            servicio=servicio or ('tomy' if tools else 'chat'), ref=ref, beta=beta)
         tin, tout = self._tokens_split(j)
         # prompt/completion ademas del total: Tomy suma su costo con ellos y desde
         # la migracion a Claude (8-oct) los leia en cero.
-        return {'message': self._de_anthropic(j),
+        return {'message': self._de_anthropic(j), 'raw': j,
                 'usage': {'total_tokens': tin + tout, 'prompt_tokens': tin, 'completion_tokens': tout},
                 'modelo': modelo}
 
