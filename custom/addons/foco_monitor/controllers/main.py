@@ -918,6 +918,27 @@ class FocoController(http.Controller):
             headers.append(('Content-Disposition', 'inline'))
         return request.make_response(att.raw, headers=headers)
 
+    @http.route('/foco/gpt/archivo/<int:att_id>', type='http', auth='user', methods=['GET'])
+    def gpt_archivo(self, att_id, **kw):
+        """Un archivo que Tommy GPT genero (HTML, md, csv, svg...). SIEMPRE se sirve
+        como DESCARGA (nunca inline): un HTML generado podria traer scripts y
+        abrirlo en nuestra misma origin seria un riesgo. El permiso es el del
+        mensaje que lo lleva."""
+        att = request.env['ir.attachment'].sudo().browse(att_id).exists()
+        if not att or att.res_model != 'foco.gpt.message' or not att.res_id:
+            return request.not_found()
+        msg = request.env['foco.gpt.message'].browse(att.res_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        # text/html -> octet-stream para que el navegador NO lo ejecute, solo lo baje.
+        ct = att.mimetype or 'application/octet-stream'
+        if ct.startswith('text/html') or ct == 'image/svg+xml':
+            ct = 'application/octet-stream'
+        return request.make_response(att.raw, headers=[
+            ('Content-Type', ct),
+            ('Content-Disposition', content_disposition(att.name or 'archivo.txt')),
+            ('X-Content-Type-Options', 'nosniff')])
+
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def enroll(self, **kw):

@@ -359,6 +359,14 @@ export class FocoGpt extends Component {
         window.open(`/foco/gpt/excel/${m.id}/${idx}`, "_blank");
     }
 
+    // Tamano legible de un archivo generado (para la tarjeta de descarga).
+    pesoArchivo(bytes) {
+        const b = Number(bytes) || 0;
+        if (b < 1024) return `${b} B`;
+        if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+        return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
     msgError(texto) {
         return { id: "e" + Date.now(), idReal: false, role: "assistant", texto,
                  html: this.aHtml(texto), error: true, adjuntos: [], artefactos: [], puedeExportar: false };

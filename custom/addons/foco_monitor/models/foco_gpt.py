@@ -213,12 +213,13 @@ class FocoGptThread(models.Model):
                                 'content': res['texto'], 'tokens': res['tokens'],
                                 'artifacts': json.dumps(res.get('artefactos') or [], ensure_ascii=False),
                                 'error': res.get('error') or False})
-        # Las imagenes generadas se crearon con res_id=0 (el mensaje aun no existia);
-        # ahora se ligan al mensaje para que el permiso de lectura sea el del mensaje.
-        img_ids = [a.get('att_id') for a in (res.get('artefactos') or [])
-                   if a.get('tipo') == 'imagen' and a.get('att_id')]
-        if img_ids:
-            self.env['ir.attachment'].sudo().browse(img_ids).write({'res_id': respuesta.id})
+        # Las imagenes y archivos generados se crearon con res_id=0 (el mensaje aun
+        # no existia); ahora se ligan al mensaje para que el permiso de lectura sea
+        # el del mensaje.
+        att_ids = [a.get('att_id') for a in (res.get('artefactos') or [])
+                   if a.get('tipo') in ('imagen', 'archivo') and a.get('att_id')]
+        if att_ids:
+            self.env['ir.attachment'].sudo().browse(att_ids).write({'res_id': respuesta.id})
         vals = {'tokens': thread.tokens + res['tokens'],
                 'costo_usd': thread.costo_usd + res['costo'],
                 'last_at': fields.Datetime.now(), 'clasificar_pendiente': True}
@@ -279,6 +280,10 @@ class FocoGptThread(models.Model):
             "(los ves directamente).%s Eres util, directo y honesto.\n\n"
             "- Responde en espanol de Mexico, salvo que te pidan otro idioma.\n"
             "- Si no sabes algo o no puedes verificarlo, dilo; no inventes datos, cifras ni citas.\n"
+            "- NUNCA prometas algo para 'enseguida' o 'en un momento' (generar o guardar un archivo, "
+            "una imagen, una busqueda): HAZLO YA, en ESTA misma respuesta, con la herramienta que "
+            "corresponda. Si no puedes, dilo claro. Jamas digas que entregaste o guardaste algo que "
+            "no entregaste.\n"
             "- Para texto largo usa parrafos cortos, guiones '- ' para listas y **negritas** para "
             "lo importante.\n"
             "- Hoy es %s %s. Eres el asistente de la empresa; no digas que eres ChatGPT.\n"
@@ -298,7 +303,14 @@ class FocoGptThread(models.Model):
             "- 'tabla': muestra una tabla descargable a Excel. Usala para desgloses y listados "
             "(p. ej. el desglose de un finiquito, una cotizacion, un comparativo). Despues de "
             "llamar la herramienta, resume en el texto lo importante; NO repitas toda la tabla en "
-            "el texto.%s"
+            "el texto.\n"
+            "- 'generar_archivo': entrega un ARCHIVO para descargar (una pagina o presentacion HTML, "
+            "un documento, un script, un .csv, un .svg, etc.). USALA siempre que te pidan 'dame el "
+            "archivo', 'generame el .html', una presentacion, una pagina, o cualquier cosa que la "
+            "persona vaya a GUARDAR. Pon TODO el contenido COMPLETO en 'contenido' de una sola vez "
+            "(no lo cortes, no pongas '...'); NO lo pegues en el texto del chat ni lo describas "
+            "entero: con llamar la herramienta queda el boton de descarga. En el texto solo di en "
+            "una linea que ya esta el archivo y que descargar.%s"
             % (nombre or 'la persona', hint, dias[hoy.weekday()], hoy.strftime('%d/%m/%Y'), extra))
 
     def _responder(self):
@@ -347,14 +359,20 @@ class FocoGptThread(models.Model):
             nativas.append({'type': OpenAI._param('foco.gpt_codigo_tool', 'code_execution_20250522'),
                             'name': 'code_execution'})
             beta.append(OpenAI._param('foco.gpt_codigo_beta', 'code-execution-2025-05-22'))
+        try:
+            tope_max = int(OpenAI._param('foco.gpt_max_tokens_tope', '32000') or 32000)
+        except (TypeError, ValueError):
+            tope_max = 32000
+        tope_max = max(tope, tope_max)
         artefactos, error = [], ''
         tin_total = tout_total = vueltas = 0
+        tope_actual, bumps = tope, 0
         texto_final = ''
         t0 = time.time()
         while True:
             try:
                 resp = OpenAI.chat(mensajes, tools=herramientas, native_tools=nativas,
-                                   beta=(beta or None), max_tokens=tope, model=modelo,
+                                   beta=(beta or None), max_tokens=tope_actual, model=modelo,
                                    servicio='gpt', ref='gpt hilo %s' % self.id)
             except UserError as e:
                 # Si la cuenta no tiene habilitadas las herramientas de servidor
@@ -373,6 +391,16 @@ class FocoGptThread(models.Model):
             uso = resp.get('usage') or {}
             tin_total += int(uso.get('prompt_tokens') or 0)
             tout_total += int(uso.get('completion_tokens') or 0)
+            raw_full = resp.get('raw') or {}
+            # Si se corto por longitud (un archivo o una respuesta larga que no cupo
+            # en el tope), reintenta el MISMO turno con mas espacio. Esto evita que
+            # un .html de una presentacion salga a medias o que una herramienta con
+            # mucho contenido (generar_archivo) llegue con el JSON truncado.
+            if (raw_full.get('stop_reason') == 'max_tokens'
+                    and bumps < 2 and tope_actual < tope_max):
+                tope_actual = min(tope_actual * 3, tope_max)
+                bumps += 1
+                continue
             msg = resp.get('message') or {}
             llamadas = msg.get('tool_calls') or []
             if not llamadas:
@@ -382,7 +410,7 @@ class FocoGptThread(models.Model):
             if vueltas > 6 or (time.time() - t0) > 110:
                 texto_final = (msg.get('content') or '').strip()
                 break
-            raw = (resp.get('raw') or {}).get('content')
+            raw = raw_full.get('content')
             if raw:
                 # Conserva los bloques tal cual (incluye los de busqueda web, que
                 # Anthropic pide ver en el siguiente turno).
@@ -432,6 +460,22 @@ class FocoGptThread(models.Model):
                'filas': {'type': 'array', 'items': {'type': 'array',
                          'items': {'type': ['string', 'number']}}}},
               ['titulo', 'columnas', 'filas']),
+            t('generar_archivo',
+              'Entrega un ARCHIVO descargable con el contenido que tu generes (una pagina o '
+              'presentacion HTML, un documento, un script, un .csv, un .svg, un .md, etc.). Usala '
+              'cuando pidan "dame el archivo", "generame el .html", una presentacion, una pagina, o '
+              'algo que la persona vaya a GUARDAR. Pon TODO el contenido COMPLETO en "contenido", '
+              'sin cortarlo ni poner "...". Queda un boton de descarga; en el chat solo di en una '
+              'linea que ya esta listo.',
+              {'nombre': {'type': 'string',
+                          'description': 'Nombre del archivo con su extension, p.ej. '
+                                         'presentacion.html, reporte.md, datos.csv, logo.svg'},
+               'contenido': {'type': 'string',
+                             'description': 'El contenido COMPLETO del archivo, tal cual, sin '
+                                            'recortar.'},
+               'tipo': {'type': 'string',
+                        'description': 'Opcional: html, md, txt, csv, svg, json, js, css, py, xml.'}},
+              ['nombre', 'contenido']),
         ]
         if img_on:
             tools.append(t(
@@ -457,6 +501,8 @@ class FocoGptThread(models.Model):
                 return self._tool_tabla(artefactos, **args)
             if nombre == 'generar_imagen':
                 return self._tool_generar_imagen(artefactos, **args)
+            if nombre == 'generar_archivo':
+                return self._tool_generar_archivo(artefactos, **args)
             return {'error': 'No tengo una herramienta llamada %s.' % nombre}
         except Exception as e:  # noqa: BLE001 - una herramienta rota no tumba la respuesta
             _logger.exception('Tommy GPT: fallo la herramienta %s', nombre)
@@ -501,6 +547,40 @@ class FocoGptThread(models.Model):
         artefactos.append({'tipo': 'imagen', 'att_id': att.id, 'prompt': desc[:200]})
         return {'ok': True, 'nota': 'Imagen generada y mostrada al usuario. Describela en una '
                                     'frase; no digas que no puedes generar imagenes.'}
+
+    # Tipo MIME del archivo entregable segun su extension (solo texto).
+    _MIME_ARCHIVO = {
+        'html': 'text/html', 'htm': 'text/html', 'md': 'text/markdown',
+        'txt': 'text/plain', 'csv': 'text/csv', 'tsv': 'text/tab-separated-values',
+        'json': 'application/json', 'xml': 'application/xml', 'svg': 'image/svg+xml',
+        'js': 'text/javascript', 'css': 'text/css', 'py': 'text/x-python',
+        'yaml': 'text/yaml', 'yml': 'text/yaml', 'sql': 'text/plain', 'ics': 'text/calendar',
+    }
+    MAX_ARCHIVO = 6 * 1024 * 1024        # 6 MB de texto generado
+
+    def _tool_generar_archivo(self, artefactos, nombre=None, contenido=None, tipo=None):
+        nombre = (nombre or '').strip().replace('/', '_').replace('\\', '_')[:120] or 'archivo.txt'
+        if not contenido:
+            return {'error': 'Falta el contenido del archivo. Vuelve a llamar la herramienta con '
+                             'el contenido COMPLETO en "contenido".'}
+        ext = (tipo or '').strip().lower().lstrip('.')
+        if not ext and '.' in nombre:
+            ext = nombre.rsplit('.', 1)[1].lower()
+        if '.' not in nombre:
+            nombre = '%s.%s' % (nombre, ext or 'txt')
+        mime = self._MIME_ARCHIVO.get(ext, 'text/plain')
+        raw = (contenido if isinstance(contenido, str) else str(contenido)).encode('utf-8', 'replace')
+        if len(raw) > self.MAX_ARCHIVO:
+            return {'error': 'El archivo es demasiado grande (maximo %d MB).'
+                             % (self.MAX_ARCHIVO // (1024 * 1024))}
+        att = self.env['ir.attachment'].sudo().create({
+            'name': nombre, 'raw': raw, 'mimetype': mime,
+            'res_model': 'foco.gpt.message', 'res_id': 0})     # se liga al mensaje al crearlo
+        artefactos.append({'tipo': 'archivo', 'att_id': att.id, 'nombre': nombre,
+                           'mime': mime, 'bytes': len(raw)})
+        return {'ok': True, 'nota': 'Archivo "%s" (%d bytes) listo para descargar. Di en UNA linea '
+                                    'que ya esta y como usarlo; NO pegues el contenido en el texto.'
+                                    % (nombre, len(raw))}
 
     # ----------------------------------------------------------- clasificacion
     @api.model
@@ -850,6 +930,10 @@ class FocoGptMessage(models.Model):
             if art.get('tipo') == 'imagen' and art.get('att_id'):
                 salida.append({'tipo': 'imagen', 'prompt': art.get('prompt') or '',
                                'url': '/foco/gpt/imagen/%s' % art['att_id']})
+            elif art.get('tipo') == 'archivo' and art.get('att_id'):
+                salida.append({'tipo': 'archivo', 'nombre': art.get('nombre') or 'archivo',
+                               'mime': art.get('mime') or '', 'bytes': art.get('bytes') or 0,
+                               'url': '/foco/gpt/archivo/%s' % art['att_id']})
             else:
                 salida.append(art)
         return salida

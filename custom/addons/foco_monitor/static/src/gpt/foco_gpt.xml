@@ -212,6 +212,15 @@
                                                 <a class="fgpt-mini fgpt-img__dl" t-att-href="art.url + '?dl=1'"
                                                    title="Descargar la imagen">⬇ Imagen</a>
                                             </div>
+                                            <a t-if="art.tipo === 'archivo'" class="fgpt-arch"
+                                               t-att-href="art.url" t-att-download="art.nombre"
+                                               title="Descargar el archivo">
+                                                <span class="fgpt-arch__ic">⬇</span>
+                                                <span class="fgpt-arch__m">
+                                                    <span class="fgpt-arch__n" t-esc="art.nombre"/>
+                                                    <span class="fgpt-arch__s" t-esc="pesoArchivo(art.bytes)"/>
+                                                </span>
+                                            </a>
                                         </t>
 
                                         <!-- descargar la respuesta -->
