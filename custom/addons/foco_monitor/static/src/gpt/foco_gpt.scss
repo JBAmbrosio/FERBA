@@ -259,8 +259,8 @@
     // imagen generada por Tommy GPT
     .fgpt-img { margin: 12px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
     .fgpt-img__i {
-        max-width: min(100%, 420px); border-radius: 14px; border: 1px solid var(--line);
-        display: block; background: var(--hover);
+        width: 100%; max-width: 420px; border-radius: 14px; border: 1px solid var(--line);
+        display: block; background: var(--hover); height: auto;
     }
     .fgpt-img__dl { text-decoration: none; }
 
