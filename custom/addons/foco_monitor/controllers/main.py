@@ -1167,6 +1167,17 @@ class FocoController(http.Controller):
             data.get('accuracy') or 0.0))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/crear_cliente', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_crear_cliente(self, **kw):
+        """Registra un cliente NUEVO con su pin (ubicacion compartida por
+        WhatsApp/Maps, un toque en el mapa, o el GPS), sin que el vendedor este en
+        el sitio. Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.crear_cliente(
+            data.get('nombre'), data.get('lat'), data.get('lon'),
+            data.get('telefono') or '', data.get('accuracy') or 0.0))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_odoo_acceso(self, **kw):

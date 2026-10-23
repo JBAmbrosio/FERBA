@@ -1023,6 +1023,47 @@ class FocoMobileDevice(models.Model):
         return {'ok': True, 'lat': lat, 'lon': lon,
                 'mensaje': 'Actualicé la ubicación de %s.' % cliente.display_name}
 
+    def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0):
+        """Registra un cliente NUEVO (prospecto) con su pin SIN estar en el sitio:
+        la ubicacion llega de lo que el cliente compartio por WhatsApp/Maps, de un
+        toque en el mapa, o del GPS. Nombre obligatorio, telefono opcional,
+        ubicacion obligatoria. Corre con los permisos del vendedor y queda
+        asignado a el, como un prospecto (igual que el alta por check-in)."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        nombre = (nombre or '').strip()
+        if not nombre:
+            raise UserError('Ponle un nombre al cliente.')
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (TypeError, ValueError):
+            raise UserError('No tengo una ubicación válida para el cliente.')
+        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+            raise UserError('No tengo una ubicación válida para el cliente.')
+        vals = {
+            'name': nombre[:120],
+            'company_type': 'company',
+            'foco_cliente_ventas': True, 'foco_estatus': 'prospecto',
+            'user_id': user.id,
+            'partner_latitude': lat, 'partner_longitude': lon,
+        }
+        tel = (telefono or '').strip()
+        if tel:
+            vals['phone'] = tel[:32]
+        cliente = self.env['res.partner'].with_user(user).create(vals)
+        try:
+            cliente.message_post(
+                body='Cliente registrado desde el teléfono con la ubicación compartida '
+                     '(%.6f, %.6f%s).' % (lat, lon, ', ±%dm' % int(precision) if precision else ''))
+        except Exception:  # noqa: BLE001
+            pass
+        return {'ok': True, 'id': cliente.id, 'lat': lat, 'lon': lon,
+                'name': cliente.display_name,
+                'mensaje': 'Registré a %s.' % cliente.display_name}
+
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
         llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""
