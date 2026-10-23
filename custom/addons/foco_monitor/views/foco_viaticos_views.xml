@@ -2,11 +2,91 @@
 <odoo>
 
     <!-- ======================================================= GASTOS (viaticos) -->
+    <!-- Busqueda: la cola abre en "Por revisar"; la alerta DOBLE (rendimiento Y GPS)
+         es la que se escala en serio, la de una sola señal es solo "revisar". -->
+    <record id="foco_viatico_view_search" model="ir.ui.view">
+        <field name="name">foco.viatico.search</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="vehiculo_id"/>
+                <field name="lugar"/>
+                <filter name="pendientes" string="Por revisar" domain="[('estado', '=', 'pendiente')]"/>
+                <filter name="con_alerta" string="Con alerta" domain="[('alerta', '!=', 'ok')]"/>
+                <filter name="alerta_doble" string="Alerta doble (robo probable)"
+                        domain="[('alerta', '=', 'ambas')]"/>
+                <separator/>
+                <filter name="gasolina" string="Gasolina" domain="[('tipo', '=', 'gasolina')]"/>
+                <filter name="esta_semana" string="Esta semana"
+                        domain="[('fecha', '&gt;=', (context_today() + relativedelta(days=-7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="g_empleado" string="Vendedor" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_vehiculo" string="Vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                <filter name="g_alerta" string="Alerta" context="{'group_by': 'alerta'}"/>
+                <filter name="g_estado" string="Estado" context="{'group_by': 'estado'}"/>
+                <filter name="g_tipo" string="Tipo" context="{'group_by': 'tipo'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_viatico_view_kanban" model="ir.ui.view">
+        <field name="name">foco.viatico.kanban</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <kanban default_order="fecha desc, id desc" class="o_kanban_mobile">
+                <field name="foto"/>
+                <field name="employee_id"/>
+                <field name="tipo"/>
+                <field name="monto"/>
+                <field name="currency_id"/>
+                <field name="fecha"/>
+                <field name="lugar"/>
+                <field name="estado"/>
+                <field name="alerta"/>
+                <field name="rendimiento"/>
+                <field name="vehiculo_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex" style="gap: 10px;">
+                            <field name="foto" widget="image" options="{'size': [64, 64]}"/>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong><field name="employee_id"/></strong>
+                                    <strong><field name="monto"/></strong>
+                                </div>
+                                <div class="text-muted small">
+                                    <field name="tipo"/> · <field name="fecha"/>
+                                    <t t-if="record.lugar.raw_value"> · <field name="lugar"/></t>
+                                </div>
+                                <div class="small" t-if="record.rendimiento.raw_value">
+                                    Rendimiento: <field name="rendimiento"/> km/L
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge text-bg-danger" t-if="record.alerta.raw_value == 'ambas'">Rendimiento y GPS</span>
+                                    <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'rendimiento'">Rendimiento bajo</span>
+                                    <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'gps'">No cuadra con GPS</span>
+                                    <span class="badge text-bg-success" t-if="record.estado.raw_value == 'validado'">Validado</span>
+                                    <span class="badge text-bg-secondary" t-if="record.estado.raw_value == 'rechazado'">Rechazado</span>
+                                </div>
+                                <div class="mt-2" t-if="record.estado.raw_value == 'pendiente'">
+                                    <button name="action_validar" type="object" class="btn btn-sm btn-primary me-1">Validar</button>
+                                    <button name="action_rechazar" type="object" class="btn btn-sm btn-secondary">Rechazar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <record id="foco_viatico_view_list" model="ir.ui.view">
         <field name="name">foco.viatico.list</field>
         <field name="model">foco.viatico</field>
         <field name="arch" type="xml">
-            <list string="Gastos" default_order="fecha desc, id desc">
+            <list string="Gastos" default_order="fecha desc, id desc"
+                  decoration-danger="alerta == 'ambas'" decoration-muted="estado == 'rechazado'">
                 <field name="fecha"/>
                 <field name="employee_id"/>
                 <field name="tipo"/>
@@ -19,8 +99,13 @@
                 <field name="estado" widget="badge"
                        decoration-success="estado == 'validado'" decoration-warning="estado == 'pendiente'"/>
                 <field name="alerta" widget="badge"
-                       decoration-danger="alerta in ('rendimiento','gps','ambas')"
+                       decoration-danger="alerta == 'ambas'"
+                       decoration-warning="alerta in ('rendimiento', 'gps')"
                        decoration-success="alerta == 'ok'"/>
+                <button name="action_validar" type="object" string="Validar" icon="fa-check"
+                        invisible="estado == 'validado'"/>
+                <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
+                        invisible="estado == 'rechazado'"/>
             </list>
         </field>
     </record>
@@ -33,7 +118,11 @@
                 <header>
                     <button name="action_validar" type="object" string="Validar"
                             class="btn-primary" invisible="estado == 'validado'"/>
-                    <field name="estado" widget="statusbar" statusbar_visible="pendiente,validado"/>
+                    <button name="action_rechazar" type="object" string="Rechazar"
+                            invisible="estado == 'rechazado'"/>
+                    <button name="action_reabrir" type="object" string="Reabrir"
+                            invisible="estado == 'pendiente'"/>
+                    <field name="estado" widget="statusbar" statusbar_visible="pendiente,validado,rechazado"/>
                 </header>
                 <sheet>
                     <group>
@@ -62,7 +151,8 @@
                             <field name="rendimiento"/>
                             <field name="km_gps"/>
                             <field name="alerta" widget="badge"
-                                   decoration-danger="alerta in ('rendimiento','gps','ambas')"/>
+                                   decoration-danger="alerta == 'ambas'"
+                                   decoration-warning="alerta in ('rendimiento', 'gps')"/>
                         </group>
                     </group>
                     <group string="Evidencia">
@@ -79,7 +169,9 @@
     <record id="foco_viatico_action" model="ir.actions.act_window">
         <field name="name">Gastos</field>
         <field name="res_model">foco.viatico</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="foco_viatico_view_search"/>
+        <field name="context">{'search_default_pendientes': 1}</field>
     </record>
 
     <!-- ======================================================= VEHICULOS -->

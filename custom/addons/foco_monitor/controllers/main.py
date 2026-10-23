@@ -1209,6 +1209,21 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.mis_vehiculos())
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/vehiculo_detalle', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_detalle(self, **kw):
+        """Ficha del vehiculo del vendedor: odometro, rendimiento vs esperado,
+        proximo cambio de aceite y ultima carga (pantalla Mi vehiculo)."""
+        res, error = self._ventas(lambda dev, data: dev.vehiculo_detalle(data.get('vehiculo_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculo_revision', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_revision(self, **kw):
+        """Registra la revision (del lunes) de un vehiculo con su foto."""
+        res, error = self._ventas(lambda dev, data: dev.crear_revision(data))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_odoo_acceso(self, **kw):

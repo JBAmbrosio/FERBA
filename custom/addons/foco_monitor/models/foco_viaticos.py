@@ -194,12 +194,35 @@ class FocoViatico(models.Model):
             v.alerta = ('ambas' if (baja_rend and mal_gps) else
                         'rendimiento' if baja_rend else 'gps' if mal_gps else 'ok')
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Evalua la alerta de robo EN CUANTO entra la carga (no solo al validar),
+        para que el administrador vea la bandera en la cola de pendientes antes de
+        aprobar. Solo gasolina con odometro; lee el GPS que Foco ya guarda."""
+        recs = super().create(vals_list)
+        porevaluar = recs.filtered(lambda x: x.tipo == 'gasolina' and x.odometro)
+        if porevaluar:
+            porevaluar.evaluar_alerta()
+        return recs
+
     def action_validar(self):
         for v in self:
             if v.tipo == 'gasolina' and v.vehiculo_id and v.odometro:
                 v.vehiculo_id.odometro_actual = max(v.vehiculo_id.odometro_actual or 0, v.odometro)
             v.estado = 'validado'
         self.evaluar_alerta()
+        return True
+
+    def action_rechazar(self):
+        """Rechaza el gasto: no cuenta para el presupuesto (el consumido excluye
+        'rechazado') y sale de la cola de pendientes. No borra la evidencia."""
+        self.write({'estado': 'rechazado'})
+        return True
+
+    def action_reabrir(self):
+        """Devuelve a pendiente un gasto ya resuelto, por si se aprobo o rechazo
+        por error."""
+        self.write({'estado': 'pendiente'})
         return True
 
 

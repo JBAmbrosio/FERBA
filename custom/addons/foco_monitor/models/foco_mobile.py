@@ -1174,6 +1174,86 @@ class FocoMobileDevice(models.Model):
         return [{'id': v.id, 'name': v.name, 'matricula': v.matricula,
                  'odometro': v.odometro_actual} for v in vehs]
 
+    def _vehiculo_del_vendedor(self, vehiculo_id=None):
+        """El vehiculo a mostrar: el que se pide por id, si no el que el vendedor
+        trae esta semana (conductor), y si no el de su ultima carga de gasolina."""
+        self.ensure_one()
+        emp = self.employee_id
+        comp = (emp.company_id if emp else False) or self.env.company
+        Veh = self.env['foco.vehiculo'].sudo()
+        if vehiculo_id:
+            veh = Veh.browse(int(vehiculo_id))
+            if veh.exists():
+                return veh
+        veh = Veh.search([('company_id', '=', comp.id), ('conductor_id', '=', emp.id),
+                          ('active', '=', True)], limit=1) if emp else Veh.browse()
+        if not veh and emp:
+            ult = self.env['foco.viatico'].sudo().search(
+                [('employee_id', '=', emp.id), ('tipo', '=', 'gasolina'),
+                 ('vehiculo_id', '!=', False)], order='fecha desc, id desc', limit=1)
+            veh = ult.vehiculo_id
+        return veh
+
+    def vehiculo_detalle(self, vehiculo_id=None):
+        """Ficha del vehiculo para la pantalla movil: odometro, rendimiento vs
+        esperado (el medidor), proximo cambio de aceite y la ultima carga. Todo de
+        lo que Foco ya guarda; no captura nada nuevo."""
+        self.ensure_one()
+        veh = self._vehiculo_del_vendedor(vehiculo_id)
+        if not veh:
+            return {'vehiculo': None}
+        comp = veh.company_id or self.env.company
+        Via = self.env['foco.viatico'].sudo()
+        ultima = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
+                             ('odometro', '>', 0)], order='fecha desc, id desc', limit=1)
+        historial = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
+                                ('rendimiento', '>', 0)], order='fecha desc, id desc', limit=6)
+        km_desde = max(0, (veh.odometro_actual or 0) - (veh.odometro_ultimo_aceite or 0))
+        return {
+            'vehiculo': {
+                'id': veh.id, 'name': veh.name, 'matricula': veh.matricula,
+                'conductor': veh.conductor_id.name or '',
+                'odometro': veh.odometro_actual or 0,
+                'rendimiento_esperado': round(veh.rendimiento_esperado or 0.0, 2),
+                'rendimiento_ultimo': round(ultima.rendimiento or 0.0, 2),
+                'aceite_cada_km': veh.aceite_cada_km or 0,
+                'km_desde_aceite': km_desde,
+                'km_para_aceite': max(0, (veh.aceite_cada_km or 0) - km_desde),
+                'toca_aceite': veh._toca_aceite(),
+                'tiene_foto': bool(veh.foto),
+            },
+            'simbolo': comp.currency_id.symbol or '',
+            'ultima_carga': ({'fecha': str(ultima.fecha), 'litros': ultima.litros,
+                              'precio_litro': ultima.precio_litro, 'monto': ultima.monto,
+                              'odometro': ultima.odometro, 'rendimiento': ultima.rendimiento,
+                              'alerta': ultima.alerta} if ultima else None),
+            'historial': [{'fecha': str(h.fecha), 'rendimiento': h.rendimiento}
+                          for h in reversed(historial)],
+        }
+
+    def crear_revision(self, datos):
+        """Registra la revision (del lunes) de un vehiculo con su foto: aceite,
+        llantas o general, con resultado ok/necesita atencion."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        datos = datos or {}
+        veh = self.env['foco.vehiculo'].sudo().browse(int(datos.get('vehiculo_id') or 0))
+        if not veh.exists():
+            raise UserError('No encuentro el vehiculo.')
+        foto = self._b64(datos.get('foto'))
+        if not foto:
+            raise UserError('La revision necesita una foto de evidencia.')
+        rev = self.env['foco.vehiculo.revision'].sudo().create({
+            'vehiculo_id': veh.id, 'employee_id': emp.id,
+            'tipo': datos.get('tipo') or 'general',
+            'resultado': datos.get('resultado') or 'ok',
+            'foto': foto, 'nota': datos.get('nota') or '',
+            'fecha': fields.Date.context_today(self),
+        })
+        return {'ok': True, 'id': rev.id, 'mensaje': 'Revisión registrada.'}
+
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
         llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""
