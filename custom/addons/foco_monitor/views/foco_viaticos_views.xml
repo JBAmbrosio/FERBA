@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======================================================= GASTOS (viaticos) -->
+    <record id="foco_viatico_view_list" model="ir.ui.view">
+        <field name="name">foco.viatico.list</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <list string="Gastos" default_order="fecha desc, id desc">
+                <field name="fecha"/>
+                <field name="employee_id"/>
+                <field name="tipo"/>
+                <field name="monto" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="vehiculo_id" optional="show"/>
+                <field name="litros" optional="hide"/>
+                <field name="rendimiento" optional="show"/>
+                <field name="km_gps" optional="hide"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'validado'" decoration-warning="estado == 'pendiente'"/>
+                <field name="alerta" widget="badge"
+                       decoration-danger="alerta in ('rendimiento','gps','ambas')"
+                       decoration-success="alerta == 'ok'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_viatico_view_form" model="ir.ui.view">
+        <field name="name">foco.viatico.form</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <form string="Gasto">
+                <header>
+                    <button name="action_validar" type="object" string="Validar"
+                            class="btn-primary" invisible="estado == 'validado'"/>
+                    <field name="estado" widget="statusbar" statusbar_visible="pendiente,validado"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="tipo"/>
+                            <field name="fecha"/>
+                            <field name="employee_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="monto"/>
+                            <field name="currency_id"/>
+                            <field name="tipo_cambio"/>
+                            <field name="lugar"/>
+                        </group>
+                    </group>
+                    <group string="Gasolina" invisible="tipo != 'gasolina'">
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="litros"/>
+                            <field name="precio_litro"/>
+                            <field name="odometro"/>
+                        </group>
+                        <group>
+                            <field name="km_recorridos"/>
+                            <field name="rendimiento"/>
+                            <field name="km_gps"/>
+                            <field name="alerta" widget="badge"
+                                   decoration-danger="alerta in ('rendimiento','gps','ambas')"/>
+                        </group>
+                    </group>
+                    <group string="Evidencia">
+                        <field name="foto" widget="image" class="oe_avatar"/>
+                        <field name="foto_odometro" widget="image" class="oe_avatar"
+                               invisible="tipo != 'gasolina'"/>
+                    </group>
+                    <field name="ocr_json" groups="base.group_no_one"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_viatico_action" model="ir.actions.act_window">
+        <field name="name">Gastos</field>
+        <field name="res_model">foco.viatico</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= VEHICULOS -->
+    <record id="foco_vehiculo_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.list</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <list string="Vehiculos">
+                <field name="name"/>
+                <field name="matricula"/>
+                <field name="conductor_id"/>
+                <field name="odometro_actual"/>
+                <field name="rendimiento_esperado"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.form</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <form string="Vehiculo">
+                <sheet>
+                    <field name="foto" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Nombre del vehiculo"/></h1>
+                        <h3><field name="matricula" placeholder="Matricula"/></h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="conductor_id"/>
+                            <field name="odometro_actual"/>
+                            <field name="rendimiento_esperado"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Mantenimiento">
+                            <field name="aceite_cada_km"/>
+                            <field name="odometro_ultimo_aceite"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Cargas y gastos">
+                            <field name="viatico_ids" readonly="1">
+                                <list>
+                                    <field name="fecha"/><field name="tipo"/><field name="monto"/>
+                                    <field name="litros"/><field name="rendimiento"/><field name="alerta"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Revisiones">
+                            <field name="revision_ids" readonly="1">
+                                <list>
+                                    <field name="fecha"/><field name="tipo"/>
+                                    <field name="resultado"/><field name="employee_id"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_action" model="ir.actions.act_window">
+        <field name="name">Vehiculos</field>
+        <field name="res_model">foco.vehiculo</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= REVISIONES -->
+    <record id="foco_vehiculo_revision_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.revision.list</field>
+        <field name="model">foco.vehiculo.revision</field>
+        <field name="arch" type="xml">
+            <list string="Revisiones">
+                <field name="fecha"/>
+                <field name="vehiculo_id"/>
+                <field name="tipo"/>
+                <field name="resultado" widget="badge"
+                       decoration-success="resultado == 'ok'" decoration-danger="resultado == 'alerta'"/>
+                <field name="employee_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_revision_action" model="ir.actions.act_window">
+        <field name="name">Revisiones de vehiculos</field>
+        <field name="res_model">foco.vehiculo.revision</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= PRESUPUESTOS -->
+    <record id="foco_viatico_presupuesto_view_list" model="ir.ui.view">
+        <field name="name">foco.viatico.presupuesto.list</field>
+        <field name="model">foco.viatico.presupuesto</field>
+        <field name="arch" type="xml">
+            <list string="Presupuestos" default_order="desde desc">
+                <field name="employee_id"/>
+                <field name="desde"/>
+                <field name="hasta"/>
+                <field name="monto"/>
+                <field name="consumido"/>
+                <field name="restante" decoration-danger="restante &lt; 0"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_viatico_presupuesto_action" model="ir.actions.act_window">
+        <field name="name">Presupuestos de viaticos</field>
+        <field name="res_model">foco.viatico.presupuesto</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= MENUS (Ventas en campo) -->
+    <menuitem id="menu_foco_viaticos" name="Gastos / Viaticos"
+              parent="menu_foco_sec_ventas" action="foco_viatico_action" sequence="40"/>
+    <menuitem id="menu_foco_vehiculos" name="Vehiculos"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_action" sequence="42"/>
+    <menuitem id="menu_foco_vehiculo_revisiones" name="Revisiones"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_revision_action" sequence="44"/>
+    <menuitem id="menu_foco_viatico_presupuestos" name="Presupuestos"
+              parent="menu_foco_sec_ventas" action="foco_viatico_presupuesto_action" sequence="46"/>
+
+</odoo>

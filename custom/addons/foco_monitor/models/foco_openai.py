@@ -512,6 +512,48 @@ class FocoOpenAI(models.AbstractModel):
             servicio=servicio, ref=ref)
         return {'json': res, 'tokens': tokens, 'modelo': modelo}
 
+    # ------------------------------------------- OCR de tickets de viaticos
+    @api.model
+    def leer_ticket(self, fotos, tipo='gasolina'):
+        """Saca los datos de un ticket de gasto desde su(s) foto(s). `fotos` es una
+        lista de (mime, base64) -el ticket y, en gasolina, la foto del odometro-.
+        Devuelve lo que la vision pudo leer (lo que NO ve va en null; el vendedor
+        confirma). Para el apartado de Viaticos de Foco (campo)."""
+        esquema = {
+            'name': 'lectura_ticket', 'strict': True,
+            'schema': {
+                'type': 'object', 'additionalProperties': False,
+                'properties': {
+                    'monto': {'type': ['number', 'null']},
+                    'moneda': {'type': ['string', 'null'],
+                               'description': 'Codigo ISO: MXN, PEN o USD. null si no se ve.'},
+                    'fecha': {'type': ['string', 'null'], 'description': 'YYYY-MM-DD'},
+                    'lugar': {'type': ['string', 'null'],
+                              'description': 'Estacion o establecimiento.'},
+                    'litros': {'type': ['number', 'null']},
+                    'precio_litro': {'type': ['number', 'null']},
+                    'odometro': {'type': ['integer', 'null'],
+                                 'description': 'Kilometraje del cuentakilometros (foto del tablero).'},
+                },
+                'required': ['monto', 'moneda', 'fecha', 'lugar',
+                             'litros', 'precio_litro', 'odometro'],
+            },
+        }
+        sistema = ('Eres un lector de tickets de gastos de campo (gasolina, casetas, hoteles, '
+                   'comidas). Lee la(s) foto(s) y devuelve SOLO los datos que de verdad veas. '
+                   'Lo que no aparezca va en null; NUNCA inventes un numero. El monto es el TOTAL '
+                   'pagado. La moneda en codigo ISO.')
+        extra = ('. Es una carga de GASOLINA: saca ademas litros, precio por litro, y el '
+                 'ODOMETRO (kilometraje) de la foto del tablero si viene.'
+                 if tipo == 'gasolina' else
+                 '. No es gasolina: litros/precio_litro/odometro van en null.')
+        usuario = 'Lee este ticket de tipo "%s"%s' % (tipo, extra)
+        imagenes = [(m or 'image/jpeg', b) for (m, b) in (fotos or []) if b]
+        if not imagenes:
+            raise UserError('No llegó ninguna foto para leer.')
+        res = self.vision(imagenes, sistema, usuario, esquema, max_tokens=500, servicio='vision')
+        return res.get('json') or {}
+
     # ---------------------------------------------------- clasificar (Claude)
     @api.model
     def clasificar(self, contexto, empleado, otro, duracion_s):

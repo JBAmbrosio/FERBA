@@ -1064,6 +1064,116 @@ class FocoMobileDevice(models.Model):
                 'name': cliente.display_name,
                 'mensaje': 'Registré a %s.' % cliente.display_name}
 
+    # ----------------------------------------------------- viaticos (gastos)
+    @staticmethod
+    def _b64(d):
+        """Quita el prefijo data: de una imagen en base64 del telefono."""
+        d = d or ''
+        return d.split(',', 1)[1] if (isinstance(d, str) and d.strip().startswith('data:') and ',' in d) else d
+
+    def ocr_ticket(self, fotos, tipo='gasolina'):
+        """Lee la(s) foto(s) del ticket con la IA de vision y devuelve los datos
+        para que el vendedor los CONFIRME antes de guardar. `fotos`: lista de
+        {mime, data(b64)}. No crea nada."""
+        self.ensure_one()
+        pares = []
+        for f in (fotos or []):
+            d = self._b64((f or {}).get('data'))
+            if d:
+                pares.append(((f or {}).get('mime') or 'image/jpeg', d))
+        if not pares:
+            raise UserError('Toma la foto del ticket primero.')
+        return self.env['foco.openai'].leer_ticket(pares, tipo=tipo)
+
+    def crear_viatico(self, datos):
+        """Registra un gasto desde el telefono (apartado Gastos). La foto SIEMPRE
+        se conserva como evidencia. En gasolina lleva vehiculo/litros/odometro, que
+        alimentan el rendimiento y el cruce con el GPS."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu teléfono no está ligado a un empleado.')
+        datos = datos or {}
+        tipos = dict(self.env['foco.viatico'].TIPOS)
+        tipo = datos.get('tipo') if datos.get('tipo') in tipos else 'otro'
+        foto = self._b64(datos.get('foto'))
+        if not foto:
+            raise UserError('Falta la foto del ticket.')
+        try:
+            monto = float(datos.get('monto') or 0)
+        except (TypeError, ValueError):
+            monto = 0.0
+        if monto <= 0:
+            raise UserError('Pon el monto del gasto.')
+        moneda = (emp.company_id or self.env.company).currency_id
+        cod = (datos.get('moneda') or '').strip().upper()
+        if cod:
+            m = self.env['res.currency'].sudo().search([('name', '=', cod)], limit=1)
+            if m:
+                moneda = m
+        vals = {
+            'tipo': tipo, 'employee_id': emp.id,
+            'company_id': (emp.company_id or self.env.company).id,
+            'fecha': datos.get('fecha') or fields.Date.context_today(self),
+            'monto': monto, 'currency_id': moneda.id, 'foto': foto,
+            'lugar': (datos.get('lugar') or '')[:120],
+            'lat': float(datos.get('lat') or 0.0), 'lon': float(datos.get('lon') or 0.0),
+            'ocr_json': datos.get('ocr_json') or False,
+        }
+        try:
+            if datos.get('tipo_cambio'):
+                vals['tipo_cambio'] = float(datos['tipo_cambio'])
+        except (TypeError, ValueError):
+            pass
+        if tipo == 'gasolina':
+            fo = self._b64(datos.get('foto_odometro'))
+            if fo:
+                vals['foto_odometro'] = fo
+            if datos.get('vehiculo_id'):
+                veh = self.env['foco.vehiculo'].sudo().browse(int(datos['vehiculo_id'])).exists()
+                if veh:
+                    vals['vehiculo_id'] = veh.id
+            for k, caster in (('litros', float), ('precio_litro', float), ('odometro', int)):
+                if datos.get(k) not in (None, ''):
+                    try:
+                        vals[k] = caster(datos[k])
+                    except (TypeError, ValueError):
+                        pass
+        viatico = self.env['foco.viatico'].sudo().create(vals)
+        return {'ok': True, 'id': viatico.id, 'mensaje': 'Gasto registrado.'}
+
+    def mis_viaticos(self, limite=30):
+        """Los gastos recientes del vendedor + su presupuesto de la semana."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            return {'gastos': [], 'presupuesto': None, 'moneda': '', 'simbolo': ''}
+        Viatico = self.env['foco.viatico'].sudo()
+        gastos = Viatico.search([('employee_id', '=', emp.id)], limit=int(limite))
+        hoy = fields.Date.context_today(self)
+        pres = self.env['foco.viatico.presupuesto'].sudo().search(
+            [('employee_id', '=', emp.id), ('desde', '<=', hoy), ('hasta', '>=', hoy)], limit=1)
+        moneda = (emp.company_id or self.env.company).currency_id
+        return {
+            'moneda': moneda.name, 'simbolo': moneda.symbol or '',
+            'presupuesto': ({'monto': pres.monto, 'consumido': pres.consumido,
+                             'restante': pres.restante, 'desde': str(pres.desde),
+                             'hasta': str(pres.hasta)} if pres else None),
+            'gastos': [{'id': g.id, 'tipo': g.tipo, 'fecha': str(g.fecha), 'monto': g.monto,
+                        'lugar': g.lugar or '', 'estado': g.estado,
+                        'vehiculo': g.vehiculo_id.name or ''} for g in gastos],
+        }
+
+    def mis_vehiculos(self):
+        """Los vehiculos de la empresa del vendedor (para elegir en una carga)."""
+        self.ensure_one()
+        emp = self.employee_id
+        comp = (emp.company_id if emp else False) or self.env.company
+        vehs = self.env['foco.vehiculo'].sudo().search(
+            [('company_id', '=', comp.id), ('active', '=', True)], order='name')
+        return [{'id': v.id, 'name': v.name, 'matricula': v.matricula,
+                 'odometro': v.odometro_actual} for v in vehs]
+
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
         llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""

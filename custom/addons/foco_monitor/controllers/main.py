@@ -1178,6 +1178,37 @@ class FocoController(http.Controller):
             data.get('telefono') or '', data.get('accuracy') or 0.0))
         return error or request.make_json_response(res)
 
+    # ----------------------------------------------- viaticos / gastos (campo)
+    @http.route('/foco/mobile/viatico_ocr', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viatico_ocr(self, **kw):
+        """Lee la(s) foto(s) de un ticket con la IA y devuelve los datos para que
+        el vendedor los confirme. No crea nada."""
+        res, error = self._ventas(lambda dev, data: dev.ocr_ticket(
+            data.get('fotos'), data.get('tipo') or 'gasolina'))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/viatico', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viatico(self, **kw):
+        """Registra un gasto (viatico) con su foto, desde el apartado Gastos."""
+        res, error = self._ventas(lambda dev, data: dev.crear_viatico(data))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/viaticos', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viaticos(self, **kw):
+        """Los gastos recientes del vendedor + su presupuesto de la semana."""
+        res, error = self._ventas(lambda dev, data: dev.mis_viaticos())
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculos', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculos(self, **kw):
+        """Los vehiculos de la empresa del vendedor (para elegir en una carga)."""
+        res, error = self._ventas(lambda dev, data: dev.mis_vehiculos())
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_odoo_acceso(self, **kw):

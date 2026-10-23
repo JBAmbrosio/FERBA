@@ -44,6 +44,9 @@ from . import foco_visita
 # Despues de foco_visita: reusa su rubrica de coaching (SISTEMA_VISITA).
 from . import foco_llamada
 from . import foco_vendedor_import
+# Viaticos, gasolina y vehiculos (apartado de campo). Usa foco.location (de
+# foco_mobile) para el cruce de km con GPS, y la multiempresa/monedas.
+from . import foco_viaticos
 # Al final a proposito: extienden foco.settings y foco.invitation, que tienen
 # que estar ya definidos cuando Odoo arma el registro. Importados antes, el
 # modulo no carga ("Failed to load registry").

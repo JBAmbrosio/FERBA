@@ -92,3 +92,11 @@ access_foco_workday_rrhh,foco.workday rrhh,model_foco_workday,group_foco_rrhh,1,
 access_foco_absence_devolver_rrhh,foco.absence.devolver rrhh,model_foco_absence_devolver,group_foco_rrhh,1,1,1,1
 access_foco_absence_decision_manager,foco.absence.decision manager,model_foco_absence_decision,group_foco_manager,1,1,1,1
 access_foco_absence_decision_rrhh,foco.absence.decision rrhh,model_foco_absence_decision,group_foco_rrhh,1,1,1,1
+access_foco_vehiculo_user,foco.vehiculo user,model_foco_vehiculo,group_foco_user,1,0,0,0
+access_foco_vehiculo_manager,foco.vehiculo manager,model_foco_vehiculo,group_foco_manager,1,1,1,1
+access_foco_viatico_user,foco.viatico user,model_foco_viatico,group_foco_user,1,0,0,0
+access_foco_viatico_manager,foco.viatico manager,model_foco_viatico,group_foco_manager,1,1,1,1
+access_foco_vehiculo_revision_user,foco.vehiculo.revision user,model_foco_vehiculo_revision,group_foco_user,1,0,0,0
+access_foco_vehiculo_revision_manager,foco.vehiculo.revision manager,model_foco_vehiculo_revision,group_foco_manager,1,1,1,1
+access_foco_viatico_presupuesto_user,foco.viatico.presupuesto user,model_foco_viatico_presupuesto,group_foco_user,1,0,0,0
+access_foco_viatico_presupuesto_manager,foco.viatico.presupuesto manager,model_foco_viatico_presupuesto,group_foco_manager,1,1,1,1
