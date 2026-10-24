@@ -120,6 +120,10 @@ class FocoViatico(models.Model):
                                ('rechazado', 'Rechazado')],
                               string='Estado', default='pendiente', index=True)
 
+    # Id que pone el telefono para deduplicar: la cola movil reenvia un gasto sin
+    # internet y no debe duplicarlo (mismo principio que foco.visita).
+    uuid = fields.Char(string='UUID (cola movil)', index=True, copy=False)
+
     # --- solo gasolina ---
     vehiculo_id = fields.Many2one('foco.vehiculo', string='Vehiculo', ondelete='restrict')
     litros = fields.Float(string='Litros', digits=(10, 3))

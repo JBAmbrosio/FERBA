@@ -1094,6 +1094,13 @@ class FocoMobileDevice(models.Model):
         if not emp:
             raise UserError('Tu teléfono no está ligado a un empleado.')
         datos = datos or {}
+        # Dedup de la cola movil: si ya existe un gasto con este uuid, no se crea
+        # otro (el telefono reenvia sin internet). Devuelve el que ya estaba.
+        cuid = (datos.get('uuid') or '').strip()
+        if cuid:
+            ya = self.env['foco.viatico'].sudo().search([('uuid', '=', cuid)], limit=1)
+            if ya:
+                return {'ok': True, 'id': ya.id, 'mensaje': 'Gasto registrado.', 'dup': True}
         tipos = dict(self.env['foco.viatico'].TIPOS)
         tipo = datos.get('tipo') if datos.get('tipo') in tipos else 'otro'
         foto = self._b64(datos.get('foto'))
@@ -1119,6 +1126,7 @@ class FocoMobileDevice(models.Model):
             'lugar': (datos.get('lugar') or '')[:120],
             'lat': float(datos.get('lat') or 0.0), 'lon': float(datos.get('lon') or 0.0),
             'ocr_json': datos.get('ocr_json') or False,
+            'uuid': cuid or False,
         }
         try:
             if datos.get('tipo_cambio'):
