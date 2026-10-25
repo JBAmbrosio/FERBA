@@ -64,10 +64,44 @@ class FocoVehiculo(models.Model):
     viatico_ids = fields.One2many('foco.viatico', 'vehiculo_id', string='Cargas y gastos')
     revision_ids = fields.One2many('foco.vehiculo.revision', 'vehiculo_id', string='Revisiones')
 
+    # El coche NO tiene dueño: va cambiando de mano. Las asignaciones son el
+    # historial de quien lo tuvo y desde cuando; la activa dice donde esta ahora.
+    asignacion_ids = fields.One2many('foco.vehiculo.asignacion', 'vehiculo_id', string='Asignaciones')
+    asignacion_activa_id = fields.Many2one('foco.vehiculo.asignacion', compute='_compute_flota',
+                                           string='Asignacion actual')
+    tenedor_actual = fields.Char(compute='_compute_flota', store=True, string='Quien lo trae')
+    asignado_desde = fields.Datetime(compute='_compute_flota', store=True, string='Lo trae desde')
+    responsiva_pendiente = fields.Boolean(compute='_compute_flota', store=True,
+                                          string='Responsiva sin firmar')
+
     _sql_constraints = [
         ('matricula_uniq', 'unique(matricula, company_id)',
          'Ya hay un vehiculo con esa matricula en esta empresa.'),
     ]
+
+    @api.depends('asignacion_ids.activa', 'asignacion_ids.tenedor', 'asignacion_ids.desde',
+                 'asignacion_ids.firmada', 'asignacion_ids.tipo')
+    def _compute_flota(self):
+        for v in self:
+            act = v.asignacion_ids.filtered('activa')[:1]
+            v.asignacion_activa_id = act.id if act else False
+            v.tenedor_actual = (act.tenedor if act else False) or 'Sin asignar'
+            v.asignado_desde = act.desde if act else False
+            v.responsiva_pendiente = bool(act and act.tipo == 'empleado' and not act.firmada)
+
+    def action_asignar(self):
+        """Abre el alta de una nueva asignacion (entregar el coche a alguien o a un
+        lugar). Al guardarla se cierra sola la asignacion anterior."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Entregar vehiculo',
+            'res_model': 'foco.vehiculo.asignacion',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_vehiculo_id': self.id,
+                        'default_odometro_entrega': self.odometro_actual or 0},
+        }
 
     def _toca_aceite(self):
         """True si segun el odometro ya toca cambio de aceite."""
@@ -284,3 +318,88 @@ class FocoViaticoPresupuesto(models.Model):
         for p in self:
             if p.desde and p.hasta and p.hasta < p.desde:
                 raise UserError('La fecha "hasta" no puede ser antes de "desde".')
+
+
+class FocoVehiculoAsignacion(models.Model):
+    """Quien trae cada coche y desde cuando. El coche NO tiene dueno: va cambiando
+    de mano (un vendedor, el almacen, otra ciudad). Cada asignacion es un tramo con
+    fecha de entrega; al cambiar de mano se cierra (se le pone 'hasta'). El historial
+    dice 'de tal dia a tal dia lo tuvo Pepe'. Cuando el tenedor es una PERSONA, la
+    recepcion se firma en el telefono como carta responsiva."""
+    _name = 'foco.vehiculo.asignacion'
+    _description = 'Asignacion de vehiculo (quien lo trae)'
+    _order = 'desde desc, id desc'
+
+    vehiculo_id = fields.Many2one('foco.vehiculo', string='Vehiculo', required=True,
+                                  ondelete='cascade', index=True)
+    company_id = fields.Many2one(related='vehiculo_id.company_id', store=True, string='Empresa')
+    tipo = fields.Selection([('empleado', 'Persona'), ('ubicacion', 'Lugar')],
+                            string='Tenedor', required=True, default='empleado')
+    employee_id = fields.Many2one('hr.employee', string='Persona')
+    ubicacion = fields.Char(string='Lugar', help='Almacen, ciudad u otro sitio donde esta el coche.')
+    desde = fields.Datetime(string='Desde', required=True, default=fields.Datetime.now, index=True)
+    hasta = fields.Datetime(string='Hasta', index=True, help='Vacio = lo trae ahora.')
+    activa = fields.Boolean(string='Activa', compute='_compute_activa', store=True, index=True)
+    tenedor = fields.Char(string='Quien lo trae', compute='_compute_tenedor', store=True)
+    odometro_entrega = fields.Integer(string='Odometro a la entrega')
+    nota = fields.Char(string='Nota')
+    # Carta responsiva (solo cuando el tenedor es persona).
+    firmada = fields.Boolean(string='Responsiva firmada', default=False, index=True)
+    firma = fields.Image(string='Firma', max_width=1024, max_height=512)
+    firma_fecha = fields.Datetime(string='Fecha de firma')
+
+    @api.depends('hasta')
+    def _compute_activa(self):
+        for a in self:
+            a.activa = not a.hasta
+
+    @api.depends('tipo', 'employee_id', 'ubicacion')
+    def _compute_tenedor(self):
+        for a in self:
+            a.tenedor = (a.employee_id.name if a.tipo == 'empleado' else a.ubicacion) or ''
+
+    @api.constrains('tipo', 'employee_id', 'ubicacion')
+    def _check_tenedor(self):
+        for a in self:
+            if a.tipo == 'empleado' and not a.employee_id:
+                raise UserError('Elige la persona que recibe el vehiculo.')
+            if a.tipo == 'ubicacion' and not (a.ubicacion or '').strip():
+                raise UserError('Escribe el lugar donde queda el vehiculo.')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        recs = super().create(vals_list)
+        for a in recs:
+            if not a.hasta:
+                a._cerrar_otras_y_sincronizar()
+        return recs
+
+    def _cerrar_otras_y_sincronizar(self):
+        """Al abrir una asignacion activa, cierra las demas abiertas del mismo coche
+        y refleja al tenedor actual en el vehiculo."""
+        self.ensure_one()
+        otras = self.search([('vehiculo_id', '=', self.vehiculo_id.id),
+                             ('id', '!=', self.id), ('hasta', '=', False)])
+        if otras:
+            otras.write({'hasta': self.desde or fields.Datetime.now()})
+        veh = self.vehiculo_id
+        veh.conductor_id = self.employee_id.id if self.tipo == 'empleado' else False
+        if self.odometro_entrega:
+            veh.odometro_actual = max(veh.odometro_actual or 0, self.odometro_entrega)
+
+    def action_cerrar(self):
+        """Devolver el coche: cierra el tramo actual."""
+        ahora = fields.Datetime.now()
+        for a in self:
+            a.hasta = ahora
+            if a.tipo == 'empleado' and a.vehiculo_id.conductor_id \
+               and a.vehiculo_id.conductor_id.id == a.employee_id.id:
+                a.vehiculo_id.conductor_id = False
+        return True
+
+    def firmar(self, firma_b64):
+        """Registra la firma de la carta responsiva (desde el telefono)."""
+        self.ensure_one()
+        self.write({'firma': firma_b64, 'firmada': True,
+                    'firma_fecha': fields.Datetime.now()})
+        return True

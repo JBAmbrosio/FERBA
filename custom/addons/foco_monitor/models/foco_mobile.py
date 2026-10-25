@@ -1217,6 +1217,15 @@ class FocoMobileDevice(models.Model):
         historial = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
                                 ('rendimiento', '>', 0)], order='fecha desc, id desc', limit=6)
         km_desde = max(0, (veh.odometro_actual or 0) - (veh.odometro_ultimo_aceite or 0))
+        # Carta responsiva pendiente: la asignacion ACTIVA de este coche es para este
+        # empleado y aun no la firma -> el telefono le pide firmar la recepcion.
+        emp = self.employee_id
+        act = veh.asignacion_activa_id
+        resp = None
+        if act and act.tipo == 'empleado' and emp and act.employee_id.id == emp.id \
+           and not act.firmada:
+            resp = {'asignacion_id': act.id, 'desde': str(act.desde),
+                    'odometro_entrega': act.odometro_entrega or 0}
         return {
             'vehiculo': {
                 'id': veh.id, 'name': veh.name, 'matricula': veh.matricula,
@@ -1230,6 +1239,7 @@ class FocoMobileDevice(models.Model):
                 'toca_aceite': veh._toca_aceite(),
                 'tiene_foto': bool(veh.foto),
             },
+            'responsiva': resp,
             'simbolo': comp.currency_id.symbol or '',
             'ultima_carga': ({'fecha': str(ultima.fecha), 'litros': ultima.litros,
                               'precio_litro': ultima.precio_litro, 'monto': ultima.monto,
@@ -1261,6 +1271,30 @@ class FocoMobileDevice(models.Model):
             'fecha': fields.Date.context_today(self),
         })
         return {'ok': True, 'id': rev.id, 'mensaje': 'Revisión registrada.'}
+
+    def firmar_responsiva(self, firma, asignacion_id=None):
+        """Firma la carta responsiva de recepcion del vehiculo desde el telefono.
+        `firma` es la imagen de la firma en base64. Sin `asignacion_id` toma la
+        asignacion ACTIVA de este empleado."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        Asig = self.env['foco.vehiculo.asignacion'].sudo()
+        if asignacion_id:
+            a = Asig.browse(int(asignacion_id)).exists()
+        else:
+            a = Asig.search([('employee_id', '=', emp.id), ('tipo', '=', 'empleado'),
+                             ('hasta', '=', False)], order='desde desc', limit=1)
+        if not a:
+            raise UserError('No encuentro un vehiculo pendiente de firmar.')
+        if a.employee_id.id != emp.id:
+            raise UserError('Esa carta no es tuya.')
+        firma_b64 = self._b64(firma)
+        if not firma_b64:
+            raise UserError('Falta la firma.')
+        a.firmar(firma_b64)
+        return {'ok': True, 'id': a.id, 'mensaje': 'Recepción firmada. Gracias.'}
 
     def cotizacion_revision(self, order_id):
         """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le

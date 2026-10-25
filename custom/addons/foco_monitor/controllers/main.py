@@ -1224,6 +1224,14 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.crear_revision(data))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/responsiva_firmar', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_responsiva_firmar(self, **kw):
+        """Firma la carta responsiva de recepcion del vehiculo (desde el telefono)."""
+        res, error = self._ventas(lambda dev, data: dev.firmar_responsiva(
+            data.get('firma'), data.get('asignacion_id')))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_odoo_acceso(self, **kw):

@@ -174,17 +174,39 @@
         <field name="context">{'search_default_pendientes': 1}</field>
     </record>
 
-    <!-- ======================================================= VEHICULOS -->
+    <!-- ======================================================= VEHICULOS (flota) -->
+    <!-- El tablero de flota: donde esta cada coche y quien lo trae AHORA.
+         El coche no tiene dueno; se entrega con "Entregar vehiculo" (asignacion). -->
+    <record id="foco_vehiculo_view_search" model="ir.ui.view">
+        <field name="name">foco.vehiculo.search</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="matricula"/>
+                <field name="tenedor_actual"/>
+                <filter name="sin_asignar" string="Sin asignar"
+                        domain="[('tenedor_actual', '=', 'Sin asignar')]"/>
+                <filter name="responsiva" string="Responsiva sin firmar"
+                        domain="[('responsiva_pendiente', '=', True)]"/>
+                <separator/>
+                <filter name="g_tenedor" string="Quien lo trae" context="{'group_by': 'tenedor_actual'}"/>
+            </search>
+        </field>
+    </record>
+
     <record id="foco_vehiculo_view_list" model="ir.ui.view">
         <field name="name">foco.vehiculo.list</field>
         <field name="model">foco.vehiculo</field>
         <field name="arch" type="xml">
-            <list string="Vehiculos">
+            <list string="Flota" decoration-warning="responsiva_pendiente == True">
                 <field name="name"/>
                 <field name="matricula"/>
-                <field name="conductor_id"/>
+                <field name="tenedor_actual"/>
+                <field name="asignado_desde"/>
+                <field name="responsiva_pendiente" string="Responsiva pendiente" optional="show"/>
                 <field name="odometro_actual"/>
-                <field name="rendimiento_esperado"/>
+                <field name="rendimiento_esperado" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
         </field>
@@ -195,15 +217,24 @@
         <field name="model">foco.vehiculo</field>
         <field name="arch" type="xml">
             <form string="Vehiculo">
+                <header>
+                    <button name="action_asignar" type="object" string="Entregar vehiculo"
+                            class="btn-primary"/>
+                </header>
                 <sheet>
                     <field name="foto" widget="image" class="oe_avatar"/>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Nombre del vehiculo"/></h1>
                         <h3><field name="matricula" placeholder="Matricula"/></h3>
                     </div>
+                    <field name="responsiva_pendiente" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="not responsiva_pendiente">
+                        La carta responsiva de recepcion todavia no se firma.
+                    </div>
                     <group>
                         <group>
-                            <field name="conductor_id"/>
+                            <field name="tenedor_actual"/>
+                            <field name="asignado_desde"/>
                             <field name="odometro_actual"/>
                             <field name="rendimiento_esperado"/>
                             <field name="company_id" groups="base.group_multi_company"/>
@@ -214,6 +245,15 @@
                         </group>
                     </group>
                     <notebook>
+                        <page string="Asignaciones">
+                            <field name="asignacion_ids" readonly="1">
+                                <list default_order="desde desc">
+                                    <field name="tenedor"/><field name="tipo"/>
+                                    <field name="desde"/><field name="hasta"/>
+                                    <field name="firmada" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
                         <page string="Cargas y gastos">
                             <field name="viatico_ids" readonly="1">
                                 <list>
@@ -237,8 +277,69 @@
     </record>
 
     <record id="foco_vehiculo_action" model="ir.actions.act_window">
-        <field name="name">Vehiculos</field>
+        <field name="name">Flota</field>
         <field name="res_model">foco.vehiculo</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_vehiculo_view_search"/>
+    </record>
+
+    <!-- ======================================================= ASIGNACIONES (flota) -->
+    <record id="foco_vehiculo_asignacion_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.asignacion.list</field>
+        <field name="model">foco.vehiculo.asignacion</field>
+        <field name="arch" type="xml">
+            <list string="Asignaciones" default_order="desde desc">
+                <field name="vehiculo_id"/>
+                <field name="tenedor"/>
+                <field name="tipo"/>
+                <field name="desde"/>
+                <field name="hasta"/>
+                <field name="activa" widget="boolean_toggle"/>
+                <field name="firmada" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_asignacion_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.asignacion.form</field>
+        <field name="model">foco.vehiculo.asignacion</field>
+        <field name="arch" type="xml">
+            <form string="Asignacion de vehiculo">
+                <header>
+                    <button name="action_cerrar" type="object" string="Devolver (cerrar)"
+                            invisible="hasta != False"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="tipo" widget="radio"/>
+                            <field name="employee_id" invisible="tipo != 'empleado'"
+                                   required="tipo == 'empleado'"/>
+                            <field name="ubicacion" invisible="tipo != 'ubicacion'"
+                                   required="tipo == 'ubicacion'"
+                                   placeholder="Almacen, Hermosillo, ..."/>
+                        </group>
+                        <group>
+                            <field name="desde"/>
+                            <field name="hasta"/>
+                            <field name="odometro_entrega"/>
+                            <field name="nota"/>
+                        </group>
+                    </group>
+                    <group string="Carta responsiva" invisible="tipo != 'empleado'">
+                        <field name="firmada"/>
+                        <field name="firma_fecha"/>
+                        <field name="firma" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_asignacion_action" model="ir.actions.act_window">
+        <field name="name">Asignaciones de vehiculos</field>
+        <field name="res_model">foco.vehiculo.asignacion</field>
         <field name="view_mode">list,form</field>
     </record>
 
@@ -290,8 +391,10 @@
     <!-- ======================================================= MENUS (Ventas en campo) -->
     <menuitem id="menu_foco_viaticos" name="Gastos / Viaticos"
               parent="menu_foco_sec_ventas" action="foco_viatico_action" sequence="40"/>
-    <menuitem id="menu_foco_vehiculos" name="Vehiculos"
+    <menuitem id="menu_foco_vehiculos" name="Flota"
               parent="menu_foco_sec_ventas" action="foco_vehiculo_action" sequence="42"/>
+    <menuitem id="menu_foco_vehiculo_asignaciones" name="Asignaciones de flota"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_asignacion_action" sequence="43"/>
     <menuitem id="menu_foco_vehiculo_revisiones" name="Revisiones"
               parent="menu_foco_sec_ventas" action="foco_vehiculo_revision_action" sequence="44"/>
     <menuitem id="menu_foco_viatico_presupuestos" name="Presupuestos"
