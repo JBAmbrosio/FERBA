@@ -1224,6 +1224,13 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.crear_revision(data))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/vehiculo_revisiones', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_revisiones(self, **kw):
+        """Registra varias sub-revisiones a la vez (lo marcado en el esquema del coche)."""
+        res, error = self._ventas(lambda dev, data: dev.crear_revisiones(data))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/responsiva_firmar', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_responsiva_firmar(self, **kw):

@@ -290,6 +290,16 @@ class FocoViatico(models.Model):
     alerta = fields.Selection([('ok', 'OK'), ('rendimiento', 'Rendimiento bajo'),
                                ('gps', 'No cuadra con GPS'), ('ambas', 'Rendimiento y GPS')],
                               string='Alerta', default='ok', index=True)
+    # Carga de gasolina sin la foto del odometro: el vendedor la pudo guardar igual
+    # (nunca se pierde una carga), pero queda marcada INCOMPLETA en rojo para el
+    # administrador. Diego: hay que tomarle foto al odometro al cargar gasolina.
+    odometro_incompleto = fields.Boolean(string='Odometro sin foto', store=True, index=True,
+                                         compute='_compute_odometro_incompleto')
+
+    @api.depends('tipo', 'foto_odometro')
+    def _compute_odometro_incompleto(self):
+        for v in self:
+            v.odometro_incompleto = bool(v.tipo == 'gasolina' and not v.foto_odometro)
 
     @api.depends('tipo', 'odometro', 'litros', 'vehiculo_id')
     def _compute_rendimiento(self):
@@ -394,11 +404,21 @@ class FocoVehiculoRevision(models.Model):
     company_id = fields.Many2one(related='vehiculo_id.company_id', store=True, string='Empresa')
     fecha = fields.Date(string='Fecha', required=True, default=fields.Date.context_today, index=True)
     semana = fields.Char(string='Semana', help='AAAA-Www, para agrupar el checklist del lunes.')
-    tipo = fields.Selection([('aceite', 'Nivel de aceite'), ('llantas', 'Presion de llantas'),
-                             ('general', 'General')], string='Tipo', required=True)
+    # Diego: el coche lleva AGUA, ACEITE, PRESION de llantas y ESTADO de la llanta.
+    # (aceite/llantas/general quedan por compatibilidad con revisiones viejas.)
+    tipo = fields.Selection([('agua', 'Agua / anticongelante'), ('aceite', 'Nivel de aceite'),
+                             ('presion_llantas', 'Presion de llantas'),
+                             ('estado_llantas', 'Estado de la llanta'),
+                             ('llantas', 'Llantas'), ('general', 'General')],
+                            string='Tipo', required=True)
+    # Que llanta (solo para presion/estado): se toca directo en el esquema del coche.
+    parte = fields.Selection([('del_izq', 'Delantera izquierda'), ('del_der', 'Delantera derecha'),
+                              ('tras_izq', 'Trasera izquierda'), ('tras_der', 'Trasera derecha')],
+                             string='Llanta')
     resultado = fields.Selection([('ok', 'OK'), ('alerta', 'Necesita atencion')],
                                  string='Resultado', default='ok')
-    foto = fields.Image(string='Foto evidencia', max_width=1920, max_height=1920, required=True)
+    # La foto es OPCIONAL: una revision rapida (nivel OK) no obliga a fotografiar.
+    foto = fields.Image(string='Foto evidencia', max_width=1920, max_height=1920)
     nota = fields.Char(string='Nota')
 
 

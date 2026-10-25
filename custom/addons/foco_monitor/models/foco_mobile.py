@@ -1217,6 +1217,22 @@ class FocoMobileDevice(models.Model):
         historial = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
                                 ('rendimiento', '>', 0)], order='fecha desc, id desc', limit=6)
         km_desde = max(0, (veh.odometro_actual or 0) - (veh.odometro_ultimo_aceite or 0))
+        # Estado de la revision de ESTA semana por zona del esquema (cofre: agua/
+        # aceite; cada llanta por su parte). "alerta" manda sobre "ok". Lo usa el
+        # telefono para pintar verde/rojo/gris cada zona del plano del coche.
+        hoy = fields.Date.context_today(self)
+        ini_semana = hoy - timedelta(days=hoy.weekday())
+        rev_estado = {}
+        for rv in self.env['foco.vehiculo.revision'].sudo().search(
+                [('vehiculo_id', '=', veh.id), ('fecha', '>=', ini_semana)]):
+            if rv.tipo in ('agua', 'aceite'):
+                zona = rv.tipo
+            elif rv.tipo in ('presion_llantas', 'estado_llantas') and rv.parte:
+                zona = rv.parte
+            else:
+                continue
+            if rv.resultado == 'alerta' or zona not in rev_estado:
+                rev_estado[zona] = rv.resultado
         # Carta responsiva pendiente: la asignacion ACTIVA de este coche es para este
         # empleado y aun no la firma -> el telefono le pide firmar la recepcion.
         emp = self.employee_id
@@ -1240,6 +1256,7 @@ class FocoMobileDevice(models.Model):
                 'tiene_foto': bool(veh.foto),
             },
             'responsiva': resp,
+            'revision': rev_estado,
             'simbolo': comp.currency_id.symbol or '',
             'ultima_carga': ({'fecha': str(ultima.fecha), 'litros': ultima.litros,
                               'precio_litro': ultima.precio_litro, 'monto': ultima.monto,
@@ -1271,6 +1288,39 @@ class FocoMobileDevice(models.Model):
             'fecha': fields.Date.context_today(self),
         })
         return {'ok': True, 'id': rev.id, 'mensaje': 'Revisión registrada.'}
+
+    def crear_revisiones(self, datos):
+        """Registra VARIAS sub-revisiones de un vehiculo en una sola llamada: lo que
+        el vendedor marco en el esquema del coche (p.ej. agua+aceite del cofre, o
+        presion+estado de una llanta). La foto es OPCIONAL. `datos`:
+        {vehiculo_id, items:[{tipo, parte?, resultado, foto?, nota?}]}."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        datos = datos or {}
+        veh = self.env['foco.vehiculo'].sudo().browse(int(datos.get('vehiculo_id') or 0))
+        if not veh.exists():
+            raise UserError('No encuentro el vehiculo.')
+        Rev = self.env['foco.vehiculo.revision'].sudo()
+        validos = dict(Rev._fields['tipo'].selection)
+        partes = dict(Rev._fields['parte'].selection)
+        hoy = fields.Date.context_today(self)
+        creadas = Rev
+        for it in (datos.get('items') or []):
+            it = it or {}
+            if it.get('tipo') not in validos:
+                continue
+            parte = it.get('parte') if it.get('parte') in partes else False
+            creadas |= Rev.create({
+                'vehiculo_id': veh.id, 'employee_id': emp.id, 'tipo': it['tipo'],
+                'parte': parte, 'resultado': it.get('resultado') or 'ok',
+                'foto': self._b64(it.get('foto')) or False,
+                'nota': (it.get('nota') or '')[:200], 'fecha': hoy,
+            })
+        if not creadas:
+            raise UserError('No llegó ninguna revisión para guardar.')
+        return {'ok': True, 'ids': creadas.ids, 'mensaje': 'Revisión registrada.'}
 
     def firmar_responsiva(self, firma, asignacion_id=None):
         """Firma la carta responsiva de recepcion del vehiculo desde el telefono.

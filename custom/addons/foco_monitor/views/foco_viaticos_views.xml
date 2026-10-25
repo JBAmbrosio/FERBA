@@ -16,6 +16,8 @@
                 <filter name="con_alerta" string="Con alerta" domain="[('alerta', '!=', 'ok')]"/>
                 <filter name="alerta_doble" string="Alerta doble (robo probable)"
                         domain="[('alerta', '=', 'ambas')]"/>
+                <filter name="odo_incompleto" string="Odómetro sin foto"
+                        domain="[('odometro_incompleto', '=', True)]"/>
                 <separator/>
                 <filter name="gasolina" string="Gasolina" domain="[('tipo', '=', 'gasolina')]"/>
                 <filter name="esta_semana" string="Esta semana"
@@ -46,6 +48,7 @@
                 <field name="alerta"/>
                 <field name="rendimiento"/>
                 <field name="vehiculo_id"/>
+                <field name="odometro_incompleto"/>
                 <templates>
                     <t t-name="card">
                         <div class="d-flex" style="gap: 10px;">
@@ -66,6 +69,7 @@
                                     <span class="badge text-bg-danger" t-if="record.alerta.raw_value == 'ambas'">Rendimiento y GPS</span>
                                     <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'rendimiento'">Rendimiento bajo</span>
                                     <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'gps'">No cuadra con GPS</span>
+                                    <span class="badge text-bg-danger" t-if="record.odometro_incompleto.raw_value">Odómetro sin foto</span>
                                     <span class="badge text-bg-success" t-if="record.estado.raw_value == 'validado'">Validado</span>
                                     <span class="badge text-bg-secondary" t-if="record.estado.raw_value == 'rechazado'">Rechazado</span>
                                 </div>
@@ -102,6 +106,8 @@
                        decoration-danger="alerta == 'ambas'"
                        decoration-warning="alerta in ('rendimiento', 'gps')"
                        decoration-success="alerta == 'ok'"/>
+                <field name="odometro_incompleto" string="Odóm. sin foto" widget="boolean_toggle"
+                       optional="show"/>
                 <button name="action_validar" type="object" string="Validar" icon="fa-check"
                         invisible="estado == 'validado'"/>
                 <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
@@ -338,6 +344,7 @@
                             <field name="revision_ids" readonly="1">
                                 <list>
                                     <field name="fecha"/><field name="tipo"/>
+                                    <field name="parte" optional="show"/>
                                     <field name="resultado"/><field name="employee_id"/>
                                 </list>
                             </field>
@@ -437,6 +444,7 @@
                 <field name="fecha"/>
                 <field name="vehiculo_id"/>
                 <field name="tipo"/>
+                <field name="parte" optional="show"/>
                 <field name="resultado" widget="badge"
                        decoration-success="resultado == 'ok'" decoration-danger="resultado == 'alerta'"/>
                 <field name="employee_id"/>
