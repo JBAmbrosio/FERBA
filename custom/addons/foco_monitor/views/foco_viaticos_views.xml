@@ -190,6 +190,23 @@
                 <filter name="responsiva" string="Responsiva sin firmar"
                         domain="[('responsiva_pendiente', '=', True)]"/>
                 <separator/>
+                <!-- Documentos: se filtra por FECHA (no por el estado calculado) para
+                     que "hoy" sea siempre el real sin depender de un recalculo. -->
+                <filter name="seguro_vencido" string="Seguro vencido"
+                        domain="[('seguro_vencimiento', '!=', False),
+                                 ('seguro_vencimiento', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="seguro_por_vencer" string="Seguro por vencer (30 d)"
+                        domain="[('seguro_vencimiento', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('seguro_vencimiento', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <filter name="tenencia_vencida" string="Tenencia/placas vencida"
+                        domain="[('tenencia_vencimiento', '!=', False),
+                                 ('tenencia_vencimiento', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="tenencia_por_vencer" string="Tenencia/placas por vencer (30 d)"
+                        domain="[('tenencia_vencimiento', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('tenencia_vencimiento', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="financiados" string="Financiados" domain="[('financiado', '=', True)]"/>
+                <separator/>
                 <filter name="g_tenedor" string="Quien lo trae" context="{'group_by': 'tenedor_actual'}"/>
             </search>
         </field>
@@ -199,14 +216,23 @@
         <field name="name">foco.vehiculo.list</field>
         <field name="model">foco.vehiculo</field>
         <field name="arch" type="xml">
-            <list string="Flota" decoration-warning="responsiva_pendiente == True">
+            <list string="Flota" decoration-warning="doc_alerta == 'por_vencer'"
+                  decoration-danger="doc_alerta == 'vencido'">
                 <field name="name"/>
                 <field name="matricula"/>
                 <field name="tenedor_actual"/>
-                <field name="asignado_desde"/>
-                <field name="responsiva_pendiente" string="Responsiva pendiente" optional="show"/>
+                <field name="asignado_desde" optional="show"/>
+                <field name="responsiva_pendiente" string="Responsiva pendiente" optional="hide"/>
+                <field name="seguro_vencimiento" optional="show"/>
+                <field name="tenencia_vencimiento" optional="hide"/>
+                <field name="doc_alerta" string="Documentos" widget="badge"
+                       decoration-success="doc_alerta == 'ok'"
+                       decoration-warning="doc_alerta == 'por_vencer'"
+                       decoration-danger="doc_alerta == 'vencido'"/>
                 <field name="odometro_actual"/>
+                <field name="costo_taller_total" optional="hide"/>
                 <field name="rendimiento_esperado" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
         </field>
@@ -222,14 +248,42 @@
                             class="btn-primary"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_mantenimiento" type="object"
+                                class="oe_stat_button" icon="fa-wrench">
+                            <field name="mantenimiento_count" widget="statinfo" string="Ordenes de taller"/>
+                        </button>
+                        <button name="action_ver_mantenimiento" type="object"
+                                class="oe_stat_button" icon="fa-money">
+                            <div class="o_stat_info">
+                                <field name="costo_taller_total" widget="monetary" class="o_stat_value"/>
+                                <span class="o_stat_text">Costo de taller</span>
+                            </div>
+                        </button>
+                    </div>
                     <field name="foto" widget="image" class="oe_avatar"/>
                     <div class="oe_title">
                         <h1><field name="name" placeholder="Nombre del vehiculo"/></h1>
                         <h3><field name="matricula" placeholder="Matricula"/></h3>
                     </div>
                     <field name="responsiva_pendiente" invisible="1"/>
+                    <field name="seguro_estado" invisible="1"/>
+                    <field name="tenencia_estado" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
                     <div class="alert alert-warning" role="alert" invisible="not responsiva_pendiente">
                         La carta responsiva de recepcion todavia no se firma.
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="seguro_estado != 'vencido'">
+                        El SEGURO esta VENCIDO. No debe salir el coche sin seguro.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="seguro_estado != 'por_vencer'">
+                        El seguro vence pronto (<field name="seguro_dias"/> dias).
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="tenencia_estado != 'vencido'">
+                        La tenencia / placas / impuesto esta VENCIDA.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="tenencia_estado != 'por_vencer'">
+                        La tenencia / placas / impuesto vence pronto (<field name="tenencia_dias"/> dias).
                     </div>
                     <group>
                         <group>
@@ -239,9 +293,27 @@
                             <field name="rendimiento_esperado"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
-                        <group string="Mantenimiento">
+                        <group string="Cambio de aceite">
                             <field name="aceite_cada_km"/>
                             <field name="odometro_ultimo_aceite"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Documentos (seguro, tenencia)">
+                            <field name="seguro_aseguradora"/>
+                            <field name="seguro_poliza"/>
+                            <field name="seguro_vencimiento"/>
+                            <field name="tenencia_vencimiento"/>
+                        </group>
+                        <group string="Financiamiento (letra)">
+                            <field name="financiado"/>
+                            <field name="letra_monto" invisible="not financiado"/>
+                            <field name="letra_dia_pago" invisible="not financiado"/>
+                            <field name="letra_pagos_total" invisible="not financiado"/>
+                            <field name="letra_pagos_hechos" invisible="not financiado"/>
+                            <field name="letra_pagos_restantes" invisible="not financiado"/>
+                            <field name="letra_proximo_pago" invisible="not financiado"/>
+                            <field name="letra_saldo" invisible="not financiado"/>
                         </group>
                     </group>
                     <notebook>
@@ -267,6 +339,19 @@
                                 <list>
                                     <field name="fecha"/><field name="tipo"/>
                                     <field name="resultado"/><field name="employee_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Mantenimiento (taller)">
+                            <field name="mantenimiento_ids" context="{'default_odometro': odometro_actual}">
+                                <list editable="bottom" default_order="fecha desc">
+                                    <field name="fecha"/>
+                                    <field name="tipo"/>
+                                    <field name="concepto"/>
+                                    <field name="taller"/>
+                                    <field name="odometro"/>
+                                    <field name="costo" sum="Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
                         </page>
@@ -365,6 +450,81 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- ======================================================= MANTENIMIENTO (taller) -->
+    <record id="foco_vehiculo_mantenimiento_view_search" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.search</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehiculo_id"/>
+                <field name="taller"/>
+                <field name="concepto"/>
+                <filter name="preventivo" string="Preventivo" domain="[('tipo', '=', 'preventivo')]"/>
+                <filter name="correctivo" string="Correctivo" domain="[('tipo', '=', 'correctivo')]"/>
+                <separator/>
+                <filter name="g_vehiculo" string="Vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                <filter name="g_tipo" string="Tipo" context="{'group_by': 'tipo'}"/>
+                <filter name="g_fecha" string="Mes" context="{'group_by': 'fecha:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.list</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <list string="Mantenimiento" default_order="fecha desc, id desc">
+                <field name="fecha"/>
+                <field name="vehiculo_id"/>
+                <field name="tipo"/>
+                <field name="concepto"/>
+                <field name="taller"/>
+                <field name="odometro"/>
+                <field name="costo" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.form</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <form string="Orden de mantenimiento">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="fecha"/>
+                            <field name="tipo"/>
+                            <field name="taller"/>
+                            <field name="odometro"/>
+                        </group>
+                        <group>
+                            <field name="concepto"/>
+                            <field name="costo"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="proximo_servicio_km"/>
+                        </group>
+                    </group>
+                    <group string="Detalle">
+                        <field name="descripcion" nolabel="1" placeholder="Que se hizo, refacciones, observaciones..."/>
+                    </group>
+                    <group string="Hoja de servicio">
+                        <field name="foto" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_action" model="ir.actions.act_window">
+        <field name="name">Mantenimiento de flota</field>
+        <field name="res_model">foco.vehiculo.mantenimiento</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_vehiculo_mantenimiento_view_search"/>
+    </record>
+
     <!-- ======================================================= PRESUPUESTOS -->
     <record id="foco_viatico_presupuesto_view_list" model="ir.ui.view">
         <field name="name">foco.viatico.presupuesto.list</field>
@@ -397,6 +557,8 @@
               parent="menu_foco_sec_ventas" action="foco_vehiculo_asignacion_action" sequence="43"/>
     <menuitem id="menu_foco_vehiculo_revisiones" name="Revisiones"
               parent="menu_foco_sec_ventas" action="foco_vehiculo_revision_action" sequence="44"/>
+    <menuitem id="menu_foco_vehiculo_mantenimiento" name="Mantenimiento (taller)"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_mantenimiento_action" sequence="45"/>
     <menuitem id="menu_foco_viatico_presupuestos" name="Presupuestos"
               parent="menu_foco_sec_ventas" action="foco_viatico_presupuesto_action" sequence="46"/>
 

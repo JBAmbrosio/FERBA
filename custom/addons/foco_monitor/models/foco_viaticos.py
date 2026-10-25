@@ -15,6 +15,8 @@ estan en el modelo; las pantallas de vehiculos/mantenimiento son Fase 3.
 Grounding: reunion "Foco AI Tools & Field Team Controls Review" (22-oct-2026).
 """
 
+import calendar
+from datetime import date
 from math import asin, cos, radians, sin, sqrt
 
 from odoo import api, fields, models
@@ -26,6 +28,9 @@ from odoo.exceptions import UserError
 CAIDA_RENDIMIENTO = 0.20        # 20% por debajo del esperado -> revisar
 # Diferencia tolerada entre los km del odometro y los km del GPS, en %.
 TOLERANCIA_GPS = 0.25
+# Con cuantos dias de anticipacion un documento del vehiculo (seguro, tenencia,
+# letra) se marca "por vencer". Vive aqui para ajustarlo sin tocar la logica.
+DIAS_AVISO_DOC = 30
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -46,9 +51,10 @@ class FocoVehiculo(models.Model):
 
     name = fields.Char(string='Nombre', required=True)
     matricula = fields.Char(string='Matricula', required=True, index=True)
-    foto = fields.Image(string='Foto', max_width=1024, max_height=1024)
+    foto = fields.Image(string='Foto del vehiculo', max_width=1024, max_height=1024)
     company_id = fields.Many2one('res.company', string='Empresa', required=True,
                                  default=lambda self: self.env.company)
+    currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda')
     active = fields.Boolean(default=True)
 
     conductor_id = fields.Many2one('hr.employee', string='Conductor de la semana',
@@ -63,6 +69,50 @@ class FocoVehiculo(models.Model):
 
     viatico_ids = fields.One2many('foco.viatico', 'vehiculo_id', string='Cargas y gastos')
     revision_ids = fields.One2many('foco.vehiculo.revision', 'vehiculo_id', string='Revisiones')
+
+    # --- Documentos del vehiculo (Fase B, solo administracion) ---
+    # Diego: "por parte de nosotros tenemos que llevar impuesto municipal, fecha y
+    # seguro... la fecha de vencimiento del seguro, para no salir de coche sin
+    # seguro". Esto NO lo ve el vendedor: es papeleo de la flota.
+    seguro_aseguradora = fields.Char(string='Aseguradora')
+    seguro_poliza = fields.Char(string='No. de poliza')
+    seguro_vencimiento = fields.Date(string='Vence el seguro')
+    tenencia_vencimiento = fields.Date(string='Vence tenencia / placas / impuesto')
+
+    # --- Financiamiento: la "letra" (Diego: "pago de la letra... para hacer la
+    # prediccion de los pagos"). A futuro se puede vincular a contabilidad. ---
+    financiado = fields.Boolean(string='Vehiculo financiado')
+    letra_monto = fields.Monetary(string='Monto de la letra')
+    letra_dia_pago = fields.Integer(string='Dia de pago (del mes)',
+                                    help='Dia del mes en que se paga la letra (1-31).')
+    letra_pagos_total = fields.Integer(string='Letras totales (plazo)')
+    letra_pagos_hechos = fields.Integer(string='Letras pagadas')
+
+    # Alertas de vencimiento (calculadas al vuelo: usan "hoy", asi que NO se
+    # almacenan; se recalculan en cada lectura y los filtros van por fecha).
+    seguro_dias = fields.Integer(string='Dias para el seguro', compute='_compute_docs')
+    seguro_estado = fields.Selection([('na', 'Sin dato'), ('ok', 'Vigente'),
+                                      ('por_vencer', 'Por vencer'), ('vencido', 'Vencido')],
+                                     string='Estado del seguro', compute='_compute_docs')
+    tenencia_dias = fields.Integer(string='Dias para la tenencia', compute='_compute_docs')
+    tenencia_estado = fields.Selection([('na', 'Sin dato'), ('ok', 'Vigente'),
+                                        ('por_vencer', 'Por vencer'), ('vencido', 'Vencido')],
+                                       string='Estado de tenencia', compute='_compute_docs')
+    doc_alerta = fields.Selection([('ok', 'Al dia'), ('por_vencer', 'Por vencer'),
+                                   ('vencido', 'Vencido')],
+                                  string='Documentos', compute='_compute_docs')
+
+    letra_proximo_pago = fields.Date(string='Proximo pago de letra', compute='_compute_letra')
+    letra_pagos_restantes = fields.Integer(string='Letras restantes', compute='_compute_letra')
+    letra_saldo = fields.Monetary(string='Saldo por pagar (letras)', compute='_compute_letra')
+
+    # --- Costo de taller (Diego: "cada vez que vaya a taller, imputarle el costo,
+    # ver cuanto nos ha costado"). La hoja de servicio / orden de mantenimiento. ---
+    mantenimiento_ids = fields.One2many('foco.vehiculo.mantenimiento', 'vehiculo_id',
+                                        string='Ordenes de mantenimiento')
+    costo_taller_total = fields.Monetary(string='Costo de taller acumulado',
+                                         compute='_compute_taller')
+    mantenimiento_count = fields.Integer(string='Ordenes de taller', compute='_compute_taller')
 
     # El coche NO tiene dueño: va cambiando de mano. Las asignaciones son el
     # historial de quien lo tuvo y desde cuando; la activa dice donde esta ahora.
@@ -88,6 +138,73 @@ class FocoVehiculo(models.Model):
             v.tenedor_actual = (act.tenedor if act else False) or 'Sin asignar'
             v.asignado_desde = act.desde if act else False
             v.responsiva_pendiente = bool(act and act.tipo == 'empleado' and not act.firmada)
+
+    @staticmethod
+    def _estado_doc(fecha, hoy):
+        """Clasifica una fecha de vencimiento: sin dato / vigente / por vencer /
+        vencido, segun DIAS_AVISO_DOC dias de anticipacion."""
+        if not fecha:
+            return 'na'
+        dias = (fecha - hoy).days
+        if dias < 0:
+            return 'vencido'
+        if dias <= DIAS_AVISO_DOC:
+            return 'por_vencer'
+        return 'ok'
+
+    @api.depends('seguro_vencimiento', 'tenencia_vencimiento')
+    def _compute_docs(self):
+        hoy = fields.Date.context_today(self)
+        for v in self:
+            v.seguro_dias = (v.seguro_vencimiento - hoy).days if v.seguro_vencimiento else 0
+            v.seguro_estado = self._estado_doc(v.seguro_vencimiento, hoy)
+            v.tenencia_dias = (v.tenencia_vencimiento - hoy).days if v.tenencia_vencimiento else 0
+            v.tenencia_estado = self._estado_doc(v.tenencia_vencimiento, hoy)
+            estados = (v.seguro_estado, v.tenencia_estado)
+            v.doc_alerta = ('vencido' if 'vencido' in estados else
+                            'por_vencer' if 'por_vencer' in estados else 'ok')
+
+    def _proximo_pago_letra(self, hoy):
+        """Fecha del proximo pago de la letra: el dia de pago del mes, hoy o
+        despues. Si ya paso este mes, el del mes que viene. False si no aplica."""
+        self.ensure_one()
+        if not (self.financiado and self.letra_dia_pago and self.letra_pagos_restantes > 0):
+            return False
+        dia = max(1, min(self.letra_dia_pago, calendar.monthrange(hoy.year, hoy.month)[1]))
+        cand = date(hoy.year, hoy.month, dia)
+        if cand < hoy:
+            y, m = (hoy.year + 1, 1) if hoy.month == 12 else (hoy.year, hoy.month + 1)
+            dia = max(1, min(self.letra_dia_pago, calendar.monthrange(y, m)[1]))
+            cand = date(y, m, dia)
+        return cand
+
+    @api.depends('financiado', 'letra_monto', 'letra_dia_pago',
+                 'letra_pagos_total', 'letra_pagos_hechos')
+    def _compute_letra(self):
+        hoy = fields.Date.context_today(self)
+        for v in self:
+            v.letra_pagos_restantes = max((v.letra_pagos_total or 0) - (v.letra_pagos_hechos or 0), 0)
+            v.letra_saldo = (v.letra_monto or 0.0) * v.letra_pagos_restantes
+            v.letra_proximo_pago = v._proximo_pago_letra(hoy)
+
+    @api.depends('mantenimiento_ids.costo')
+    def _compute_taller(self):
+        for v in self:
+            v.costo_taller_total = sum(v.mantenimiento_ids.mapped('costo'))
+            v.mantenimiento_count = len(v.mantenimiento_ids)
+
+    def action_ver_mantenimiento(self):
+        """Boton de estadistica: abre las ordenes de taller de este vehiculo."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mantenimiento de %s' % self.name,
+            'res_model': 'foco.vehiculo.mantenimiento',
+            'view_mode': 'list,form',
+            'domain': [('vehiculo_id', '=', self.id)],
+            'context': {'default_vehiculo_id': self.id,
+                        'default_odometro': self.odometro_actual or 0},
+        }
 
     def action_asignar(self):
         """Abre el alta de una nueva asignacion (entregar el coche a alguien o a un
@@ -403,3 +520,30 @@ class FocoVehiculoAsignacion(models.Model):
         self.write({'firma': firma_b64, 'firmada': True,
                     'firma_fecha': fields.Datetime.now()})
         return True
+
+
+class FocoVehiculoMantenimiento(models.Model):
+    """Una visita al taller: la hoja de servicio / orden de mantenimiento. Diego:
+    'cada vez que vaya el coche a taller, imputarle el costo, ver cuanto nos ha
+    costado'. Por un lado el DINERO (costo) y por otro el FUNCIONAMIENTO del coche
+    (que se hizo, proximo servicio). Es papeleo de administracion, no del vendedor."""
+    _name = 'foco.vehiculo.mantenimiento'
+    _description = 'Orden de mantenimiento / hoja de servicio (Foco)'
+    _order = 'fecha desc, id desc'
+
+    vehiculo_id = fields.Many2one('foco.vehiculo', string='Vehiculo', required=True,
+                                  ondelete='cascade', index=True)
+    company_id = fields.Many2one(related='vehiculo_id.company_id', store=True, string='Empresa')
+    currency_id = fields.Many2one(related='vehiculo_id.currency_id', string='Moneda')
+    fecha = fields.Date(string='Fecha', required=True, default=fields.Date.context_today, index=True)
+    tipo = fields.Selection([('preventivo', 'Preventivo'), ('correctivo', 'Correctivo'),
+                             ('otro', 'Otro')], string='Tipo', default='preventivo')
+    taller = fields.Char(string='Taller')
+    odometro = fields.Integer(string='Odometro (km)')
+    concepto = fields.Char(string='Concepto', required=True,
+                           help='Resumen de lo que se hizo (p.ej. afinacion, frenos).')
+    descripcion = fields.Text(string='Detalle')
+    costo = fields.Monetary(string='Costo', required=True)
+    proximo_servicio_km = fields.Integer(string='Proximo servicio a los (km)')
+    foto = fields.Image(string='Hoja de servicio', max_width=1920, max_height=1920,
+                        help='Foto de la hoja de servicio / factura del taller.')

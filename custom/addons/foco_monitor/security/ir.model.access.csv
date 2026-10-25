@@ -102,3 +102,5 @@ access_foco_viatico_presupuesto_user,foco.viatico.presupuesto user,model_foco_vi
 access_foco_viatico_presupuesto_manager,foco.viatico.presupuesto manager,model_foco_viatico_presupuesto,group_foco_manager,1,1,1,1
 access_foco_vehiculo_asignacion_user,foco.vehiculo.asignacion user,model_foco_vehiculo_asignacion,group_foco_user,1,0,0,0
 access_foco_vehiculo_asignacion_manager,foco.vehiculo.asignacion manager,model_foco_vehiculo_asignacion,group_foco_manager,1,1,1,1
+access_foco_vehiculo_mantenimiento_user,foco.vehiculo.mantenimiento user,model_foco_vehiculo_mantenimiento,group_foco_user,1,0,0,0
+access_foco_vehiculo_mantenimiento_manager,foco.vehiculo.mantenimiento manager,model_foco_vehiculo_mantenimiento,group_foco_manager,1,1,1,1
