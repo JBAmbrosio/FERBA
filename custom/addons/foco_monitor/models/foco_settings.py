@@ -371,9 +371,16 @@ class FocoSettings(models.Model):
         default='5319275A.WhatsAppDesktop\nWhatsApp.Root.exe\nWhatsApp.exe',
         help='Nombre con el que Windows registra a la app que toma el microfono '
              '(el que aparece en los eventos «Entro a una llamada»). WhatsApp '
-             'de escritorio es 5319275A.WhatsAppDesktop. Una llamada de '
-             'WhatsApp Web dentro de Chrome NO se distingue de otra llamada del '
-             'navegador y no se analiza.')
+             'de escritorio es 5319275A.WhatsAppDesktop. WhatsApp Web (dentro del '
+             'navegador) NO se detecta por aqui -no tiene proceso propio-; para eso '
+             'esta el interruptor de abajo.')
+    call_review_web = fields.Boolean(
+        string='Incluir llamadas de WhatsApp Web (navegador)', default=True,
+        help='Ademas de la app de escritorio, graba la llamada cuando corre en '
+             'web.whatsapp.com dentro del navegador. El agente la detecta cruzando '
+             'que el navegador tomo el microfono con que web.whatsapp.com estuvo al '
+             'frente hace poco. Limite: el audio del interlocutor sale del sonido del '
+             'sistema, que no separa el de otras pestañas del navegador.')
     call_review_notice = fields.Text(
         string='Aviso en pantalla al empezar',
         default='Foco esta analizando esta llamada de WhatsApp para clasificarla como '
@@ -526,6 +533,7 @@ class FocoSettings(models.Model):
         return {
             'enabled': activo,
             'apps': self.call_review_apps_list(),
+            'web': bool(self.call_review_web),
             'aviso': (self.call_review_notice or '').strip(),
             'max_min': self.call_review_max_minutes or 120,
             'chunk_min': self.call_review_chunk_minutes or 3,

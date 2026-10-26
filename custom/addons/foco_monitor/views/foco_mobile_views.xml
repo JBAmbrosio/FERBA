@@ -504,6 +504,8 @@
                                invisible="not call_review_enabled or not foco_es_principal"/>
                         <field name="call_review_apps"
                                invisible="not call_review_enabled"/>
+                        <field name="call_review_web"
+                               invisible="not call_review_enabled"/>
                         <field name="call_review_context"
                                invisible="not call_review_enabled"/>
                         <field name="call_review_notice"
