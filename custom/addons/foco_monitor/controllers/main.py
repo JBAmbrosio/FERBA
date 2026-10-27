@@ -1202,6 +1202,14 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.mis_viaticos())
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/mi_dia', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_mi_dia(self, **kw):
+        """El dia de trabajo del vendedor: seguimientos pendientes, visitas de hoy,
+        presupuesto y coaching nuevo (tarjeta "Mi dia" del Inicio)."""
+        res, error = self._ventas(lambda dev, data: dev.mi_dia())
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/vehiculos', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_vehiculos(self, **kw):

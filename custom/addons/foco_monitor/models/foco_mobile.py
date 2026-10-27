@@ -1172,6 +1172,64 @@ class FocoMobileDevice(models.Model):
                         'vehiculo': g.vehiculo_id.name or ''} for g in gastos],
         }
 
+    def mi_dia(self):
+        """El dia de trabajo del vendedor en un vistazo, armado con lo que la app
+        YA captura: seguimientos pendientes (visitas con proximo seguimiento
+        vencido o de hoy, una por cliente), visitas hechas hoy, el presupuesto de
+        la semana y cuanto coaching de llamadas hay nuevo. Alimenta la tarjeta
+        "Mi dia" del Inicio: datos que ya existian pero no se volvian a mostrar."""
+        from datetime import datetime, time, timedelta
+        import pytz
+        self.ensure_one()
+        hoy = fields.Date.context_today(self)
+        emp = self.employee_id
+        if not emp:
+            return {'ok': True, 'fecha': str(hoy), 'seguimientos': [],
+                    'visitas_hoy': 0, 'presupuesto': None, 'coaching_nuevo': 0}
+        Visita = self.env['foco.visita'].sudo()
+        # SEGUIMIENTOS: proximo seguimiento vencido o de hoy, UNA por cliente (la
+        # mas urgente). `vencido` se marca para pintarlo distinto (rojo).
+        segs = Visita.search(
+            [('employee_id', '=', emp.id), ('proxima_fecha', '!=', False),
+             ('proxima_fecha', '<=', hoy)],
+            order='proxima_fecha asc, check_in desc')
+        seguimientos, vistos = [], set()
+        for v in segs:
+            if v.partner_id.id in vistos:
+                continue
+            vistos.add(v.partner_id.id)
+            seguimientos.append({
+                'partner_id': v.partner_id.id,
+                'cliente': v.partner_id.display_name or '',
+                'fecha': str(v.proxima_fecha),
+                'vencido': v.proxima_fecha < hoy,
+                'resultado': v.resultado or '',
+                'nota': (v.nota or '')[:140],
+            })
+        # VISITAS DE HOY: por el dia LOCAL del vendedor (check_in se guarda en UTC).
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(emp) or pytz.UTC
+        ini = tz.localize(datetime.combine(hoy, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        fin = tz.localize(datetime.combine(hoy, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+        visitas_hoy = Visita.search_count(
+            [('employee_id', '=', emp.id), ('check_in', '>=', ini), ('check_in', '<=', fin)])
+        # PRESUPUESTO de la semana (mismo calculo que mis_viaticos).
+        pres = self.env['foco.viatico.presupuesto'].sudo().search(
+            [('employee_id', '=', emp.id), ('desde', '<=', hoy), ('hasta', '>=', hoy)], limit=1)
+        moneda = (emp.company_id or self.env.company).currency_id
+        # COACHING NUEVO: llamadas analizadas en las ultimas 48 h.
+        desde = fields.Datetime.now() - timedelta(days=2)
+        coaching_nuevo = self.env['foco.llamada'].sudo().search_count(
+            [('employee_id', '=', emp.id), ('audio_estado', '=', 'listo'),
+             ('analizado_el', '>=', fields.Datetime.to_string(desde))])
+        return {
+            'ok': True, 'fecha': str(hoy),
+            'seguimientos': seguimientos,
+            'visitas_hoy': visitas_hoy,
+            'presupuesto': ({'simbolo': moneda.symbol or '', 'restante': pres.restante,
+                             'monto': pres.monto, 'consumido': pres.consumido} if pres else None),
+            'coaching_nuevo': coaching_nuevo,
+        }
+
     def mis_vehiculos(self):
         """Los vehiculos de la empresa del vendedor (para elegir en una carga)."""
         self.ensure_one()
