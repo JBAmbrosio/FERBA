@@ -42,6 +42,20 @@ class FocoSettings(models.Model):
         help='El que toma un equipo que no tenga uno propio. Vacio = ese equipo '
              'no bloquea nada.')
 
+    # ---- bloqueo POR USUARIO: lista de cuentas EXENTAS (TI) --------------
+    # Solo tiene efecto en los equipos con "Ambito del bloqueo = Por usuario".
+    # Una cuenta por linea: su SID (S-1-5-21-...) o su nombre (DOMINIO\\usuario).
+    # El SID MANDA sobre el nombre (el nombre es falsificable); ante duda, la
+    # sesion se MONITOREA (fail-closed). Ser administrador NO exenta: solo estar
+    # en esta lista. Las lineas que empiezan con # son comentarios.
+    enforcement_exempt = fields.Text(
+        string='Cuentas exentas del bloqueo por usuario',
+        help='Una cuenta por linea: su SID (recomendado, infalsificable) o su '
+             'nombre (DOMINIO\\usuario). Estas sesiones NO reciben el bloqueo en '
+             'los equipos con ambito "Por usuario"; todas las demas si. Ser '
+             'administrador local no exenta: solo estar aqui. Lineas con # son '
+             'comentarios.')
+
     # ---- ventana de inactividad (justificacion bloqueante) --------------
     # El umbral (estos minutos) es GLOBAL para todos; a QUE EQUIPO le sale la
     # ventana es POR EQUIPO (foco.computer.foco_ventana_inactividad), APAGADO

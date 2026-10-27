@@ -466,25 +466,42 @@ class FocoPolicy(models.Model):
         'bloquea todo'-. El interruptor es el de la empresa del empleado.
         """
         ajustes = self.env['foco.settings'].sudo().de_equipo(computer)
+        # Ambito (maquina/usuario) y exentos viajan SIEMPRE, en todas las ramas:
+        # un equipo sin el flag recibe scope='machine' y se comporta igual que hoy.
+        extra = self._scope_extra(computer, ajustes)
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.
             # `kill` vacio por lo mismo: sin bloqueo no se cierra ningun navegador.
-            return {'version': 'off', 'block': [], 'allow': [], 'kill': []}
+            return dict({'version': 'off', 'block': [], 'allow': [], 'kill': []}, **extra)
         perfil = self._perfil_vigente(computer)
         if not perfil:
-            return {'version': 'vacio', 'block': [], 'allow': [], 'kill': []}
+            return dict({'version': 'vacio', 'block': [], 'allow': [], 'kill': []}, **extra)
         bloquear, permitir = perfil._listas()
         permitir = sorted(set(permitir) | set(self._salvavidas()))
-        return {'version': perfil.version or perfil._hash(perfil._reglas()),
-                # Listas planas SIN condiciones, para servicios anteriores.
-                'block': bloquear, 'allow': permitir,
-                # Reglas completas con horario, cuota y uso del dia, para los
-                # servicios que saben recalcular la lista efectiva.
-                'rules': perfil._reglas_con_uso(computer),
-                'kill': perfil._kill_list(),
-                'kill_productos': perfil._kill_products(),
-                'policy': perfil.name}
+        return dict({'version': perfil.version or perfil._hash(perfil._reglas()),
+                     # Listas planas SIN condiciones, para servicios anteriores.
+                     'block': bloquear, 'allow': permitir,
+                     # Reglas completas con horario, cuota y uso del dia, para los
+                     # servicios que saben recalcular la lista efectiva.
+                     'rules': perfil._reglas_con_uso(computer),
+                     'kill': perfil._kill_list(),
+                     'kill_productos': perfil._kill_products(),
+                     'policy': perfil.name}, **extra)
+
+    def _scope_extra(self, computer, ajustes):
+        """`scope` + `exempt` para el servicio. scope por EQUIPO
+        (enforcement_scope, default 'machine'); exempt es la lista de cuentas
+        exentas de la configuracion de ESA empresa (una por linea; SID o
+        DOMINIO\\usuario; # = comentario). Las cadenas van tal cual: el
+        clasificador del servicio (cuentas.py) toma un 'S-1-...' como SID y lo
+        demas como nombre, y el SID manda."""
+        exentos = []
+        for linea in (ajustes.enforcement_exempt or '').splitlines():
+            s = linea.strip()
+            if s and not s.startswith('#'):
+                exentos.append(s)
+        return {'scope': computer.enforcement_scope or 'machine', 'exempt': exentos}
 
     def action_ver_equipos(self):
         self.ensure_one()

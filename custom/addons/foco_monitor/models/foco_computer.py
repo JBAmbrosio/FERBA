@@ -145,6 +145,21 @@ class FocoComputer(models.Model):
         'foco.policy', string='Perfil de navegacion', ondelete='set null',
         help='Que sitios puede abrir este equipo. Si se deja vacio toma el '
              'perfil por omision de la configuracion.')
+    # Ambito del bloqueo. 'machine' (de fabrica) = como siempre: politica de
+    # EQUIPO (HKLM), cae sobre TODA sesion del equipo. 'user' = por USUARIO: el
+    # bloqueo va a la rama de cada sesion monitoreada y las cuentas de la lista de
+    # exentas (TI/Carmelo por RDP) quedan libres. 'user' SOLO debe encenderse en
+    # el equipo del PILOTO; al activarlo, el servicio vacia el bloqueo de HKLM de
+    # ese equipo (si no, enmascararia al per-usuario) y escribe por rama. Es
+    # reversible: volver a 'machine' limpia las ramas y restituye HKLM.
+    enforcement_scope = fields.Selection(
+        [('machine', 'Maquina (HKLM) — de fabrica'),
+         ('user', 'Por usuario (HKU) — piloto')],
+        string='Ambito del bloqueo', default='machine', required=True,
+        help='De fabrica "Maquina": el bloqueo es del equipo entero (hoy). '
+             '"Por usuario" aplica el bloqueo solo a las sesiones monitoreadas y '
+             'deja libres las cuentas exentas (TI). Encender solo en el equipo de '
+             'prueba; usa la lista de "Cuentas exentas" de la configuracion.')
     policy_version = fields.Char(
         string='Politica aplicada', readonly=True,
         help='La version que el equipo dice tener PUESTA, no la que se le '

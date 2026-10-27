@@ -33,6 +33,10 @@ class ResConfigSettings(models.TransientModel):
              'tuvieran puesta.')
     foco_default_policy_id = fields.Many2one(
         'foco.policy', string='Perfil por omision')
+    foco_enforcement_exempt = fields.Text(
+        string='Cuentas exentas del bloqueo por usuario',
+        help='Una cuenta por linea (SID o DOMINIO\\usuario). Solo aplica en los '
+             'equipos con ambito "Por usuario".')
 
     foco_document_enabled = fields.Boolean(
         string='Reportar el archivo abierto',
@@ -67,6 +71,7 @@ class ResConfigSettings(models.TransientModel):
             foco_retention_note=self._foco_nota_purga(plataforma),
             foco_block_enabled=ajustes.block_enabled,
             foco_default_policy_id=ajustes.default_policy_id.id or False,
+            foco_enforcement_exempt=ajustes.enforcement_exempt or '',
             foco_document_enabled=ajustes.document_enabled,
             foco_screenshot_enabled=ajustes.screenshot_enabled,
             foco_screenshot_unclassified_minutes=ajustes.screenshot_unclassified_minutes,
@@ -112,6 +117,7 @@ class ResConfigSettings(models.TransientModel):
         self.env['foco.settings'].sudo().get_settings().write({
             'block_enabled': self.foco_block_enabled,
             'default_policy_id': self.foco_default_policy_id.id or False,
+            'enforcement_exempt': self.foco_enforcement_exempt or '',
             'document_enabled': self.foco_document_enabled,
             'screenshot_enabled': self.foco_screenshot_enabled,
             # max(...,0): un negativo aqui apagaria el disparador de una forma

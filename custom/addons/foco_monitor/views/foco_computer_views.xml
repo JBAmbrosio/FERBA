@@ -71,6 +71,10 @@
                         </group>
                         <group string="Navegacion">
                             <field name="policy_id"/>
+                            <!-- Ambito del bloqueo. 'Por usuario' SOLO en el
+                                 equipo del piloto; usa la lista de exentas de la
+                                 configuracion. De fabrica 'Maquina' = como hoy. -->
+                            <field name="enforcement_scope"/>
                             <!-- Lo que el equipo dice tener PUESTO, no lo que se
                                  le mando. Sin esta fila, "lo bloquee" y "esta
                                  bloqueado" se leen igual. -->
