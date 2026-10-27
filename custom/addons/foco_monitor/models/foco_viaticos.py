@@ -220,6 +220,17 @@ class FocoVehiculo(models.Model):
                         'default_odometro_entrega': self.odometro_actual or 0},
         }
 
+    def action_devolver(self):
+        """Devolver el coche: cierra la asignacion activa (su tenedor deja de
+        traerlo). Es el par simetrico de Entregar, para no tener que escarbar en
+        el registro de la asignacion."""
+        self.ensure_one()
+        act = self.asignacion_activa_id
+        if not act:
+            raise UserError('Este vehiculo no esta asignado a nadie.')
+        act.action_cerrar()
+        return True
+
     def _toca_aceite(self):
         """True si segun el odometro ya toca cambio de aceite."""
         self.ensure_one()

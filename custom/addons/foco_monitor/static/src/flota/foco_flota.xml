@@ -103,7 +103,8 @@
             <div class="ff_foot">
               <span class="ff_odo"><t t-esc="v.odometro.toLocaleString('es-MX')"/> km</span>
               <span class="ff_taller" t-if="v.costo_taller">Taller <t t-esc="dinero(v.costo_taller)"/></span>
-              <button class="ff_entregar" t-on-click="(ev) => this.entregar(ev, v)">Entregar</button>
+              <button class="ff_entregar" t-if="v.asignado" t-on-click="(ev) => this.devolver(ev, v)">Devolver</button>
+              <button class="ff_entregar" t-else="" t-on-click="(ev) => this.entregar(ev, v)">Entregar</button>
             </div>
           </div>
         </div>

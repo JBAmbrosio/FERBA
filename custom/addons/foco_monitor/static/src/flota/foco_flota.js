@@ -3,6 +3,7 @@
 import { Component, useState, onWillStart, onWillUnmount } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 
 /**
  * Tablero de Flota: lo que el ADMINISTRADOR de la flota necesita de un vistazo.
@@ -17,6 +18,7 @@ export class FocoFlota extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.dialog = useService("dialog");
         this.state = useState({ loading: true, dark: false, data: null });
         this.detectarTema();
         // El tema de Odoo puede cambiar sin recargar: se sigue por mutaciones.
@@ -118,12 +120,25 @@ export class FocoFlota extends Component {
         // doAction sobre un dict sin `views` revienta en _preprocessAction.
         this.action.doAction({
             type: "ir.actions.act_window",
-            name: "Entregar vehículo",
+            name: v.asignado ? "Entregar a otra persona" : "Entregar vehículo",
             res_model: "foco.vehiculo.asignacion",
             views: [[false, "form"]],
             target: "new",
             context: { default_vehiculo_id: v.id, default_odometro_entrega: v.odometro || 0 },
         }, { onClose: () => this.cargar() });
+    }
+    devolver(ev, v) {
+        ev.stopPropagation();
+        this.dialog.add(ConfirmationDialog, {
+            title: "Devolver vehículo",
+            body: `${v.tenedor} deja de traer ${v.name}. ¿Devolver el vehículo?`,
+            confirmLabel: "Devolver",
+            confirm: async () => {
+                await this.orm.call("foco.vehiculo", "action_devolver", [[v.id]]);
+                await this.cargar();
+            },
+            cancel: () => {},
+        });
     }
 }
 

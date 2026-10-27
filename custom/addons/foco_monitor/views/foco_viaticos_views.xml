@@ -250,8 +250,15 @@
         <field name="arch" type="xml">
             <form string="Vehiculo">
                 <header>
+                    <field name="asignacion_activa_id" invisible="1"/>
+                    <!-- Libre -> Entregar. Ya asignado -> Devolver (+ reasignar). -->
                     <button name="action_asignar" type="object" string="Entregar vehiculo"
-                            class="btn-primary"/>
+                            class="btn-primary" invisible="asignacion_activa_id"/>
+                    <button name="action_devolver" type="object" string="Devolver vehiculo"
+                            class="btn-primary" invisible="not asignacion_activa_id"
+                            confirm="¿Devolver el vehiculo? El tenedor actual deja de traerlo."/>
+                    <button name="action_asignar" type="object" string="Entregar a otra persona"
+                            class="btn-secondary" invisible="not asignacion_activa_id"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

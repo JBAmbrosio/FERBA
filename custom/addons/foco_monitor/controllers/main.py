@@ -1225,6 +1225,13 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.vehiculo_detalle(data.get('vehiculo_id')))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/vehiculo_devolver', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_devolver(self, **kw):
+        """El vendedor devuelve su vehiculo desde el telefono (cierra su asignacion)."""
+        res, error = self._ventas(lambda dev, data: dev.devolver_vehiculo(data.get('vehiculo_id')))
+        return error or request.make_json_response(res)
+
     @http.route('/foco/mobile/vehiculo_revision', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def mobile_vehiculo_revision(self, **kw):

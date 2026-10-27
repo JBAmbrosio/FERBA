@@ -1312,6 +1312,9 @@ class FocoMobileDevice(models.Model):
                 'km_para_aceite': max(0, (veh.aceite_cada_km or 0) - km_desde),
                 'toca_aceite': veh._toca_aceite(),
                 'tiene_foto': bool(veh.foto),
+                # El vendedor trae ESTE coche ahora -> puede devolverlo desde el telefono.
+                'puede_devolver': bool(act and act.tipo == 'empleado' and emp
+                                       and act.employee_id.id == emp.id),
             },
             'responsiva': resp,
             'revision': rev_estado,
@@ -1323,6 +1326,20 @@ class FocoMobileDevice(models.Model):
             'historial': [{'fecha': str(h.fecha), 'rendimiento': h.rendimiento}
                           for h in reversed(historial)],
         }
+
+    def devolver_vehiculo(self, vehiculo_id=None):
+        """El vendedor devuelve el coche desde el telefono: cierra su asignacion
+        activa (deja de traerlo). Solo puede devolver el que esta A SU NOMBRE."""
+        self.ensure_one()
+        emp = self.employee_id
+        veh = self._vehiculo_del_vendedor(vehiculo_id)
+        if not (veh and emp):
+            return {'ok': False, 'mensaje': 'No tienes un vehiculo asignado.'}
+        act = veh.asignacion_activa_id
+        if not (act and act.tipo == 'empleado' and act.employee_id.id == emp.id):
+            return {'ok': False, 'mensaje': 'Este vehiculo no esta a tu nombre.'}
+        act.sudo().action_cerrar()
+        return {'ok': True, 'mensaje': 'Vehiculo devuelto. Gracias.'}
 
     def crear_revision(self, datos):
         """Registra la revision (del lunes) de un vehiculo con su foto: aceite,
