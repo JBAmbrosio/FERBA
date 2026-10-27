@@ -227,6 +227,75 @@ class FocoVehiculo(models.Model):
             return False
         return (self.odometro_actual - (self.odometro_ultimo_aceite or 0)) >= self.aceite_cada_km
 
+    @api.model
+    def tablero_flota(self):
+        """Todo lo que el administrador de la flota necesita de un vistazo: KPIs,
+        el estado de cada coche (quien lo trae, documentos, responsiva, taller) y
+        las alertas que piden accion. Acotado a la empresa activa."""
+        comp = self.env.company
+        vehs = self.search([('company_id', '=', comp.id)])
+        moneda = comp.currency_id
+        asignados = resp_pend = 0
+        costo_total = letras_saldo = 0.0
+        docs_vencidos, docs_vencer, filas = [], [], []
+        por_persona = {}
+        for v in vehs:
+            act = v.asignacion_activa_id
+            if act:
+                asignados += 1
+            if v.responsiva_pendiente:
+                resp_pend += 1
+            if v.doc_alerta == 'vencido':
+                docs_vencidos.append(v.name)
+            elif v.doc_alerta == 'por_vencer':
+                docs_vencer.append(v.name)
+            costo_total += v.costo_taller_total or 0.0
+            letras_saldo += v.letra_saldo or 0.0
+            if act and act.tipo == 'empleado' and act.employee_id:
+                por_persona.setdefault(
+                    act.employee_id.id,
+                    {'persona': act.employee_id.name, 'vehiculos': []})['vehiculos'].append(v.name)
+            filas.append({
+                'id': v.id, 'name': v.name, 'matricula': v.matricula or '',
+                'tenedor': v.tenedor_actual, 'tipo': act.tipo if act else False,
+                'asignado': bool(act),
+                'desde': fields.Datetime.to_string(v.asignado_desde) if v.asignado_desde else '',
+                'responsiva_pendiente': v.responsiva_pendiente,
+                'doc_alerta': v.doc_alerta,
+                'seguro_estado': v.seguro_estado, 'seguro_dias': v.seguro_dias,
+                'tenencia_estado': v.tenencia_estado, 'tenencia_dias': v.tenencia_dias,
+                'odometro': v.odometro_actual or 0, 'toca_aceite': v._toca_aceite(),
+                'costo_taller': v.costo_taller_total or 0.0,
+                'financiado': v.financiado, 'letra_saldo': v.letra_saldo or 0.0,
+                'letra_proximo': fields.Date.to_string(v.letra_proximo_pago) if v.letra_proximo_pago else '',
+            })
+        multi = [p for p in por_persona.values() if len(p['vehiculos']) > 1]
+        return {
+            'moneda': moneda.symbol or '',
+            'kpis': {
+                'total': len(vehs), 'asignados': asignados, 'libres': len(vehs) - asignados,
+                'docs_por_vencer': len(docs_vencer), 'docs_vencidos': len(docs_vencidos),
+                'responsivas_pend': resp_pend, 'costo_taller': costo_total,
+                'letras_saldo': letras_saldo,
+            },
+            'vehiculos': filas,
+            'alertas': {
+                'docs_vencidos': docs_vencidos, 'docs_por_vencer': docs_vencer,
+                'multi_vehiculo': multi,
+            },
+        }
+
+    @api.model
+    def abrir_flota(self):
+        """Accion de ventana a la lista de flota (la usa un KPI del tablero)."""
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Flota',
+            'res_model': 'foco.vehiculo',
+            'view_mode': 'list,form',
+            'target': 'current',
+        }
+
 
 class FocoViatico(models.Model):
     """Un gasto del vendedor en campo, capturado por FOTO. La IA de vision llena
@@ -484,6 +553,42 @@ class FocoVehiculoAsignacion(models.Model):
     firmada = fields.Boolean(string='Responsiva firmada', default=False, index=True)
     firma = fields.Image(string='Firma', max_width=1024, max_height=512)
     firma_fecha = fields.Datetime(string='Fecha de firma')
+
+    # Indicadores para el alta: que el admin NO entregue a ciegas. Muestran, en el
+    # mismo wizard, quien trae HOY el coche (porque entregarlo cierra esa mano) y
+    # si la PERSONA elegida ya trae otro vehiculo (se quedaria con dos).
+    flota_estado_actual = fields.Char(string='Estado del vehiculo',
+                                      compute='_compute_flota_avisos')
+    flota_aviso_persona = fields.Char(string='Aviso',
+                                      compute='_compute_flota_avisos')
+
+    @api.depends('vehiculo_id', 'employee_id', 'tipo')
+    def _compute_flota_avisos(self):
+        Asig = self.env['foco.vehiculo.asignacion'].sudo()
+        for a in self:
+            # Quien lo trae HOY (distinto de esta misma asignacion).
+            est = ''
+            if a.vehiculo_id:
+                act = a.vehiculo_id.asignacion_ids.filtered(
+                    lambda x: x.activa and x.id != a._origin.id)[:1]
+                if act:
+                    d = (fields.Datetime.context_timestamp(a, act.desde).strftime('%d/%m/%Y')
+                         if act.desde else '')
+                    est = 'Hoy lo trae %s%s. Al entregarlo, esa persona deja de traerlo.' % (
+                        act.tenedor or 'alguien', (' desde el %s' % d) if d else '')
+                else:
+                    est = 'Libre: hoy no lo trae nadie.'
+            a.flota_estado_actual = est
+            # La persona elegida ya trae OTRO coche.
+            aviso = ''
+            if a.tipo == 'empleado' and a.employee_id:
+                otras = Asig.search([('employee_id', '=', a.employee_id.id),
+                                     ('activa', '=', True), ('tipo', '=', 'empleado'),
+                                     ('vehiculo_id', '!=', a.vehiculo_id.id)])
+                if otras:
+                    aviso = '%s ya trae %s. Si continuas, se quedara con dos vehiculos.' % (
+                        a.employee_id.name, ', '.join(otras.mapped('vehiculo_id.name')))
+            a.flota_aviso_persona = aviso
 
     @api.depends('hasta')
     def _compute_activa(self):

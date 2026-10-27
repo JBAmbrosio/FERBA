@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+  <t t-name="foco_monitor.FlotaDashboard">
+    <div class="foco_flota" t-att-class="{ 'ff-dark': state.dark }">
+
+      <div class="ff_head">
+        <div>
+          <h1>Flota</h1>
+          <p class="ff_sub" t-if="!state.loading">
+            <t t-esc="kpis.total"/> vehículo<t t-esc="kpis.total === 1 ? '' : 's'"/> ·
+            <t t-esc="kpis.asignados"/> en uso ·
+            <t t-esc="kpis.libres"/> libre<t t-esc="kpis.libres === 1 ? '' : 's'"/>
+          </p>
+        </div>
+        <div class="ff_head_r">
+          <button class="ff_btn_ghost" t-on-click="() => this.verLista()">Ver lista</button>
+          <button class="ff_btn" t-on-click="() => this.nuevo()"><i class="fa fa-plus"/> Nuevo vehículo</button>
+        </div>
+      </div>
+
+      <div class="ff_loading" t-if="state.loading">Cargando la flota…</div>
+
+      <t t-else="">
+        <!-- KPIs -->
+        <div class="ff_kpis">
+          <div class="ff_kpi ff_kpi_click" t-on-click="() => this.verLista()">
+            <div class="ff_kpi_n"><t t-esc="kpis.total"/></div>
+            <div class="ff_kpi_l">Vehículos</div>
+            <div class="ff_kpi_f"><t t-esc="kpis.asignados"/> en uso · <t t-esc="kpis.libres"/> libres</div>
+          </div>
+          <div class="ff_kpi" t-att-class="{ ff_kpi_low: kpis.docs_vencidos }">
+            <div class="ff_kpi_n"><t t-esc="kpis.docs_vencidos"/></div>
+            <div class="ff_kpi_l">Documentos vencidos</div>
+            <div class="ff_kpi_f">seguro o tenencia</div>
+          </div>
+          <div class="ff_kpi" t-att-class="{ ff_kpi_mid: kpis.docs_por_vencer }">
+            <div class="ff_kpi_n"><t t-esc="kpis.docs_por_vencer"/></div>
+            <div class="ff_kpi_l">Por vencer</div>
+            <div class="ff_kpi_f">próximos 30 días</div>
+          </div>
+          <div class="ff_kpi" t-att-class="{ ff_kpi_mid: kpis.responsivas_pend }">
+            <div class="ff_kpi_n"><t t-esc="kpis.responsivas_pend"/></div>
+            <div class="ff_kpi_l">Responsivas sin firmar</div>
+            <div class="ff_kpi_f">entregados a una persona</div>
+          </div>
+          <div class="ff_kpi">
+            <div class="ff_kpi_n"><t t-esc="dinero(kpis.costo_taller)"/></div>
+            <div class="ff_kpi_l">Costo de taller</div>
+            <div class="ff_kpi_f">acumulado</div>
+          </div>
+          <div class="ff_kpi" t-if="kpis.letras_saldo">
+            <div class="ff_kpi_n"><t t-esc="dinero(kpis.letras_saldo)"/></div>
+            <div class="ff_kpi_l">Letras por pagar</div>
+            <div class="ff_kpi_f">saldo de financiamiento</div>
+          </div>
+        </div>
+
+        <!-- Alertas que piden accion -->
+        <div class="ff_alertas" t-if="hayAlertas">
+          <div class="ff_alerta ff_a_low" t-if="(alertas.docs_vencidos || []).length">
+            <i class="fa fa-exclamation-triangle"/>
+            <span><b>Documentos vencidos:</b> <t t-esc="(alertas.docs_vencidos || []).join(', ')"/></span>
+          </div>
+          <div class="ff_alerta ff_a_mid" t-if="(alertas.docs_por_vencer || []).length">
+            <i class="fa fa-clock-o"/>
+            <span><b>Por vencer pronto:</b> <t t-esc="(alertas.docs_por_vencer || []).join(', ')"/></span>
+          </div>
+          <div class="ff_alerta ff_a_mid" t-foreach="alertas.multi_vehiculo || []" t-as="m" t-key="m.persona">
+            <i class="fa fa-user"/>
+            <span><b><t t-esc="m.persona"/></b> trae <t t-esc="m.vehiculos.length"/> vehículos:
+              <t t-esc="m.vehiculos.join(', ')"/></span>
+          </div>
+        </div>
+
+        <!-- Tarjetas -->
+        <div class="ff_grid">
+          <div class="ff_card" t-foreach="d.vehiculos || []" t-as="v" t-key="v.id"
+               t-att-class="{ ff_card_attn: v.doc_alerta === 'vencido' || v.responsiva_pendiente }"
+               t-on-click="() => this.abrir(v.id)">
+            <div class="ff_card_top">
+              <div class="ff_car">
+                <div class="ff_car_n"><t t-esc="v.name"/></div>
+                <div class="ff_car_m"><t t-esc="v.matricula"/></div>
+              </div>
+              <span t-if="v.asignado" class="ff_tag ff_tag_on"><t t-esc="v.tenedor"/></span>
+              <span t-else="" class="ff_tag ff_tag_free">Libre</span>
+            </div>
+
+            <div class="ff_hold" t-if="v.asignado"><t t-esc="desdeTxt(v)"/></div>
+            <div class="ff_hold ff_hold_free" t-else="">Nadie lo trae ahora</div>
+
+            <div class="ff_chips">
+              <span class="ff_chip" t-att-class="docClase(v.seguro_estado)">
+                Seguro <t t-esc="docTxt(v.seguro_estado, v.seguro_dias)"/>
+              </span>
+              <span class="ff_chip" t-att-class="docClase(v.tenencia_estado)">
+                Tenencia <t t-esc="docTxt(v.tenencia_estado, v.tenencia_dias)"/>
+              </span>
+              <span class="ff_chip ff_low" t-if="v.responsiva_pendiente">Responsiva sin firmar</span>
+              <span class="ff_chip ff_mid" t-if="v.toca_aceite">Toca aceite</span>
+            </div>
+
+            <div class="ff_foot">
+              <span class="ff_odo"><t t-esc="v.odometro.toLocaleString('es-MX')"/> km</span>
+              <span class="ff_taller" t-if="v.costo_taller">Taller <t t-esc="dinero(v.costo_taller)"/></span>
+              <button class="ff_entregar" t-on-click="(ev) => this.entregar(ev, v.id)">Entregar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ff_vacio" t-if="!(d.vehiculos || []).length">
+          Aún no hay vehículos. <a href="#" t-on-click.prevent="() => this.nuevo()">Da de alta el primero.</a>
+        </div>
+      </t>
+    </div>
+  </t>
+</templates>
