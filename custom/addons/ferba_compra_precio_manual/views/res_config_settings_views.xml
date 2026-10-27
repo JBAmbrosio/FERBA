@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_ferba_precio_manual" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.ferba.precio.manual</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="purchase.res_config_settings_view_form_purchase"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='purchase_setting_container']" position="inside">
+                <setting id="ferba_compra_precio_manual" company_dependent="1"
+                         help="Las líneas de compra no traen precio automático (ni costo del producto ni lista del proveedor): el precio lo captura el comprador.">
+                    <field name="ferba_compra_precio_manual"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
