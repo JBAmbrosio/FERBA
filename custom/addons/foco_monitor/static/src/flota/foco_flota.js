@@ -112,10 +112,18 @@ export class FocoFlota extends Component {
             name: "Flota", views: [[false, "list"], [false, "form"]], target: "current",
         });
     }
-    async entregar(ev, id) {
+    entregar(ev, v) {
         ev.stopPropagation();
-        const act = await this.orm.call("foco.vehiculo", "action_asignar", [[id]]);
-        this.action.doAction(act, { onClose: () => this.cargar() });
+        // Se arma la accion aqui (con `views`) en vez de usar la del servidor:
+        // doAction sobre un dict sin `views` revienta en _preprocessAction.
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            name: "Entregar vehículo",
+            res_model: "foco.vehiculo.asignacion",
+            views: [[false, "form"]],
+            target: "new",
+            context: { default_vehiculo_id: v.id, default_odometro_entrega: v.odometro || 0 },
+        }, { onClose: () => this.cargar() });
     }
 }
 
