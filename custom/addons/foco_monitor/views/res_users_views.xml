@@ -33,6 +33,7 @@
                                options="{'no_create': True}"
                                placeholder="Todos los departamentos"/>
                         <field name="foco_gpt_enabled"/>
+                        <field name="foco_sin_avisos_operativos"/>
                     </group>
                     <div class="text-muted">
                         Si se deja vacio, esta persona ve la actividad de toda

@@ -342,6 +342,23 @@ class FocoComputer(models.Model):
     def action_clear_integrity_alert(self):
         self.write({'integrity_alert': False, 'integrity_alert_at': False})
 
+    @api.model
+    def _destinatarios_avisos(self, destinatarios):
+        """Quita de un aviso OPERATIVO por equipo (bloqueo aplicado/alterado,
+        watchdog, equipo sin senal) a quien pidio no recibirlos con la casilla
+        `res.users.foco_sin_avisos_operativos`.
+
+        Mismo criterio para el toast del bus y para el correo, y para las tres
+        alertas por equipo: un administrador de Foco que no atiende la operacion
+        -el dueno, un desarrollador- no tiene por que recibir el aviso de cada
+        maquina. El reporte diario y el resto de Foco NO pasan por aqui.
+        """
+        if not destinatarios:
+            return destinatarios
+        excluidos = self.env['res.users'].sudo().search(
+            [('foco_sin_avisos_operativos', '=', True)]).partner_id
+        return destinatarios - excluidos
+
     def notificar_politica(self, aplicada, detalle):
         """Avisa, con la campanita de Odoo, que un equipo aplico -o no pudo
         aplicar- el bloqueo de navegacion.
@@ -374,6 +391,7 @@ class FocoComputer(models.Model):
                                  raise_if_not_found=False)
             # `user_ids`: en Odoo 19 el campo se llama asi (antes `users`).
             destinatarios = grupo.user_ids.partner_id if grupo else destinatarios
+        destinatarios = self._destinatarios_avisos(destinatarios)
         if not destinatarios:
             return
 
@@ -470,6 +488,7 @@ class FocoComputer(models.Model):
         destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
         if perfil and perfil.write_uid.partner_id:
             destinatarios |= perfil.write_uid.partner_id
+        destinatarios = self._destinatarios_avisos(destinatarios)
         if not destinatarios:
             return
         nombre = perfil.name if perfil else 'sin perfil'
@@ -724,6 +743,7 @@ class FocoComputer(models.Model):
         self.ensure_one()
         grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
         destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
+        destinatarios = self._destinatarios_avisos(destinatarios)
         persona = self.employee_id.name or '-'
         desde = (fields.Datetime.context_timestamp(self, self.last_seen).strftime('%d/%m %H:%M')
                  if self.last_seen else 'nunca')

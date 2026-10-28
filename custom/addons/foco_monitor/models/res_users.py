@@ -37,6 +37,19 @@ class ResUsers(models.Model):
         help='Deja que esta persona use el asistente de IA de uso general, con la '
              'llave de la empresa. No le da acceso a ningun otro dato de Foco.')
 
+    # Opt-out de los avisos OPERATIVOS por equipo (bloqueo aplicado o alterado,
+    # watchdog sin ciclo, equipo sin senal). Son avisos de operacion/TI: un
+    # administrador de Foco que no los atiende -el dueno, un desarrollador- no
+    # tiene por que recibir el toast ni el correo de CADA maquina. Las tres
+    # alertas de foco.computer respetan esta casilla (ver _destinatarios_avisos).
+    # El reporte diario y el resto de Foco NO dependen de ella.
+    foco_sin_avisos_operativos = fields.Boolean(
+        string='No recibir avisos operativos de Foco',
+        help='Deja de enviar a esta persona los avisos por equipo (bloqueo '
+             'aplicado o alterado, watchdog sin ciclo, equipo sin senal). Util '
+             'para el dueno o los desarrolladores, que no atienden la operacion. '
+             'El reporte diario y el resto de Foco no se tocan.')
+
     def _grupo_gpt(self):
         return self.env.ref('foco_monitor.group_foco_gpt', raise_if_not_found=False)
 
@@ -89,7 +102,8 @@ class ResUsers(models.Model):
         mas. La excepcion se acota a este unico campo: cualquier otra cosa en
         la misma escritura la vuelve a someter a los permisos normales.
         """
-        campos_foco = {'foco_department_ids', 'foco_gpt_enabled'}
+        campos_foco = {'foco_department_ids', 'foco_gpt_enabled',
+                       'foco_sin_avisos_operativos'}
         if (vals and set(vals) <= campos_foco
                 and not self.env.su
                 and self.env.user.has_group('foco_monitor.group_foco_manager')):
