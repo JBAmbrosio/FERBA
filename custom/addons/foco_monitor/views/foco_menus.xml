@@ -40,6 +40,38 @@
               parent="menu_foco_root" action="foco_rrhh_revisar_action" sequence="4"
               groups="foco_monitor.group_foco_rrhh"/>
 
+    <!-- Flota, documentos de vehiculos y gastos, DELEGADOS a Recursos Humanos
+         (28-oct-2026): RRHH los ADMINISTRA (ver, editar y crear; el borrado
+         queda solo en el administrador). Son las MISMAS acciones que el manager
+         ve en "Ventas en campo"; aqui solo se le da a RRHH su propia entrada.
+         El acceso a los modelos va en ir.model.access.csv (group_foco_rrhh).
+         Las acciones se definen en foco_viaticos_views.xml, que se carga antes
+         que este archivo. -->
+    <menuitem id="menu_foco_rrhh_flota" name="Flota y gastos"
+              parent="menu_foco_root" sequence="5"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_flota_tablero" name="Tablero de Flota"
+              parent="menu_foco_rrhh_flota" action="foco_flota_action" sequence="10"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_vehiculos" name="Flota (lista)"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_action" sequence="20"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_asignaciones" name="Asignaciones de flota"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_asignacion_action" sequence="30"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_revisiones" name="Revisiones"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_revision_action" sequence="40"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_mantenimiento" name="Mantenimiento (taller)"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_mantenimiento_action" sequence="50"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_gastos" name="Gastos / Viaticos"
+              parent="menu_foco_rrhh_flota" action="foco_viatico_action" sequence="60"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_presupuestos" name="Presupuestos"
+              parent="menu_foco_rrhh_flota" action="foco_viatico_presupuesto_action" sequence="70"
+              groups="foco_monitor.group_foco_rrhh"/>
+
     <!-- Portada -->
     <menuitem id="menu_foco_dashboard" name="Tablero"
               parent="menu_foco_root" action="foco_dashboard_action" sequence="10"
