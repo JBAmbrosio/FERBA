@@ -31,6 +31,17 @@ ESTATUS_COLOR = {
     'cerrado': '#10b981',
 }
 
+# Una razon social (cliente) puede tener varias UBICACIONES fisicas: oficina,
+# almacen, campos. Cada ubicacion es un res.partner HIJO (parent_id = la razon
+# social) con su propio pin y esta etiqueta. El cliente principal lo deja vacio.
+# Las claves deben empatar con foco.mobile.device.TIPOS_UBICACION.
+TIPO_UBICACION = [
+    ('oficina', 'Oficina'),
+    ('almacen', 'Almacen'),
+    ('campo', 'Campo'),
+    ('otro', 'Otra ubicacion'),
+]
+
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
@@ -53,6 +64,19 @@ class ResPartner(models.Model):
         string='Ubicacion por resolver', default=False,
         help='El enlace de Google Maps no traia coordenadas (p.ej. uno acortado): '
              'hay que geolocalizarlo o capturarlo en la primera visita.')
+
+    # UBICACIONES bajo una misma razon social (oficina, almacen, campos): cada una
+    # es un partner HIJO con esta etiqueta y su propio pin. Asi la oficina y los
+    # campos de "Agricola Uromex" no son tres clientes distintos, sino ubicaciones
+    # de la misma razon social. Vacio = es la razon social (cliente principal).
+    foco_tipo_ubicacion = fields.Selection(
+        TIPO_UBICACION, string='Tipo de ubicacion', index=True,
+        help='Para las ubicaciones que cuelgan de una razon social. El cliente '
+             'principal (razon social) lo deja vacio.')
+    foco_es_ubicacion = fields.Boolean(
+        string='Es una ubicacion', compute='_compute_foco_es_ubicacion', store=True,
+        help='Verdadero cuando es una ubicacion (oficina/almacen/campo) de otra '
+             'razon social, no un cliente por si mismo.')
 
     # La ZONA es el estado. Sale del pin (punto en el mapa de estados) y, si el
     # cliente no tiene pin, del estado de su direccion. NO del texto de la zona
@@ -127,6 +151,12 @@ class ResPartner(models.Model):
             p.foco_visita_count = n
             p.foco_ultima_visita = ult
 
+    @api.depends('parent_id', 'foco_tipo_ubicacion', 'foco_cliente_ventas')
+    def _compute_foco_es_ubicacion(self):
+        for p in self:
+            p.foco_es_ubicacion = bool(
+                p.foco_cliente_ventas and p.parent_id and p.foco_tipo_ubicacion)
+
     def action_foco_ver_visitas(self):
         self.ensure_one()
         return {
@@ -194,17 +224,30 @@ class ResPartner(models.Model):
                     ['partner_id'], ['check_in:max', '__count']):
                 ult_visita[g[0].id] = (g[1], g[2])
 
-        filas, por_estatus, sin_geo = [], {}, 0
+        tipo_label = dict(TIPO_UBICACION)
+        filas, por_estatus, sin_geo, n_razones = [], {}, 0, 0
         for c in clientes:
             if not (c.partner_latitude or c.partner_longitude):
                 sin_geo += 1
             ult, nvis = ult_visita.get(c.id, (False, 0))
-            est = c.foco_estatus or 'prospecto'
-            por_estatus[est] = por_estatus.get(est, 0) + 1
+            # Una UBICACION hereda el estatus (y el color) de su razon social: un
+            # almacen no es un "prospecto" aparte. Solo las razones sociales cuentan
+            # para el total y el desglose por estatus.
+            es_ubic = bool(c.parent_id and c.foco_tipo_ubicacion)
+            razon = c.commercial_partner_id if es_ubic else c
+            est = (razon.foco_estatus if es_ubic else c.foco_estatus) or 'prospecto'
+            if not es_ubic:
+                n_razones += 1
+                por_estatus[est] = por_estatus.get(est, 0) + 1
             filas.append({
                 'id': c.id, 'name': c.display_name,
                 'lat': c.partner_latitude, 'lng': c.partner_longitude,
                 'estatus': est, 'color': ESTATUS_COLOR.get(est, '#94a3b8'),
+                'es_ubicacion': es_ubic,
+                'tipo_ubicacion': c.foco_tipo_ubicacion or '',
+                'tipo_ubicacion_label': tipo_label.get(c.foco_tipo_ubicacion, ''),
+                'razon_social': razon.display_name if es_ubic else '',
+                'parent_id': c.parent_id.id if c.parent_id else False,
                 'empaque': c.foco_empaque or '', 'zona': c.foco_zona or '',
                 'estado': c.foco_estado_id.name or '',
                 'estado_id': c.foco_estado_id.id or False,
@@ -253,7 +296,8 @@ class ResPartner(models.Model):
             'estatus_labels': dict(ESTATUS_VENTAS),
             'estatus_color': ESTATUS_COLOR,
             'kpis': {
-                'total': len(clientes), 'por_estatus': por_estatus,
+                'total': n_razones, 'por_estatus': por_estatus,
+                'ubicaciones': len(clientes) - n_razones,
                 'oportunidades': total_oport, 'sin_geo': sin_geo,
                 'visitas_mes': visitas_mes, 'sin_visita_30': sin_visita_30,
             },

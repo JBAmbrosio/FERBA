@@ -251,14 +251,15 @@
             <form string="Vehiculo">
                 <header>
                     <field name="asignacion_activa_id" invisible="1"/>
-                    <!-- Libre -> Entregar. Ya asignado -> Devolver (+ reasignar). -->
+                    <!-- Libre -> Entregar. Ya asignado -> Devolver (+ reasignar).
+                         Sin foto no se puede entregar (no entra al expediente). -->
                     <button name="action_asignar" type="object" string="Entregar vehiculo"
-                            class="btn-primary" invisible="asignacion_activa_id"/>
+                            class="btn-primary" invisible="asignacion_activa_id or not foto"/>
                     <button name="action_devolver" type="object" string="Devolver vehiculo"
                             class="btn-primary" invisible="not asignacion_activa_id"
                             confirm="¿Devolver el vehiculo? El tenedor actual deja de traerlo."/>
                     <button name="action_asignar" type="object" string="Entregar a otra persona"
-                            class="btn-secondary" invisible="not asignacion_activa_id"/>
+                            class="btn-secondary" invisible="not asignacion_activa_id or not foto"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -283,6 +284,11 @@
                     <field name="seguro_estado" invisible="1"/>
                     <field name="tenencia_estado" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="foto">
+                        <i class="fa fa-camera me-2"/>
+                        Falta la <b>foto del vehículo</b>. Es obligatoria para su expediente
+                        y para poder entregarlo.
+                    </div>
                     <div class="alert alert-warning" role="alert" invisible="not responsiva_pendiente">
                         La carta responsiva de recepcion todavia no se firma.
                     </div>

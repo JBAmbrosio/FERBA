@@ -32,6 +32,12 @@
                             <field name="foco_expediente_url" widget="url"/>
                         </group>
                         <group string="Ubicacion y zona">
+                            <field name="foco_es_ubicacion" invisible="1"/>
+                            <field name="parent_id" string="Razón social (si es una ubicación)"
+                                   domain="[('foco_cliente_ventas', '=', True), ('parent_id', '=', False), ('id', '!=', id)]"
+                                   help="Para colgar una ubicación (oficina, almacén, campo) de un cliente existente."/>
+                            <field name="foco_tipo_ubicacion" invisible="not parent_id"
+                                   required="parent_id"/>
                             <field name="foco_estado_id" readonly="1"/>
                             <field name="foco_estado_origen" readonly="1"
                                    invisible="not foco_estado_id"/>

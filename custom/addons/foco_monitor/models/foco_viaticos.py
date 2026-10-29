@@ -51,7 +51,14 @@ class FocoVehiculo(models.Model):
 
     name = fields.Char(string='Nombre', required=True)
     matricula = fields.Char(string='Matricula', required=True, index=True)
-    foto = fields.Image(string='Foto del vehiculo', max_width=1024, max_height=1024)
+    # Obligatoria: un vehiculo sin foto no entra al expediente ni se puede entregar
+    # (Diego/Francesco, 27-oct-2026). required solo valida al guardar el formulario
+    # y al crear; NO agrega un NOT NULL (Image va por adjunto), asi que la
+    # actualizacion del modulo no tumba vehiculos viejos que aun no tengan foto.
+    foto = fields.Image(string='Foto del vehiculo', max_width=1024, max_height=1024,
+                        required=True,
+                        help='Obligatoria. Un vehiculo sin foto no entra al expediente '
+                             'ni se puede entregar.')
     company_id = fields.Many2one('res.company', string='Empresa', required=True,
                                  default=lambda self: self.env.company)
     currency_id = fields.Many2one(related='company_id.currency_id', string='Moneda')
@@ -206,10 +213,21 @@ class FocoVehiculo(models.Model):
                         'default_odometro': self.odometro_actual or 0},
         }
 
+    def _exigir_foto(self):
+        """El coche no entra al expediente -ni se entrega- sin foto. Guarda tanto
+        del boton Entregar como de crear la asignacion directa (constrains)."""
+        sin = self.filtered(lambda v: not v.foto)
+        if sin:
+            raise UserError(
+                'Falta la foto de %s. Un vehículo sin foto no entra al expediente: '
+                'agrega la foto del vehículo antes de entregarlo.'
+                % ', '.join(sin.mapped('name')))
+
     def action_asignar(self):
         """Abre el alta de una nueva asignacion (entregar el coche a alguien o a un
         lugar). Al guardarla se cierra sola la asignacion anterior."""
         self.ensure_one()
+        self._exigir_foto()
         return {
             'type': 'ir.actions.act_window',
             'name': 'Entregar vehiculo',
@@ -618,6 +636,16 @@ class FocoVehiculoAsignacion(models.Model):
                 raise UserError('Elige la persona que recibe el vehiculo.')
             if a.tipo == 'ubicacion' and not (a.ubicacion or '').strip():
                 raise UserError('Escribe el lugar donde queda el vehiculo.')
+
+    @api.constrains('vehiculo_id')
+    def _check_vehiculo_foto(self):
+        """No se entrega un coche sin foto en su expediente (tambien al crear la
+        asignacion a mano, sin pasar por el boton Entregar)."""
+        for a in self:
+            if a.vehiculo_id and not a.vehiculo_id.foto:
+                raise UserError(
+                    'El vehículo «%s» no tiene foto en su expediente. Agrega la foto '
+                    'del vehículo antes de entregarlo.' % a.vehiculo_id.name)
 
     @api.model_create_multi
     def create(self, vals_list):

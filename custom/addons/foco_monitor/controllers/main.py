@@ -1175,7 +1175,9 @@ class FocoController(http.Controller):
         el sitio. Corre como el vendedor, con sus permisos."""
         res, error = self._ventas(lambda dev, data: dev.crear_cliente(
             data.get('nombre'), data.get('lat'), data.get('lon'),
-            data.get('telefono') or '', data.get('accuracy') or 0.0))
+            data.get('telefono') or '', data.get('accuracy') or 0.0,
+            parent_id=data.get('parent_id') or None,
+            tipo_ubicacion=data.get('tipo_ubicacion') or None))
         return error or request.make_json_response(res)
 
     # ----------------------------------------------- viaticos / gastos (campo)

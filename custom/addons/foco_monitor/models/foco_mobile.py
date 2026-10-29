@@ -749,6 +749,11 @@ class FocoMobileDevice(models.Model):
             filas.append({
                 'id': c.id, 'name': c.display_name,
                 'lat': c.partner_latitude, 'lon': c.partner_longitude,
+                # Ubicacion de una razon social (oficina/almacen/campo) vs cliente
+                # principal: la app ofrece "ubicacion de un cliente existente".
+                'es_ubicacion': bool(c.parent_id and c.foco_tipo_ubicacion),
+                'tipo_ubicacion': c.foco_tipo_ubicacion or '',
+                'parent_id': c.parent_id.id if c.parent_id else 0,
                 'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
                 'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
                 # Zona por ESTADO (pestana Mapa): el codigo empata con el de los
@@ -1023,46 +1028,88 @@ class FocoMobileDevice(models.Model):
         return {'ok': True, 'lat': lat, 'lon': lon,
                 'mensaje': 'Actualicé la ubicación de %s.' % cliente.display_name}
 
-    def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0):
-        """Registra un cliente NUEVO (prospecto) con su pin SIN estar en el sitio:
-        la ubicacion llega de lo que el cliente compartio por WhatsApp/Maps, de un
-        toque en el mapa, o del GPS. Nombre obligatorio, telefono opcional,
-        ubicacion obligatoria. Corre con los permisos del vendedor y queda
-        asignado a el, como un prospecto (igual que el alta por check-in)."""
+    # Etiquetas de ubicacion validas (empatan con res.partner.foco_tipo_ubicacion
+    # y con res_partner.TIPO_UBICACION).
+    TIPOS_UBICACION = {'oficina': 'Oficina', 'almacen': 'Almacén',
+                       'campo': 'Campo', 'otro': 'Otra ubicación'}
+
+    def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0,
+                      parent_id=None, tipo_ubicacion=None):
+        """Registra un cliente NUEVO (prospecto) con su pin, o una UBICACION nueva
+        (oficina/almacen/campo) que cuelga de una razon social EXISTENTE, sin estar
+        en el sitio. La ubicacion llega de lo que el cliente compartio por
+        WhatsApp/Maps, de un toque en el mapa, o del GPS.
+
+        Si llega `parent_id`, el registro se crea como HIJO de esa razon social con
+        la etiqueta `tipo_ubicacion`, en vez de como una empresa aparte: asi la
+        oficina, el almacen y los campos de 'Agricola Uromex' no son tres clientes
+        distintos sino ubicaciones de la misma razon social (caso Cori, 27-oct-2026).
+        Nombre obligatorio para una razon social nueva (para una ubicacion se usa la
+        etiqueta si no lo ponen); ubicacion obligatoria. Corre con los permisos del
+        vendedor y queda asignado a el, como un prospecto (igual que el alta por
+        check-in)."""
         self.ensure_one()
         user = self._vendedor()
         if not user:
             raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        # Razon social padre (opcional): la UBICACION cuelga de ella. Nunca se
+        # anida mas de un nivel (se cuelga del comercial de la razon social).
+        razon = None
+        if parent_id:
+            razon = self.env['res.partner'].with_user(user).browse(int(parent_id)).exists()
+            if not razon or not razon.foco_cliente_ventas:
+                raise UserError('Esa razón social ya no existe en Odoo.')
+            razon = razon.commercial_partner_id
         nombre = (nombre or '').strip()
-        if not nombre:
+        tipo = (tipo_ubicacion or '').strip().lower()
+        if razon:
+            if tipo not in self.TIPOS_UBICACION:
+                tipo = 'otro'
+            if not nombre:
+                nombre = self.TIPOS_UBICACION[tipo]
+        elif not nombre:
             raise UserError('Ponle un nombre al cliente.')
+        que = 'la ubicación' if razon else 'el cliente'
         try:
             lat = float(lat)
             lon = float(lon)
         except (TypeError, ValueError):
-            raise UserError('No tengo una ubicación válida para el cliente.')
+            raise UserError('No tengo una ubicación válida para %s.' % que)
         if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
-            raise UserError('No tengo una ubicación válida para el cliente.')
+            raise UserError('No tengo una ubicación válida para %s.' % que)
         vals = {
             'name': nombre[:120],
-            'company_type': 'company',
-            'foco_cliente_ventas': True, 'foco_estatus': 'prospecto',
-            'user_id': user.id,
+            'foco_cliente_ventas': True,
+            'user_id': (razon.user_id.id if razon and razon.user_id else user.id),
             'partner_latitude': lat, 'partner_longitude': lon,
         }
+        if razon:
+            vals.update({'parent_id': razon.id, 'type': 'other',
+                         'foco_tipo_ubicacion': tipo})
+        else:
+            vals.update({'company_type': 'company', 'foco_estatus': 'prospecto'})
         tel = (telefono or '').strip()
         if tel:
             vals['phone'] = tel[:32]
         cliente = self.env['res.partner'].with_user(user).create(vals)
+        marca = ', ±%dm' % int(precision) if precision else ''
         try:
-            cliente.message_post(
-                body='Cliente registrado desde el teléfono con la ubicación compartida '
-                     '(%.6f, %.6f%s).' % (lat, lon, ', ±%dm' % int(precision) if precision else ''))
+            if razon:
+                cuerpo = ('Ubicación «%s» (%s) registrada desde el teléfono para %s '
+                          '(%.6f, %.6f%s).' % (cliente.name, self.TIPOS_UBICACION[tipo],
+                                               razon.display_name, lat, lon, marca))
+            else:
+                cuerpo = ('Cliente registrado desde el teléfono con la ubicación '
+                          'compartida (%.6f, %.6f%s).' % (lat, lon, marca))
+            cliente.message_post(body=cuerpo)
         except Exception:  # noqa: BLE001
             pass
+        mensaje = ('Registré la ubicación %s de %s.'
+                   % (self.TIPOS_UBICACION[tipo], razon.display_name)) if razon \
+            else 'Registré a %s.' % cliente.display_name
         return {'ok': True, 'id': cliente.id, 'lat': lat, 'lon': lon,
-                'name': cliente.display_name,
-                'mensaje': 'Registré a %s.' % cliente.display_name}
+                'name': cliente.display_name, 'es_ubicacion': bool(razon),
+                'mensaje': mensaje}
 
     # ----------------------------------------------------- viaticos (gastos)
     @staticmethod
