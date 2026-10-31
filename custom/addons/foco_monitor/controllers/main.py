@@ -1180,6 +1180,26 @@ class FocoController(http.Controller):
             tipo_ubicacion=data.get('tipo_ubicacion') or None))
         return error or request.make_json_response(res)
 
+    @http.route('/foco/mobile/editar_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_editar_ubicacion(self, **kw):
+        """Reemplaza/edita una ubicacion existente (tipo, pin y/o nombre). Corre como
+        el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.editar_ubicacion(
+            data.get('partner_id'), tipo_ubicacion=data.get('tipo_ubicacion') or None,
+            lat=data.get('lat'), lon=data.get('lon'),
+            nombre=data.get('nombre') or None, precision=data.get('accuracy') or 0.0))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/borrar_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_borrar_ubicacion(self, **kw):
+        """Borra (archiva) una ubicacion hija de una razon social. Corre como el
+        vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.borrar_ubicacion(
+            data.get('partner_id')))
+        return error or request.make_json_response(res)
+
     # ----------------------------------------------- viaticos / gastos (campo)
     @http.route('/foco/mobile/viatico_ocr', type='http', auth='public',
                 methods=['POST'], csrf=False)

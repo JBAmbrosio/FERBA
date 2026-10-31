@@ -1113,6 +1113,83 @@ class FocoMobileDevice(models.Model):
                 'name': cliente.display_name, 'es_ubicacion': bool(razon),
                 'mensaje': mensaje}
 
+    def _ubicacion_hija(self, partner_id, que):
+        """Localiza y valida una UBICACION hija (oficina/empaque/campo...) de una
+        razon social, con los permisos del vendedor. Nunca deja tocar la razon
+        social (tiene historial): solo sus ubicaciones."""
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        ubic = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not ubic:
+            raise UserError('Esa ubicación ya no existe en Odoo.')
+        if not (ubic.parent_id and ubic.foco_tipo_ubicacion):
+            raise UserError('Eso es un cliente, no una ubicación: no se puede %s desde aquí.' % que)
+        return ubic
+
+    def borrar_ubicacion(self, partner_id):
+        """Borra (ARCHIVA, reversible) una ubicacion hija de una razon social. Solo
+        ubicaciones, no la razon social. Con los permisos del vendedor. Peticion del
+        Ing (30-oct-2026): el mapa junta mucha 'basura' de pines viejos."""
+        self.ensure_one()
+        ubic = self._ubicacion_hija(partner_id, 'borrar')
+        nombre = ubic.display_name
+        razon = ubic.commercial_partner_id
+        try:
+            ubic.message_post(body='Ubicación «%s» borrada (archivada) desde el teléfono.' % ubic.name)
+        except Exception:  # noqa: BLE001
+            pass
+        ubic.write({'active': False})
+        return {'ok': True, 'id': ubic.id,
+                'mensaje': 'Borré la ubicación %s de %s.' % (nombre, razon.display_name)}
+
+    def editar_ubicacion(self, partner_id, tipo_ubicacion=None, lat=None, lon=None,
+                         nombre=None, precision=0.0):
+        """Reemplaza/edita una ubicacion existente: cambia su tipo, mueve su pin y/o
+        cambia su nombre (lo que llegue). Con los permisos del vendedor. Peticion del
+        Ing (30-oct-2026): opcion 'reemplazar' en las ubicaciones del mapa."""
+        self.ensure_one()
+        ubic = self._ubicacion_hija(partner_id, 'reemplazar')
+        vals = {}
+        tipo = (tipo_ubicacion or '').strip().lower()
+        if tipo:
+            if tipo not in self.TIPOS_UBICACION:
+                tipo = 'otro'
+            vals['foco_tipo_ubicacion'] = tipo
+        nom = (nombre or '').strip()
+        if nom:
+            vals['name'] = nom[:120]
+        if lat is not None and lon is not None and lat != '' and lon != '':
+            try:
+                lat = float(lat)
+                lon = float(lon)
+            except (TypeError, ValueError):
+                raise UserError('No tengo una ubicación válida para fijar.')
+            if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+                raise UserError('No tengo una ubicación válida para fijar.')
+            vals['partner_latitude'] = lat
+            vals['partner_longitude'] = lon
+        if not vals:
+            raise UserError('No hay cambios que guardar.')
+        ubic.write(vals)
+        marca = ', ±%dm' % int(precision) if precision else ''
+        try:
+            partes = []
+            if 'foco_tipo_ubicacion' in vals:
+                partes.append('tipo → %s' % self.TIPOS_UBICACION.get(tipo, tipo))
+            if 'partner_latitude' in vals:
+                partes.append('ubicación (%.6f, %.6f%s)' % (vals['partner_latitude'], vals['partner_longitude'], marca))
+            if 'name' in vals:
+                partes.append('nombre → %s' % vals['name'])
+            ubic.message_post(body='Ubicación reemplazada desde el teléfono: %s.' % ', '.join(partes))
+        except Exception:  # noqa: BLE001
+            pass
+        return {'ok': True, 'id': ubic.id,
+                'lat': ubic.partner_latitude, 'lon': ubic.partner_longitude,
+                'tipo_ubicacion': ubic.foco_tipo_ubicacion or '',
+                'name': ubic.display_name,
+                'mensaje': 'Actualicé la ubicación %s.' % ubic.display_name}
+
     # ----------------------------------------------------- viaticos (gastos)
     @staticmethod
     def _b64(d):
