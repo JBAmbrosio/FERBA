@@ -31,13 +31,16 @@ ESTATUS_COLOR = {
     'cerrado': '#10b981',
 }
 
-# Una razon social (cliente) puede tener varias UBICACIONES fisicas: oficina,
-# almacen, campos. Cada ubicacion es un res.partner HIJO (parent_id = la razon
-# social) con su propio pin y esta etiqueta. El cliente principal lo deja vacio.
-# Las claves deben empatar con foco.mobile.device.TIPOS_UBICACION.
+# Una razon social (cliente) puede tener varias UBICACIONES fisicas: entrada,
+# oficina, empaque, campos. Cada ubicacion es un res.partner HIJO (parent_id = la
+# razon social) con su propio pin y esta etiqueta. El cliente principal lo deja
+# vacio. Las claves deben empatar con foco.mobile.device.TIPOS_UBICACION y con los
+# chips de la app (entrada/oficina/empaque/campo/otra, como los pidio el Ing). El
+# 'almacen' anterior se migra a 'empaque' (migrations/19.0.29.55.0).
 TIPO_UBICACION = [
+    ('entrada', 'Entrada'),
     ('oficina', 'Oficina'),
-    ('almacen', 'Almacen'),
+    ('empaque', 'Empaque'),
     ('campo', 'Campo'),
     ('otro', 'Otra ubicacion'),
 ]

@@ -1028,10 +1028,12 @@ class FocoMobileDevice(models.Model):
         return {'ok': True, 'lat': lat, 'lon': lon,
                 'mensaje': 'Actualicé la ubicación de %s.' % cliente.display_name}
 
-    # Etiquetas de ubicacion validas (empatan con res.partner.foco_tipo_ubicacion
-    # y con res_partner.TIPO_UBICACION).
-    TIPOS_UBICACION = {'oficina': 'Oficina', 'almacen': 'Almacén',
-                       'campo': 'Campo', 'otro': 'Otra ubicación'}
+    # Etiquetas de ubicacion validas (empatan con res.partner.foco_tipo_ubicacion,
+    # con res_partner.TIPO_UBICACION y con los chips de la app). El 'almacen'
+    # anterior se migro a 'empaque' (migrations/19.0.29.55.0).
+    TIPOS_UBICACION = {'entrada': 'Entrada', 'oficina': 'Oficina',
+                       'empaque': 'Empaque', 'campo': 'Campo',
+                       'otro': 'Otra ubicación'}
 
     def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0,
                       parent_id=None, tipo_ubicacion=None):
