@@ -538,6 +538,15 @@
                         0 = la tolerancia global de Foco (Configuración ▸ Asistencia y reporte diario).
                         El horario contra el que se mide es el calendario laboral de la persona.
                     </p>
+                    <group string="Ventas">
+                        <field name="foco_coaching_modo"/>
+                    </group>
+                    <p class="text-muted">
+                        <b>Experto</b>: sus llamadas solo se transcriben, como ejemplo para la IA,
+                        sin gastar créditos en evaluarlo ni devolverle coaching.
+                        <b>Recibe coaching</b>: la IA evalúa cada llamada y le regresa el coaching al teléfono.
+                        Requiere que el interruptor global esté encendido (Configuración ▸ Móvil).
+                    </p>
                 </page>
             </xpath>
         </field>

@@ -39,6 +39,24 @@ class HrEmployee(models.Model):
             if r.foco_gracia_min < 0 or r.foco_gracia_min > 120:
                 raise ValidationError('La tolerancia de entrada va de 0 a 120 minutos.')
 
+    # Coaching de llamadas POR VENDEDOR (30-oct-2026). El interruptor global
+    # (foco.settings.coaching_llamadas) decide si se aceptan audios; este decide,
+    # para CADA vendedor, que se hace con ellos. El experto solo se transcribe
+    # (sus llamadas son ejemplo para la IA) y NO se gastan creditos en evaluarlo
+    # ni se le devuelve coaching; el inexperto recibe el coaching completo.
+    foco_coaching_modo = fields.Selection([
+        ('completo', 'Recibe coaching'),
+        ('experto', 'Experto (ensena, sin coaching)'),
+        ('no', 'Sin coaching'),
+    ], string='Coaching de llamadas', default='completo', prefetch=False,
+       help='Como trata Foco las llamadas de este vendedor:\n'
+            '- Recibe coaching: se transcribe y la IA lo evalua (fortalezas, '
+            'debilidades, puntaje) y se le regresa el coaching al telefono.\n'
+            '- Experto: solo se transcribe —sus llamadas sirven de ejemplo para '
+            'ensenar a la IA— sin gastar creditos en evaluarlo ni devolverle '
+            'coaching.\n'
+            '- Sin coaching: Foco no guarda ni analiza sus llamadas.')
+
     def foco_justify_url(self, days=7):
         """Liga personal para justificar. Se renueva si caduco."""
         self.ensure_one()

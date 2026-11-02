@@ -1400,6 +1400,7 @@ class FocoMobileDevice(models.Model):
         desde = fields.Datetime.now() - timedelta(days=2)
         coaching_nuevo = self.env['foco.llamada'].sudo().search_count(
             [('employee_id', '=', emp.id), ('audio_estado', '=', 'listo'),
+             ('es_ejemplo', '=', False),
              ('analizado_el', '>=', fields.Datetime.to_string(desde))])
         return {
             'ok': True, 'fecha': str(hoy),
@@ -1744,6 +1745,12 @@ class FocoMobileDevice(models.Model):
         self.ensure_one()
         if not self.env['foco.settings'].sudo().get_settings().coaching_llamadas:
             return {'ok': False, 'error': 'off'}
+        # Modo del vendedor (hr.employee.foco_coaching_modo): 'no' no guarda nada;
+        # 'experto' guarda pero solo para transcribir (ejemplo, sin coaching);
+        # 'completo' (o sin empleado) recibe el coaching completo.
+        modo = self.employee_id.foco_coaching_modo or 'completo'
+        if modo == 'no':
+            return {'ok': False, 'error': 'off'}
         if origen not in ('whatsapp', 'celular', 'otro'):
             origen = 'whatsapp'
         Llamada = self.env['foco.llamada'].sudo()
@@ -1758,6 +1765,7 @@ class FocoMobileDevice(models.Model):
             'duration_s': int(duracion or 0),
             'grabacion_consentida': bool(consent),
             'origen': origen,
+            'es_ejemplo': modo == 'experto',
         }
         if started:
             vals['started_at'] = started
@@ -1772,7 +1780,8 @@ class FocoMobileDevice(models.Model):
         su coaching en la app."""
         self.ensure_one()
         recs = self.env['foco.llamada'].sudo().search(
-            [('device_id', '=', self.id), ('audio_estado', '=', 'listo')],
+            [('device_id', '=', self.id), ('audio_estado', '=', 'listo'),
+             ('es_ejemplo', '=', False)],
             limit=int(limite or 20))
         return [r.coaching_para_telefono() for r in recs]
 

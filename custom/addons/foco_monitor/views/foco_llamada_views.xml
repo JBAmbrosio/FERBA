@@ -10,6 +10,7 @@
                 <field name="started_at"/>
                 <field name="employee_id"/>
                 <field name="origen" widget="badge"/>
+                <field name="es_ejemplo" string="Ejemplo" optional="show"/>
                 <field name="partner_id" optional="show"/>
                 <field name="duration_text" string="Duracion"/>
                 <field name="analisis_puntaje" string="Puntaje"/>
@@ -48,10 +49,15 @@
                             <field name="analisis_puntaje" readonly="1"/>
                             <field name="analizado_el" readonly="1"/>
                             <field name="grabacion_consentida" readonly="1"/>
+                            <field name="es_ejemplo" readonly="1"/>
                         </group>
                     </group>
+                    <div class="alert alert-info" role="alert" invisible="not es_ejemplo">
+                        Llamada de un <b>vendedor experto</b>: solo se transcribe, como ejemplo para la IA.
+                        No se evalúa ni genera coaching (para no gastar créditos).
+                    </div>
                     <notebook invisible="audio_estado == 'sin_audio'">
-                        <page string="Coaching de la IA" name="coaching">
+                        <page string="Coaching de la IA" name="coaching" invisible="es_ejemplo">
                             <group string="Resumen">
                                 <field name="analisis_resumen" nolabel="1"/>
                             </group>
@@ -67,7 +73,7 @@
                                 <field name="analisis_mejoras" nolabel="1"/>
                             </group>
                         </page>
-                        <page string="Conversación" name="dialogo">
+                        <page string="Conversación" name="dialogo" invisible="es_ejemplo">
                             <field name="dialogo_html" nolabel="1" readonly="1"/>
                         </page>
                         <page string="Transcripcion" name="transcripcion">

@@ -67,6 +67,14 @@ class FocoLlamada(models.Model):
     partner_id = fields.Many2one('res.partner', string='Cliente',
                                  domain=[('foco_cliente_ventas', '=', True)])
     grabacion_consentida = fields.Boolean(string='Grabacion con aviso')
+    # Llamada de un vendedor EXPERTO: se transcribe para servir de ejemplo a la
+    # IA pero NO se evalua (no se gastan creditos en coaching ni se le devuelve).
+    # Se fija al subir el audio, segun el modo del vendedor (hr.employee.
+    # foco_coaching_modo). Ver guardar_audio_llamada.
+    es_ejemplo = fields.Boolean(
+        string='Ejemplo del experto', default=False, index=True,
+        help='Llamada de un vendedor experto: se transcribe como ejemplo para la '
+             'IA, sin evaluarla ni devolver coaching.')
     origen = fields.Selection([
         ('whatsapp', 'WhatsApp'),
         ('celular', 'Llamada celular'),
@@ -162,7 +170,10 @@ class FocoLlamada(models.Model):
                     raw, nombre=rec.audio_name or 'llamada.wav', idioma='es',
                     mime='audio/wav')
                 rec.transcripcion = texto or ''
-                if not (texto or '').strip():
+                # Experto: la transcripcion es el ejemplo para la IA. Se detiene
+                # aqui para NO gastar creditos en el reparto en turnos ni en la
+                # evaluacion. Cubre tambien el caso de transcripcion vacia.
+                if rec.es_ejemplo or not (texto or '').strip():
                     rec.audio_estado = 'listo'
                     rec.analizado_el = fields.Datetime.now()
                     continue
