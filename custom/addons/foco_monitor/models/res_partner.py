@@ -80,6 +80,14 @@ class ResPartner(models.Model):
         string='Es una ubicacion', compute='_compute_foco_es_ubicacion', store=True,
         help='Verdadero cuando es una ubicacion (oficina/almacen/campo) de otra '
              'razon social, no un cliente por si mismo.')
+    # Descripcion libre de la ubicacion + su foto, que captura el vendedor desde el
+    # telefono (peticion del Ing, 30-oct-2026: ademas del tipo, "otra que pueda
+    # describir lo que el quiera" y "tome la foto y la ponga"). La foto va en el
+    # image_1920 estandar del partner.
+    foco_ubicacion_nota = fields.Char(
+        string='Nota de la ubicacion',
+        help='Referencia libre que escribe el vendedor desde el telefono '
+             '(p.ej. "porton azul", "el pozo", "junto a la gasolinera").')
 
     # La ZONA es el estado. Sale del pin (punto en el mapa de estados) y, si el
     # cliente no tiene pin, del estado de su direccion. NO del texto de la zona

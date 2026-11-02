@@ -1177,7 +1177,8 @@ class FocoController(http.Controller):
             data.get('nombre'), data.get('lat'), data.get('lon'),
             data.get('telefono') or '', data.get('accuracy') or 0.0,
             parent_id=data.get('parent_id') or None,
-            tipo_ubicacion=data.get('tipo_ubicacion') or None))
+            tipo_ubicacion=data.get('tipo_ubicacion') or None,
+            nota=data.get('nota'), foto=data.get('foto')))
         return error or request.make_json_response(res)
 
     @http.route('/foco/mobile/editar_ubicacion', type='http', auth='public',
@@ -1188,7 +1189,17 @@ class FocoController(http.Controller):
         res, error = self._ventas(lambda dev, data: dev.editar_ubicacion(
             data.get('partner_id'), tipo_ubicacion=data.get('tipo_ubicacion') or None,
             lat=data.get('lat'), lon=data.get('lon'),
-            nombre=data.get('nombre') or None, precision=data.get('accuracy') or 0.0))
+            nombre=data.get('nombre') or None, precision=data.get('accuracy') or 0.0,
+            nota=data.get('nota'), foto=data.get('foto')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/ubicacion_foto', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_ubicacion_foto(self, **kw):
+        """Baja la foto de una ubicacion/cliente para mostrarla en la ficha del
+        telefono. Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.foto_ubicacion(
+            data.get('partner_id')))
         return error or request.make_json_response(res)
 
     @http.route('/foco/mobile/borrar_ubicacion', type='http', auth='public',

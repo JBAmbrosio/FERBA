@@ -745,6 +745,10 @@ class FocoMobileDevice(models.Model):
         self.ensure_one()
         Partner = self.env['res.partner'].sudo()
         filas = []
+        # Quienes tienen foto, en UNA busqueda: leer image_1920 fila por fila
+        # cargaria el blob de cada cliente. Asi solo marcamos un booleano.
+        con_foto = set(Partner.search(
+            [('foco_cliente_ventas', '=', True), ('image_1920', '!=', False)]).ids)
         for c in Partner.search([('foco_cliente_ventas', '=', True)], limit=3000):
             filas.append({
                 'id': c.id, 'name': c.display_name,
@@ -753,6 +757,9 @@ class FocoMobileDevice(models.Model):
                 # principal: la app ofrece "ubicacion de un cliente existente".
                 'es_ubicacion': bool(c.parent_id and c.foco_tipo_ubicacion),
                 'tipo_ubicacion': c.foco_tipo_ubicacion or '',
+                # Nota libre + si tiene foto (la foto se baja aparte, no en la lista).
+                'nota': c.foco_ubicacion_nota or '',
+                'tiene_foto': c.id in con_foto,
                 'parent_id': c.parent_id.id if c.parent_id else 0,
                 'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
                 'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
@@ -1036,7 +1043,7 @@ class FocoMobileDevice(models.Model):
                        'otro': 'Otra ubicación'}
 
     def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0,
-                      parent_id=None, tipo_ubicacion=None):
+                      parent_id=None, tipo_ubicacion=None, nota=None, foto=None):
         """Registra un cliente NUEVO (prospecto) con su pin, o una UBICACION nueva
         (oficina/almacen/campo) que cuelga de una razon social EXISTENTE, sin estar
         en el sitio. La ubicacion llega de lo que el cliente compartio por
@@ -1093,6 +1100,14 @@ class FocoMobileDevice(models.Model):
         tel = (telefono or '').strip()
         if tel:
             vals['phone'] = tel[:32]
+        # Nota libre y foto de la ubicacion (opcionales), lo que pidio el Ing: una
+        # descripcion de lo que el quiera y una foto del lugar.
+        nota_txt = (nota or '').strip()
+        if nota_txt:
+            vals['foco_ubicacion_nota'] = nota_txt[:1000]
+        foto_b64 = self._foto_limpia(foto)
+        if foto_b64:
+            vals['image_1920'] = foto_b64
         cliente = self.env['res.partner'].with_user(user).create(vals)
         marca = ', ±%dm' % int(precision) if precision else ''
         try:
@@ -1144,7 +1159,7 @@ class FocoMobileDevice(models.Model):
                 'mensaje': 'Borré la ubicación %s de %s.' % (nombre, razon.display_name)}
 
     def editar_ubicacion(self, partner_id, tipo_ubicacion=None, lat=None, lon=None,
-                         nombre=None, precision=0.0):
+                         nombre=None, precision=0.0, nota=None, foto=None):
         """Reemplaza/edita una ubicacion existente: cambia su tipo, mueve su pin y/o
         cambia su nombre (lo que llegue). Con los permisos del vendedor. Peticion del
         Ing (30-oct-2026): opcion 'reemplazar' en las ubicaciones del mapa."""
@@ -1159,6 +1174,13 @@ class FocoMobileDevice(models.Model):
         nom = (nombre or '').strip()
         if nom:
             vals['name'] = nom[:120]
+        # Nota libre: se puede fijar o limpiar (llega None cuando no se toca).
+        if nota is not None:
+            vals['foco_ubicacion_nota'] = (nota or '').strip()[:1000]
+        # Foto: solo si mandan una nueva (vacio = se conserva la que ya tiene).
+        foto_b64 = self._foto_limpia(foto)
+        if foto_b64:
+            vals['image_1920'] = foto_b64
         if lat is not None and lon is not None and lat != '' and lon != '':
             try:
                 lat = float(lat)
@@ -1181,6 +1203,10 @@ class FocoMobileDevice(models.Model):
                 partes.append('ubicación (%.6f, %.6f%s)' % (vals['partner_latitude'], vals['partner_longitude'], marca))
             if 'name' in vals:
                 partes.append('nombre → %s' % vals['name'])
+            if 'foco_ubicacion_nota' in vals:
+                partes.append('nota')
+            if 'image_1920' in vals:
+                partes.append('foto')
             ubic.message_post(body='Ubicación reemplazada desde el teléfono: %s.' % ', '.join(partes))
         except Exception:  # noqa: BLE001
             pass
@@ -1189,6 +1215,34 @@ class FocoMobileDevice(models.Model):
                 'tipo_ubicacion': ubic.foco_tipo_ubicacion or '',
                 'name': ubic.display_name,
                 'mensaje': 'Actualicé la ubicación %s.' % ubic.display_name}
+
+    @staticmethod
+    def _foto_limpia(foto):
+        """Base64 de una imagen que llega del telefono, lista para image_1920.
+        Acepta 'data:image/...;base64,XXX' o el base64 pelon; devuelve str o None."""
+        if not foto or not isinstance(foto, str):
+            return None
+        s = foto.strip()
+        if s[:5].lower() == 'data:' and ',' in s:
+            s = s.split(',', 1)[1]
+        s = ''.join(s.split())  # sin espacios ni saltos de linea
+        return s if len(s) >= 32 else None
+
+    def foto_ubicacion(self, partner_id):
+        """Devuelve la foto de una ubicacion (o cliente) para la ficha del telefono:
+        {ok, id, foto(b64)} o {ok:false}. Con los permisos del vendedor."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        p = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not p:
+            raise UserError('Ese registro ya no existe en Odoo.')
+        img = p.image_1920
+        if not img:
+            return {'ok': False}
+        return {'ok': True, 'id': p.id,
+                'foto': img.decode() if isinstance(img, bytes) else img}
 
     # ----------------------------------------------------- viaticos (gastos)
     @staticmethod
