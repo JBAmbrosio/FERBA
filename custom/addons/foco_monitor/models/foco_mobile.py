@@ -1738,10 +1738,12 @@ class FocoMobileDevice(models.Model):
         return {'ok': True}
 
     def guardar_audio_llamada(self, uuid, data, duracion=0, name='llamada.wav',
-                              started=None, consent=False, origen='whatsapp'):
+                              started=None, consent=False, origen='whatsapp', contacto=''):
         """Recibe el WAV de una llamada (WhatsApp o celular) que el telefono sube
         al colgar y lo deja PENDIENTE para el coaching. Dedup por (telefono, uuid).
-        Solo si el interruptor del servidor esta encendido."""
+        `contacto` es con quien fue la llamada (nombre/numero) segun lo capto el
+        telefono; sirve para identificar de cual llamada es el coaching. Solo si el
+        interruptor del servidor esta encendido."""
         self.ensure_one()
         if not self.env['foco.settings'].sudo().get_settings().coaching_llamadas:
             return {'ok': False, 'error': 'off'}
@@ -1766,6 +1768,7 @@ class FocoMobileDevice(models.Model):
             'grabacion_consentida': bool(consent),
             'origen': origen,
             'es_ejemplo': modo == 'experto',
+            'contacto': (contacto or '')[:120],
         }
         if started:
             vals['started_at'] = started

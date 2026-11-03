@@ -66,6 +66,13 @@ class FocoLlamada(models.Model):
     # El vendedor puede marcar de que cliente fue la llamada (opcional).
     partner_id = fields.Many2one('res.partner', string='Cliente',
                                  domain=[('foco_cliente_ventas', '=', True)])
+    # Con quien fue la llamada, capturado por el TELEFONO: en celular el nombre
+    # guardado o el numero (del registro del sistema); en WhatsApp el nombre que
+    # muestra la pantalla de la llamada (mejor esfuerzo). Android NO expone el
+    # numero del otro lado en WhatsApp. Es una PISTA para que el vendedor sepa de
+    # cual llamada es el coaching; el vinculo formal al cliente sigue siendo
+    # partner_id (opcional, a mano).
+    contacto = fields.Char(string='Contacto (del telefono)')
     grabacion_consentida = fields.Boolean(string='Grabacion con aviso')
     # Llamada de un vendedor EXPERTO: se transcribe para servir de ejemplo a la
     # IA pero NO se evalua (no se gastan creditos en coaching ni se le devuelve).
@@ -238,6 +245,10 @@ class FocoLlamada(models.Model):
             'duracion_s': self.duration_s or 0,
             'origen': self.origen or 'whatsapp',
             'estado': self.audio_estado,
+            # Con quien fue: el cliente marcado a mano gana; si no, lo que capto el
+            # telefono. Con esto el vendedor identifica de cual llamada es el coaching.
+            'contacto': self.contacto or '',
+            'cliente': self.partner_id.display_name or '',
             'puntaje': self.analisis_puntaje or 0,
             'resumen': self.analisis_resumen or '',
             'fortalezas': _lista(self.analisis_fortalezas),

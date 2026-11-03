@@ -1393,10 +1393,20 @@ class FocoController(http.Controller):
             started = None
         consent = (h.get('X-Consent') or '').strip() in ('1', 'true', 'si', 'yes')
         origen = (h.get('X-Origen') or 'whatsapp').strip().lower()
+        # Con quien fue la llamada (nombre/numero) segun el telefono. Viaja en
+        # Base64 porque las cabeceras HTTP solo aceptan ASCII y el nombre puede
+        # traer acentos/ñ.
+        contacto = ''
+        try:
+            raw = h.get('X-Contacto') or ''
+            if raw:
+                contacto = base64.b64decode(raw).decode('utf-8', 'ignore')[:120]
+        except Exception:
+            contacto = ''
         data = request.httprequest.get_data(cache=False, as_text=False) or b''
         if not uuid or not data:
             return request.make_json_response({'error': 'bad_request'}, status=400)
-        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent, origen)
+        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent, origen, contacto)
         return request.make_json_response(res)
 
     @http.route('/foco/mobile/llamada_coaching', type='http', auth='public',
