@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Ferba — Sitio web',
-    'version': '19.0.1.11.0',
+    'version': '19.0.1.12.0',
     'author': 'Simdata Group',
     'category': 'Website/Website',
     'summary': 'Tema y páginas del sitio público de Ferba Postharvest Technology',
@@ -46,6 +46,7 @@ de seguridad.
         'data/pages.xml',               # los registros, después de las plantillas que referencian
         'data/catalogo_empaque.xml',    # contenido M1: Empaque + Flowpack
         'data/catalogo_maquinaria.xml', # contenido M2: 5 categorias + Linea de siembra
+        'data/catalogo_frutos.xml',     # contenido M3: 10 frutos + M2M fruto<->maquina
     ],
     'assets': {
         'web.assets_frontend': [

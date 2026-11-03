@@ -87,9 +87,13 @@
                         ('esparrago', 'frutos-11-836x479.webp', 'Espárrago', 'Manejo delicado para mantener frescura.'),
                         ('sandia',    'frutos-12-605x568.webp', 'Sandía',    'Equipos adaptados para productos grandes.'),
                     ]"/>
+                    <!-- Frutos con página propia en el catálogo; el resto cae a contacto. -->
+                    <t t-set="frutos_catalogo"
+                       t-value="request.env['ferba.fruto'].sudo().search([('active','=',True)]).mapped('slug')"/>
                     <div class="o_ferba_frutos_grid" data-ferba-grupo="frutos">
                         <t t-foreach="frutos" t-as="f">
-                            <a href="/contactenos" t-att-id="f[0]" class="o_ferba_frutocard o_ferba_reveal"
+                            <a t-att-href="('/frutos/' + f[0]) if f[0] in frutos_catalogo else '/contactenos'"
+                               t-att-id="f[0]" class="o_ferba_frutocard o_ferba_reveal"
                                t-attf-data-ferba-senal="interes_fruto:#{f[0]}">
                                 <span class="o_ferba_frutocard__media">
                                     <img t-attf-src="/ferba_website/static/src/img/#{f[1]}" t-att-alt="f[2]" loading="lazy"/>
