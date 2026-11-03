@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         Backend del catálogo: gestión de categorías, máquinas y frutos.
+         Para que el equipo (y FERBA) puedan editar contenido sin tocar XML.
+         ================================================================ -->
+
+    <!-- ============ CATEGORÍA ============ -->
+    <record id="view_ferba_categoria_list" model="ir.ui.view">
+        <field name="name">ferba.categoria.list</field>
+        <field name="model">ferba.categoria</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="secuencia" widget="handle"/>
+                <field name="nombre"/>
+                <field name="slug"/>
+                <field name="maquina_ids" string="Equipos" widget="many2many_tags" options="{'no_open': True}"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_categoria_form" model="ir.ui.view">
+        <field name="name">ferba.categoria.form</field>
+        <field name="model">ferba.categoria</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="nombre" placeholder="Nombre de la categoría"/></h1>
+                        <label for="slug"/> <field name="slug" placeholder="empaque"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="secuencia"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="hero_imagen"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Hero">
+                            <group>
+                                <field name="hero_antetitulo"/>
+                                <field name="hero_titulo"/>
+                                <field name="hero_subtitulo"/>
+                            </group>
+                            <field name="hero_intro"/>
+                        </page>
+                        <page string="Narrativa">
+                            <group>
+                                <field name="narrativa_antetitulo"/>
+                                <field name="narrativa_titulo"/>
+                            </group>
+                            <field name="narrativa_intro"/>
+                            <field name="flujo_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="etiqueta"/>
+                                    <field name="icono"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Subgrupos">
+                            <field name="subgrupo_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="nombre"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Factores">
+                            <field name="factor_titulo"/>
+                            <field name="factor_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="titulo"/>
+                                    <field name="texto"/>
+                                    <field name="icono"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Equipos">
+                            <field name="maquina_ids">
+                                <list>
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="nombre"/>
+                                    <field name="subgrupo_id"/>
+                                    <field name="chips"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cierre y SEO">
+                            <group>
+                                <field name="cierre_titulo"/>
+                                <field name="cierre_texto"/>
+                                <field name="meta_titulo"/>
+                                <field name="meta_descripcion"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_categoria" model="ir.actions.act_window">
+        <field name="name">Categorías de maquinaria</field>
+        <field name="res_model">ferba.categoria</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ============ MÁQUINA ============ -->
+    <record id="view_ferba_maquina_list" model="ir.ui.view">
+        <field name="name">ferba.maquina.list</field>
+        <field name="model">ferba.maquina</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="secuencia" widget="handle"/>
+                <field name="nombre"/>
+                <field name="categoria_id"/>
+                <field name="subgrupo_id"/>
+                <field name="chips"/>
+                <field name="fruto_ids" widget="many2many_tags" options="{'no_open': True}"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_maquina_form" model="ir.ui.view">
+        <field name="name">ferba.maquina.form</field>
+        <field name="model">ferba.maquina</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="nombre" placeholder="Nombre del equipo"/></h1>
+                        <label for="slug"/> <field name="slug" placeholder="flowpack"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="categoria_id"/>
+                            <field name="subgrupo_id" domain="[('categoria_id', '=', categoria_id)]"/>
+                            <field name="secuencia"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="tarjeta_imagen"/>
+                            <field name="chips" placeholder="Bolsa, Integración, Empaque continuo"/>
+                            <field name="fruto_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Hero">
+                            <group>
+                                <field name="lema"/>
+                                <field name="hero_imagen"/>
+                            </group>
+                            <field name="intro"/>
+                            <separator string="Destacados (3)"/>
+                            <field name="destacado_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="icono"/>
+                                    <field name="valor"/>
+                                    <field name="etiqueta"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Bloques">
+                            <field name="bloque_ids">
+                                <list>
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="tipo"/>
+                                    <field name="tema"/>
+                                    <field name="titulo"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="tipo"/>
+                                        <field name="tema"/>
+                                        <field name="antetitulo"/>
+                                        <field name="titulo"/>
+                                        <field name="imagen"/>
+                                    </group>
+                                    <field name="cuerpo"/>
+                                    <separator string="Tarjetas (tipo tarjetas)"/>
+                                    <field name="item_ids">
+                                        <list editable="bottom">
+                                            <field name="secuencia" widget="handle"/>
+                                            <field name="icono"/>
+                                            <field name="titulo"/>
+                                            <field name="texto"/>
+                                        </list>
+                                    </field>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Pasos">
+                            <field name="pasos_titulo"/>
+                            <field name="paso_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="imagen"/>
+                                    <field name="titulo"/>
+                                    <field name="texto"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Datos técnicos">
+                            <group>
+                                <field name="specs_titulo"/>
+                                <field name="specs_foto"/>
+                            </group>
+                            <field name="spec_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="etiqueta"/>
+                                    <field name="valor"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Galería">
+                            <field name="galeria_titulo"/>
+                            <field name="media_ids">
+                                <list editable="bottom">
+                                    <field name="secuencia" widget="handle"/>
+                                    <field name="imagen"/>
+                                    <field name="es_video"/>
+                                    <field name="video_url"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cierre y SEO">
+                            <group>
+                                <field name="cierre_titulo"/>
+                                <field name="cierre_texto"/>
+                                <field name="meta_titulo"/>
+                                <field name="meta_descripcion"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_maquina" model="ir.actions.act_window">
+        <field name="name">Equipos</field>
+        <field name="res_model">ferba.maquina</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ============ FRUTO ============ -->
+    <record id="view_ferba_fruto_list" model="ir.ui.view">
+        <field name="name">ferba.fruto.list</field>
+        <field name="model">ferba.fruto</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="secuencia" widget="handle"/>
+                <field name="nombre"/>
+                <field name="slug"/>
+                <field name="maquina_ids" widget="many2many_tags" options="{'no_open': True}"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_fruto_form" model="ir.ui.view">
+        <field name="name">ferba.fruto.form</field>
+        <field name="model">ferba.fruto</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="nombre" placeholder="Nombre del fruto"/></h1>
+                        <label for="slug"/> <field name="slug" placeholder="tomate"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="secuencia"/>
+                            <field name="active"/>
+                            <field name="hero_imagen"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Hero">
+                            <group>
+                                <field name="hero_antetitulo"/>
+                                <field name="hero_titulo"/>
+                                <field name="hero_subtitulo"/>
+                            </group>
+                            <field name="hero_intro"/>
+                        </page>
+                        <page string="Equipos">
+                            <field name="maquina_ids" widget="many2many">
+                                <list>
+                                    <field name="nombre"/>
+                                    <field name="categoria_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cierre y SEO">
+                            <group>
+                                <field name="cierre_titulo"/>
+                                <field name="cierre_texto"/>
+                                <field name="meta_titulo"/>
+                                <field name="meta_descripcion"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_fruto" model="ir.actions.act_window">
+        <field name="name">Frutos</field>
+        <field name="res_model">ferba.fruto</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ============ MENÚ ============ -->
+    <menuitem id="menu_ferba_catalogo_root" name="Catálogo Ferba"
+              web_icon="ferba_website,static/description/icon.png" sequence="90"/>
+    <menuitem id="menu_ferba_categoria" name="Categorías"
+              parent="menu_ferba_catalogo_root" action="action_ferba_categoria" sequence="10"/>
+    <menuitem id="menu_ferba_maquina" name="Equipos"
+              parent="menu_ferba_catalogo_root" action="action_ferba_maquina" sequence="20"/>
+    <menuitem id="menu_ferba_fruto" name="Frutos"
+              parent="menu_ferba_catalogo_root" action="action_ferba_fruto" sequence="30"/>
+
+</odoo>

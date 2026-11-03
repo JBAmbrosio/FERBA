@@ -94,6 +94,9 @@
                         ('sembradoras',    'maqc-sembradoras.svg',    'Sembradoras',               'maquinaria-06-435x326.webp',
                          'Equipos especializados para procesos agrícolas previos a la cosecha, diseñados para mejorar la precisión y eficiencia.'),
                     ]"/>
+                    <!-- Qué categorías ya tienen página de catálogo: las que la tienen
+                         enlazan a /maquinaria/<slug>; las que no, a contacto (hasta M2). -->
+                    <t t-set="cats_catalogo" t-value="request.env['ferba.categoria'].sudo().search([('active', '=', True)]).mapped('slug')"/>
                     <div class="o_ferba_etapas" data-ferba-grupo="etapas">
                         <t t-foreach="etapas" t-as="e">
                             <article class="o_ferba_etapa o_ferba_reveal" t-att-id="e[0]">
@@ -107,7 +110,8 @@
                                     <img t-attf-src="/ferba_website/static/src/img/#{e[3]}" t-att-alt="e[2]" loading="lazy"/>
                                 </div>
                                 <p class="o_ferba_etapa__texto" t-out="e[4]"/>
-                                <a href="/contactenos" class="o_ferba_etapa__enlace"
+                                <a t-att-href="('/maquinaria/' + e[0]) if e[0] in cats_catalogo else '/contactenos'"
+                                   class="o_ferba_etapa__enlace"
                                    t-attf-data-ferba-senal="interes_maquina:#{e[0]}">
                                     Ver equipos
                                     <t t-call="ferba_website.flecha"/>

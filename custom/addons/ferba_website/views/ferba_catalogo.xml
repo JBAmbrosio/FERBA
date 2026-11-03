@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         CATÁLOGO  —  páginas dinámicas (controllers/catalogo.py)
+
+           /maquinaria/<categoria>              pagina_categoria
+           /maquinaria/<categoria>/<maquina>    pagina_maquina
+           /frutos/<fruto>                      pagina_fruto
+
+         Reutilizan el andamio de las interiores (pagina_base: hero + banda
+         de cierre + botón de WhatsApp) y el SCSS de marca; lo propio del
+         catálogo (tarjetas de máquina, tabla de datos técnicos, pasos y
+         galería) se estila en static/src/scss/ferba_catalogo.scss.
+         ================================================================ -->
+
+    <!-- ============ snippet: tarjeta de máquina ============
+         Se reutiliza en la página de categoría y en la de fruto. El enlace es
+         SIEMPRE la URL canónica de la ficha (bajo su categoría), venga de donde
+         venga: una máquina = una página. -->
+    <template id="tarjeta_maquina" name="Ferba — tarjeta de máquina">
+        <a t-attf-href="/maquinaria/#{maq.categoria_id.slug}/#{maq.slug}"
+           class="o_ferba_maqcard o_ferba_reveal"
+           t-attf-data-ferba-senal="interes_maquina:#{maq.slug}">
+            <span class="o_ferba_maqcard__media">
+                <img t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
+                     t-att-alt="maq.nombre" loading="lazy"/>
+            </span>
+            <span class="o_ferba_maqcard__body">
+                <span class="o_ferba_maqcard__nombre" t-out="maq.nombre"/>
+                <span t-if="maq.chip_lista" class="o_ferba_maqcard__chips">
+                    <t t-foreach="maq.chip_lista" t-as="chip">
+                        <span class="o_ferba_chip" t-out="chip"/>
+                    </t>
+                </span>
+                <span class="o_ferba_maqcard__enlace">
+                    Conocer equipo <t t-call="ferba_website.flecha"/>
+                </span>
+            </span>
+        </a>
+    </template>
+
+    <!-- ============ snippet: bloque de tarjetas con icono ============ -->
+    <template id="bloque_tarjetas" name="Ferba — bloque de tarjetas">
+        <section t-attf-class="o_ferba_section o_ferba_section--#{'dark' if bloque.tema == 'oscuro' else 'light'}">
+            <div class="o_ferba_container">
+                <t t-if="bloque.titulo" t-call="ferba_website.titulo_seccion">
+                    <t t-set="llano" t-value="True"/>
+                    <t t-set="titulo" t-value="bloque.titulo"/>
+                </t>
+                <div class="o_ferba_valores" t-attf-style="--ferba-cols:#{len(bloque.item_ids) or 1}">
+                    <t t-foreach="bloque.item_ids" t-as="it">
+                        <div class="o_ferba_valor o_ferba_reveal">
+                            <div t-if="it.icono" class="o_ferba_valor__icono">
+                                <img t-attf-src="/ferba_website/static/src/img/#{it.icono}" alt="" loading="lazy"/>
+                            </div>
+                            <h3 class="o_ferba_valor__titulo" t-out="it.titulo"/>
+                            <p class="o_ferba_valor__texto" t-out="it.texto"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- ============ snippet: bloque split (texto + imagen) ============ -->
+    <template id="bloque_split" name="Ferba — bloque split">
+        <section t-attf-class="o_ferba_section o_ferba_section--#{'dark' if bloque.tema == 'oscuro' else 'white'}">
+            <div class="o_ferba_container">
+                <div class="o_ferba_split">
+                    <div class="o_ferba_reveal">
+                        <span t-if="bloque.antetitulo" class="o_ferba_eyebrow" t-out="bloque.antetitulo"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="bloque.titulo"/></h2>
+                        <span class="o_ferba_rule"/>
+                        <t t-out="bloque.cuerpo"/>
+                    </div>
+                    <div t-if="bloque.imagen" class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                        <img t-attf-src="/ferba_website/static/src/img/#{bloque.imagen}"
+                             t-att-alt="bloque.titulo" class="o_ferba_split__img" loading="lazy"/>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- ================================================================
+         PÁGINA DE CATEGORÍA
+         ================================================================ -->
+    <template id="pagina_categoria" name="Ferba — categoría de maquinaria">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="antetitulo">Maquinaria</t>
+            <t t-set="titulo" t-value="categoria.hero_titulo or categoria.nombre"/>
+            <t t-set="subtitulo" t-value="categoria.hero_subtitulo"/>
+            <t t-set="fondo" t-value="categoria.hero_imagen"/>
+            <t t-set="clase_hero">o_ferba_hero--catalogo</t>
+            <t t-set="intro"><t t-out="categoria.hero_intro"/></t>
+            <t t-set="acciones">
+                <a href="#equipos" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Ver equipos</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost"
+                   data-ferba-senal="contacto_directo:categoria">
+                    <span class="o_ferba_btn__label">Solicitar asesoría</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo" t-value="categoria.cierre_titulo"/>
+            <t t-set="cierre_texto" t-value="categoria.cierre_texto"/>
+            <t t-set="cierre_foto" t-value="categoria.hero_imagen"/>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
+                    <span class="o_ferba_btn__label">Cotizar solución</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- narrativa de la etapa + flujo de iconos -->
+            <section t-if="categoria.narrativa_titulo or categoria.flujo_ids"
+                     class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_split">
+                        <div class="o_ferba_reveal">
+                            <span t-if="categoria.narrativa_antetitulo" class="o_ferba_eyebrow" t-out="categoria.narrativa_antetitulo"/>
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.narrativa_titulo"/></h2>
+                            <span class="o_ferba_rule"/>
+                            <t t-out="categoria.narrativa_intro"/>
+                        </div>
+                        <div t-if="categoria.flujo_ids" class="o_ferba_reveal">
+                            <div class="o_ferba_flujo o_ferba_flujo--compacto">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <span t-if="not paso_first" class="o_ferba_flujo__chevron">
+                                        <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
+                                    </span>
+                                    <div class="o_ferba_flujo__paso">
+                                        <div t-if="paso.icono" class="o_ferba_flujo__icono">
+                                            <img t-attf-src="/ferba_website/static/src/img/#{paso.icono}" alt="" loading="lazy"/>
+                                        </div>
+                                        <span class="o_ferba_flujo__rotulo" t-out="paso.etiqueta"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- nuestros equipos -->
+            <section id="equipos" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Nuestros equipos</t>
+                    </t>
+                    <t t-foreach="grupos" t-as="g">
+                        <t t-set="subgrupo" t-value="g[0]"/>
+                        <div class="o_ferba_maqgrupo o_ferba_reveal">
+                            <h3 t-if="subgrupo" class="o_ferba_maqgrupo__titulo">
+                                <span class="o_ferba_maqgrupo__num" t-out="'%02d' % (g_index + 1)"/>
+                                <span t-out="subgrupo.nombre"/>
+                            </h3>
+                            <div class="o_ferba_maqgrid">
+                                <t t-foreach="g[1]" t-as="maq">
+                                    <t t-call="ferba_website.tarjeta_maquina"/>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </section>
+
+            <!-- factores -->
+            <section t-if="categoria.factor_ids" class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="llano" t-value="True"/>
+                        <t t-set="titulo" t-value="categoria.factor_titulo or 'Factores que definen tu solución'"/>
+                    </t>
+                    <div class="o_ferba_valores" t-attf-style="--ferba-cols:#{len(categoria.factor_ids) or 1}">
+                        <t t-foreach="categoria.factor_ids" t-as="f">
+                            <div class="o_ferba_valor o_ferba_reveal">
+                                <div t-if="f.icono" class="o_ferba_valor__icono">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{f.icono}" alt="" loading="lazy"/>
+                                </div>
+                                <h3 class="o_ferba_valor__titulo" t-out="f.titulo"/>
+                                <p class="o_ferba_valor__texto" t-out="f.texto"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         FICHA DE MÁQUINA
+         ================================================================ -->
+    <template id="pagina_maquina" name="Ferba — ficha de máquina">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="antetitulo" t-value="'Maquinaria — %s' % categoria.nombre"/>
+            <t t-set="titulo" t-value="maquina.nombre"/>
+            <t t-set="subtitulo" t-value="maquina.lema"/>
+            <t t-set="fondo" t-value="maquina.hero_imagen"/>
+            <t t-set="clase_hero">o_ferba_hero--catalogo o_ferba_hero--ficha</t>
+            <t t-set="intro">
+                <t t-out="maquina.intro"/>
+                <div t-if="maquina.destacado_ids" class="o_ferba_destacados">
+                    <t t-foreach="maquina.destacado_ids" t-as="d">
+                        <div class="o_ferba_destacado">
+                            <img t-if="d.icono" class="o_ferba_destacado__icono"
+                                 t-attf-src="/ferba_website/static/src/img/#{d.icono}" alt="" loading="lazy"/>
+                            <span class="o_ferba_destacado__texto">
+                                <span class="o_ferba_destacado__valor" t-out="d.valor"/>
+                                <span class="o_ferba_destacado__etq" t-out="d.etiqueta"/>
+                            </span>
+                        </div>
+                    </t>
+                </div>
+            </t>
+            <t t-set="acciones">
+                <a t-attf-href="/maquinaria/#{categoria.slug}" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Ver equipos</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost"
+                   t-attf-data-ferba-senal="contacto_directo:#{maquina.slug}">
+                    <span class="o_ferba_btn__label">Solicitar asesoría</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo" t-value="maquina.cierre_titulo"/>
+            <t t-set="cierre_texto" t-value="maquina.cierre_texto"/>
+            <t t-set="cierre_foto" t-value="maquina.hero_imagen"/>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white"
+                   t-attf-data-ferba-senal="contacto_directo:#{maquina.slug}">
+                    <span class="o_ferba_btn__label">Cotizar solución</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- 1) splits ("cómo se integra a tu línea") -->
+            <t t-foreach="splits" t-as="bloque">
+                <t t-call="ferba_website.bloque_split"/>
+            </t>
+
+            <!-- 2) beneficios (tarjetas oscuras) -->
+            <t t-foreach="beneficios" t-as="bloque">
+                <t t-call="ferba_website.bloque_tarjetas"/>
+            </t>
+
+            <!-- 3) pasos del proceso -->
+            <section t-if="maquina.paso_ids" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="llano" t-value="True"/>
+                        <t t-set="titulo" t-value="maquina.pasos_titulo or 'Del inicio al producto terminado'"/>
+                    </t>
+                    <div class="o_ferba_pasos">
+                        <t t-foreach="maquina.paso_ids" t-as="p">
+                            <span t-if="not p_first" class="o_ferba_pasos__chevron">
+                                <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
+                            </span>
+                            <article class="o_ferba_paso o_ferba_reveal">
+                                <div class="o_ferba_paso__media">
+                                    <img t-if="p.imagen" t-attf-src="/ferba_website/static/src/img/#{p.imagen}"
+                                         t-att-alt="p.titulo" loading="lazy"/>
+                                    <span class="o_ferba_paso__num" t-out="'%02d' % (p_index + 1)"/>
+                                </div>
+                                <h3 class="o_ferba_paso__titulo" t-out="p.titulo"/>
+                                <p class="o_ferba_paso__texto" t-out="p.texto"/>
+                            </article>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4) datos técnicos (tabla + foto) -->
+            <section t-if="maquina.spec_ids" id="datos" class="o_ferba_section o_ferba_section--dark o_ferba_datos">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_datos__split">
+                        <div class="o_ferba_reveal">
+                            <span class="o_ferba_eyebrow">Datos técnicos</span>
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.specs_titulo or 'Especificaciones principales'"/></h2>
+                            <span class="o_ferba_rule"/>
+                            <table class="o_ferba_specs">
+                                <tbody>
+                                    <t t-foreach="maquina.spec_ids" t-as="s">
+                                        <tr>
+                                            <th t-out="s.etiqueta"/>
+                                            <td t-out="s.valor"/>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div t-if="maquina.specs_foto" class="o_ferba_datos__foto o_ferba_reveal o_ferba_reveal--wipe">
+                            <img t-attf-src="/ferba_website/static/src/img/#{maquina.specs_foto}"
+                                 t-att-alt="maquina.nombre" loading="lazy"/>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5) características (tarjetas claras) -->
+            <t t-foreach="caracteristicas" t-as="bloque">
+                <t t-call="ferba_website.bloque_tarjetas"/>
+            </t>
+
+            <!-- ficha en preparación: cuando aún no hay cuerpo (M2) -->
+            <section t-if="not (splits or beneficios or caracteristicas or maquina.paso_ids or maquina.spec_ids or maquina.media_ids)"
+                     class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container o_ferba_stub">
+                    <span class="o_ferba_eyebrow">En preparación</span>
+                    <h2 class="o_ferba_title"><span class="o_ferba_title__in">Estamos preparando la ficha técnica de este equipo</span></h2>
+                    <span class="o_ferba_rule"/>
+                    <p class="o_ferba_stub__text">
+                        Mientras tanto, cuéntanos tu necesidad y te asesoramos sobre capacidad, formato y nivel de automatización.
+                    </p>
+                    <div class="o_ferba_stub__actions">
+                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid"
+                           t-attf-data-ferba-senal="contacto_directo:#{maquina.slug}">
+                            <span class="o_ferba_btn__label">Solicitar información</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                        <a t-attf-href="/maquinaria/#{categoria.slug}" class="o_ferba_btn o_ferba_btn--ghost">
+                            <span class="o_ferba_btn__label">Ver la categoría</span>
+                            <t t-call="ferba_website.flecha"/>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6) galería -->
+            <section t-if="maquina.media_ids" class="o_ferba_section o_ferba_section--light">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="llano" t-value="True"/>
+                        <t t-set="titulo" t-value="maquina.galeria_titulo or 'Galería de imágenes y video'"/>
+                    </t>
+                    <div class="o_ferba_galeria">
+                        <t t-foreach="maquina.media_ids" t-as="m">
+                            <t t-if="m.es_video">
+                                <a t-att-href="m.video_url or '#'" target="_blank" rel="noopener"
+                                   class="o_ferba_galeria__item o_ferba_galeria__item--video o_ferba_reveal">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}" alt="Video" loading="lazy"/>
+                                    <span class="o_ferba_galeria__play" aria-hidden="true"/>
+                                </a>
+                            </t>
+                            <span t-else="" class="o_ferba_galeria__item o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}" t-att-alt="maquina.nombre" loading="lazy"/>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+            </section>
+        </t>
+    </template>
+
+    <!-- ================================================================
+         PÁGINA DE FRUTO
+         ================================================================ -->
+    <template id="pagina_fruto" name="Ferba — fruto">
+        <t t-call="ferba_website.pagina_base">
+            <t t-set="antetitulo">Frutos</t>
+            <t t-set="titulo" t-value="fruto.hero_titulo or fruto.nombre"/>
+            <t t-set="subtitulo" t-value="fruto.hero_subtitulo"/>
+            <t t-set="fondo" t-value="fruto.hero_imagen"/>
+            <t t-set="clase_hero">o_ferba_hero--catalogo</t>
+            <t t-set="intro"><t t-out="fruto.hero_intro"/></t>
+            <t t-set="acciones">
+                <a href="#equipos" class="o_ferba_btn o_ferba_btn--solid">
+                    <span class="o_ferba_btn__label">Ver equipos</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost"
+                   t-attf-data-ferba-senal="interes_fruto:#{fruto.slug}">
+                    <span class="o_ferba_btn__label">Solicitar asesoría</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+            <t t-set="cierre_titulo" t-value="fruto.cierre_titulo"/>
+            <t t-set="cierre_texto" t-value="fruto.cierre_texto"/>
+            <t t-set="cierre_foto" t-value="fruto.hero_imagen"/>
+            <t t-set="cierre_acciones">
+                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white"
+                   t-attf-data-ferba-senal="interes_fruto:#{fruto.slug}">
+                    <span class="o_ferba_btn__label">Cotizar solución</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a href="https://wa.me/526671217267" target="_blank" rel="noopener" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Hablar con un asesor</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+            </t>
+
+            <!-- nuestros equipos, agrupados por etapa -->
+            <section id="equipos" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <t t-call="ferba_website.titulo_seccion">
+                        <t t-set="titulo">Nuestros equipos</t>
+                    </t>
+                    <t t-foreach="grupos" t-as="g">
+                        <t t-set="etapa" t-value="g[0]"/>
+                        <div class="o_ferba_maqgrupo o_ferba_reveal">
+                            <h3 class="o_ferba_maqgrupo__titulo">
+                                <span class="o_ferba_maqgrupo__num" t-out="'%02d' % (g_index + 1)"/>
+                                <span t-out="etapa.nombre"/>
+                            </h3>
+                            <div class="o_ferba_maqgrid">
+                                <t t-foreach="g[1]" t-as="maq">
+                                    <t t-call="ferba_website.tarjeta_maquina"/>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </section>
+        </t>
+    </template>
+
+</odoo>

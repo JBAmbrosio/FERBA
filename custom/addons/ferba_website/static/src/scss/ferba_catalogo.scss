@@ -1,0 +1,352 @@
+// =====================================================================
+//  Ferba — catálogo (categorías, fichas de máquina, frutos)
+//  Lo propio de las páginas dinámicas. Reutiliza los tokens de marca y el
+//  lenguaje visual de ferba_website.scss / ferba_paginas.scss; aquí solo
+//  viven las piezas que esas páginas no tenían: tarjetas de máquina, los
+//  destacados del hero, los pasos del proceso, la tabla de datos técnicos y
+//  la galería.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+//  Hero del catálogo: la foto ocupa la mitad derecha (como --entera).
+// ---------------------------------------------------------------------
+.o_ferba_hero--catalogo {
+    min-height: 520px;
+
+    .o_ferba_hero__media { inset: 0 0 0 46%; }
+    .o_ferba_hero__media::after {
+        background: linear-gradient(90deg,
+            $ferba-black 0%,
+            rgba(0, 0, 0, .86) 20%,
+            rgba(0, 0, 0, .34) 42%,
+            rgba(0, 0, 0, 0)   56%);
+    }
+    .o_ferba_hero__text { max-width: 44rem; }
+
+    @media (max-width: 991px) {
+        min-height: 0;
+        .o_ferba_hero__media { inset: auto; height: 62vw; }
+        .o_ferba_hero__media::after {
+            background: linear-gradient(0deg, $ferba-black 0%, rgba(0, 0, 0, 0) 48%);
+        }
+    }
+}
+
+// Los 3 destacados del hero de la ficha (icono + valor + etiqueta)
+.o_ferba_destacados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem 2rem;
+    margin: 1.6rem 0 0;
+}
+.o_ferba_destacado {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+
+    &__icono { width: 34px; height: 34px; object-fit: contain; flex: none; }
+    &__texto { display: flex; flex-direction: column; line-height: 1.1; }
+    &__valor {
+        font-size: 1.15rem;
+        font-weight: $ferba-fw-bold;
+        color: $ferba-white;
+        letter-spacing: 0.02em;
+    }
+    &__etq {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, .72);
+    }
+    // Separador rojo entre destacados, como en el PDF.
+    &:not(:last-child) { position: relative; padding-right: 2rem; }
+    &:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 50%;
+        height: 26px;
+        width: 1px;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, .22);
+    }
+}
+
+// ---------------------------------------------------------------------
+//  "Nuestros equipos": grupos (subgrupo / etapa) + rejilla de tarjetas
+// ---------------------------------------------------------------------
+.o_ferba_maqgrupo {
+    margin-top: 2.6rem;
+    &:first-of-type { margin-top: 1.4rem; }
+
+    &__titulo {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.95rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 0 0 1.2rem;
+    }
+    &__num {
+        display: inline-grid;
+        place-items: center;
+        min-width: 1.6rem;
+        height: 1.6rem;
+        padding: 0 0.3rem;
+        background: $ferba-red;
+        color: $ferba-white;
+        border-radius: $ferba-radius;
+        font-size: 0.8rem;
+    }
+}
+
+.o_ferba_maqgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $ferba-gap;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_maqcard {
+    display: grid;
+    grid-template-columns: 1fr 42%;
+    align-items: stretch;
+    gap: 0.6rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid $ferba-gray-line;
+    border-radius: $ferba-radius-lg;
+    background: $ferba-white;
+    text-decoration: none;
+    color: $ferba-ink;
+    transition: border-color $ferba-dur-hover $ferba-ease-out,
+                box-shadow   $ferba-dur-hover $ferba-ease-out,
+                transform    $ferba-dur-hover $ferba-ease-out;
+
+    &:hover {
+        border-color: rgba(228, 27, 23, .55);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, .10);
+        transform: translateY(-2px);
+    }
+    &:active { transform: translateY(0) scale(.995); }
+
+    &__body { display: flex; flex-direction: column; min-width: 0; }
+    &__media {
+        display: grid;
+        place-items: center;
+        img { max-width: 100%; max-height: 110px; object-fit: contain; }
+    }
+
+    &__nombre {
+        font-size: 1rem;
+        font-weight: $ferba-fw-bold;
+        line-height: 1.2;
+        margin-bottom: 0.55rem;
+    }
+    &__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 0.9rem;
+    }
+    &__enlace {
+        margin-top: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: $ferba-red-text-light;
+
+        svg, img { width: 14px; height: auto; }
+    }
+    &:hover &__enlace svg { transform: translateX(3px); transition: transform $ferba-dur-hover $ferba-ease-out; }
+
+    @media (max-width: 575px) {
+        grid-template-columns: 1fr;
+        &__media { order: -1; justify-items: start; img { max-height: 150px; } }
+    }
+}
+
+.o_ferba_chip {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    background: $ferba-gray-light;
+    color: lighten($ferba-ink, 12%);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: $ferba-fw-medium;
+    white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------
+//  Pasos del proceso ("Una solución integral")
+// ---------------------------------------------------------------------
+.o_ferba_pasos {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    align-items: start;
+    gap: 0.4rem;
+    margin-top: 1.6rem;
+
+    &__chevron {
+        align-self: center;
+        padding-top: 2.4rem;   // a la altura del centro de la imagen
+        img { width: 18px; height: auto; opacity: .9; }
+    }
+
+    @media (max-width: 991px) {
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
+        grid-template-columns: repeat(2, 1fr);
+        &__chevron { display: none; }
+    }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+
+.o_ferba_paso {
+    text-align: center;
+
+    &__media {
+        position: relative;
+        border-radius: $ferba-radius-foto;
+        overflow: hidden;
+        aspect-ratio: 4 / 3;
+        box-shadow: $ferba-sombra-foto;
+        img { width: 100%; height: 100%; object-fit: cover; }
+    }
+    &__num {
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+        display: inline-grid;
+        place-items: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        background: $ferba-red;
+        color: $ferba-white;
+        border-radius: $ferba-radius;
+        font-size: 0.85rem;
+        font-weight: $ferba-fw-bold;
+    }
+    &__titulo {
+        font-size: 1rem;
+        font-weight: $ferba-fw-bold;
+        margin: 0.9rem 0 0.35rem;
+    }
+    &__texto {
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: lighten($ferba-ink, 25%);
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Datos técnicos: tabla etiqueta/valor + foto grande
+// ---------------------------------------------------------------------
+.o_ferba_datos__split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3rem);
+
+    @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+.o_ferba_datos__foto {
+    border-radius: $ferba-radius-foto;
+    overflow: hidden;
+    box-shadow: $ferba-sombra-foto;
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+}
+
+.o_ferba_specs {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.4rem;
+    margin-top: 1.4rem;
+
+    th, td {
+        padding: 0.55rem 0.9rem;
+        font-size: 0.82rem;
+        text-align: left;
+        vertical-align: middle;
+    }
+    th {
+        width: 44%;
+        background: $ferba-red;
+        color: $ferba-white;
+        font-weight: $ferba-fw-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-radius: $ferba-radius 0 0 $ferba-radius;
+    }
+    td {
+        background: rgba(255, 255, 255, .06);
+        color: rgba(255, 255, 255, .92);
+        border-radius: 0 $ferba-radius $ferba-radius 0;
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Galería de imágenes y video
+// ---------------------------------------------------------------------
+.o_ferba_galeria {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: $ferba-gap;
+    margin-top: 1.6rem;
+
+    @media (max-width: 991px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 575px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    &__item {
+        position: relative;
+        display: block;
+        aspect-ratio: 1 / 1;
+        border-radius: $ferba-radius-lg;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .10);
+        img { width: 100%; height: 100%; object-fit: cover; display: block;
+              transition: transform $ferba-dur-hover $ferba-ease-out; }
+        &:hover img { transform: scale(1.05); }
+    }
+    &__item--video::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, .28);
+    }
+    &__play {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .92);
+        z-index: 2;
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 54%;
+            transform: translate(-50%, -50%);
+            border-style: solid;
+            border-width: 10px 0 10px 16px;
+            border-color: transparent transparent transparent $ferba-red;
+        }
+    }
+}
+
+// Variante compacta del flujo de iconos para el bloque narrativo de la etapa.
+.o_ferba_flujo--compacto {
+    flex-wrap: wrap;
+    .o_ferba_flujo__icono img { max-height: 40px; }
+    .o_ferba_flujo__rotulo { font-size: 0.72rem; }
+}

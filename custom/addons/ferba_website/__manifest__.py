@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Ferba — Sitio web',
-    'version': '19.0.1.9.0',
+    'version': '19.0.1.10.0',
     'author': 'Simdata Group',
     'category': 'Website/Website',
     'summary': 'Tema y páginas del sitio público de Ferba Postharvest Technology',
@@ -41,7 +41,10 @@ de seguridad.
         'views/ferba_postventa.xml',
         'views/ferba_contacto.xml',
         'views/ferba_legales.xml',      # aviso de privacidad y términos
+        'views/ferba_catalogo.xml',     # plantillas del catálogo (categoría, ficha, fruto)
+        'views/ferba_catalogo_backend.xml',  # gestión en el backend
         'data/pages.xml',               # los registros, después de las plantillas que referencian
+        'data/catalogo_empaque.xml',    # contenido M1: Empaque + Flowpack
     ],
     'assets': {
         'web.assets_frontend': [
@@ -49,6 +52,7 @@ de seguridad.
             'ferba_website/static/src/scss/ferba_variables.scss',
             'ferba_website/static/src/scss/ferba_website.scss',
             'ferba_website/static/src/scss/ferba_paginas.scss',      # componentes de las interiores
+            'ferba_website/static/src/scss/ferba_catalogo.scss',     # catálogo: tarjetas, fichas, frutos
             'ferba_website/static/src/js/ferba_reveal.js',
             'ferba_website/static/src/js/ferba_analitica.js',
         ],
