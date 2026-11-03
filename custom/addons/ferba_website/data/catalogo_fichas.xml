@@ -725,4 +725,462 @@
         <field name="titulo">Diseño flexible según necesidades del cliente</field>
     </record>
 
+    <!-- ================= LAVADO Y TRATAMIENTO ================= -->
+
+    <!-- Criba de rodillos regulable -->
+    <record id="maq_criba_rodillos" model="ferba.maquina">
+        <field name="lema">Separación precisa por diámetro para una línea más limpia, estable y rentable</field>
+        <field name="hero_imagen">catalogo/lavado/fichas/criba-rodillos-regulable/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La Criba de Rodillos Regulable FERBA combina transporte, selección por diámetro y descarga independiente del producto separado dentro de un mismo equipo.</p>
+            <p class="o_ferba_hero__lead">Su apertura entre rodillos puede ajustarse de acuerdo con el producto y el calibre requerido, permitiendo retirar frutos pequeños, residuos o material fuera de especificación antes de que continúen hacia otras etapas del proceso.</p>
+        ]]></field>
+        <field name="pasos_titulo">Tres movimientos, una separación controlada</field>
+        <field name="specs_foto">catalogo/lavado/fichas/criba-rodillos-regulable/specs.webp</field>
+        <field name="cierre_titulo">¿Qué necesitas separar dentro de tu línea?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Criba de rodillos regulable: separación por diámetro | FERBA</field>
+        <field name="meta_descripcion">La Criba de Rodillos Regulable FERBA separa por diámetro con apertura ajustable: retira frutos pequeños, residuos y material fuera de especificación antes de las siguientes etapas.</field>
+    </record>
+    <record id="dest_cribr_1" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
+        <field name="valor">Ajustable</field><field name="etiqueta">apertura regulable</field>
+    </record>
+    <record id="dest_cribr_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
+        <field name="valor">Multiproducto</field><field name="etiqueta">redondos y alargados</field>
+    </record>
+    <record id="dest_cribr_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
+        <field name="valor">Modular</field><field name="etiqueta">diseño configurable</field>
+    </record>
+    <record id="blo_cribr_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Controla el producto antes de que el problema avance</field>
+        <field name="titulo">Una separación inicial que protege toda la línea</field>
+        <field name="imagen">catalogo/lavado/fichas/criba-rodillos-regulable/split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>Las variaciones de tamaño, residuos y una alimentación irregular pueden afectar las etapas posteriores del proceso.</p>
+            <p>Cuando producto fuera de especificación avanza innecesariamente, aumenta el retrabajo, se vuelve más inestable el flujo y crece la manipulación manual.</p>
+            <p>La Criba de Rodillos Regulable actúa antes de que este problema se multiplique, separando por diámetro y estabilizando la alimentación hacia los siguientes equipos.</p>
+        ]]></field>
+    </record>
+    <record id="blo_cribr_benef" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
+        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
+        <field name="titulo">Una separación que protege toda la línea</field>
+    </record>
+    <record id="it_cribr_b1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">10</field>
+        <field name="titulo">Separación precisa</field>
+        <field name="texto">La apertura entre rodillos define qué producto continúa y cuál se retira.</field>
+    </record>
+    <record id="it_cribr_b2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">20</field>
+        <field name="titulo">Ajuste por producto</field>
+        <field name="texto">La regulación permite adaptar el equipo a diferentes diámetros y aplicaciones.</field>
+    </record>
+    <record id="it_cribr_b3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">30</field>
+        <field name="titulo">Integración sencilla</field>
+        <field name="texto">Puede incorporarse al inicio, en una etapa intermedia o al final de la línea.</field>
+    </record>
+    <record id="paso_cribr_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El producto entra de forma distribuida sobre la superficie de rodillos.</field>
+    </record>
+    <record id="paso_cribr_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
+        <field name="titulo">Selección por diámetro</field>
+        <field name="texto">Los frutos menores a la apertura pasan entre rodillos; los de mayor diámetro continúan.</field>
+    </record>
+    <record id="paso_cribr_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
+        <field name="titulo">Descarga diferenciada</field>
+        <field name="texto">El producto separado se dirige a una salida inferior para descarte, segunda calidad o proceso alterno.</field>
+    </record>
+    <record id="spec_cribr_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
+        <field name="etiqueta">Separación</field><field name="valor">Por diámetro</field>
+    </record>
+    <record id="spec_cribr_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
+        <field name="etiqueta">Sistema de selección</field><field name="valor">Rodillos regulables</field>
+    </record>
+    <record id="spec_cribr_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
+        <field name="etiqueta">Control de velocidad</field><field name="valor">Variador de frecuencia</field>
+    </record>
+    <record id="spec_cribr_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">40</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Continuo</field>
+    </record>
+    <record id="spec_cribr_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">50</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+    </record>
+    <record id="spec_cribr_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 440 VAC · 3 fases · 60 Hz</field>
+    </record>
+    <record id="blo_cribr_carac" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
+        <field name="tipo">tarjetas</field><field name="tema">claro</field>
+        <field name="titulo">Características destacadas</field>
+    </record>
+    <record id="it_cribr_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">10</field>
+        <field name="titulo">Separación precisa por diámetro</field>
+    </record>
+    <record id="it_cribr_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">20</field>
+        <field name="titulo">Descarga independiente del producto separado</field>
+    </record>
+    <record id="it_cribr_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">30</field>
+        <field name="titulo">Rodillos ajustables</field>
+    </record>
+    <record id="it_cribr_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">40</field>
+        <field name="titulo">Diseño modular y configurable</field>
+    </record>
+    <record id="it_cribr_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">50</field>
+        <field name="titulo">Construcción robusta para uso industrial</field>
+    </record>
+    <record id="it_cribr_c6" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">60</field>
+        <field name="titulo">Opcional con variador de velocidad</field>
+    </record>
+
+    <!-- Unidad de cepillos de lavado  (su PDF trae, por error del cliente, el
+         bloque de texto del Volcador de bins; se omite ese split) -->
+    <record id="maq_cepillos_lavado" model="ferba.maquina">
+        <field name="lema">Limpieza uniforme mediante cepillos y aspersión</field>
+        <field name="hero_imagen">catalogo/lavado/fichas/unidad-cepillos-lavado/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La Unidad de Cepillos de Lavado FERBA está diseñada para remover suciedad e impurezas adheridas a la superficie de frutas y hortalizas mediante el contacto controlado con cepillos especialmente seleccionados para cada aplicación.</p>
+            <p class="o_ferba_hero__lead">El sistema puede complementarse con aspersión de agua y productos de limpieza, permitiendo integrar el lavado dentro de una línea postcosecha de forma continua.</p>
+        ]]></field>
+        <field name="specs_foto">catalogo/lavado/fichas/unidad-cepillos-lavado/specs.webp</field>
+        <field name="cierre_titulo">¿Necesitas integrar lavado por cepillos a tu línea?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Unidad de cepillos de lavado: limpieza uniforme | FERBA</field>
+        <field name="meta_descripcion">La Unidad de Cepillos de Lavado FERBA remueve suciedad e impurezas con cepillos seleccionados por producto y aspersión de agua, integrándose a la línea postcosecha.</field>
+    </record>
+    <record id="dest_cepl_1" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">10</field>
+        <field name="valor">Cepillos</field><field name="etiqueta">según producto</field>
+    </record>
+    <record id="dest_cepl_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
+        <field name="valor">Aspersión</field><field name="etiqueta">de agua</field>
+    </record>
+    <record id="dest_cepl_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
+        <field name="valor">Modular</field><field name="etiqueta">construcción</field>
+    </record>
+    <record id="blo_cepl_benef" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
+        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
+        <field name="titulo">Limpieza uniforme mediante contacto controlado</field>
+    </record>
+    <record id="it_cepl_b1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">10</field>
+        <field name="titulo">Cepillos especializados</field>
+        <field name="texto">Seleccionados según producto y tratamiento.</field>
+    </record>
+    <record id="it_cepl_b2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">20</field>
+        <field name="titulo">Aspersión de agua</field>
+        <field name="texto">Sistema de boquillas para una limpieza eficiente.</field>
+    </record>
+    <record id="it_cepl_b3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">30</field>
+        <field name="titulo">Construcción modular</field>
+        <field name="texto">Estructura modular ajustable a diferentes configuraciones.</field>
+    </record>
+    <record id="spec_cepl_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">10</field>
+        <field name="etiqueta">Cepillos</field><field name="valor">Según producto</field>
+    </record>
+    <record id="spec_cepl_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
+        <field name="etiqueta">Sistema de limpieza</field><field name="valor">Cepillos + aspersión</field>
+    </record>
+    <record id="spec_cepl_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
+        <field name="etiqueta">Construcción</field><field name="valor">Modular</field>
+    </record>
+    <record id="spec_cepl_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">40</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inoxidable y acero negro</field>
+    </record>
+    <record id="spec_cepl_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">50</field>
+        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+    </record>
+    <record id="blo_cepl_carac" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
+        <field name="tipo">tarjetas</field><field name="tema">claro</field>
+        <field name="titulo">Características del equipo</field>
+    </record>
+    <record id="it_cepl_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">10</field>
+        <field name="titulo">Lavado con cepillos</field>
+        <field name="texto">El contacto con las cerdas ayuda a remover suciedad e impurezas presentes sobre la superficie.</field>
+    </record>
+    <record id="it_cepl_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">20</field>
+        <field name="titulo">Sistema de aspersión</field>
+        <field name="texto">Permite aplicar agua y, cuando la configuración lo requiere, productos destinados al proceso de limpieza.</field>
+    </record>
+    <record id="it_cepl_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">30</field>
+        <field name="titulo">Adaptable al usuario</field>
+        <field name="texto">La configuración del equipo puede definirse según las condiciones específicas del proceso.</field>
+    </record>
+    <record id="it_cepl_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">40</field>
+        <field name="titulo">Poco mantenimiento</field>
+        <field name="texto">El diseño mecánico está orientado a facilitar las tareas habituales de inspección y mantenimiento.</field>
+    </record>
+    <record id="it_cepl_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">50</field>
+        <field name="titulo">Operación sencilla</field>
+        <field name="texto">Configuración orientada a facilitar el uso cotidiano del equipo.</field>
+    </record>
+
+    <!-- Criba de malla descanicadora -->
+    <record id="maq_criba_malla" model="ferba.maquina">
+        <field name="lema">Separa producto pequeño e impurezas antes de que continúen por la línea</field>
+        <field name="hero_imagen">catalogo/lavado/fichas/criba-malla-descanicadora/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La Criba de Malla Descanicadora FERBA está diseñada para separar del flujo frutas de menor diámetro, residuos y material no deseado mediante una superficie de malla seleccionada de acuerdo con el calibre requerido.</p>
+            <p class="o_ferba_hero__lead">Su sistema incorpora un movimiento de vaivén que ayuda a distribuir y acomodar el producto sobre la superficie, favoreciendo que las piezas correspondientes al diámetro seleccionado atraviesen los orificios mientras el resto continúa hacia las siguientes etapas.</p>
+        ]]></field>
+        <field name="specs_foto">catalogo/lavado/fichas/criba-malla-descanicadora/specs.webp</field>
+        <field name="cierre_titulo">¿Qué necesitas separar dentro de tu línea?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Criba de malla descanicadora: primera separación | FERBA</field>
+        <field name="meta_descripcion">La Criba de Malla Descanicadora FERBA separa frutos pequeños, residuos e impurezas con malla intercambiable y movimiento de vaivén: hasta 400 frutos/minuto.</field>
+    </record>
+    <record id="dest_cribm_1" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
+        <field name="valor">400</field><field name="etiqueta">frutos por minuto</field>
+    </record>
+    <record id="dest_cribm_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
+        <field name="valor">Malla</field><field name="etiqueta">intercambiable</field>
+    </record>
+    <record id="dest_cribm_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
+        <field name="valor">Vaivén</field><field name="etiqueta">rol botador</field>
+    </record>
+    <record id="blo_cribm_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Una primera separación que protege el proceso</field>
+        <field name="titulo">Retira lo que no debe continuar</field>
+        <field name="imagen">catalogo/lavado/fichas/criba-malla-descanicadora/split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>Cuando producto demasiado pequeño, piedras, residuos u otros materiales avanzan innecesariamente por la línea, terminan ocupando capacidad y pueden incrementar las labores de limpieza y selección posteriores.</p>
+            <p>La Criba de Malla Descanicadora permite realizar esta separación desde las primeras etapas del proceso, ayudando a que el producto que continúa hacia lavado, tratamiento o selección llegue en mejores condiciones.</p>
+        ]]></field>
+    </record>
+    <record id="blo_cribm_benef" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
+        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
+        <field name="titulo">Retira lo que no debe continuar</field>
+    </record>
+    <record id="it_cribm_b1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">10</field>
+        <field name="titulo">Separación precisa</field>
+        <field name="texto">La malla define qué producto continúa y cuál se retira.</field>
+    </record>
+    <record id="it_cribm_b2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">20</field>
+        <field name="titulo">Movimiento vaivén</field>
+        <field name="texto">Un rol botador genera un movimiento que acomoda el producto sobre la malla.</field>
+    </record>
+    <record id="it_cribm_b3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">30</field>
+        <field name="titulo">Integración sencilla</field>
+        <field name="texto">Puede incorporarse al inicio, en una etapa intermedia o al final de la línea.</field>
+    </record>
+    <record id="spec_cribm_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
+        <field name="etiqueta">Sistema de selección</field><field name="valor">Malla intercambiable</field>
+    </record>
+    <record id="spec_cribm_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
+        <field name="etiqueta">Cribado</field><field name="valor">Por diámetro</field>
+    </record>
+    <record id="spec_cribm_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
+        <field name="etiqueta">Movimiento</field><field name="valor">Vaivén (rol botador)</field>
+    </record>
+    <record id="spec_cribm_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">40</field>
+        <field name="etiqueta">Opcional</field><field name="valor">Banda sanitaria</field>
+    </record>
+    <record id="spec_cribm_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">50</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+    </record>
+    <record id="spec_cribm_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">240 / 480 VAC · 3PH · 60 Hz</field>
+    </record>
+    <record id="blo_cribm_carac" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
+        <field name="tipo">tarjetas</field><field name="tema">claro</field>
+        <field name="titulo">Características destacadas</field>
+    </record>
+    <record id="it_cribm_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">10</field>
+        <field name="titulo">Separación de producto pequeño e impurezas</field>
+    </record>
+    <record id="it_cribm_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">20</field>
+        <field name="titulo">Mallas intercambiables y desmontaje rápido</field>
+    </record>
+    <record id="it_cribm_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">30</field>
+        <field name="titulo">Banda sanitaria opcional</field>
+    </record>
+    <record id="it_cribm_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">40</field>
+        <field name="titulo">Movimiento de vaivén para mejor distribución</field>
+    </record>
+    <record id="it_cribm_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">50</field>
+        <field name="titulo">Construcción robusta para uso industrial</field>
+    </record>
+    <record id="it_cribm_c6" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">60</field>
+        <field name="titulo">Bajo mantenimiento</field>
+    </record>
+    <record id="it_cribm_c7" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">70</field>
+        <field name="titulo">Integración sencilla en diferentes etapas de la línea</field>
+    </record>
+
+    <!-- ================= SECADO Y CEPILLADO ================= -->
+
+    <!-- Unidad de cepillos de encerado y secado -->
+    <record id="maq_cepillos_secado" model="ferba.maquina">
+        <field name="lema">Secado y acondicionamiento superficial para preparar el producto antes de clasificación y empaque</field>
+        <field name="hero_imagen">catalogo/secado/fichas/unidad-cepillos-secado/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La Unidad de Cepillos de Secado FERBA está diseñada para reducir la humedad superficial del producto después del lavado y continuar su acondicionamiento mediante cepillos especialmente seleccionados para cada aplicación.</p>
+            <p class="o_ferba_hero__lead">La misma plataforma puede configurarse para incorporar procesos de secado, aplicación de productos sanitizantes, encerado y pulido, ayudando a preparar frutas y hortalizas para las etapas posteriores de selección, clasificación y empaque.</p>
+        ]]></field>
+        <field name="specs_foto">catalogo/secado/fichas/unidad-cepillos-secado/specs.webp</field>
+        <field name="cierre_titulo">¿Necesitas preparar tu producto después del lavado?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Unidad de cepillos de encerado y secado | FERBA</field>
+        <field name="meta_descripcion">La Unidad de Cepillos de Secado FERBA reduce la humedad superficial tras el lavado y puede integrar secado, sanitizado, encerado y pulido con cepillos por aplicación.</field>
+    </record>
+    <record id="dest_ceps_1" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">10</field>
+        <field name="valor">Secado</field><field name="etiqueta">uniforme</field>
+    </record>
+    <record id="dest_ceps_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">20</field>
+        <field name="valor">Cepillos</field><field name="etiqueta">especializados</field>
+    </record>
+    <record id="dest_ceps_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">30</field>
+        <field name="valor">Multiproceso</field><field name="etiqueta">secado · encerado · pulido</field>
+    </record>
+    <record id="blo_ceps_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Una etapa de acondicionamiento después del lavado</field>
+        <field name="titulo">Del producto húmedo a una superficie preparada para continuar</field>
+        <field name="imagen">catalogo/secado/fichas/unidad-cepillos-secado/split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>Después del proceso de lavado, puede permanecer humedad sobre la superficie del producto y sobre los propios cepillos.</p>
+            <p>La Unidad de Cepillos de Secado permite continuar el tratamiento mediante una combinación de cepillado y sistemas auxiliares de aire, ayudando a retirar el exceso de humedad antes de las siguientes etapas de proceso.</p>
+            <p>Según la configuración seleccionada, el mismo módulo también puede utilizarse para aplicar tratamientos sanitizantes, cera o realizar pulido superficial.</p>
+        ]]></field>
+    </record>
+    <record id="blo_ceps_benef" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">20</field>
+        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
+        <field name="titulo">Una plataforma de acondicionamiento</field>
+    </record>
+    <record id="it_ceps_b1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_benef"/><field name="secuencia">10</field>
+        <field name="titulo">Secado uniforme</field>
+        <field name="texto">Ventiladores axiales o centrífugos para una eliminación eficiente de humedad.</field>
+    </record>
+    <record id="it_ceps_b2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_benef"/><field name="secuencia">20</field>
+        <field name="titulo">Cepillos especializados</field>
+        <field name="texto">Seleccionados según el producto y el tratamiento requerido.</field>
+    </record>
+    <record id="it_ceps_b3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_benef"/><field name="secuencia">30</field>
+        <field name="titulo">Plataforma multiproceso</field>
+        <field name="texto">Puede configurarse para secado, sanitizado, encerado o pulido.</field>
+    </record>
+    <record id="it_ceps_b4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_benef"/><field name="secuencia">40</field>
+        <field name="titulo">Integración sencilla</field>
+        <field name="texto">Diseñada para incorporarse en diferentes etapas de la línea postcosecha.</field>
+    </record>
+    <record id="spec_ceps_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">10</field>
+        <field name="etiqueta">Sistema</field><field name="valor">Cepillos</field>
+    </record>
+    <record id="spec_ceps_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">20</field>
+        <field name="etiqueta">Aplicación principal</field><field name="valor">Secado, sanitizado, encerado y pulido</field>
+    </record>
+    <record id="spec_ceps_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">30</field>
+        <field name="etiqueta">Construcción</field><field name="valor">Modular</field>
+    </record>
+    <record id="spec_ceps_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">40</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+    </record>
+    <record id="spec_ceps_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">50</field>
+        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">240 / 480 VAC · 3PH · 60 Hz</field>
+    </record>
+    <record id="blo_ceps_carac" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_cepillos_secado"/><field name="secuencia">30</field>
+        <field name="tipo">tarjetas</field><field name="tema">claro</field>
+        <field name="titulo">Características destacadas</field>
+    </record>
+    <record id="it_ceps_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">10</field>
+        <field name="titulo">Secado uniforme y eliminación de humedad superficial</field>
+    </record>
+    <record id="it_ceps_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">20</field>
+        <field name="titulo">Puede integrar sanitizado, encerado o pulido</field>
+    </record>
+    <record id="it_ceps_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">30</field>
+        <field name="titulo">Cepillos seleccionados para cada aplicación</field>
+    </record>
+    <record id="it_ceps_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">40</field>
+        <field name="titulo">Estructura modular y ampliable</field>
+    </record>
+    <record id="it_ceps_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">50</field>
+        <field name="titulo">Bajo mantenimiento</field>
+    </record>
+    <record id="it_ceps_c6" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_ceps_carac"/><field name="secuencia">60</field>
+        <field name="titulo">Construcción orientada a inocuidad</field>
+    </record>
+
 </odoo>

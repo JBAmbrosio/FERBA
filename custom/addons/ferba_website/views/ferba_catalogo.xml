@@ -269,7 +269,7 @@
                                 <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
                             </span>
                             <article class="o_ferba_paso o_ferba_reveal">
-                                <div class="o_ferba_paso__media">
+                                <div t-attf-class="o_ferba_paso__media#{'' if p.imagen else ' o_ferba_paso__media--num'}">
                                     <img t-if="p.imagen" t-attf-src="/ferba_website/static/src/img/#{p.imagen}"
                                          t-att-alt="p.titulo" loading="lazy"/>
                                     <span class="o_ferba_paso__num" t-out="'%02d' % (p_index + 1)"/>
