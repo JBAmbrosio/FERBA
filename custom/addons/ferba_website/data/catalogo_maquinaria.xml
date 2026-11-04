@@ -281,58 +281,12 @@
             <field name="categoria_id" ref="cat_sembradoras"/><field name="secuencia">10</field>
             <field name="chips">Siembra, Charolas, Proceso continuo</field>
             <field name="tarjeta_imagen">catalogo/sembradoras/cards/linea-de-siembra.webp</field>
-            <field name="lema">Prepara charolas de cultivo de forma continua, uniforme y eficiente</field>
-            <field name="hero_imagen">catalogo/sembradoras/hero.webp</field>
-            <field name="intro"><![CDATA[
-                <p class="o_ferba_hero__lead">La línea de siembra FERBA integra en un mismo proceso las principales etapas necesarias para preparar charolas de cultivo.</p>
-                <p class="o_ferba_hero__lead">Desde la mezcla inicial del sustrato hasta la disposición final de las charolas, el sistema permite organizar el flujo de trabajo y mantener condiciones consistentes durante el proceso de siembra.</p>
-            ]]></field>
-            <field name="pasos_titulo">De la preparación del sustrato a la charola lista</field>
-            <field name="galeria_titulo">Galería de imágenes y video</field>
-            <field name="specs_foto">catalogo/sembradoras/specs.webp</field>
-            <field name="cierre_titulo">¿Quieres integrar una línea de siembra en tu operación?</field>
-            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-            <field name="meta_titulo">Línea de siembra automatizada de charolas | FERBA</field>
-            <field name="meta_descripcion">Hasta 200 bandejas/hora, charola 700x480x130 mm, secado por aire comprimido, estructura de acero negro con pintura electrostática.</field>
         </record>
-        <record id="dest_siembra_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="valor">200</field><field name="etiqueta">bandejas / hora</field></record>
-        <record id="dest_siembra_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="valor">Acero negro</field><field name="etiqueta">pintura electrostática</field></record>
-        <record id="dest_siembra_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="valor">Proceso</field><field name="etiqueta">continuo</field></record>
 
-        <record id="paso_siembra_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="imagen">catalogo/sembradoras/paso-1.webp</field><field name="titulo">Preparación</field><field name="texto">El proceso comienza con la preparación y mezcla del sustrato requerido para las charolas.</field></record>
-        <record id="paso_siembra_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="imagen">catalogo/sembradoras/paso-2.webp</field><field name="titulo">Alimentación</field><field name="texto">El material preparado se incorpora al flujo de trabajo de la línea.</field></record>
-        <record id="paso_siembra_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="imagen">catalogo/sembradoras/paso-3.webp</field><field name="titulo">Siembra</field><field name="texto">La línea realiza el proceso de siembra manteniendo una distribución uniforme dentro de cada charola.</field></record>
-        <record id="paso_siembra_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="imagen">catalogo/sembradoras/paso-4.webp</field><field name="titulo">Salida y apilado</field><field name="texto">Las charolas terminadas avanzan hasta la etapa final para su disposición y apilado.</field></record>
 
-        <record id="blo_siembra_benef" model="ferba.maquina.bloque">
-            <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
-            <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-            <field name="titulo">Diseñada para una siembra eficiente y consistente</field>
-        </record>
-        <record id="blo_siembra_benef_1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">10</field><field name="titulo">Uniformidad</field><field name="texto">Un proceso organizado permite optimizar las operaciones necesarias para preparar las charolas y mantener un flujo continuo de trabajo.</field></record>
-        <record id="blo_siembra_benef_2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">20</field><field name="titulo">Diseño resistente</field><field name="texto">Construcción diseñada para trabajar dentro de ambientes productivos y mantener estabilidad durante la operación.</field></record>
-        <record id="blo_siembra_benef_3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">Capacidad de procesamiento diseñada para mantener un flujo constante durante la jornada de producción.</field></record>
 
-        <record id="spec_siembra_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="etiqueta">Tamaño de charola</field><field name="valor">700 x 480 x 130 mm</field></record>
-        <record id="spec_siembra_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 200 bandejas / hora</field></record>
-        <record id="spec_siembra_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="etiqueta">Tipo de secado</field><field name="valor">Aire comprimido</field></record>
-        <record id="spec_siembra_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="etiqueta">Material</field><field name="valor">Acero negro</field></record>
-        <record id="spec_siembra_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">50</field><field name="etiqueta">Acabados</field><field name="valor">Pintura electrostática</field></record>
 
-        <record id="blo_siembra_carac" model="ferba.maquina.bloque">
-            <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
-            <field name="tipo">tarjetas</field><field name="tema">claro</field>
-            <field name="titulo">Construida para operación productiva</field>
-        </record>
-        <record id="blo_siembra_carac_1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">10</field><field name="titulo">Material</field><field name="texto">Estructura fabricada de acuerdo a las necesidades mecánicas del sistema.</field></record>
-        <record id="blo_siembra_carac_2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">20</field><field name="titulo">Acabados</field><field name="texto">Acabado aplicado sobre los componentes correspondientes de la estructura.</field></record>
-        <record id="blo_siembra_carac_3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">30</field><field name="titulo">Tamaño de charola</field><field name="texto">Configuración indicada para el formato de charola establecido.</field></record>
-        <record id="blo_siembra_carac_4" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">40</field><field name="titulo">Capacidad</field><field name="texto">Capacidad nominal indicada para la línea de siembra.</field></record>
 
-        <record id="media_siembra_0" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="imagen">catalogo/sembradoras/gal-video.webp</field><field name="es_video" eval="True"/></record>
-        <record id="media_siembra_1" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="imagen">catalogo/sembradoras/gal-1.webp</field></record>
-        <record id="media_siembra_2" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="imagen">catalogo/sembradoras/gal-2.webp</field></record>
-        <record id="media_siembra_3" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="imagen">catalogo/sembradoras/gal-3.webp</field></record>
 
     </data>
 </odoo>

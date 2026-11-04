@@ -2745,501 +2745,1575 @@
 
     <!-- ================= EMPAQUE ================= -->
 
-    <!-- Bancos de empaque -->
+    <!-- Bancos de empaque  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_bancos_empaque" model="ferba.maquina">
         <field name="lema">Una estación de trabajo organizada para mantener el flujo hasta el empaque</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/bancos-de-empaque/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/bancos-de-empaque/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">Los Bancos de Empaque FERBA están diseñados para integrarse dentro de líneas postcosecha como estaciones de acumulación y trabajo, facilitando el manejo del producto durante las etapas de llenado y preparación para empaque.</p>
             <p class="o_ferba_hero__lead">Su construcción modular permite adaptar la configuración a las necesidades particulares de cada operación y ampliar el sistema cuando el crecimiento de la línea lo requiera.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/bancos-de-empaque/specs.webp</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mantén el producto disponible para el operador</field>
+
         <field name="cierre_titulo">¿Necesitas integrar una estación de empaque a tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Bancos de empaque: estación de trabajo modular | FERBA</field>
-        <field name="meta_descripcion">Los Bancos de Empaque FERBA integran estaciones de acumulación y trabajo al flujo de la línea, con construcción modular expandible en acero inoxidable y acero negro.</field>
+        <field name="meta_titulo">Bancos de empaque modulares | FERBA</field>
+        <field name="meta_descripcion">Los Bancos de Empaque FERBA son estaciones modulares de acumulación y trabajo para el llenado y empaque, ampliables y con puertas de llenado, soporte de cajas e iluminación.</field>
     </record>
-    <record id="dest_bancos_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">10</field><field name="valor">Modular</field><field name="etiqueta">construcción</field></record>
-    <record id="dest_bancos_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">20</field><field name="valor">Expandible</field><field name="etiqueta">configuración</field></record>
-    <record id="dest_bancos_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">30</field><field name="valor">Acero</field><field name="etiqueta">inox y negro</field></record>
+
     <record id="blo_bancos_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una estación integrada al proceso</field>
         <field name="titulo">Del producto clasificado al empaque</field>
-        <field name="imagen">catalogo/empaque/fichas/bancos-de-empaque/split.webp</field>
+        <field name="imagen">catalogo/empaque/bancos-de-empaque/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>Una vez que el producto ha sido seleccionado o calibrado, es necesario disponer de una zona de trabajo donde pueda acumularse temporalmente y ser manipulado para su empaque.</p>
             <p>Los Bancos de Empaque FERBA permiten integrar esta etapa dentro del flujo de la línea, proporcionando una superficie de trabajo continua y preparada para complementar las operaciones manuales de empaque.</p>
         ]]></field>
     </record>
-    <record id="blo_bancos_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Mantén el producto disponible para el operador</field></record>
-    <record id="it_bancos_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_bancos_benef"/><field name="secuencia">10</field><field name="titulo">Acumulación de producto</field><field name="texto">Permite mantener producto disponible en la estación de trabajo, ayudando a reducir tiempos de inactividad durante el proceso.</field></record>
-    <record id="it_bancos_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_bancos_benef"/><field name="secuencia">20</field><field name="titulo">Mantenimiento mínimo</field><field name="texto">Su configuración sencilla permite trabajar con menores requerimientos de mantenimiento.</field></record>
-    <record id="it_bancos_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_bancos_benef"/><field name="secuencia">30</field><field name="titulo">Diseño modular</field><field name="texto">La estructura puede ampliarse cuando las necesidades de producción lo requieran.</field></record>
-    <record id="spec_bancos_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">10</field><field name="etiqueta">Aplicación</field><field name="valor">Empaque y manejo de producto</field></record>
-    <record id="spec_bancos_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">20</field><field name="etiqueta">Construcción</field><field name="valor">Modular</field></record>
-    <record id="spec_bancos_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">30</field><field name="etiqueta">Ampliación</field><field name="valor">Configuración expandible</field></record>
-    <record id="spec_bancos_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">40</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable y acero negro</field></record>
-    <record id="spec_bancos_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">50</field><field name="etiqueta">Complementos</field><field name="valor">Puertas de llenado, soporte de cajas y estructura para iluminación</field></record>
 
-    <!-- Módulo de empacado -->
+    <record id="spec_bancos_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">10</field>
+        <field name="etiqueta">Aplicación</field><field name="valor">Empaque y manejo de producto</field>
+    </record>
+    <record id="spec_bancos_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">20</field>
+        <field name="etiqueta">Ampliación</field><field name="valor">Configuración expandible</field>
+    </record>
+    <record id="spec_bancos_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">30</field>
+        <field name="etiqueta">Construcción</field><field name="valor">Modular</field>
+    </record>
+    <record id="spec_bancos_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">40</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_bancos_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="secuencia">50</field>
+        <field name="etiqueta">Complementos</field><field name="valor">Puertas de llenado, soporte de cajas y estructura para iluminación</field>
+    </record>
+
+    <record id="pt_bancos_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/bancos-de-empaque/ben-1.webp</field>
+        <field name="titulo">Acumulación de producto</field>
+        <field name="texto">Permite mantener producto disponible en la estación de trabajo, ayudando a reducir tiempos de inactividad durante el proceso.</field>
+    </record>
+    <record id="pt_bancos_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/bancos-de-empaque/ben-2.webp</field>
+        <field name="titulo">Mantenimiento mínimo</field>
+        <field name="texto">Su configuración sencilla permite trabajar con menores requerimientos de mantenimiento</field>
+    </record>
+    <record id="pt_bancos_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_bancos_empaque"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/bancos-de-empaque/ben-3.webp</field>
+        <field name="titulo">Diseño modular</field>
+        <field name="texto">La estructura puede ampliarse cuando las necesidades de producción lo requieran</field>
+    </record>
+
+    <!-- Módulo de empacado  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_modulo_empacado" model="ferba.maquina">
         <field name="lema">Empaque manual organizado, ergonómico y cuidadoso con el producto</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/modulo-de-empacado/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/modulo-de-empacado/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Módulo de Empacado FERBA está diseñado para facilitar el acomodo manual de productos como tomate, manzana y aguacate, proporcionando al operador una estación de trabajo organizada para realizar un empaque específico y cuidadoso dentro de cada caja.</p>
             <p class="o_ferba_hero__lead">Su diseño ergonómico integra el suministro de producto y el manejo de cajas vacías y llenas, ayudando a reducir movimientos innecesarios, esfuerzo y tiempos durante la operación de empaque.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/modulo-de-empacado/specs.webp</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Un espacio de trabajo pensado para empacar mejor</field>
+
         <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Módulo de empacado: empaque manual ergonómico | FERBA</field>
-        <field name="meta_descripcion">El Módulo de Empacado FERBA organiza producto, cajas y espacio de trabajo en una estación ergonómica para empaque manual de tomate, manzana y aguacate.</field>
+        <field name="meta_titulo">Módulo de empacado ergonómico | FERBA</field>
+        <field name="meta_descripcion">El Módulo de Empacado FERBA organiza suministro de producto, cajas vacías y llenas en una estación ergonómica para el empaque manual de tomate, manzana y aguacate.</field>
     </record>
-    <record id="dest_modulo_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">10</field><field name="valor">Ergonómico</field><field name="etiqueta">diseño</field></record>
-    <record id="dest_modulo_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">20</field><field name="valor">Manual→auto</field><field name="etiqueta">integración</field></record>
-    <record id="dest_modulo_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">30</field><field name="valor">Expandible</field><field name="etiqueta">configuración</field></record>
+
     <record id="blo_modulo_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una estación diseñada alrededor del operador</field>
         <field name="titulo">Producto, cajas y espacio de trabajo en una sola estación</field>
-        <field name="imagen">catalogo/empaque/fichas/modulo-de-empacado/split.webp</field>
+        <field name="imagen">catalogo/empaque/modulo-de-empacado/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>El empaque manual de productos delicados requiere mucho más que una superficie de trabajo. La fruta debe mantenerse disponible para el operador y las cajas deben circular de manera organizada para evitar movimientos innecesarios.</p>
             <p>El Módulo de Empacado FERBA organiza estos elementos dentro de una misma estación, facilitando el suministro de producto, el acomodo dentro de la caja y el manejo de contenedores antes y después del llenado.</p>
         ]]></field>
     </record>
-    <record id="blo_modulo_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Un espacio de trabajo pensado para empacar mejor</field></record>
-    <record id="it_modulo_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_modulo_benef"/><field name="secuencia">10</field><field name="titulo">Diseño ergonómico</field><field name="texto">La configuración está pensada para favorecer una postura de trabajo cómoda y reducir movimientos innecesarios durante la operación.</field></record>
-    <record id="it_modulo_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_modulo_benef"/><field name="secuencia">20</field><field name="titulo">Flujo organizado de cajas</field><field name="texto">Integra espacios para el manejo de cajas vacías y cajas llenas, ayudando a mantener ordenada la estación.</field></record>
-    <record id="it_modulo_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_modulo_benef"/><field name="secuencia">30</field><field name="titulo">Configuración adaptable</field><field name="texto">Puede ajustarse al número de operadores, tipo de producto y necesidades particulares del proyecto.</field></record>
-    <record id="spec_modulo_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">10</field><field name="etiqueta">Aplicación</field><field name="valor">Empaque manual</field></record>
-    <record id="spec_modulo_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">20</field><field name="etiqueta">Tipo de integración</field><field name="valor">Manual, semiautomática o automatizada</field></record>
-    <record id="spec_modulo_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">30</field><field name="etiqueta">Ampliación</field><field name="valor">Configuración expandible</field></record>
-    <record id="spec_modulo_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">40</field><field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3F / 60 Hz</field></record>
-    <record id="spec_modulo_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">50</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable y acero negro</field></record>
 
-    <!-- Mesa giratoria -->
+    <record id="spec_modulo_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">10</field>
+        <field name="etiqueta">Aplicación</field><field name="valor">Empaque manual</field>
+    </record>
+    <record id="spec_modulo_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">20</field>
+        <field name="etiqueta">Ampliación</field><field name="valor">Configuración expandible</field>
+    </record>
+    <record id="spec_modulo_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">30</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3F / 60 Hz</field>
+    </record>
+    <record id="spec_modulo_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">40</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_modulo_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="secuencia">50</field>
+        <field name="etiqueta">Tipo de integración</field><field name="valor">Manual, semiautomática o automatizada</field>
+    </record>
+
+    <record id="pt_modulo_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/modulo-de-empacado/ben-1.webp</field>
+        <field name="titulo">Diseño ergonómico</field>
+        <field name="texto">La configuración está pensada para favorecer una postura de trabajo cómoda y reducir movimientos innecesarios durante la operación.</field>
+    </record>
+    <record id="pt_modulo_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/modulo-de-empacado/ben-2.webp</field>
+        <field name="titulo">Flujo organizado de cajas</field>
+        <field name="texto">Integra espacios para el manejo de cajas vacías y cajas llenas, ayudando a mantener ordenada la estación.</field>
+    </record>
+    <record id="pt_modulo_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_modulo_empacado"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/modulo-de-empacado/ben-3.webp</field>
+        <field name="titulo">Configuración adaptable</field>
+        <field name="texto">Puede ajustarse al número de operadores, tipo de producto y necesidades particulares del proyecto.</field>
+    </record>
+
+    <!-- Mesa giratoria  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_mesa_giratoria" model="ferba.maquina">
         <field name="lema">Acumulación y manejo continuo al final de la línea</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/mesa-giratoria/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/mesa-giratoria/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Mesa Giratoria FERBA está diseñada para recibir y acumular de manera ordenada bolsas, charolas y otros envases provenientes de equipos de empaque, facilitando su manipulación manual y manteniendo un flujo organizado al final del proceso.</p>
             <p class="o_ferba_hero__lead">Su velocidad de rotación puede ajustarse mediante variador de frecuencia (VFD), permitiendo adaptar el funcionamiento de la mesa al ritmo de producción de cada línea.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/mesa-giratoria/specs.webp</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Un espacio de trabajo pensado para empacar mejor</field>
+
         <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Mesa giratoria: acumulación al final de la línea | FERBA</field>
-        <field name="meta_descripcion">La Mesa Giratoria FERBA recibe y acumula bolsas, charolas y envases al final de la línea, con velocidad ajustable por variador de frecuencia y diámetros de 46″ a 60″.</field>
+        <field name="meta_titulo">Mesa giratoria de acumulación | FERBA</field>
+        <field name="meta_descripcion">La Mesa Giratoria FERBA acumula bolsas, charolas y envases al final de la línea con velocidad regulable por variador de frecuencia, altura ajustable y diámetros de 46", 48" y 60".</field>
     </record>
-    <record id="dest_mesa_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">10</field><field name="valor">46–60″</field><field name="etiqueta">diámetros</field></record>
-    <record id="dest_mesa_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">20</field><field name="valor">VFD</field><field name="etiqueta">velocidad ajustable</field></record>
-    <record id="dest_mesa_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">30</field><field name="valor">Ajustable</field><field name="etiqueta">altura</field></record>
+
     <record id="blo_mesa_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución para el final de la línea</field>
         <field name="titulo">Recibe, acumula y organiza el producto empacado</field>
-        <field name="imagen">catalogo/empaque/fichas/mesa-giratoria/split.webp</field>
+        <field name="imagen">catalogo/empaque/mesa-giratoria/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>Cuando el producto sale de una empacadora, es importante mantener un espacio donde pueda acumularse temporalmente sin interrumpir el funcionamiento de las máquinas anteriores.</p>
             <p>La Mesa Giratoria FERBA recibe los envases provenientes de la línea y los mantiene en movimiento sobre una superficie circular, facilitando su acceso a los operadores para continuar con tareas como acomodo, inspección, encajado o preparación para despacho.</p>
         ]]></field>
     </record>
-    <record id="blo_mesa_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Mejor manejo al final de la línea</field></record>
-    <record id="it_mesa_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_mesa_benef"/><field name="secuencia">10</field><field name="titulo">Acumulación ordenada</field><field name="texto">Permite recibir producto empacado de manera continua, ayudando a evitar acumulaciones descontroladas y cuellos de botella.</field></record>
-    <record id="it_mesa_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_mesa_benef"/><field name="secuencia">20</field><field name="titulo">Velocidad adaptable</field><field name="texto">El variador de frecuencia permite ajustar la velocidad de rotación según el ritmo de producción.</field></record>
-    <record id="it_mesa_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_mesa_benef"/><field name="secuencia">30</field><field name="titulo">Mejor manejo manual</field><field name="texto">Facilita el acceso del operador al producto, mejorando la organización del área de trabajo.</field></record>
-    <record id="spec_mesa_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">10</field><field name="etiqueta">Aplicación</field><field name="valor">Manejo y acumulación de producto empacado</field></record>
-    <record id="spec_mesa_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">20</field><field name="etiqueta">Control de velocidad</field><field name="valor">Variador de frecuencia</field></record>
-    <record id="spec_mesa_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">30</field><field name="etiqueta">Diámetros</field><field name="valor">46″, 48″ y 60″ Ø</field></record>
-    <record id="spec_mesa_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">40</field><field name="etiqueta">Altura</field><field name="valor">Ajustable</field></record>
-    <record id="spec_mesa_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">50</field><field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3F / 60 Hz</field></record>
 
-    <!-- Pesadora automática llenadora de cajas -->
+    <record id="spec_mesa_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">10</field>
+        <field name="etiqueta">Aplicación</field><field name="valor">Manejo y acumulación de producto empacado</field>
+    </record>
+    <record id="spec_mesa_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">20</field>
+        <field name="etiqueta">Control de vel</field><field name="valor">Variador de frecuencia</field>
+    </record>
+    <record id="spec_mesa_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">30</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3F / 60 Hz</field>
+    </record>
+    <record id="spec_mesa_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">40</field>
+        <field name="etiqueta">Altura</field><field name="valor">Ajustable</field>
+    </record>
+    <record id="spec_mesa_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="secuencia">50</field>
+        <field name="etiqueta">Diámetros</field><field name="valor">46", 48" y 60" Ø</field>
+    </record>
+
+    <record id="pt_mesa_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/mesa-giratoria/ben-1.webp</field>
+        <field name="titulo">Acumulación ordenada</field>
+        <field name="texto">Permite recibir producto empacado de manera continua, ayudando a evitar acumulaciones descontroladas y cuellos de botella.</field>
+    </record>
+    <record id="pt_mesa_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/mesa-giratoria/ben-2.webp</field>
+        <field name="titulo">Velocidad adaptable</field>
+        <field name="texto">El variador de frecuencia permite ajustar la velocidad de rotación según el ritmo de producción.</field>
+    </record>
+    <record id="pt_mesa_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_mesa_giratoria"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/mesa-giratoria/ben-3.webp</field>
+        <field name="titulo">Mejor manejo manual</field>
+        <field name="texto">Facilita el acceso del operador al producto, mejorando la organización del área de trabajo.</field>
+    </record>
+
+    <!-- Pesadora automática llenadora de cajas  (fiel al PDF: hero oscuro con foto, split con render, 5 pasos con foto, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_pesadora_cajas" model="ferba.maquina">
+        <field name="hero_titulo">Pesadora automática</field>
         <field name="lema">Llenado automático y preciso para mantener el ritmo de producción</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/pesadora-llenadora-cajas/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/pesadora-llenadora-cajas/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Pesadora Automática FERBA está diseñada para automatizar el llenado de cajas, manteniendo un proceso constante y preciso mientras reduce la intervención manual durante la operación.</p>
             <p class="o_ferba_hero__lead">Su sistema de control permite integrar el pesaje dentro de líneas de empaque continuas, ayudando a disminuir tiempos inactivos y mantener un flujo uniforme de producto.</p>
         ]]></field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
         <field name="pasos_titulo">Del producto a una caja lista para continuar</field>
-        <field name="specs_foto">catalogo/empaque/fichas/pesadora-llenadora-cajas/specs.webp</field>
-        <field name="cierre_titulo">¿Necesitas automatizar el pesaje y llenado de cajas?</field>
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor continuidad con menor intervención</field>
+
+        <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Pesadora automática llenadora de cajas | FERBA</field>
-        <field name="meta_descripcion">La Pesadora Automática FERBA automatiza el pesaje y llenado de cajas con control eléctrico y señalización de estado, para un flujo uniforme con menor intervención manual.</field>
+        <field name="meta_descripcion">La Pesadora Automática FERBA automatiza el pesaje y llenado de cajas con control eléctrico, señalización de 3 colores y un flujo constante con menor intervención manual.</field>
     </record>
-    <record id="dest_pesc_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field><field name="valor">Automático</field><field name="etiqueta">pesaje y llenado</field></record>
-    <record id="dest_pesc_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field><field name="valor">3 colores</field><field name="etiqueta">señalización de estado</field></record>
-    <record id="dest_pesc_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">30</field><field name="valor">46–60″</field><field name="etiqueta">diámetros</field></record>
-    <record id="blo_pesc_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+
+    <record id="blo_pesad_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Automatiza una etapa crítica del empaque</field>
         <field name="titulo">Del producto recibido a una caja con peso controlado</field>
-        <field name="imagen">catalogo/empaque/fichas/pesadora-llenadora-cajas/split.webp</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>El pesaje y llenado manual puede generar diferencias entre cajas y depender directamente del ritmo de los operadores.</p>
             <p>La Pesadora Automática FERBA permite incorporar esta etapa dentro de un flujo automatizado, controlando el llenado para obtener una operación más constante y reducir los intervalos improductivos dentro de la línea.</p>
         ]]></field>
     </record>
-    <record id="blo_pesc_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Mayor continuidad con menor intervención</field></record>
-    <record id="it_pesc_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_pesc_benef"/><field name="secuencia">10</field><field name="titulo">Llenado constante</field><field name="texto">El sistema busca mantener un proceso de llenado preciso y uniforme entre las cajas procesadas.</field></record>
-    <record id="it_pesc_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_pesc_benef"/><field name="secuencia">20</field><field name="titulo">Automatización</field><field name="texto">Reduce la dependencia de operaciones manuales durante la etapa de pesaje y llenado.</field></record>
-    <record id="it_pesc_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_pesc_benef"/><field name="secuencia">30</field><field name="titulo">Menos tiempos inactivos</field><field name="texto">La automatización permite mantener una mayor continuidad dentro del proceso productivo.</field></record>
-    <record id="paso_pesc_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field><field name="titulo">Alimentación</field><field name="texto">El producto llega desde las etapas anteriores de clasificación o manejo.</field></record>
-    <record id="paso_pesc_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field><field name="titulo">Distribución</field><field name="texto">El sistema conduce el producto hacia la zona de pesaje.</field></record>
-    <record id="paso_pesc_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">30</field><field name="titulo">Pesaje</field><field name="texto">Se controla la cantidad de producto destinada a cada caja.</field></record>
-    <record id="paso_pesc_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">40</field><field name="titulo">Llenado</field><field name="texto">El producto es transferido automáticamente al contenedor correspondiente.</field></record>
-    <record id="paso_pesc_5" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">50</field><field name="titulo">Salida</field><field name="texto">La caja llena continúa hacia las siguientes etapas de empaque o despacho.</field></record>
-    <record id="spec_pesc_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field><field name="etiqueta">Control</field><field name="valor">Eléctrico automatizado</field></record>
-    <record id="spec_pesc_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field><field name="etiqueta">Aplicación</field><field name="valor">Pesaje y llenado automático de cajas</field></record>
-    <record id="spec_pesc_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">30</field><field name="etiqueta">Señalización</field><field name="valor">3 colores de estado</field></record>
-    <record id="spec_pesc_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">40</field><field name="etiqueta">Diámetros</field><field name="valor">46″, 48″ y 60″ Ø</field></record>
-    <record id="spec_pesc_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">50</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable y acero negro</field></record>
 
-    <!-- Multipesadora -->
+    <record id="paso_pesad_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/paso-1.webp</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El producto llega desde las etapas anteriores de clasificación o manejo.</field>
+    </record>
+    <record id="paso_pesad_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/paso-2.webp</field>
+        <field name="titulo">Distribución</field>
+        <field name="texto">El sistema conduce el producto hacia la zona de pesaje.</field>
+    </record>
+    <record id="paso_pesad_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/paso-3.webp</field>
+        <field name="titulo">Pesaje</field>
+        <field name="texto">Se controla la cantidad de producto destinada a cada caja.</field>
+    </record>
+    <record id="paso_pesad_4" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/paso-4.webp</field>
+        <field name="titulo">Llenado</field>
+        <field name="texto">El producto es transferido automáticamente al contenedor correspondiente.</field>
+    </record>
+    <record id="paso_pesad_5" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/pesadora-llenadora-cajas/paso-5.webp</field>
+        <field name="titulo">Salida</field>
+        <field name="texto">La caja llena continúa hacia las siguientes etapas de empaque o despacho.</field>
+    </record>
+
+    <record id="spec_pesad_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">10</field>
+        <field name="etiqueta">Aplicación</field><field name="valor">Pesaje y llenado automático de cajas</field>
+    </record>
+    <record id="spec_pesad_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">20</field>
+        <field name="etiqueta">Control</field><field name="valor">Eléctrico automatizado</field>
+    </record>
+    <record id="spec_pesad_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">30</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_pesad_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">40</field>
+        <field name="etiqueta">Señalización</field><field name="valor">3 colores de estado</field>
+    </record>
+    <record id="spec_pesad_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="secuencia">50</field>
+        <field name="etiqueta">Diámetros</field><field name="valor">46", 48" y 60" Ø</field>
+    </record>
+
+    <record id="pt_pesad_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/pesadora-llenadora-cajas/ben-1.webp</field>
+        <field name="titulo">Llenado constante</field>
+        <field name="texto">El sistema busca mantener un proceso de llenado preciso y uniforme entre las cajas procesadas.</field>
+    </record>
+    <record id="pt_pesad_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/pesadora-llenadora-cajas/ben-2.webp</field>
+        <field name="titulo">Automatización</field>
+        <field name="texto">Reduce la dependencia de operaciones manuales durante la etapa de pesaje y llenado.</field>
+    </record>
+    <record id="pt_pesad_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_pesadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/pesadora-llenadora-cajas/ben-3.webp</field>
+        <field name="titulo">Menos tiempos inactivos</field>
+        <field name="texto">La automatización permite mantener una mayor continuidad dentro del proceso productivo.</field>
+    </record>
+
+    <!-- Multipesadora  (fiel al PDF: hero oscuro con foto, split con render, 5 pasos con foto, datos oscuros con foto a sangre, galería con video, cierre rojo) -->
     <record id="maq_multipesadora" model="ferba.maquina">
         <field name="lema">Pesaje automático de alta velocidad para incrementar la productividad de tu línea</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/multipesadora/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/multipesadora/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Multipesadora FERBA está diseñada para automatizar el pesaje y dosificación de producto dentro de líneas de empaque, utilizando múltiples cabezales para obtener combinaciones de peso de manera rápida y consistente.</p>
             <p class="o_ferba_hero__lead">Su configuración permite alimentar de forma continua las siguientes etapas del proceso, ayudando a mantener un ritmo de producción elevado y reducir la dependencia del pesaje manual.</p>
         ]]></field>
-        <field name="pasos_titulo">Del producto a una porción lista para empacar</field>
-        <field name="specs_foto">catalogo/empaque/fichas/multipesadora/specs.webp</field>
-        <field name="cierre_titulo">¿Necesitas acelerar el pesaje de tu línea de empaque?</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">Del producto a una caja lista para continuar</field>
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/empaque/multipesadora/datos-foto.webp</field>
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
+        <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Multipesadora: pesaje automático de alta velocidad | FERBA</field>
-        <field name="meta_descripcion">La Multipesadora FERBA automatiza el pesaje y dosificación con 12 cabezales y hasta 120 clamshell por minuto, alimentando de forma continua el proceso de empaque.</field>
+        <field name="meta_titulo">Multipesadora de 12 cabezales | FERBA</field>
+        <field name="meta_descripcion">La Multipesadora FERBA automatiza el pesaje y dosificación con 12 cabezales y 2 salidas en acero inoxidable: hasta 120 clamshell por minuto para mantener el ritmo de empaque.</field>
     </record>
-    <record id="dest_multi_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field><field name="valor">12</field><field name="etiqueta">cabezales</field></record>
-    <record id="dest_multi_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field><field name="valor">120</field><field name="etiqueta">clamshell/minuto</field></record>
-    <record id="dest_multi_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field><field name="valor">Inoxidable</field><field name="etiqueta">acero</field></record>
+
     <record id="blo_multi_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Pesaje automático para mantener el ritmo de empaque</field>
         <field name="titulo">Del producto recibido a una porción lista para empacar</field>
-        <field name="imagen">catalogo/empaque/fichas/multipesadora/split.webp</field>
+        <field name="imagen">catalogo/empaque/multipesadora/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>En operaciones de alto volumen, el pesaje manual puede convertirse en un punto de restricción dentro de la línea.</p>
             <p>La Multipesadora FERBA recibe el producto, lo distribuye entre sus diferentes cabezales y genera combinaciones para alcanzar el peso objetivo antes de realizar la descarga hacia el proceso de empaque.</p>
             <p>Su sistema permite mantener un flujo continuo y repetible, facilitando la integración con equipos posteriores.</p>
         ]]></field>
     </record>
-    <record id="paso_multi_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field><field name="titulo">Alimentación</field><field name="texto">El producto ingresa al sistema mediante el transportador de alimentación.</field></record>
-    <record id="paso_multi_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field><field name="titulo">Elevación</field><field name="texto">El producto es trasladado hacia la parte superior de la multipesadora.</field></record>
-    <record id="paso_multi_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field><field name="titulo">Distribución</field><field name="texto">El sistema reparte el producto entre los diferentes cabezales de pesaje.</field></record>
-    <record id="paso_multi_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">40</field><field name="titulo">Pesaje</field><field name="texto">Cada cabezal obtiene información del producto contenido.</field></record>
-    <record id="paso_multi_5" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">50</field><field name="titulo">Descarga</field><field name="texto">El producto pesado se libera hacia el equipo de empaque o proceso posterior.</field></record>
-    <record id="spec_multi_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field><field name="etiqueta">Número de cabezales</field><field name="valor">12</field></record>
-    <record id="spec_multi_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field><field name="etiqueta">Salidas</field><field name="valor">2</field></record>
-    <record id="spec_multi_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field><field name="etiqueta">Velocidad</field><field name="valor">120 clamshell / minuto</field></record>
-    <record id="spec_multi_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">40</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field></record>
 
-    <!-- Pesadora llenadora doble de bolsas -->
+    <record id="paso_multi_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/multipesadora/paso-1.webp</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El producto ingresa al sistema mediante el transportador de alimentación.</field>
+    </record>
+    <record id="paso_multi_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/multipesadora/paso-2.webp</field>
+        <field name="titulo">Elevación</field>
+        <field name="texto">El producto es trasladado hacia la parte superior de la multipesadora.</field>
+    </record>
+    <record id="paso_multi_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/multipesadora/paso-3.webp</field>
+        <field name="titulo">Distribución</field>
+        <field name="texto">El sistema reparte el producto entre los diferentes cabezales de pesaje.</field>
+    </record>
+    <record id="paso_multi_4" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/multipesadora/paso-4.webp</field>
+        <field name="titulo">Pesaje</field>
+        <field name="texto">Cada cabezal obtiene información del producto contenido.</field>
+    </record>
+    <record id="paso_multi_5" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/multipesadora/paso-5.webp</field>
+        <field name="titulo">Descarga</field>
+        <field name="texto">El producto pesado se libera hacia el equipo de empaque o proceso posterior.</field>
+    </record>
+
+    <record id="spec_multi_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field>
+        <field name="etiqueta">Número de cabezales</field><field name="valor">12</field>
+    </record>
+    <record id="spec_multi_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field>
+        <field name="etiqueta">Salidas</field><field name="valor">2</field>
+    </record>
+    <record id="spec_multi_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
+    </record>
+    <record id="spec_multi_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">40</field>
+        <field name="etiqueta">Velocidad</field><field name="valor">120 clamshell/minuto</field>
+    </record>
+
+    <record id="media_multi_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/multipesadora/galeria-1.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_multi_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/multipesadora/galeria-2.webp</field>
+    </record>
+    <record id="media_multi_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/multipesadora/galeria-3.webp</field>
+    </record>
+    <record id="media_multi_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/multipesadora/galeria-4.webp</field>
+    </record>
+    <record id="media_multi_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/multipesadora/galeria-5.webp</field>
+    </record>
+
+    <!-- Pesadora llenadora doble de bolsa  (fiel al PDF: hero oscuro con foto, split con render, 5 pasos con foto, datos oscuros con foto a sangre, cierre rojo) -->
     <record id="maq_pesadora_doble_bolsa" model="ferba.maquina">
+        <field name="hero_titulo">Pesadora llenadora doble de bolsas</field>
         <field name="lema">Pesaje de precisión y llenado en doble salida</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/pesadora-doble-bolsa/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/pesadora-doble-bolsa/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Pesadora Llenadora Doble de Bolsas FERBA recibe el producto mediante dos tolvas independientes y lo distribuye hacia cada unidad de pesaje mediante sistemas de vibración horizontal.</p>
             <p class="o_ferba_hero__lead">Una vez alcanzado el peso programado, el producto es descargado de forma controlada mediante compuertas accionadas por pistones neumáticos, alimentando dos puntos de envasado.</p>
         ]]></field>
-        <field name="pasos_titulo">Del producto a la bolsa con peso configurado</field>
-        <field name="specs_foto">catalogo/empaque/fichas/pesadora-doble-bolsa/specs.webp</field>
-        <field name="cierre_titulo">¿Necesitas pesaje y llenado de bolsas en doble salida?</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">Del producto a una caja lista para continuar</field>
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/empaque/pesadora-doble-bolsa/datos-foto.webp</field>
+
+        <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Pesadora llenadora doble de bolsas | FERBA</field>
-        <field name="meta_descripcion">La Pesadora Llenadora Doble de Bolsas FERBA trabaja con dos circuitos independientes de pesaje y llenado, hasta 30 bolsas/minuto por estación, con pantalla HMI de 10″.</field>
+        <field name="meta_descripcion">La Pesadora Llenadora Doble de Bolsas FERBA pesa y llena en dos estaciones independientes: hasta 30 bolsas por minuto por estación, HMI de 10" y descarga por pistones neumáticos.</field>
     </record>
-    <record id="dest_db_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field><field name="valor">2</field><field name="etiqueta">estaciones</field></record>
-    <record id="dest_db_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">20</field><field name="valor">30</field><field name="etiqueta">bolsas/min por estación</field></record>
-    <record id="dest_db_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">30</field><field name="valor">HMI 10″</field><field name="etiqueta">control</field></record>
-    <record id="blo_db_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+
+    <record id="blo_lldoble_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución doble para mantener la producción</field>
         <field name="titulo">Dos líneas de pesaje trabajando dentro de un mismo sistema</field>
-        <field name="imagen">catalogo/empaque/fichas/pesadora-doble-bolsa/split.webp</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>La configuración doble permite recibir y procesar producto mediante dos circuitos independientes de alimentación y pesaje, ayudando a mantener continuidad durante el llenado de bolsas.</p>
             <p>Cada estación trabaja con un peso previamente configurado y realiza la descarga una vez alcanzado el valor establecido.</p>
         ]]></field>
     </record>
-    <record id="paso_db_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field><field name="titulo">Alimentación</field><field name="texto">El producto ingresa al sistema mediante el transportador de alimentación.</field></record>
-    <record id="paso_db_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">20</field><field name="titulo">Elevación</field><field name="texto">El producto es trasladado hacia la parte superior de la pesadora llenadora.</field></record>
-    <record id="paso_db_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">30</field><field name="titulo">Distribución</field><field name="texto">Los sistemas de vibración horizontal transportan el producto hacia las unidades de pesaje.</field></record>
-    <record id="paso_db_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">40</field><field name="titulo">Pesaje</field><field name="texto">El sistema compara el peso obtenido con el valor previamente configurado.</field></record>
-    <record id="paso_db_5" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">50</field><field name="titulo">Descarga</field><field name="texto">Al alcanzar el peso programado, las compuertas accionadas mediante pistones neumáticos liberan el producto.</field></record>
-    <record id="spec_db_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 30 bolsas / minuto por estación</field></record>
-    <record id="spec_db_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">20</field><field name="etiqueta">Núm. de estaciones</field><field name="valor">2</field></record>
-    <record id="spec_db_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">30</field><field name="etiqueta">Función</field><field name="valor">Pesaje y llenado de bolsas</field></record>
-    <record id="spec_db_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">40</field><field name="etiqueta">Descarga</field><field name="valor">Compuertas accionadas por pistones neumáticos</field></record>
-    <record id="spec_db_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">50</field><field name="etiqueta">Control</field><field name="valor">Pantalla HMI de 10″</field></record>
-    <record id="spec_db_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">60</field><field name="etiqueta">Control eléctrico</field><field name="valor">Gabinete eléctrico integrado</field></record>
-    <record id="spec_db_7" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">70</field><field name="etiqueta">Peso de llenado</field><field name="valor">Configurable</field></record>
-    <record id="spec_db_8" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">80</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field></record>
 
-    <!-- Selladora de bolsa -->
+    <record id="paso_lldoble_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/paso-1.webp</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El producto ingresa al sistema mediante el transportador de alimentación.</field>
+    </record>
+    <record id="paso_lldoble_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/paso-2.webp</field>
+        <field name="titulo">Elevación</field>
+        <field name="texto">El producto es trasladado hacia la parte superior de la pesadora llenadora.</field>
+    </record>
+    <record id="paso_lldoble_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/paso-3.webp</field>
+        <field name="titulo">Distribución</field>
+        <field name="texto">Los sistemas de vibración horizontal transportan el producto hacia las unidades de pesaje.</field>
+    </record>
+    <record id="paso_lldoble_4" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/paso-4.webp</field>
+        <field name="titulo">Pesaje</field>
+        <field name="texto">El sistema compara el peso obtenido con el valor previamente configurado.</field>
+    </record>
+    <record id="paso_lldoble_5" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/pesadora-doble-bolsa/paso-5.webp</field>
+        <field name="titulo">Descarga</field>
+        <field name="texto">Al alcanzar el peso programado, las compuertas accionadas mediante pistones neumáticos liberan el producto.</field>
+    </record>
+
+    <record id="spec_lldoble_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">10</field>
+        <field name="etiqueta">Función</field><field name="valor">Pesaje y llenado de bolsas</field>
+    </record>
+    <record id="spec_lldoble_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">20</field>
+        <field name="etiqueta">Núm de estaciones</field><field name="valor">2</field>
+    </record>
+    <record id="spec_lldoble_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">30</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 30 bolsas/minuto por estación</field>
+    </record>
+    <record id="spec_lldoble_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">40</field>
+        <field name="etiqueta">Control</field><field name="valor">Pantalla HMI de 10"</field>
+    </record>
+    <record id="spec_lldoble_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">50</field>
+        <field name="etiqueta">Peso de llenado</field><field name="valor">Configurable</field>
+    </record>
+    <record id="spec_lldoble_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">60</field>
+        <field name="etiqueta">Control eléctrico</field><field name="valor">Gabinete eléctrico integrado</field>
+    </record>
+    <record id="spec_lldoble_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">70</field>
+        <field name="etiqueta">Descarga</field><field name="valor">Compuertas accionadas por pistones neumáticos</field>
+    </record>
+    <record id="spec_lldoble_8" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_pesadora_doble_bolsa"/><field name="secuencia">80</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field>
+    </record>
+
+    <!-- Selladora de bolsa  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_selladora_bolsa" model="ferba.maquina">
         <field name="lema">Sellado continuo para proteger y mantener la presentación de tus productos</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/selladora-de-bolsa/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/selladora-de-bolsa/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Selladora de Bolsa FERBA está diseñada para realizar el cierre continuo de bolsas fabricadas con materiales termosellables, integrándose fácilmente a diferentes operaciones de empaque.</p>
             <p class="o_ferba_hero__lead">Su sistema permite trabajar con distintos tamaños de bolsa, ajustar la altura de operación y configurar el sentido de entrega de acuerdo con la distribución de la línea.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/selladora-de-bolsa/specs.webp</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Sellado rápido y adaptable para diferentes formatos</field>
+
         <field name="cierre_titulo">¿Necesitas integrar sellado automático a tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Selladora de bolsa: sellado continuo termosellable | FERBA</field>
-        <field name="meta_descripcion">La Selladora de Bolsa FERBA realiza el cierre continuo de bolsas termosellables a hasta 36 m/min, con distintos tamaños de bolsa, altura ajustable y entrega en ambos sentidos.</field>
+        <field name="meta_titulo">Selladora de bolsa continua | FERBA</field>
+        <field name="meta_descripcion">La Selladora de Bolsa FERBA cierra en continuo bolsas termosellables de cualquier tamaño: hasta 36 m/min, sellado de 6 a 12 mm, altura ajustable y entrega en ambos sentidos.</field>
     </record>
-    <record id="dest_sell_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">10</field><field name="valor">36</field><field name="etiqueta">m/min</field></record>
-    <record id="dest_sell_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">20</field><field name="valor">6–12 mm</field><field name="etiqueta">ancho de sellado</field></record>
-    <record id="dest_sell_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">30</field><field name="valor">Todos</field><field name="etiqueta">tamaños de bolsa</field></record>
-    <record id="blo_sell_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Sellado rápido y adaptable para diferentes formatos</field></record>
-    <record id="it_sell_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sell_benef"/><field name="secuencia">10</field><field name="titulo">Diferentes tamaños de bolsa</field><field name="texto">El equipo puede trabajar con distintos formatos de bolsa sin limitarse a una única dimensión.</field></record>
-    <record id="it_sell_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sell_benef"/><field name="secuencia">20</field><field name="titulo">Altura ajustable</field><field name="texto">La posición de trabajo puede modificarse para adaptarse a diferentes condiciones de operación.</field></record>
-    <record id="it_sell_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sell_benef"/><field name="secuencia">30</field><field name="titulo">Entrega en ambos sentidos</field><field name="texto">La máquina puede configurarse para trabajar de acuerdo con el sentido requerido por la línea.</field></record>
-    <record id="spec_sell_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">10</field><field name="etiqueta">Tamaño de bolsa</field><field name="valor">Todos los tamaños</field></record>
-    <record id="spec_sell_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">20</field><field name="etiqueta">Velocidad</field><field name="valor">Hasta 36 m / min</field></record>
-    <record id="spec_sell_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">30</field><field name="etiqueta">Tipo de material</field><field name="valor">Termosellable hasta 40 mil</field></record>
-    <record id="spec_sell_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">40</field><field name="etiqueta">Ancho de sellado</field><field name="valor">6–12 mm</field></record>
-    <record id="spec_sell_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">50</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">110 VAC / 1PH / 60 Hz / 15A</field></record>
-    <record id="spec_sell_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">60</field><field name="etiqueta">Alimentación eléctrica 2</field><field name="valor">220 VAC / 1P / 50 Hz / 10A</field></record>
 
-    <!-- Empaquetadora automática de película elástica -->
+    <record id="blo_sellad_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Una etapa final para el empaque</field>
+        <field name="titulo">Del producto embolsado a una presentación cerrada</field>
+        <field name="imagen">catalogo/empaque/selladora-de-bolsa/render-split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>Una vez que el producto ha sido dosificado y colocado dentro de su bolsa, la selladora realiza el cierre térmico necesario para completar la presentación.</p>
+            <p>La bolsa avanza de manera continua por el equipo, permitiendo mantener el flujo del proceso sin necesidad de detener la línea después de cada unidad.</p>
+        ]]></field>
+    </record>
+
+    <record id="spec_sellad_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">10</field>
+        <field name="etiqueta">Velocidad</field><field name="valor">Hasta 36 m/min</field>
+    </record>
+    <record id="spec_sellad_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">20</field>
+        <field name="etiqueta">Tamaño de bolsa</field><field name="valor">Todos los tamaños</field>
+    </record>
+    <record id="spec_sellad_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">30</field>
+        <field name="etiqueta">Tipo de material</field><field name="valor">Termosellable hasta 40 mil</field>
+    </record>
+    <record id="spec_sellad_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">40</field>
+        <field name="etiqueta">Ancho de sellado</field><field name="valor">6 – 12 mm</field>
+    </record>
+    <record id="spec_sellad_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">50</field>
+        <field name="etiqueta">Alimentación elec 1</field><field name="valor">110VAC/1PH/60Hz/15A</field>
+    </record>
+    <record id="spec_sellad_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación elec 2</field><field name="valor">220 VAC/1P/50Hz/10A</field>
+    </record>
+
+    <record id="pt_sellad_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/selladora-de-bolsa/ben-1.webp</field>
+        <field name="titulo">Diferentes tamaños de bolsa</field>
+        <field name="texto">El equipo puede trabajar con distintos formatos de bolsa sin limitarse a una única dimensión.</field>
+    </record>
+    <record id="pt_sellad_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/selladora-de-bolsa/ben-2.webp</field>
+        <field name="titulo">Altura ajustable</field>
+        <field name="texto">La posición de trabajo puede modificarse para adaptarse a diferentes condiciones de operación.</field>
+    </record>
+    <record id="pt_sellad_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_selladora_bolsa"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/selladora-de-bolsa/ben-3.webp</field>
+        <field name="titulo">Entrega en ambos sentidos</field>
+        <field name="texto">La máquina puede configurarse para trabajar de acuerdo con el sentido requerido por la línea.</field>
+    </record>
+
+    <!-- Empaquetadora automática  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_empaquetadora_automatica" model="ferba.maquina">
+        <field name="hero_titulo">Empaquetadora automática de película elástica</field>
         <field name="lema">Envoltura automática para una presentación uniforme y protegida</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/empaquetadora-automatica/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/empaquetadora-automatica/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Empaquetadora Automática de Película Elástica FERBA está diseñada para automatizar el envolvimiento de productos colocados en charolas mediante película elástica, generando una presentación limpia, uniforme y lista para las siguientes etapas de manejo y distribución.</p>
             <p class="o_ferba_hero__lead">Su configuración permite trabajar con diferentes dimensiones de paquete y película, integrando el proceso dentro de una operación de empaque continua.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/empaquetadora-automatica/specs.webp</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Empaque uniforme con menor intervención manual</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el empaque con película elástica?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Empaquetadora automática de película elástica | FERBA</field>
-        <field name="meta_descripcion">La Empaquetadora Automática FERBA envuelve productos en charola con película elástica: hasta 15 paquetes/minuto, rango de 3–40 kg y presentación uniforme.</field>
+        <field name="meta_descripcion">La Empaquetadora Automática de Película Elástica FERBA envuelve charolas de 80 a 350 mm con película de 350 a 500 mm: hasta 15 paquetes por minuto y presentación uniforme.</field>
     </record>
-    <record id="dest_emp_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">10</field><field name="valor">15</field><field name="etiqueta">paquetes/minuto</field></record>
-    <record id="dest_emp_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">20</field><field name="valor">3–40 kg</field><field name="etiqueta">rango indicado</field></record>
-    <record id="dest_emp_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">30</field><field name="valor">Elástica</field><field name="etiqueta">película</field></record>
-    <record id="blo_emp_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Empaque uniforme con menor intervención manual</field></record>
-    <record id="it_emp_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_emp_benef"/><field name="secuencia">10</field><field name="titulo">Diferentes dimensiones</field><field name="texto">Puede configurarse para trabajar con distintos largos, anchos y alturas de paquete dentro de los rangos especificados.</field></record>
-    <record id="it_emp_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_emp_benef"/><field name="secuencia">20</field><field name="titulo">Automatización del proceso</field><field name="texto">Reduce las operaciones manuales necesarias para envolver cada presentación.</field></record>
-    <record id="it_emp_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_emp_benef"/><field name="secuencia">30</field><field name="titulo">Presentación uniforme</field><field name="texto">La aplicación controlada de película ayuda a mantener una apariencia consistente entre paquetes.</field></record>
-    <record id="spec_emp_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">10</field><field name="etiqueta">Rango indicado</field><field name="valor">3–40 kg</field></record>
-    <record id="spec_emp_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 15 paquetes / minuto</field></record>
-    <record id="spec_emp_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">30</field><field name="etiqueta">Longitud de paquete</field><field name="valor">80–350 mm</field></record>
-    <record id="spec_emp_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">40</field><field name="etiqueta">Ancho de paquete</field><field name="valor">80–270 mm</field></record>
-    <record id="spec_emp_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">50</field><field name="etiqueta">Altura de paquete</field><field name="valor">10–170 mm</field></record>
-    <record id="spec_emp_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">60</field><field name="etiqueta">Ancho de film</field><field name="valor">350–500 mm</field></record>
 
-    <!-- Envasadora automática de película elástica -->
+    <record id="blo_empaq_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Una solución para automatizar el empaque en charola</field>
+        <field name="titulo">Del producto preparado a una presentación terminada</field>
+        <field name="imagen">catalogo/empaque/empaquetadora-automatica/render-split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>Una vez acondicionado y colocado en su charola, el producto ingresa a la empaquetadora para realizar automáticamente el proceso de envoltura con película elástica.</p>
+            <p>El sistema adapta la película alrededor del paquete, completando una presentación uniforme sin depender de un proceso completamente manual.</p>
+        ]]></field>
+    </record>
+
+    <record id="spec_empaq_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 15 paquetes/minuto</field>
+    </record>
+    <record id="spec_empaq_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">20</field>
+        <field name="etiqueta">Rango indicado</field><field name="valor">3–40 kg</field>
+    </record>
+    <record id="spec_empaq_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">30</field>
+        <field name="etiqueta">Longitud de paquete</field><field name="valor">80–350 mm</field>
+    </record>
+    <record id="spec_empaq_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">40</field>
+        <field name="etiqueta">Ancho de paquete</field><field name="valor">80–270 mm</field>
+    </record>
+    <record id="spec_empaq_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">50</field>
+        <field name="etiqueta">Altura de paquete</field><field name="valor">10–170 mm</field>
+    </record>
+    <record id="spec_empaq_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="secuencia">60</field>
+        <field name="etiqueta">Ancho de film</field><field name="valor">350–500 mm</field>
+    </record>
+
+    <record id="pt_empaq_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/empaquetadora-automatica/ben-1.webp</field>
+        <field name="titulo">Diferentes dimensiones</field>
+        <field name="texto">Puede configurarse para trabajar con distintos largos, anchos y alturas de paquete dentro de los rangos especificados.</field>
+    </record>
+    <record id="pt_empaq_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/empaquetadora-automatica/ben-2.webp</field>
+        <field name="titulo">Automatización del proceso</field>
+        <field name="texto">Reduce las operaciones manuales necesarias para envolver cada presentación.</field>
+    </record>
+    <record id="pt_empaq_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_empaquetadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/empaquetadora-automatica/ben-3.webp</field>
+        <field name="titulo">Presentación uniforme</field>
+        <field name="texto">La aplicación controlada de película ayuda a mantener una apariencia consistente entre paquetes.</field>
+    </record>
+
+    <!-- Envasadora automática  (fiel al PDF: hero oscuro con foto, split con render, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_envasadora_automatica" model="ferba.maquina">
+        <field name="hero_titulo">Envasadora automática de película elástica</field>
         <field name="lema">Envasado automático, control de peso y alta productividad</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/envasadora-automatica/hero.webp</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/envasadora-automatica/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Envasadora Automática de Película Elástica FERBA está diseñada para automatizar el acondicionamiento final de productos mediante película elástica, permitiendo trabajar con diferentes dimensiones y pesos dentro de una operación continua de empaque.</p>
             <p class="o_ferba_hero__lead">Su configuración combina control mediante pantalla táctil, rango de pesaje de 50 g a 4.5 kg y una capacidad de hasta 20–25 paquetes por minuto, facilitando la preparación de presentaciones uniformes para las etapas finales de manejo y distribución.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/envasadora-automatica/specs.webp</field>
-        <field name="cierre_titulo">¿Necesitas automatizar el envasado de tus productos?</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen">catalogo/empaque/envasadora-automatica/dibujo.webp</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
+        <field name="cierre_titulo">¿Necesitas automatizar envasado de tus productos?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Envasadora automática de película elástica | FERBA</field>
-        <field name="meta_descripcion">La Envasadora Automática FERBA acondiciona producto con película elástica y control táctil: rango de 50 g a 4.5 kg y hasta 20–25 paquetes por minuto.</field>
+        <field name="meta_descripcion">La Envasadora Automática de Película Elástica FERBA combina pantalla táctil, pesaje de 50 g a 4.5 kg y hasta 20–25 paquetes por minuto para presentaciones uniformes.</field>
     </record>
-    <record id="dest_env_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">10</field><field name="valor">20–25</field><field name="etiqueta">paquetes/minuto</field></record>
-    <record id="dest_env_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">20</field><field name="valor">50 g–4.5 kg</field><field name="etiqueta">rango de pesaje</field></record>
-    <record id="dest_env_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">30</field><field name="valor">Táctil</field><field name="etiqueta">control</field></record>
-    <record id="blo_env_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">10</field><field name="tipo">split</field><field name="tema">claro</field>
+
+    <record id="blo_envas_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Envasado integrado al final de la línea</field>
         <field name="titulo">Del producto preparado a una presentación terminada</field>
-        <field name="imagen">catalogo/empaque/fichas/envasadora-automatica/split.webp</field>
+        <field name="imagen">catalogo/empaque/envasadora-automatica/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>La Envasadora Automática recibe el producto previamente preparado y ejecuta el proceso necesario para acondicionarlo mediante película elástica.</p>
             <p>Su funcionamiento automatizado permite mantener una secuencia continua entre la entrada del producto, el procesamiento del paquete y su salida hacia las siguientes operaciones.</p>
         ]]></field>
     </record>
-    <record id="blo_env_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Mayor productividad en el proceso de envasado</field></record>
-    <record id="it_env_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_env_benef"/><field name="secuencia">10</field><field name="titulo">Diferentes formatos</field><field name="texto">Admite distintos largos, anchos y alturas de paquete dentro de sus rangos de operación.</field></record>
-    <record id="it_env_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_env_benef"/><field name="secuencia">20</field><field name="titulo">Operación automatizada</field><field name="texto">Reduce la intervención necesaria durante el proceso repetitivo de envasado.</field></record>
-    <record id="it_env_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_env_benef"/><field name="secuencia">30</field><field name="titulo">Alta capacidad</field><field name="texto">Diseñada para mantener un flujo constante dentro de operaciones de empaque.</field></record>
-    <record id="spec_env_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">10</field><field name="etiqueta">Rango indicado</field><field name="valor">50 g – 4.5 kg</field></record>
-    <record id="spec_env_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">20–25 paquetes / minuto</field></record>
-    <record id="spec_env_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">30</field><field name="etiqueta">Longitud de paquete</field><field name="valor">120–380 mm</field></record>
-    <record id="spec_env_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">40</field><field name="etiqueta">Ancho de paquete</field><field name="valor">95–230 mm</field></record>
-    <record id="spec_env_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">50</field><field name="etiqueta">Altura de paquete</field><field name="valor">10–150 mm</field></record>
-    <record id="spec_env_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">60</field><field name="etiqueta">Ancho de film</field><field name="valor">350–500 mm</field></record>
 
-    <!-- Horno FP560 -->
+    <record id="spec_envas_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">20–25 paquetes/minuto</field>
+    </record>
+    <record id="spec_envas_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">20</field>
+        <field name="etiqueta">Rango indicado</field><field name="valor">50 g – 4.5 kg</field>
+    </record>
+    <record id="spec_envas_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">30</field>
+        <field name="etiqueta">Longitud de paquete</field><field name="valor">120–380 mm</field>
+    </record>
+    <record id="spec_envas_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">40</field>
+        <field name="etiqueta">Ancho de paquete</field><field name="valor">95–230 mm</field>
+    </record>
+    <record id="spec_envas_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">50</field>
+        <field name="etiqueta">Altura de paquete</field><field name="valor">10–150 mm</field>
+    </record>
+    <record id="spec_envas_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="secuencia">60</field>
+        <field name="etiqueta">Ancho de film</field><field name="valor">350–500 mm</field>
+    </record>
+
+    <record id="pt_envas_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/envasadora-automatica/ben-1.webp</field>
+        <field name="titulo">Diferentes formatos</field>
+        <field name="texto">Admite distintos largos, anchos y alturas de paquete dentro de sus rangos de operación.</field>
+    </record>
+    <record id="pt_envas_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/envasadora-automatica/ben-2.webp</field>
+        <field name="titulo">Operación automatizada</field>
+        <field name="texto">Reduce la intervención necesaria durante el proceso repetitivo de envasado.</field>
+    </record>
+    <record id="pt_envas_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_envasadora_automatica"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/envasadora-automatica/ben-3.webp</field>
+        <field name="titulo">Alta capacidad</field>
+        <field name="texto">Diseñada para mantener un flujo constante dentro de operaciones de empaque.</field>
+    </record>
+
+    <!-- Horno FP560  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_fp560" model="ferba.maquina">
         <field name="lema">Sellado y termorretracción en una solución semiautomática</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-fp560/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-fp560/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Horno FP560 FERBA combina una estación de soldadura angular manual con un túnel de termorretracción, permitiendo preparar y acondicionar diferentes productos mediante película termorretráctil.</p>
             <p class="o_ferba_hero__lead">Su configuración semiautomática ofrece una solución práctica para operaciones que buscan mejorar la presentación y protección del producto sin requerir un sistema completamente automatizado.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-fp560/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">1500</field>
+        <field name="hero_badge_etiqueta">paquetes/hora</field>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
         <field name="cierre_titulo">¿Necesitas incorporar termorretracción a tu proceso de empaque?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno FP560: sellado y termorretracción semiautomático | FERBA</field>
-        <field name="meta_descripcion">El Horno FP560 FERBA combina soldadura angular manual y túnel de termorretracción: hasta 1,500 paquetes/hora, barra soldadora de 560 × 430 mm.</field>
+        <field name="meta_titulo">Horno FP560: sellado angular manual y termorretracción | FERBA</field>
+        <field name="meta_descripcion">El Horno FP560 FERBA combina soldadura angular manual con túnel de termorretracción: hasta 1,500 paquetes/hora, barra de 560 × 430 mm y doble electroimán de retención.</field>
     </record>
-    <record id="dest_fp560_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">10</field><field name="valor">1,500</field><field name="etiqueta">paquetes/hora</field></record>
-    <record id="dest_fp560_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">20</field><field name="valor">560×430 mm</field><field name="etiqueta">barra soldadora</field></record>
-    <record id="dest_fp560_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">30</field><field name="valor">Semiautomático</field><field name="etiqueta">proceso</field></record>
-    <record id="blo_fp560_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Termorretracción práctica y uniforme</field></record>
-    <record id="it_fp560_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560_benef"/><field name="secuencia">10</field><field name="titulo">Proceso semiautomático</field><field name="texto">Combina intervención del operador en la etapa de sellado con el paso posterior por el túnel de termorretracción.</field></record>
-    <record id="it_fp560_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560_benef"/><field name="secuencia">20</field><field name="titulo">Sellado amplio</field><field name="texto">Barra angular de 560 × 430 mm para trabajar con diferentes presentaciones.</field></record>
-    <record id="it_fp560_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560_benef"/><field name="secuencia">30</field><field name="titulo">Presentación uniforme</field><field name="texto">El proceso de termorretracción permite que la película se adapte alrededor del paquete.</field></record>
-    <record id="spec_fp560_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">10</field><field name="etiqueta">Sistema de sellado</field><field name="valor">Soldadura angular manual</field></record>
-    <record id="spec_fp560_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 1,500 paquetes / hora</field></record>
-    <record id="spec_fp560_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">30</field><field name="etiqueta">Barra soldadora</field><field name="valor">560 × 430 mm</field></record>
-    <record id="spec_fp560_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">40</field><field name="etiqueta">Altura máxima paq.</field><field name="valor">230 mm</field></record>
-    <record id="spec_fp560_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">50</field><field name="etiqueta">Sistema de retención</field><field name="valor">Doble electroimán de retención de campana</field></record>
-    <record id="spec_fp560_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">60</field><field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field></record>
 
-    <!-- Horno FP560A -->
+    <record id="spec_fp560_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 1,500 paquetes/hora</field>
+    </record>
+    <record id="spec_fp560_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">20</field>
+        <field name="etiqueta">Sistema de sellado</field><field name="valor">Soldadura angular manual</field>
+    </record>
+    <record id="spec_fp560_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">30</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">560 × 430 mm</field>
+    </record>
+    <record id="spec_fp560_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">40</field>
+        <field name="etiqueta">Altura máxima paq.</field><field name="valor">230 mm</field>
+    </record>
+    <record id="spec_fp560_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">50</field>
+        <field name="etiqueta">Sistema de retención</field><field name="valor">Doble electroimán de retención de campana</field>
+    </record>
+    <record id="spec_fp560_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="secuencia">60</field>
+        <field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field>
+    </record>
+
+    <record id="pt_fp560_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-fp560/ben-1.webp</field>
+        <field name="titulo">Proceso semiautomático</field>
+        <field name="texto">Combina intervención del operador en la etapa de sellado con el paso posterior por el túnel de termorretracción.</field>
+    </record>
+    <record id="pt_fp560_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-fp560/ben-2.webp</field>
+        <field name="titulo">Sellado amplio</field>
+        <field name="texto">Barra angular de 560 × 430 mm para trabajar con diferentes presentaciones.</field>
+    </record>
+    <record id="pt_fp560_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-fp560/ben-3.webp</field>
+        <field name="titulo">Presentación uniforme</field>
+        <field name="texto">El proceso de termorretracción permite que la película se adapte alrededor del paquete.</field>
+    </record>
+
+    <!-- Horno FP560A  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_fp560a" model="ferba.maquina">
         <field name="lema">Sellado y termorretracción en una solución semiautomática</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-fp560a/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-fp560a/hero.webp</field>
         <field name="intro"><![CDATA[
-            <p class="o_ferba_hero__lead">El Horno FP560A FERBA combina una estación de soldadura angular semiautomática con un túnel de termorretracción, permitiendo preparar y acondicionar diferentes productos mediante película termorretráctil.</p>
+            <p class="o_ferba_hero__lead">El Horno FP560 FERBA combina una estación de soldadura angular semi-automática con un túnel de termorretracción, permitiendo preparar y acondicionar diferentes productos mediante película termorretráctil.</p>
             <p class="o_ferba_hero__lead">Su configuración semiautomática ofrece una solución práctica para operaciones que buscan mejorar la presentación y protección del producto sin requerir un sistema completamente automatizado.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-fp560a/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">1500</field>
+        <field name="hero_badge_etiqueta">paquetes/hora</field>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
         <field name="cierre_titulo">¿Necesitas incorporar termorretracción a tu proceso de empaque?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno FP560A: soldadura angular semiautomática | FERBA</field>
-        <field name="meta_descripcion">El Horno FP560A FERBA combina soldadura angular semiautomática y túnel de termorretracción: hasta 1,500 paquetes/hora, barra soldadora de 560 × 430 mm.</field>
+        <field name="meta_titulo">Horno FP560A: sellado angular semiautomático y termorretracción | FERBA</field>
+        <field name="meta_descripcion">El Horno FP560A FERBA combina soldadura angular semi-automática con túnel de termorretracción: hasta 1,500 paquetes/hora y barra de 560 × 430 mm.</field>
     </record>
-    <record id="dest_fp560a_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">10</field><field name="valor">1,500</field><field name="etiqueta">paquetes/hora</field></record>
-    <record id="dest_fp560a_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">20</field><field name="valor">560×430 mm</field><field name="etiqueta">barra soldadora</field></record>
-    <record id="dest_fp560a_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">30</field><field name="valor">Semi-auto</field><field name="etiqueta">soldadura angular</field></record>
-    <record id="blo_fp560a_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Termorretracción práctica y uniforme</field></record>
-    <record id="it_fp560a_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560a_benef"/><field name="secuencia">10</field><field name="titulo">Proceso semiautomático</field><field name="texto">Combina intervención del operador en la etapa de sellado con el paso posterior por el túnel de termorretracción.</field></record>
-    <record id="it_fp560a_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560a_benef"/><field name="secuencia">20</field><field name="titulo">Sellado amplio</field><field name="texto">Barra angular de 560 × 430 mm para trabajar con diferentes presentaciones.</field></record>
-    <record id="it_fp560a_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp560a_benef"/><field name="secuencia">30</field><field name="titulo">Presentación uniforme</field><field name="texto">El proceso de termorretracción permite que la película se adapte alrededor del paquete.</field></record>
-    <record id="spec_fp560a_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">10</field><field name="etiqueta">Soldadura</field><field name="valor">Angular semiautomática</field></record>
-    <record id="spec_fp560a_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 1,500 paquetes / hora</field></record>
-    <record id="spec_fp560a_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">30</field><field name="etiqueta">Barra soldadora</field><field name="valor">560 × 430 mm</field></record>
-    <record id="spec_fp560a_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">40</field><field name="etiqueta">Altura máxima paq.</field><field name="valor">230 mm</field></record>
-    <record id="spec_fp560a_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">50</field><field name="etiqueta">Sistema de retención</field><field name="valor">Doble electroimán de retención de campana</field></record>
-    <record id="spec_fp560a_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">60</field><field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field></record>
 
-    <!-- Horno FP6000 -->
+    <record id="spec_fp560a_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 1,500 paquetes/hora</field>
+    </record>
+    <record id="spec_fp560a_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">20</field>
+        <field name="etiqueta">Soldadura</field><field name="valor">Angular semi-automática</field>
+    </record>
+    <record id="spec_fp560a_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">30</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">560 × 430 mm</field>
+    </record>
+    <record id="spec_fp560a_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">40</field>
+        <field name="etiqueta">Altura máxima paq.</field><field name="valor">230 mm</field>
+    </record>
+    <record id="spec_fp560a_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">50</field>
+        <field name="etiqueta">Sistema de retención</field><field name="valor">Doble electroimán de retención de campana</field>
+    </record>
+    <record id="spec_fp560a_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="secuencia">60</field>
+        <field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field>
+    </record>
+
+    <record id="pt_fp560a_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-fp560a/ben-1.webp</field>
+        <field name="titulo">Proceso semiautomático</field>
+        <field name="texto">Combina intervención del operador en la etapa de sellado con el paso posterior por el túnel de termorretracción.</field>
+    </record>
+    <record id="pt_fp560a_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-fp560a/ben-2.webp</field>
+        <field name="titulo">Sellado amplio</field>
+        <field name="texto">Barra angular de 560 × 430 mm para trabajar con diferentes presentaciones.</field>
+    </record>
+    <record id="pt_fp560a_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp560a"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-fp560a/ben-3.webp</field>
+        <field name="titulo">Presentación uniforme</field>
+        <field name="texto">El proceso de termorretracción permite que la película se adapte alrededor del paquete.</field>
+    </record>
+
+    <!-- Horno FP6000  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_fp6000" model="ferba.maquina">
         <field name="lema">Sellado automático y termorretracción para líneas de mayor productividad</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-fp6000/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-fp6000/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Horno FP6000 FERBA integra una estación de soldadura angular automática con túnel de termorretracción, permitiendo realizar el empaque de manera continua y con menor intervención del operador.</p>
-            <p class="o_ferba_hero__lead">Su funcionamiento completamente eléctrico, sin necesidad de aire comprimido, lo convierte en una solución orientada a operaciones que requieren mayor velocidad, automatización y continuidad dentro del proceso de empaque.</p>
+            <p class="o_ferba_hero__lead">Su funcionamiento completamente eléctrico, sin necesidad de aire comprimido, lo convierte en una solución orientada a operaciones que requieren mayor velocidad, automatización y continuidad dentro del proceso de empaque</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-fp6000/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">3600</field>
+        <field name="hero_badge_etiqueta">paquetes/hora</field>
+        <field name="dibujo_imagen">catalogo/empaque/horno-fp6000/dibujo.webp</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad con menor intervención</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el sellado y termorretracción de tu producto?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno FP6000: sellado automático y termorretracción | FERBA</field>
-        <field name="meta_descripcion">El Horno FP6000 FERBA integra soldadura angular automática y túnel de termorretracción, totalmente eléctrico y sin aire comprimido: hasta 3,600 paquetes/hora.</field>
+        <field name="meta_titulo">Horno FP6000: sellado angular automático y termorretracción | FERBA</field>
+        <field name="meta_descripcion">El Horno FP6000 FERBA integra soldadura angular automática y túnel de termorretracción, totalmente eléctrico y sin aire comprimido: hasta 3,600 paquetes/hora y barra de 640 × 510 mm.</field>
     </record>
-    <record id="dest_fp6000_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">10</field><field name="valor">3,600</field><field name="etiqueta">paquetes/hora</field></record>
-    <record id="dest_fp6000_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">20</field><field name="valor">640×510 mm</field><field name="etiqueta">barra soldadora</field></record>
-    <record id="dest_fp6000_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">30</field><field name="valor">Automático</field><field name="etiqueta">sin aire comprimido</field></record>
-    <record id="blo_fp6000_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Mayor productividad con menor intervención</field></record>
-    <record id="it_fp6000_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp6000_benef"/><field name="secuencia">10</field><field name="titulo">Hasta 3,600 paquetes/hora</field><field name="texto">Una capacidad orientada a operaciones con mayores requerimientos de producción.</field></record>
-    <record id="it_fp6000_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp6000_benef"/><field name="secuencia">20</field><field name="titulo">Sellado automático</field><field name="texto">La estación realiza la soldadura angular sin depender de un ciclo manual de campana.</field></record>
-    <record id="it_fp6000_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_fp6000_benef"/><field name="secuencia">30</field><field name="titulo">Empaque uniforme</field><field name="texto">El conjunto de sellado y túnel permite obtener una presentación termorretraída de forma continua.</field></record>
-    <record id="spec_fp6000_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">10</field><field name="etiqueta">Soldadura</field><field name="valor">Angular automática</field></record>
-    <record id="spec_fp6000_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 3,600 paquetes / hora</field></record>
-    <record id="spec_fp6000_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">30</field><field name="etiqueta">Barra soldadora</field><field name="valor">640 × 510 mm</field></record>
-    <record id="spec_fp6000_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">40</field><field name="etiqueta">Altura máxima paq.</field><field name="valor">150 mm</field></record>
-    <record id="spec_fp6000_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">50</field><field name="etiqueta">Sistema</field><field name="valor">Arrastre de film</field></record>
-    <record id="spec_fp6000_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">60</field><field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field></record>
 
-    <!-- Horno S560 -->
+    <record id="spec_fp6000_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 3,600 paquetes/hora</field>
+    </record>
+    <record id="spec_fp6000_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">20</field>
+        <field name="etiqueta">Soldadura</field><field name="valor">angular automática</field>
+    </record>
+    <record id="spec_fp6000_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">30</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">640 × 510 mm</field>
+    </record>
+    <record id="spec_fp6000_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">40</field>
+        <field name="etiqueta">Altura máxima paq.</field><field name="valor">150 mm</field>
+    </record>
+    <record id="spec_fp6000_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">50</field>
+        <field name="etiqueta">Sistema</field><field name="valor">Arrastre de film</field>
+    </record>
+    <record id="spec_fp6000_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="secuencia">60</field>
+        <field name="etiqueta">Complementos</field><field name="valor">Túnel de termorretracción</field>
+    </record>
+
+    <record id="pt_fp6000_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-fp6000/ben-1.webp</field>
+        <field name="titulo">Hasta 3,600 paquetes/hora</field>
+        <field name="texto">Una capacidad orientada a operaciones con mayores requerimientos de producción.</field>
+    </record>
+    <record id="pt_fp6000_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-fp6000/ben-2.webp</field>
+        <field name="titulo">Sellado automático</field>
+        <field name="texto">La estación realiza la soldadura angular sin depender de un ciclo manual de campana.</field>
+    </record>
+    <record id="pt_fp6000_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_fp6000"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-fp6000/ben-3.webp</field>
+        <field name="titulo">Empaque uniforme</field>
+        <field name="texto">El conjunto de sellado y túnel permite obtener una presentación termorretraída de forma continua.</field>
+    </record>
+
+    <!-- Horno S560  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_s560" model="ferba.maquina">
         <field name="lema">Sellado y termorretracción en una solución compacta de campana</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-s560/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-s560/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Horno S560 FERBA está diseñado para realizar el acondicionamiento de productos mediante un sistema de soldadura angular manual y campana, concentrando el proceso dentro de una plataforma compacta y sencilla de operar.</p>
             <p class="o_ferba_hero__lead">Su configuración semiautomática es ideal para operaciones que buscan incorporar empaque termorretráctil manteniendo control directo del operador y ocupando un espacio reducido dentro del área de empaque.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-s560/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">900</field>
+        <field name="hero_badge_etiqueta">paquetes/hora</field>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
         <field name="cierre_titulo">¿Buscas una solución compacta para tu área de empaque?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno S560: termorretracción compacta de campana | FERBA</field>
-        <field name="meta_descripcion">El Horno S560 FERBA realiza sellado y termorretracción de campana en una plataforma compacta, con hasta 10 programas de trabajo y barra soldadora de 560 × 430 mm.</field>
+        <field name="meta_titulo">Horno S560: sellado y termorretracción compacta de campana | FERBA</field>
+        <field name="meta_descripcion">El Horno S560 FERBA concentra soldadura angular manual y campana en una plataforma compacta: hasta 900 paquetes/hora, 10 programas de trabajo y ahorro de energía.</field>
     </record>
-    <record id="dest_s560_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">10</field><field name="valor">900</field><field name="etiqueta">paquetes/hora</field></record>
-    <record id="dest_s560_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">20</field><field name="valor">Compacto</field><field name="etiqueta">diseño</field></record>
-    <record id="dest_s560_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">30</field><field name="valor">10</field><field name="etiqueta">programas</field></record>
-    <record id="blo_s560_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Compacto y fácil de operar</field></record>
-    <record id="it_s560_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_s560_benef"/><field name="secuencia">10</field><field name="titulo">Ahorro de energía</field><field name="texto">Una de las ventajas destacadas del modelo S560.</field></record>
-    <record id="it_s560_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_s560_benef"/><field name="secuencia">20</field><field name="titulo">Diferentes programas</field><field name="texto">Permite memorizar hasta 10 programas de trabajo.</field></record>
-    <record id="it_s560_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_s560_benef"/><field name="secuencia">30</field><field name="titulo">Diseño compacto</field><field name="texto">Sus dimensiones facilitan su incorporación dentro de diferentes áreas de empaque.</field></record>
-    <record id="spec_s560_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">10</field><field name="etiqueta">Dimensiones de máquina</field><field name="valor">1420 × 790 mm</field></record>
-    <record id="spec_s560_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">20</field><field name="etiqueta">Barra soldadora</field><field name="valor">560 × 430 mm</field></record>
-    <record id="spec_s560_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">30</field><field name="etiqueta">Altura máx. paquete</field><field name="valor">260 mm</field></record>
-    <record id="spec_s560_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">40</field><field name="etiqueta">Espesor del plástico</field><field name="valor">Hasta 30 μm</field></record>
-    <record id="spec_s560_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">50</field><field name="etiqueta">Potencia eléctrica</field><field name="valor">3690 W</field></record>
-    <record id="spec_s560_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">60</field><field name="etiqueta">Alimentación</field><field name="valor">220–240 V, 1PH-N-PE</field></record>
 
-    <!-- Horno SK1 -->
+    <record id="spec_s560_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">10</field>
+        <field name="etiqueta">Altura máx. paq.</field><field name="valor">260 mm</field>
+    </record>
+    <record id="spec_s560_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">20</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">560 x 430 mm</field>
+    </record>
+    <record id="spec_s560_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">30</field>
+        <field name="etiqueta">Bobina film máx.</field><field name="valor">600 - 300 mm</field>
+    </record>
+    <record id="spec_s560_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">40</field>
+        <field name="etiqueta">Dimensiones de maq.</field><field name="valor">1420 x 790 mm</field>
+    </record>
+    <record id="spec_s560_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">50</field>
+        <field name="etiqueta">Espesor del plastico</field><field name="valor">Hasta 30 μm</field>
+    </record>
+    <record id="spec_s560_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">60</field>
+        <field name="etiqueta">Corriente de op.</field><field name="valor">220 - 240 V, 1PH-N-PE</field>
+    </record>
+    <record id="spec_s560_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="secuencia">70</field>
+        <field name="etiqueta">Potencia eléctrica</field><field name="valor">3690 W</field>
+    </record>
+
+    <record id="pt_s560_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-s560/ben-1.webp</field>
+        <field name="titulo">Ahorro de energía</field>
+        <field name="texto">Una de las ventajas destacadas del modelo S560.</field>
+    </record>
+    <record id="pt_s560_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-s560/ben-2.webp</field>
+        <field name="titulo">Diferentes programas</field>
+        <field name="texto">Permite memorizar hasta 10 programas de trabajo.</field>
+    </record>
+    <record id="pt_s560_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_s560"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-s560/ben-3.webp</field>
+        <field name="titulo">Diseño compacto</field>
+        <field name="texto">Sus dimensiones facilitan su incorporación dentro de diferentes áreas de empaque.</field>
+    </record>
+
+    <!-- Horno SK1  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_sk1" model="ferba.maquina">
         <field name="lema">Termorretracción continua para empaque individual de pepino</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-sk1/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-sk1/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Horno SK1 FERBA está diseñado para envolver de manera continua cada pepino mediante película plástica termorretráctil, generando un proceso de empaque eficiente y adecuado para líneas de alta productividad.</p>
             <p class="o_ferba_hero__lead">Su configuración permite procesar hasta 140 piezas por minuto, trabajando con productos de hasta 70 mm de diámetro y 500 mm de longitud.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-sk1/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">140</field>
+        <field name="hero_badge_etiqueta">piezas/hora</field>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el empaque individual de pepino?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno SK1: empaque termorretráctil individual de pepino | FERBA</field>
-        <field name="meta_descripcion">El Horno SK1 FERBA envuelve cada pepino con película termorretráctil de manera continua: hasta 140 piezas/minuto, 2 machetes y 40% menos consumo de energía.</field>
+        <field name="meta_titulo">Horno SK1: termorretracción continua para pepino | FERBA</field>
+        <field name="meta_descripcion">El Horno SK1 FERBA envuelve cada pepino con película termorretráctil de forma continua: hasta 140 piezas por minuto, 2 machetes y 40% menos consumo de energía.</field>
     </record>
-    <record id="dest_sk1_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">10</field><field name="valor">140</field><field name="etiqueta">piezas/minuto</field></record>
-    <record id="dest_sk1_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">20</field><field name="valor">2</field><field name="etiqueta">machetes</field></record>
-    <record id="dest_sk1_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">30</field><field name="valor">−40%</field><field name="etiqueta">energía</field></record>
-    <record id="blo_sk1_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Empaque individual continuo de pepino</field></record>
-    <record id="it_sk1_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk1_benef"/><field name="secuencia">10</field><field name="titulo">Ahorro de energía</field><field name="texto">Consume 40% menos energía de lo que consumen otros equipos en el mercado.</field></record>
-    <record id="it_sk1_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk1_benef"/><field name="secuencia">20</field><field name="titulo">Empaque individual</field><field name="texto">Cada pepino es envuelto de manera independiente mediante película termorretráctil.</field></record>
-    <record id="it_sk1_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk1_benef"/><field name="secuencia">30</field><field name="titulo">Hasta 140 piezas/minuto</field><field name="texto">Diseñado para acompañar líneas de procesamiento continuo de pepino.</field></record>
-    <record id="spec_sk1_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">10</field><field name="etiqueta">Dimensiones producto</field><field name="valor">Diá. 70 mm · Long. 500 mm</field></record>
-    <record id="spec_sk1_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">20</field><field name="etiqueta">Espesor del plástico</field><field name="valor">Hasta 15 μm</field></record>
-    <record id="spec_sk1_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">30</field><field name="etiqueta">Barra soldadora</field><field name="valor">2 machetes</field></record>
-    <record id="spec_sk1_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">40</field><field name="etiqueta">Temp. máx. túnel</field><field name="valor">Hasta 250 °C</field></record>
-    <record id="spec_sk1_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">50</field><field name="etiqueta">Material</field><field name="valor">Acero al carbón</field></record>
-    <record id="spec_sk1_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">60</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 VAC / 3 fases / 60 Hz</field></record>
 
-    <!-- Horno SK2 -->
+    <record id="spec_sk1_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">10</field>
+        <field name="etiqueta">Temp. máx. túnel</field><field name="valor">Hasta 250°C</field>
+    </record>
+    <record id="spec_sk1_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">20</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">2 Machetes</field>
+    </record>
+    <record id="spec_sk1_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">30</field>
+        <field name="etiqueta">Espesor de plástico</field><field name="valor">Hasta 15 UM</field>
+    </record>
+    <record id="spec_sk1_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">40</field>
+        <field name="etiqueta">Dimensiones prod.</field><field name="valor">Diá. 70mm Long. 500mm</field>
+    </record>
+    <record id="spec_sk1_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">50</field>
+        <field name="etiqueta">Espesor del plastico</field><field name="valor">HASTA 15 μm</field>
+    </record>
+    <record id="spec_sk1_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">60</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero al carbón</field>
+    </record>
+    <record id="spec_sk1_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimen. electrica</field><field name="valor">220VAC/3 fases/60HZ</field>
+    </record>
+
+    <record id="pt_sk1_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-sk1/ben-1.webp</field>
+        <field name="titulo">Ahorro de energía</field>
+        <field name="texto">Consume 40% menos energía de lo que consumen otros equipos en el mercado.</field>
+    </record>
+    <record id="pt_sk1_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-sk1/ben-2.webp</field>
+        <field name="titulo">Empaque individual</field>
+        <field name="texto">Cada pepino es envuelto de manera independiente mediante película termorretráctil.</field>
+    </record>
+    <record id="pt_sk1_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk1"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-sk1/ben-3.webp</field>
+        <field name="titulo">Hasta 140 piezas/minuto</field>
+        <field name="texto">Diseñado para acompañar líneas de procesamiento continuo de pepino.</field>
+    </record>
+
+    <!-- Horno SK2  (fiel al PDF: hero CLARO con foto/render + badge, datos oscuros con 3 beneficios, cierre rojo) -->
     <record id="maq_horno_sk2" model="ferba.maquina">
         <field name="lema">Empaque termorretráctil continuo de alta velocidad para pepino</field>
-        <field name="hero_imagen">catalogo/empaque/fichas/horno-sk2/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/empaque/horno-sk2/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Horno SK2 FERBA está diseñado para envolver de manera continua cada pepino mediante película plástica termorretráctil, integrando sellado y termorretracción dentro de un proceso orientado a líneas de alta productividad.</p>
             <p class="o_ferba_hero__lead">Su configuración de 3 machetes permite alcanzar una capacidad de hasta 180 piezas por minuto, trabajando con pepinos de hasta 70 mm de diámetro y 500 mm de longitud.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/empaque/fichas/horno-sk2/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">180</field>
+        <field name="hero_badge_etiqueta">piezas/hora</field>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Mayor productividad en el proceso de envasado</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el empaque individual de pepino?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Horno SK2: empaque termorretráctil de alta velocidad de pepino | FERBA</field>
-        <field name="meta_descripcion">El Horno SK2 FERBA envuelve cada pepino con película termorretráctil a alta velocidad: hasta 180 piezas/minuto con 3 machetes y 40% menos consumo de energía.</field>
+        <field name="meta_titulo">Horno SK2: empaque termorretráctil de alta velocidad para pepino | FERBA</field>
+        <field name="meta_descripcion">El Horno SK2 FERBA envuelve cada pepino con película termorretráctil en continuo: 3 machetes, hasta 180 piezas por minuto y 40% menos consumo de energía.</field>
     </record>
-    <record id="dest_sk2_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">10</field><field name="valor">180</field><field name="etiqueta">piezas/minuto</field></record>
-    <record id="dest_sk2_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">20</field><field name="valor">3</field><field name="etiqueta">machetes</field></record>
-    <record id="dest_sk2_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">30</field><field name="valor">−40%</field><field name="etiqueta">energía</field></record>
-    <record id="blo_sk2_benef" model="ferba.maquina.bloque"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">20</field><field name="tipo">tarjetas</field><field name="tema">oscuro</field><field name="titulo">Empaque individual de pepino a alta velocidad</field></record>
-    <record id="it_sk2_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk2_benef"/><field name="secuencia">10</field><field name="titulo">Ahorro de energía</field><field name="texto">Consume 40% menos energía de lo que consumen otros equipos en el mercado.</field></record>
-    <record id="it_sk2_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk2_benef"/><field name="secuencia">20</field><field name="titulo">Empaque individual</field><field name="texto">Cada pepino es envuelto de manera independiente mediante película termorretráctil.</field></record>
-    <record id="it_sk2_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_sk2_benef"/><field name="secuencia">30</field><field name="titulo">Hasta 180 piezas/minuto</field><field name="texto">Diseñado para acompañar líneas de procesamiento continuo de pepino.</field></record>
-    <record id="spec_sk2_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">10</field><field name="etiqueta">Dimensiones producto</field><field name="valor">Diá. 70 mm · Long. 500 mm</field></record>
-    <record id="spec_sk2_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">20</field><field name="etiqueta">Espesor del plástico</field><field name="valor">Hasta 15 μm</field></record>
-    <record id="spec_sk2_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">30</field><field name="etiqueta">Barra soldadora</field><field name="valor">3 machetes</field></record>
-    <record id="spec_sk2_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">40</field><field name="etiqueta">Temp. máx. túnel</field><field name="valor">Hasta 250 °C</field></record>
-    <record id="spec_sk2_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">50</field><field name="etiqueta">Material</field><field name="valor">Acero al carbón</field></record>
-    <record id="spec_sk2_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">60</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 VAC / 3 fases / 60 Hz</field></record>
+
+    <record id="spec_sk2_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">10</field>
+        <field name="etiqueta">Temp. máx. túnel</field><field name="valor">Hasta 250°C</field>
+    </record>
+    <record id="spec_sk2_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">20</field>
+        <field name="etiqueta">Barra soldadora</field><field name="valor">3 Machetes</field>
+    </record>
+    <record id="spec_sk2_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">30</field>
+        <field name="etiqueta">Espesor de plástico</field><field name="valor">Hasta 15 UM</field>
+    </record>
+    <record id="spec_sk2_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">40</field>
+        <field name="etiqueta">Dimensiones prod.</field><field name="valor">Diá. 70mm Long. 500mm</field>
+    </record>
+    <record id="spec_sk2_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">50</field>
+        <field name="etiqueta">Espesor del plastico</field><field name="valor">HASTA 15 μm</field>
+    </record>
+    <record id="spec_sk2_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">60</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero al carbón</field>
+    </record>
+    <record id="spec_sk2_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimen. electrica</field><field name="valor">220VAC/3 fases/60HZ</field>
+    </record>
+
+    <record id="pt_sk2_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/empaque/horno-sk2/ben-1.webp</field>
+        <field name="titulo">Ahorro de energía</field>
+        <field name="texto">Consume 40% menos energía de lo que consumen otros equipos en el mercado.</field>
+    </record>
+    <record id="pt_sk2_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/empaque/horno-sk2/ben-2.webp</field>
+        <field name="titulo">Empaque individual</field>
+        <field name="texto">Cada pepino es envuelto de manera independiente mediante película termorretráctil.</field>
+    </record>
+    <record id="pt_sk2_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_horno_sk2"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/empaque/horno-sk2/ben-3.webp</field>
+        <field name="titulo">Hasta 180 piezas/minuto</field>
+        <field name="texto">Diseñado para acompañar líneas de procesamiento continuo de pepino.</field>
+    </record>
+
+    <!-- FlowPack  (fiel al PDF: hero oscuro con foto, split con render, 5 pasos con foto, datos oscuros con foto a sangre, galería con video, cierre rojo) -->
+    <record id="maq_flowpack" model="ferba.maquina">
+        <field name="lema">Empaque continuo de alta velocidad para una presentación protegida y uniforme</field>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/empaque/flowpack/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La FlowPack FERBA permite automatizar el empaque individual o agrupado de productos mediante película flexible, integrando alimentación, formado y sellado dentro de un proceso continuo.</p>
+            <p class="o_ferba_hero__lead">Su configuración está diseñada para mantener un flujo constante de producción y obtener empaques uniformes, listos para continuar hacia las etapas finales de manejo, identificación y distribución.</p>
+        ]]></field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="dibujo_imagen" eval="False"/>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">De la alimentación al producto empacado</field>
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/empaque/flowpack/datos-foto.webp</field>
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
+        <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">FlowPack: empaque continuo con película flexible | FERBA</field>
+        <field name="meta_descripcion">La FlowPack FERBA automatiza el empaque individual o agrupado con película flexible: hasta 150 bolsas por minuto, sellado por extremos giratorios y acero inoxidable.</field>
+    </record>
+
+    <record id="blo_flowpack_split" model="ferba.maquina.bloque">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
+        <field name="tipo">split</field><field name="tema">claro</field>
+        <field name="antetitulo">Del producto recibido al empaque terminado</field>
+        <field name="titulo">Una etapa final integrada a tu línea</field>
+        <field name="imagen">catalogo/empaque/flowpack/render-split.webp</field>
+        <field name="cuerpo"><![CDATA[
+            <p>La FlowPack recibe el producto desde las etapas anteriores de selección, calibrado o preparación y lo conduce hacia el sistema de empaque.</p>
+            <p>Durante el proceso, la película envuelve el producto y el equipo realiza el sellado necesario para generar una presentación final uniforme, manteniendo continuidad dentro de la línea.</p>
+        ]]></field>
+    </record>
+
+    <record id="paso_flowpack_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/flowpack/paso-1.webp</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El producto se coloca sobre el transportador de entrada de la máquina.</field>
+    </record>
+    <record id="paso_flowpack_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/flowpack/paso-2.webp</field>
+        <field name="titulo">Posicionamiento</field>
+        <field name="texto">El producto avanza manteniendo el espacio necesario para su empaque.</field>
+    </record>
+    <record id="paso_flowpack_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/flowpack/paso-3.webp</field>
+        <field name="titulo">Formación del empaque</field>
+        <field name="texto">El sistema forma la presentación alrededor del producto.</field>
+    </record>
+    <record id="paso_flowpack_4" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/flowpack/paso-4.webp</field>
+        <field name="titulo">Sellado</field>
+        <field name="texto">El equipo realiza el cierre del empaque mediante su sistema de sellado.</field>
+    </record>
+    <record id="paso_flowpack_5" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/flowpack/paso-5.webp</field>
+        <field name="titulo">Salida</field>
+        <field name="texto">El producto empacado continúa hacia las operaciones posteriores.</field>
+    </record>
+
+    <record id="spec_flowpack_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 150 bolsas / minuto</field>
+    </record>
+    <record id="spec_flowpack_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field>
+        <field name="etiqueta">Ancho de película</field><field name="valor">580 mm</field>
+    </record>
+    <record id="spec_flowpack_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field>
+        <field name="etiqueta">Ancho bolsa</field><field name="valor">100–280 mm</field>
+    </record>
+    <record id="spec_flowpack_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field>
+    </record>
+    <record id="spec_flowpack_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">50</field>
+        <field name="etiqueta">Voltaje</field><field name="valor">220V</field>
+    </record>
+    <record id="spec_flowpack_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">60</field>
+        <field name="etiqueta">Frecuencia</field><field name="valor">50 / 60 Hz</field>
+    </record>
+    <record id="spec_flowpack_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">70</field>
+        <field name="etiqueta">Potencia</field><field name="valor">2.8Kw</field>
+    </record>
+    <record id="spec_flowpack_8" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">80</field>
+        <field name="etiqueta">Sistema de sellado</field><field name="valor">Extremos giratorios</field>
+    </record>
+
+    <record id="media_flowpack_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/empaque/flowpack/galeria-1.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_flowpack_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/empaque/flowpack/galeria-2.webp</field>
+    </record>
+    <record id="media_flowpack_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/empaque/flowpack/galeria-3.webp</field>
+    </record>
+    <record id="media_flowpack_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/empaque/flowpack/galeria-4.webp</field>
+    </record>
+    <record id="media_flowpack_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/empaque/flowpack/galeria-5.webp</field>
+    </record>
+
+    <!-- Línea de siembra  (fiel al PDF: hero con foto y destacado "HASTA 200 BANDEJAS/HORA",
+         4 pasos en tarjeta, beneficios en sección gris con tarjetas blancas, datos en blanco
+         con tarjeta negra "una línea diseñada como sistema", características de construcción
+         en 4 columnas, galería con video, cierre rojo) -->
+    <record id="maq_linea_siembra" model="ferba.maquina">
+        <field name="hero_titulo">Automatiza el proceso de siembra</field>
+        <field name="lema" eval="False"/>
+        <field name="hero_tema">oscuro</field>
+        <field name="hero_imagen">catalogo/sembradoras/linea-de-siembra/hero.webp</field>
+        <field name="intro"><![CDATA[
+            <p class="o_ferba_hero__lead">La línea de siembra FERBA integra en un mismo proceso las principales etapas necesarias para preparar charolas de cultivo de forma continua, uniforme y eficiente.</p>
+            <p class="o_ferba_hero__lead">Desde la mezcla inicial del sustrato hasta la disposición final de las charolas, el sistema permite organizar el flujo de trabajo y mantener condiciones consistentes durante el proceso de siembra.</p>
+        ]]></field>
+        <field name="destacados_estilo">pre</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="pasos_estilo">tarjeta</field>
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">De la preparación del sustrato a la charola lista</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_tema">claro</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Diseñada para una siembra eficiente y consistente</field>
+
+        <field name="datos_tema">claro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="sistema_antetitulo">Una línea diseñada como sistema</field>
+        <field name="sistema_titulo">Configuración integrada para un mejor resultado</field>
+
+        <field name="construccion_antetitulo">Características de construcción</field>
+        <field name="construccion_titulo">Construida para operación productiva</field>
+
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
+        <field name="cierre_titulo">¿Quieres integrar una línea de siembra en tu operación?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Línea de siembra automatizada de charolas | FERBA</field>
+        <field name="meta_descripcion">La línea de siembra FERBA integra preparación del sustrato, alimentación, siembra y apilado de charolas de 700 x 480 x 130 mm: hasta 200 bandejas por hora, acero negro con pintura electrostática.</field>
+    </record>
+
+    <record id="dest_siembra_1" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
+        <field name="icono">catalogo/_comunes/hero-gauge.webp</field>
+        <field name="valor">200 bandejas / hora</field><field name="etiqueta">Hasta</field>
+    </record>
+
+    <record id="paso_siembra_1" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/paso-1.webp</field>
+        <field name="titulo">Preparación</field>
+        <field name="texto">El proceso comienza con la preparación y mezcla del sustrato requerido para las charolas.</field>
+    </record>
+    <record id="paso_siembra_2" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/paso-2.webp</field>
+        <field name="titulo">Alimentación</field>
+        <field name="texto">El material preparado se incorpora al flujo de trabajo de la línea.</field>
+    </record>
+    <record id="paso_siembra_3" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/paso-3.webp</field>
+        <field name="titulo">Siembra</field>
+        <field name="texto">La línea realiza el proceso de siembra manteniendo una distribución uniforme dentro de cada charola.</field>
+    </record>
+    <record id="paso_siembra_4" model="ferba.maquina.paso">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/paso-4.webp</field>
+        <field name="titulo">Salida y apilado</field>
+        <field name="texto">Las charolas terminadas avanzan hasta la etapa final para su disposición y apilado.</field>
+    </record>
+
+    <record id="pt_siembra_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/ben-1.webp</field>
+        <field name="titulo">Eficiente y sostenible</field>
+        <field name="texto">Un proceso organizado permite optimizar las operaciones necesarias para preparar las charolas y mantener un flujo continuo de trabajo.</field>
+    </record>
+    <record id="pt_siembra_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/ben-2.webp</field>
+        <field name="titulo">Diseño resistente</field>
+        <field name="texto">Construcción diseñada para trabajar dentro de ambientes productivos y mantener estabilidad durante la operación.</field>
+    </record>
+    <record id="pt_siembra_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/ben-3.webp</field>
+        <field name="titulo">200 bandejas / hora</field>
+        <field name="texto">Capacidad de procesamiento diseñada para mantener un flujo constante durante la jornada de producción.</field>
+    </record>
+
+    <record id="spec_siembra_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 200 bandejas/hora</field>
+    </record>
+    <record id="spec_siembra_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
+        <field name="etiqueta">Tamaño de charola</field><field name="valor">700 x 480 x 130 mm</field>
+    </record>
+    <record id="spec_siembra_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field>
+        <field name="etiqueta">Tipo de secado</field><field name="valor">Aire comprimido</field>
+    </record>
+    <record id="spec_siembra_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero Negro</field>
+    </record>
+    <record id="spec_siembra_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">50</field>
+        <field name="etiqueta">Acabados</field><field name="valor">Pintura Electrostática</field>
+    </record>
+
+    <!-- tarjeta negra "una línea diseñada como sistema" (4 columnas, icono blanco) -->
+    <record id="pt_siembra_sis1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">sistema</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/sis-1.webp</field>
+        <field name="titulo">Proceso continuo</field>
+        <field name="texto">Integración de distintas etapas dentro de una misma operación</field>
+    </record>
+    <record id="pt_siembra_sis2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">sistema</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/sis-2.webp</field>
+        <field name="titulo">Uniformidad</field>
+        <field name="texto">Preparación consistente de las charolas durante el proceso.</field>
+    </record>
+    <record id="pt_siembra_sis3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">sistema</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/sis-3.webp</field>
+        <field name="titulo">Capacidad</field>
+        <field name="texto">Hasta 200 charolas por hora según la configuración establecida.</field>
+    </record>
+    <record id="pt_siembra_sis4" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">sistema</field><field name="secuencia">40</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/sis-4.webp</field>
+        <field name="titulo">Integración</field>
+        <field name="texto">Diseño pensado para organizar los diferentes módulos que forman la línea.</field>
+    </record>
+
+    <!-- características de construcción (4 columnas) -->
+    <record id="pt_siembra_con1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">construccion</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/con-1.webp</field>
+        <field name="titulo">Acero negro</field>
+        <field name="texto">Estructura fabricada de acuerdo a las necesidades mecanicas del sistema</field>
+    </record>
+    <record id="pt_siembra_con2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">construccion</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/con-2.webp</field>
+        <field name="titulo">Pintura electrostática</field>
+        <field name="texto">Acabado aplicado sobre los componenetes correspondientes de la estructura.</field>
+    </record>
+    <record id="pt_siembra_con3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">construccion</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/con-3.webp</field>
+        <field name="titulo">700 x 480 x 130 mm</field>
+        <field name="texto">Configuración indicada para el formato de charola establecido.</field>
+    </record>
+    <record id="pt_siembra_con4" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="seccion">construccion</field><field name="secuencia">40</field>
+        <field name="icono">catalogo/sembradoras/linea-de-siembra/con-4.webp</field>
+        <field name="titulo">Hasta 200 bandejas / Hora</field>
+        <field name="texto">Capacidad nominal indicada para la línea de siembra.</field>
+    </record>
+
+    <!-- galería: video (poster) + 4 fotos -->
+    <record id="media_siembra_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-1.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_siembra_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-2.webp</field>
+    </record>
+    <record id="media_siembra_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-3.webp</field>
+    </record>
+    <record id="media_siembra_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-4.webp</field>
+    </record>
+    <record id="media_siembra_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-5.webp</field>
+    </record>
 
 </odoo>

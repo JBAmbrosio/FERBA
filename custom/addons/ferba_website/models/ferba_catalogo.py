@@ -193,6 +193,7 @@ class FerbaMaquina(models.Model):
     destacados_estilo = fields.Selection([
         ('badge', 'Badge: icono + etiqueta corta (AJUSTABLE · MODULAR…)'),
         ('valor', 'Valor grande + etiqueta (200 BINS/HORA · ACERO INOXIDABLE…)'),
+        ('pre', 'Etiqueta chica ARRIBA + valor grande (HASTA · 200 BANDEJAS/HORA)'),
     ], default='badge')
 
     # Cuerpo (bloques genéricos, se conservan por compatibilidad)
@@ -212,6 +213,10 @@ class FerbaMaquina(models.Model):
 
     # --- CÓMO FUNCIONA (pasos numerados + diagrama) ---
     paso_ids = fields.One2many('ferba.maquina.paso', 'maquina_id')
+    pasos_estilo = fields.Selection([
+        ('foto', 'Número rojo sobre la foto, título y texto debajo'),
+        ('tarjeta', 'Tarjeta con borde: "01 Título" arriba, foto, texto (línea de siembra)'),
+    ], default='foto')
     pasos_antetitulo = fields.Char(translate=True, default="Cómo funciona")
     pasos_titulo = fields.Char(translate=True)
     pasos_intro = fields.Text(translate=True)
@@ -238,12 +243,23 @@ class FerbaMaquina(models.Model):
                                     help="Título de los beneficios (columna de datos o sección propia).")
     beneficios_pos = fields.Selection([
         ('datos', 'En la columna derecha de datos técnicos'),
-        ('seccion', 'Sección propia oscura (título a la izquierda, tarjetas a la derecha)'),
+        ('seccion', 'Sección propia (título a la izquierda, tarjetas a la derecha)'),
     ], default='datos', help="Dónde se pintan los puntos de sección 'beneficio'.")
+    beneficios_tema = fields.Selection([('oscuro', 'Oscuro'), ('claro', 'Claro (gris con tarjetas blancas)')],
+                                       default='oscuro', help="Fondo de la sección propia de beneficios.")
+
+    # --- Bloques de 4 columnas con separador rojo (línea de siembra) ---
+    sistema_antetitulo = fields.Char(translate=True, help="Tarjeta negra a la derecha de los datos: 'Una línea diseñada como sistema'.")
+    sistema_titulo = fields.Char(translate=True)
+    construccion_antetitulo = fields.Char(translate=True, help="Sección blanca de 4 columnas: 'Características de construcción'.")
+    construccion_titulo = fields.Char(translate=True)
     specs_titulo = fields.Char(translate=True, default="Especificaciones principales")
     spec_ids = fields.One2many('ferba.maquina.spec', 'maquina_id')
     specs_foto = fields.Char(help="Foto grande junto a la tabla de specs (opcional).")
     caracteristicas_titulo = fields.Char(translate=True, default="Características destacadas")
+
+    # --- DIBUJO TÉCNICO (hornos, envasadora): plano con cotas bajo el hero/split ---
+    dibujo_imagen = fields.Char(help="Plano con cotas (ruta bajo static/src/img/). Se pinta en una sección blanca tras el split.")
 
     # --- CALIBRADO + FLEXQUALITY (calibradores): dos secciones fijas del PDF ---
     flexquality = fields.Boolean(help="Pinta las secciones 'Lleva la selección más allá del calibrado' "
@@ -398,6 +414,8 @@ class FerbaMaquinaPunto(models.Model):
         ('caracteristica', 'Característica (checklist)'),
         ('chip', 'Chip destacado'),
         ('aplica', 'Aplicación'),
+        ('sistema', 'Sistema (tarjeta negra de 4 columnas junto a los datos)'),
+        ('construccion', 'Construcción (sección blanca de 4 columnas)'),
     ], required=True, index=True)
     icono = fields.Char(help="Ruta del icono/SVG bajo static/src/img/.")
     imagen = fields.Char(help="Imagen bajo static/src/img/ (reto, aplicaciones).")

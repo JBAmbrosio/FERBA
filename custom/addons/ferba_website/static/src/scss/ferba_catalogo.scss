@@ -910,6 +910,65 @@
     }
 }
 
+// Pasos en TARJETA con borde (línea de siembra): "01 Título" arriba, foto, texto.
+.o_ferba_comofunciona--tarjeta {
+    .o_ferba_pasocard { padding: 1.1rem 1.1rem 1.3rem; }
+    .o_ferba_pasocard__cab { display: flex; align-items: baseline; gap: 0.55rem; margin-bottom: 0.9rem; }
+    .o_ferba_pasocard__num { color: $ferba-red; font-weight: $ferba-fw-bold; font-size: 1.35rem; line-height: 1; }
+    .o_ferba_pasocard__tit { font-size: 1.1rem; margin: 0; }
+    .o_ferba_pasocard__foto {
+        border-radius: $ferba-radius; overflow: hidden; aspect-ratio: 16 / 9; margin: 0 0 0.9rem;
+        img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    }
+    .o_ferba_pasocard__txt { font-size: 0.9rem; }
+    .o_ferba_comofunciona__chevron { align-self: center; }
+}
+
+// Destacado 'pre' del hero: valor mediano con interletrado ("200 BANDEJAS / HORA").
+.o_ferba_fichabadge__val--md { font-size: 1.05rem; letter-spacing: 0.16em; text-transform: uppercase; }
+
+// Beneficios como sección CLARA (gris con tarjetas blancas; línea de siembra).
+.o_ferba_section--light .o_ferba_benecard {
+    background: $ferba-white; border-color: $ferba-gray-line;
+    h3 { color: $ferba-ink; } p { color: lighten($ferba-ink, 25%); }
+}
+
+// 4 columnas con separador vertical ROJO (construcción y "sistema" de la línea de siembra).
+.o_ferba_cols {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 1.6rem;
+    > * { padding: 0.4rem 1.1rem; text-align: center; border-left: 3px solid $ferba-red; }
+    > :first-child { border-left: 0; }
+    img { height: 60px; width: auto; max-width: 110px; object-fit: contain; margin-bottom: 0.9rem; }
+    h3 { font-size: 1.05rem; font-weight: $ferba-fw-bold; margin: 0 0 0.5rem; }
+    p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: lighten($ferba-ink, 22%); }
+    @media (max-width: 767px) { grid-template-columns: 1fr 1fr; > * { border-left: 0; padding: 0.8rem; } }
+}
+.o_ferba_sistemacard {
+    background: $ferba-black; color: $ferba-white; border-radius: $ferba-radius-lg;
+    padding: 1.6rem 1.5rem 1.8rem; align-self: start;
+    .o_ferba_eyebrow--llano { color: $ferba-white; }
+    .o_ferba_cols {
+        margin-top: 1.2rem;
+        > * { padding: 0.2rem 0.7rem; }
+        h3 { color: $ferba-white; font-size: 0.98rem; }
+        p { color: $ferba-gray; font-size: 0.84rem; }
+        img { height: 54px; }
+    }
+}
+
+// Antetítulo en regular y color de texto (el "BENEFICIOS PRINCIPALES" de la columna derecha).
+.o_ferba_eyebrow--llano {
+    font-weight: $ferba-fw-regular; letter-spacing: 0.06em;
+    color: $ferba-ink;
+    .o_ferba_section--dark & { color: $ferba-white; }
+}
+
+// Plano con cotas (hornos FP6000, envasadora): centrado, sin marco, a lo ancho del contenedor.
+.o_ferba_dibujo {
+    margin: 0 auto; max-width: 1000px;
+    img { width: 100%; height: auto; display: block; }
+}
+
 // --- Tarjetas de CIFRA en datos técnicos (calibradores): icono + número rojo + etiqueta ---
 .o_ferba_statcards {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin-top: 1.4rem;
