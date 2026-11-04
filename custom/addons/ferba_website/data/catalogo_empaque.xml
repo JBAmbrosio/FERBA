@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         CONTENIDO M1 — Categoría EMPAQUE + sus 16 máquinas + ficha FLOWPACK
+
+         Rebanada vertical de demostración (ver
+         docs/ferba-web-catalogo-arquitectura-2026-11-03.md). El copy y las
+         imágenes salen del PDF de diseño del cliente (Empaque.pdf y
+         Flowpack.pdf). La ficha de FLOWPACK va completa; las otras 15 máquinas
+         llevan solo su tarjeta (nombre + chips + miniatura) y su ficha detallada
+         se poblará en M2.
+
+         Actualizable a propósito (sin noupdate) mientras el contenido se afina;
+         se marcará noupdate antes del cierre, para que FERBA pueda editar.
+         ================================================================ -->
+    <data>
+
+        <!-- ============ CATEGORÍA ============ -->
+        <record id="cat_empaque" model="ferba.categoria">
+            <field name="nombre">Empaque</field>
+            <field name="slug">empaque</field>
+            <field name="secuencia">60</field>
+            <field name="hero_titulo">Soluciones de empaque para el final de la línea</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">La etapa de empaque transforma el producto seleccionado y calibrado en una presentación lista para manejo, almacenamiento, distribución o comercialización.</p>
+                <p class="o_ferba_hero__lead">En FERBA integramos equipos para pesaje, llenado, acomodo, sellado, envasado y empaque automático, adaptando cada solución al producto, formato de presentación, capacidad y nivel de automatización requerido.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">Del producto clasificado al empaque final</field>
+            <field name="narrativa_titulo">El formato final también forma parte del proceso</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>Después de la selección y calibrado, cada producto puede requerir una presentación diferente: cajas, bolsas, clamshells u otros formatos comerciales.</p>
+                <p>Por eso la etapa de empaque puede combinar estaciones manuales, sistemas de pesaje, llenado, sellado, envasado y automatización según las necesidades de cada operación.</p>
+            ]]></field>
+            <field name="factor_titulo">Configuramos el empaque según tu operación</field>
+            <field name="cierre_titulo">¿Qué presentación necesita tu producto?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Maquinaria de empaque postcosecha | FERBA</field>
+            <field name="meta_descripcion">Pesaje, llenado, acomodo, sellado, envasado y empaque automático para el final de la línea postcosecha. Estaciones asistidas y sistemas automáticos completos.</field>
+        </record>
+
+        <!-- flujo de la etapa (sin iconos por ahora: solo rótulos) -->
+        <record id="flujo_emp_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="etiqueta">Producto clasificado</field></record>
+        <record id="flujo_emp_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">20</field><field name="etiqueta">Pesaje / dosificación</field></record>
+        <record id="flujo_emp_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">30</field><field name="etiqueta">Llenado / acomodo</field></record>
+        <record id="flujo_emp_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">40</field><field name="etiqueta">Sellado / envasado</field></record>
+        <record id="flujo_emp_5" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">50</field><field name="etiqueta">Producto empacado</field></record>
+
+        <!-- factores -->
+        <record id="factor_emp_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="titulo">Tipo de producto</field><field name="texto">Las características del fruto influyen en el sistema de manejo y empaque requerido.</field></record>
+        <record id="factor_emp_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">20</field><field name="titulo">Presentación</field><field name="texto">Caja, bolsa, clamshell u otro formato comercial requerido.</field></record>
+        <record id="factor_emp_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">30</field><field name="titulo">Peso y cantidad</field><field name="texto">La solución se configura según el peso o cantidad objetivo de cada presentación.</field></record>
+        <record id="factor_emp_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">40</field><field name="titulo">Capacidad y automatización</field><field name="texto">El volumen requerido determina el nivel de automatización y configuración del sistema.</field></record>
+
+        <!-- subgrupos -->
+        <record id="sg_emp_estaciones" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="nombre">Estaciones de empaque</field></record>
+        <record id="sg_emp_pesaje" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">20</field><field name="nombre">Pesaje y llenado</field></record>
+        <record id="sg_emp_envasado" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">30</field><field name="nombre">Empaque y envasado</field></record>
+        <record id="sg_emp_hornos" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">40</field><field name="nombre">Hornos</field></record>
+
+        <!-- ============ MÁQUINAS (tarjeta) ============ -->
+        <!-- 01 Estaciones de empaque -->
+        <record id="maq_bancos_empaque" model="ferba.maquina">
+            <field name="nombre">Bancos de empaque</field><field name="slug">bancos-de-empaque</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_estaciones"/>
+            <field name="secuencia">10</field><field name="chips">Empaque, Acomodo, Operación asistida</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/bancos-de-empaque.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_modulo_empacado" model="ferba.maquina">
+            <field name="nombre">Módulo de empacado</field><field name="slug">modulo-de-empacado</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_estaciones"/>
+            <field name="secuencia">20</field><field name="chips">Modular, Empaque, Integración</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/modulo-de-empacado.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_mesa_giratoria" model="ferba.maquina">
+            <field name="nombre">Mesa giratoria</field><field name="slug">mesa-giratoria</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_estaciones"/>
+            <field name="secuencia">30</field><field name="chips">Empaque, Ergonómica, Acumulación</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/mesa-giratoria.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <!-- 02 Pesaje y llenado -->
+        <record id="maq_pesadora_cajas" model="ferba.maquina">
+            <field name="nombre">Pesadora automática llenadora de cajas</field><field name="slug">pesadora-llenadora-cajas</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_pesaje"/>
+            <field name="secuencia">10</field><field name="chips">Pesaje, Cajas, Precisión</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/pesadora-llenadora-cajas.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_multipesadora" model="ferba.maquina">
+            <field name="nombre">Multipesadora</field><field name="slug">multipesadora</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_pesaje"/>
+            <field name="secuencia">20</field><field name="chips">Bolsa, Clamshell, Multipesaje</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/multipesadora.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_pesadora_doble_bolsa" model="ferba.maquina">
+            <field name="nombre">Pesadora llenadora doble de bolsa</field><field name="slug">pesadora-doble-bolsa</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_pesaje"/>
+            <field name="secuencia">30</field><field name="chips">Bolsa, Empaque, Multipesaje</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/pesadora-doble-bolsa.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <!-- 03 Empaque y envasado -->
+        <record id="maq_flowpack" model="ferba.maquina">
+            <field name="nombre">FlowPack</field><field name="slug">flowpack</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_envasado"/>
+            <field name="secuencia">10</field><field name="chips">Bolsa, Integración, Empaque continuo</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/flowpack.webp</field>
+            <field name="lema">Empaque continuo de alta velocidad para una presentación protegida y uniforme</field>
+            <field name="hero_imagen">catalogo/flowpack/hero.webp</field>
+            <field name="intro"><![CDATA[
+                <p class="o_ferba_hero__lead">La FlowPack FERBA permite automatizar el empaque individual o agrupado de productos mediante película flexible, integrando alimentación, formado y sellado dentro de un proceso continuo.</p>
+                <p class="o_ferba_hero__lead">Su configuración está diseñada para mantener un flujo constante de producción y obtener empaques uniformes, listos para continuar hacia las etapas finales de manejo, identificación y distribución.</p>
+            ]]></field>
+            <field name="pasos_titulo">De la alimentación al producto empacado</field>
+            <field name="galeria_titulo">Galería de imágenes y video</field>
+            <field name="specs_foto">catalogo/flowpack/specs.webp</field>
+            <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">FlowPack: empaque continuo con película flexible | FERBA</field>
+            <field name="meta_descripcion">La FlowPack FERBA automatiza el empaque individual o agrupado con película flexible: hasta 150 bolsas/minuto, sellado por extremos giratorios, acero inoxidable.</field>
+        </record>
+        <record id="maq_selladora_bolsa" model="ferba.maquina">
+            <field name="nombre">Selladora de bolsa</field><field name="slug">selladora-de-bolsa</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_envasado"/>
+            <field name="secuencia">20</field><field name="chips">Bolsa, Operación, Control de flujo</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/selladora-de-bolsa.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_empaquetadora_automatica" model="ferba.maquina">
+            <field name="nombre">Empaquetadora automática</field><field name="slug">empaquetadora-automatica</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_envasado"/>
+            <field name="secuencia">30</field><field name="chips">Empaque, Presentación, Película elástica</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/empaquetadora-automatica.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_envasadora_automatica" model="ferba.maquina">
+            <field name="nombre">Envasadora automática</field><field name="slug">envasadora-automatica</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_envasado"/>
+            <field name="secuencia">40</field><field name="chips">Empaque, Presentación, Película elástica</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/envasadora-automatica.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <!-- 04 Hornos -->
+        <record id="maq_horno_fp560" model="ferba.maquina">
+            <field name="nombre">Horno FP560</field><field name="slug">horno-fp560</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">10</field><field name="chips">Calidad, Final, Semi automática</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-fp560.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_horno_fp560a" model="ferba.maquina">
+            <field name="nombre">Horno FP560A</field><field name="slug">horno-fp560a</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">20</field><field name="chips">Calidad, Final, Semi-automática</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-fp560a.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_horno_fp6000" model="ferba.maquina">
+            <field name="nombre">Horno FP6000</field><field name="slug">horno-fp6000</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">30</field><field name="chips">Empaque, Calidad, Automática</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-fp6000.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_horno_s560" model="ferba.maquina">
+            <field name="nombre">Horno S560</field><field name="slug">horno-s560</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">40</field><field name="chips">Calidad, Precio, Ahorra energía</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-s560.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_horno_sk1" model="ferba.maquina">
+            <field name="nombre">Horno SK1</field><field name="slug">horno-sk1</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">50</field><field name="chips">Resistente, Acero, 2 machetes</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-sk1.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+        <record id="maq_horno_sk2" model="ferba.maquina">
+            <field name="nombre">Horno SK2</field><field name="slug">horno-sk2</field>
+            <field name="categoria_id" ref="cat_empaque"/><field name="subgrupo_id" ref="sg_emp_hornos"/>
+            <field name="secuencia">60</field><field name="chips">Resistente, Acero, 3 machetes</field>
+            <field name="tarjeta_imagen">catalogo/empaque/cards/horno-sk2.webp</field>
+            <field name="hero_imagen">catalogo/empaque/hero.webp</field>
+        </record>
+
+        <!-- ============ FICHA FLOWPACK: cuerpo ============ -->
+        <!-- split: "Una etapa final integrada a tu línea" -->
+        <record id="blo_flowpack_split" model="ferba.maquina.bloque">
+            <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
+            <field name="tipo">split</field><field name="tema">claro</field>
+            <field name="antetitulo">Del producto recibido al empaque terminado</field>
+            <field name="titulo">Una etapa final integrada a tu línea</field>
+            <field name="imagen">catalogo/flowpack/render.webp</field>
+            <field name="cuerpo"><![CDATA[
+                <p>La FlowPack recibe el producto desde las etapas anteriores de selección, calibrado o preparación y lo conduce hacia el sistema de empaque.</p>
+                <p>Durante el proceso, la película envuelve el producto y el equipo realiza el sellado necesario para generar una presentación final uniforme, manteniendo continuidad dentro de la línea.</p>
+            ]]></field>
+        </record>
+
+        <!-- pasos -->
+        <record id="paso_flowpack_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field><field name="imagen">catalogo/flowpack/paso-1.webp</field><field name="titulo">Alimentación</field><field name="texto">El producto se coloca sobre el transportador de entrada de la máquina.</field></record>
+        <record id="paso_flowpack_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field><field name="imagen">catalogo/flowpack/paso-2.webp</field><field name="titulo">Posicionamiento</field><field name="texto">El producto avanza manteniendo el espacio necesario para su empaque.</field></record>
+        <record id="paso_flowpack_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field><field name="imagen">catalogo/flowpack/paso-3.webp</field><field name="titulo">Formación del empaque</field><field name="texto">El sistema forma la presentación alrededor del producto.</field></record>
+        <record id="paso_flowpack_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field><field name="imagen">catalogo/flowpack/paso-4.webp</field><field name="titulo">Sellado</field><field name="texto">El equipo realiza el cierre del empaque mediante su sistema de sellado.</field></record>
+        <record id="paso_flowpack_5" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">50</field><field name="imagen">catalogo/flowpack/paso-5.webp</field><field name="titulo">Salida</field><field name="texto">El producto empacado continúa hacia las operaciones posteriores.</field></record>
+
+        <!-- especificaciones -->
+        <record id="spec_flowpack_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 150 bolsas / minuto</field></record>
+        <record id="spec_flowpack_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field><field name="etiqueta">Ancho de película</field><field name="valor">580 mm</field></record>
+        <record id="spec_flowpack_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field><field name="etiqueta">Ancho bolsa</field><field name="valor">100–280 mm</field></record>
+        <record id="spec_flowpack_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field></record>
+        <record id="spec_flowpack_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">50</field><field name="etiqueta">Voltaje</field><field name="valor">220V</field></record>
+        <record id="spec_flowpack_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">60</field><field name="etiqueta">Frecuencia</field><field name="valor">50 / 60 Hz</field></record>
+        <record id="spec_flowpack_7" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">70</field><field name="etiqueta">Potencia</field><field name="valor">2.8 Kw</field></record>
+        <record id="spec_flowpack_8" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">80</field><field name="etiqueta">Sistema de sellado</field><field name="valor">Extremos giratorios</field></record>
+
+        <!-- galería (1 video + 3 imágenes). video_url pendiente de definir. -->
+        <record id="media_flowpack_0" model="ferba.maquina.media"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field><field name="imagen">catalogo/flowpack/gal-video.webp</field><field name="es_video" eval="True"/></record>
+        <record id="media_flowpack_1" model="ferba.maquina.media"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field><field name="imagen">catalogo/flowpack/gal-1.webp</field></record>
+        <record id="media_flowpack_2" model="ferba.maquina.media"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">30</field><field name="imagen">catalogo/flowpack/gal-2.webp</field></record>
+        <record id="media_flowpack_3" model="ferba.maquina.media"><field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">40</field><field name="imagen">catalogo/flowpack/gal-3.webp</field></record>
+
+    </data>
+</odoo>

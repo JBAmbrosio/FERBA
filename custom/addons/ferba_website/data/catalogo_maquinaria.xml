@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         CONTENIDO M2 — las 5 categorías restantes de maquinaria
+         (Recepción, Lavado, Secado, Transportadores, Selección) con sus
+         equipos (tarjeta), y SEMBRADORAS como ficha completa "Línea de
+         siembra" (su PDF es una ficha, no un listado).
+
+         Copy e imágenes del diseño entregado por el cliente. Las fichas de
+         las máquinas de estas categorías (salvo Línea de siembra) se
+         poblarán después; por ahora llevan su tarjeta y la ficha muestra el
+         stub "en preparación". Falta la categoría Automatización (el cliente
+         no entregó su diseño).
+
+         Nota: algunas miniaturas son mapeo best-guess (calibradores y
+         transportadores son visualmente casi idénticos entre variantes);
+         conviene una revisión rápida.
+         ================================================================ -->
+    <data>
+
+        <!-- ============================================================ -->
+        <!-- RECEPCIÓN Y ALIMENTACIÓN                                     -->
+        <!-- ============================================================ -->
+        <record id="cat_recepcion" model="ferba.categoria">
+            <field name="nombre">Recepción y alimentación</field>
+            <field name="slug">recepcion</field>
+            <field name="secuencia">10</field>
+            <field name="hero_titulo">Recepción y alimentación de producto</field>
+            <field name="hero_imagen">catalogo/recepcion/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">El inicio de una línea postcosecha define la continuidad de todo el proceso.</p>
+                <p class="o_ferba_hero__lead">En FERBA desarrollamos sistemas para recibir, descargar y alimentar frutas y hortalizas de forma controlada, permitiendo un flujo constante hacia las siguientes etapas de lavado, selección, calibrado y empaque.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">El inicio de una línea eficiente</field>
+            <field name="narrativa_titulo">Una alimentación uniforme comienza desde la recepción</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>La recepción del producto es una etapa crítica dentro del proceso postcosecha. Una descarga adecuada ayuda a mantener un flujo continuo, reducir interrupciones y alimentar de manera ordenada los equipos posteriores.</p>
+                <p>Por eso FERBA desarrolla diferentes sistemas de recepción según la forma en que llega el producto a la empacadora, ya sea en bins, cajas u otros sistemas de manejo.</p>
+            ]]></field>
+            <field name="factor_titulo">Factores que definen tu solución</field>
+            <field name="cierre_titulo">¿Necesitas definir cómo recibir y alimentar tu producto?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Recepción y alimentación de producto postcosecha | FERBA</field>
+            <field name="meta_descripcion">Volcadores de bins y cajas, tanques de recepción y lavadoras para recibir, descargar y alimentar el producto al inicio de la línea postcosecha.</field>
+        </record>
+        <record id="flujo_rec_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="etiqueta">Contenedor</field></record>
+        <record id="flujo_rec_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="etiqueta">Descarga</field></record>
+        <record id="flujo_rec_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="etiqueta">Alimentación</field></record>
+        <record id="factor_rec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="titulo">Tipo de contenedor</field><field name="texto">La solución se define según la forma en que el producto llega y es manejado dentro de la empacadora.</field></record>
+        <record id="factor_rec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="titulo">Producto</field><field name="texto">El sistema debe considerar dimensiones, comportamiento y necesidades de manejo.</field></record>
+        <record id="factor_rec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">La configuración se determina en función del volumen que debe alimentar la línea.</field></record>
+        <record id="factor_rec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">40</field><field name="titulo">Integración</field><field name="texto">Diseñamos la recepción considerando los equipos y etapas que continuarán después de la descarga.</field></record>
+
+        <record id="maq_volcador_bins_rot" model="ferba.maquina"><field name="nombre">Volcador de bins rotativo</field><field name="slug">volcador-bins-rotativo</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="chips">Bins, Descarga, Inicio de línea</field><field name="tarjeta_imagen">catalogo/recepcion/cards/volcador-bins-rotativo.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+        <record id="maq_volcador_cajas_tor" model="ferba.maquina"><field name="nombre">Volcador de cajas por torsión</field><field name="slug">volcador-cajas-torsion</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="chips">Cajas, Flujo de producto, Torsión</field><field name="tarjeta_imagen">catalogo/recepcion/cards/volcador-cajas-torsion.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+        <record id="maq_volcador_cajas_rot" model="ferba.maquina"><field name="nombre">Volcador de cajas rotativo</field><field name="slug">volcador-cajas-rotativo</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="chips">Cajas, Volteo rotativo, Alimentación</field><field name="tarjeta_imagen">catalogo/recepcion/cards/volcador-cajas-rotativo.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+        <record id="maq_tanque_recepcion" model="ferba.maquina"><field name="nombre">Tanque de recepción</field><field name="slug">tanque-recepcion</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">40</field><field name="chips">Recepción, Acumulación, Alimentación</field><field name="tarjeta_imagen">catalogo/recepcion/cards/tanque-recepcion.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+        <record id="maq_lavadora_cajas" model="ferba.maquina"><field name="nombre">Lavadora de cajas</field><field name="slug">lavadora-cajas</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">50</field><field name="chips">Cajas, Lavado, Reutilización</field><field name="tarjeta_imagen">catalogo/recepcion/cards/lavadora-cajas.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+        <record id="maq_lavadora_bins" model="ferba.maquina"><field name="nombre">Lavadora de bins</field><field name="slug">lavadora-bins</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">60</field><field name="chips">Bins, Limpieza, Reutilización</field><field name="tarjeta_imagen">catalogo/recepcion/cards/lavadora-bins.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
+
+        <!-- ============================================================ -->
+        <!-- LAVADO Y TRATAMIENTO                                         -->
+        <!-- ============================================================ -->
+        <record id="cat_lavado" model="ferba.categoria">
+            <field name="nombre">Lavado y tratamiento</field>
+            <field name="slug">lavado</field>
+            <field name="secuencia">20</field>
+            <field name="hero_titulo">Lavado y cribado para preparar el producto</field>
+            <field name="hero_imagen">catalogo/lavado/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">Una correcta etapa de cribado y lavado ayuda a preparar frutos y hortalizas para los procesos posteriores de selección y empaque.</p>
+                <p class="o_ferba_hero__lead">En FERBA desarrollamos equipos para el lavado y manejo del producto dentro de la operación postcosecha.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">Preparar correctamente cada etapa</field>
+            <field name="narrativa_titulo">Limpieza y preparación antes de continuar el proceso</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>El lavado forma parte de las primeras etapas de una línea postcosecha y permite retirar suciedad superficial y preparar el producto para procesos posteriores.</p>
+            ]]></field>
+            <field name="factor_titulo">Configuramos el lavado según tu proceso</field>
+            <field name="cierre_titulo">¿Necesitas integrar lavado y cribas a tu operación?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Lavado y cribado de producto postcosecha | FERBA</field>
+            <field name="meta_descripcion">Cribas de rodillos y de malla, y unidades de cepillos de lavado para retirar suciedad superficial y preparar frutas y hortalizas antes de la selección.</field>
+        </record>
+        <record id="flujo_lav_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="etiqueta">Producto recibido</field></record>
+        <record id="flujo_lav_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="etiqueta">Lavado y tratamiento</field></record>
+        <record id="flujo_lav_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="etiqueta">Producto preparado</field></record>
+        <record id="factor_lav_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="titulo">Producto</field><field name="texto">La solución se define según aquello que debe ser tratado.</field></record>
+        <record id="factor_lav_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="titulo">Capacidad requerida</field><field name="texto">Dimensionamos el sistema considerando el volumen de producto.</field></record>
+        <record id="factor_lav_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="titulo">Integración en línea</field><field name="texto">Definimos entradas y salidas para conectar el equipo con las etapas anteriores y posteriores.</field></record>
+        <record id="factor_lav_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">40</field><field name="titulo">Configuración del proceso</field><field name="texto">Cada proyecto puede requerir diferentes tiempos, velocidades y configuraciones según las necesidades de operación.</field></record>
+
+        <record id="maq_criba_rodillos" model="ferba.maquina"><field name="nombre">Criba de rodillos regulable</field><field name="slug">criba-rodillos-regulable</field><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="chips">Rodillos, Lavado continuo, Producto</field><field name="tarjeta_imagen">catalogo/lavado/cards/criba-rodillos-regulable.webp</field><field name="hero_imagen">catalogo/lavado/hero.webp</field></record>
+        <record id="maq_cepillos_lavado" model="ferba.maquina"><field name="nombre">Unidad de cepillos de lavado</field><field name="slug">unidad-cepillos-lavado</field><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="chips">Rodillos, Lavado continuo, Producto</field><field name="tarjeta_imagen">catalogo/lavado/cards/unidad-cepillos-lavado.webp</field><field name="hero_imagen">catalogo/lavado/hero.webp</field></record>
+        <record id="maq_criba_malla" model="ferba.maquina"><field name="nombre">Criba de malla descanicadora</field><field name="slug">criba-malla-descanicadora</field><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="chips">Malla, Producto, Proceso continuo</field><field name="tarjeta_imagen">catalogo/lavado/cards/criba-malla-descanicadora.webp</field><field name="hero_imagen">catalogo/lavado/hero.webp</field></record>
+
+        <!-- ============================================================ -->
+        <!-- SECADO Y CEPILLADO                                           -->
+        <!-- ============================================================ -->
+        <record id="cat_secado" model="ferba.categoria">
+            <field name="nombre">Secado y cepillado</field>
+            <field name="slug">secado</field>
+            <field name="secuencia">30</field>
+            <field name="hero_titulo">Secado y cepillado para preparar el producto</field>
+            <field name="hero_imagen">catalogo/secado/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">Después del lavado, el producto necesita continuar su preparación antes de pasar a selección y empaque.</p>
+                <p class="o_ferba_hero__lead">En FERBA desarrollamos equipos para retirar humedad superficial y realizar procesos de cepillado y encerado, ayudando a mejorar la presentación del producto y mantener un flujo continuo dentro de la línea postcosecha.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">La transición después del lavado</field>
+            <field name="narrativa_titulo">Preparar el producto para las siguientes etapas</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>Después del lavado, puede permanecer humedad superficial y condiciones que deben controlarse antes de continuar con la clasificación o el empaque.</p>
+                <p>El secado y cepillado ayudan a preparar el producto para las siguientes etapas de la línea, manteniendo un proceso continuo y adaptado a las características de cada fruto.</p>
+            ]]></field>
+            <field name="factor_titulo">Adaptamos la preparación a tu proceso</field>
+            <field name="cierre_titulo">¿Necesitas integrar secado o cepillado a tu línea?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Secado y cepillado de producto postcosecha | FERBA</field>
+            <field name="meta_descripcion">Unidades de cepillos de secado y encerado para retirar humedad superficial y mejorar la presentación del producto antes de la selección y el empaque.</field>
+        </record>
+        <record id="flujo_sec_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="etiqueta">Lavado</field></record>
+        <record id="flujo_sec_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">20</field><field name="etiqueta">Secado</field></record>
+        <record id="flujo_sec_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">30</field><field name="etiqueta">Cepillado / Encerado</field></record>
+        <record id="flujo_sec_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">40</field><field name="etiqueta">Selección</field></record>
+        <record id="factor_sec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="titulo">Tipo de fruto</field><field name="texto">Dimensiones, forma y comportamiento del producto.</field></record>
+        <record id="factor_sec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">20</field><field name="titulo">Humedad</field><field name="texto">Condiciones de salida después del lavado.</field></record>
+        <record id="factor_sec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">Volumen de producto que debe manejar la línea.</field></record>
+        <record id="factor_sec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">40</field><field name="titulo">Integración en la línea</field><field name="texto">Conexión con lavado, selección y empaque.</field></record>
+
+        <record id="maq_cepillos_secado" model="ferba.maquina"><field name="nombre">Unidad de cepillos de encerado y secado</field><field name="slug">unidad-cepillos-secado</field><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="chips">Cepillado, Encerado, Preparación de producto</field><field name="tarjeta_imagen">catalogo/secado/cards/unidad-cepillos-secado.webp</field><field name="hero_imagen">catalogo/secado/hero.webp</field></record>
+
+        <!-- ============================================================ -->
+        <!-- TRANSPORTADORES Y BANDAS                                     -->
+        <!-- ============================================================ -->
+        <record id="cat_transportadores" model="ferba.categoria">
+            <field name="nombre">Transportadores y bandas</field>
+            <field name="slug">transportadores</field>
+            <field name="secuencia">40</field>
+            <field name="hero_titulo">Transportadores y bandas para conectar toda la línea</field>
+            <field name="hero_imagen">catalogo/transportadores/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">El movimiento del producto y de los contenedores dentro de una línea postcosecha requiere soluciones confiables, continuas y adaptadas a cada etapa del proceso.</p>
+                <p class="o_ferba_hero__lead">En FERBA desarrollamos sistemas de transporte que permiten conectar recepción, lavado, secado, selección, empaque y automatizaciones de forma ordenada y eficiente.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">El sistema que conecta toda la operación</field>
+            <field name="narrativa_titulo">El transporte correcto mantiene la línea en movimiento</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>Dentro de una operación postcosecha, los sistemas de transporte permiten mover producto, cajas y materiales entre las distintas etapas del proceso, manteniendo continuidad y orden en la operación.</p>
+                <p>Dependiendo de la aplicación, pueden requerirse bandas, rodillos, cadenas, elevadores o curvas que se adapten al layout y a las condiciones de trabajo.</p>
+            ]]></field>
+            <field name="factor_titulo">Configuramos el transporte según tu operación</field>
+            <field name="cierre_titulo">¿Necesitas definir el sistema de transporte para tu línea?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Transportadores y bandas para líneas postcosecha | FERBA</field>
+            <field name="meta_descripcion">Bandas, rodillos, curvas y elevadores para conectar recepción, lavado, secado, selección y empaque de forma continua, ordenada y eficiente.</field>
+        </record>
+        <record id="flujo_tra_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="etiqueta">Recepción y alimentación</field></record>
+        <record id="flujo_tra_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="etiqueta">Lavado y tratamiento</field></record>
+        <record id="flujo_tra_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="etiqueta">Secado y cepillado</field></record>
+        <record id="flujo_tra_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="etiqueta">Selección y calibrado</field></record>
+        <record id="flujo_tra_5" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="etiqueta">Empaque</field></record>
+        <record id="flujo_tra_6" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">60</field><field name="etiqueta">Automatización y control</field></record>
+        <record id="factor_tra_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="titulo">Tipo de producto o carga</field><field name="texto">Fruta, hortalizas, cajas, bins u otros elementos.</field></record>
+        <record id="factor_tra_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="titulo">Capacidad y flujo</field><field name="texto">Volumen que debe desplazarse y continuidad requerida.</field></record>
+        <record id="factor_tra_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="titulo">Recorrido y layout</field><field name="texto">Trayectos rectos, curvos, elevaciones y espacio disponible.</field></record>
+        <record id="factor_tra_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="titulo">Integración con la línea</field><field name="texto">Conexión con equipos anteriores y posteriores.</field></record>
+        <record id="factor_tra_5" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="titulo">Nivel de automatización</field><field name="texto">Soluciones simples o sistemas integrados con acumulación y control.</field></record>
+
+        <record id="sg_tra_bandas" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="nombre">Bandas transportadoras</field></record>
+        <record id="sg_tra_rodillos" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="nombre">Rodillos</field></record>
+        <record id="sg_tra_manejo" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="nombre">Manejo de cajas y acumulación</field></record>
+        <record id="sg_tra_curvas" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="nombre">Curvas</field></record>
+        <record id="sg_tra_elevadores" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="nombre">Elevadores</field></record>
+
+        <record id="maq_tra_banda" model="ferba.maquina"><field name="nombre">Transportador de banda</field><field name="slug">transportador-de-banda</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_bandas"/><field name="secuencia">10</field><field name="chips">Banda, Transporte continuo, Integración</field><field name="tarjeta_imagen">catalogo/transportadores/cards/banda.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_banda_modular" model="ferba.maquina"><field name="nombre">Transportador de banda modular</field><field name="slug">transportador-de-banda-modular</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_bandas"/><field name="secuencia">20</field><field name="chips">Proceso, Banda modular, Control de flujo</field><field name="tarjeta_imagen">catalogo/transportadores/cards/banda-modular.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_banda_reforzada" model="ferba.maquina"><field name="nombre">Transportador de banda reforzada</field><field name="slug">transportador-de-banda-reforzada</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_bandas"/><field name="secuencia">30</field><field name="chips">Industrial, Banda reforzada, Robustez</field><field name="tarjeta_imagen">catalogo/transportadores/cards/banda-reforzada.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_rodillos_grav" model="ferba.maquina"><field name="nombre">Transportador de rodillos por gravedad</field><field name="slug">transportador-rodillos-gravedad</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_rodillos"/><field name="secuencia">10</field><field name="chips">Gravedad, Flujo simple, Producto</field><field name="tarjeta_imagen">catalogo/transportadores/cards/rodillos-gravedad.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_manejo_caja" model="ferba.maquina"><field name="nombre">Transportador para manejo de caja</field><field name="slug">transportador-manejo-caja</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_manejo"/><field name="secuencia">10</field><field name="chips">Cajas, Manejo operativo, Integración</field><field name="tarjeta_imagen">catalogo/transportadores/cards/manejo-caja.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_curva_grav" model="ferba.maquina"><field name="nombre">Curva de rodillos por gravedad</field><field name="slug">curva-rodillos-gravedad</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_curvas"/><field name="secuencia">10</field><field name="chips">Cajas, Cambio de dirección, Integración</field><field name="tarjeta_imagen">catalogo/transportadores/cards/curva-gravedad.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_curva_vivos" model="ferba.maquina"><field name="nombre">Curva de rodillos vivos</field><field name="slug">curva-rodillos-vivos</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_curvas"/><field name="secuencia">20</field><field name="chips">Cajas, Flujo continuo, Motor</field><field name="tarjeta_imagen">catalogo/transportadores/cards/curva-vivos.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_elevador_banda" model="ferba.maquina"><field name="nombre">Elevador de banda</field><field name="slug">elevador-de-banda</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_elevadores"/><field name="secuencia">10</field><field name="chips">Banda, Elevación, Integración</field><field name="tarjeta_imagen">catalogo/transportadores/cards/elevador-banda.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+        <record id="maq_tra_elevador_rodillos" model="ferba.maquina"><field name="nombre">Elevador de rodillos</field><field name="slug">elevador-de-rodillos</field><field name="categoria_id" ref="cat_transportadores"/><field name="subgrupo_id" ref="sg_tra_elevadores"/><field name="secuencia">20</field><field name="chips">Rodillos, Flujo continuo, Elevación</field><field name="tarjeta_imagen">catalogo/transportadores/cards/elevador-rodillos.webp</field><field name="hero_imagen">catalogo/transportadores/hero.webp</field></record>
+
+        <!-- ============================================================ -->
+        <!-- SELECCIÓN Y CALIBRADO                                        -->
+        <!-- ============================================================ -->
+        <record id="cat_seleccion" model="ferba.categoria">
+            <field name="nombre">Selección y calibrado</field>
+            <field name="slug">seleccion</field>
+            <field name="secuencia">50</field>
+            <field name="hero_titulo">Selección y calibrado con precisión para cada producto</field>
+            <field name="hero_imagen">catalogo/seleccion/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">La clasificación correcta permite organizar el producto de acuerdo con los criterios comerciales y operativos de cada empacadora.</p>
+                <p class="o_ferba_hero__lead">En FERBA desarrollamos calibradores electrónicos configurados según las dimensiones, geometría y características del fruto, permitiendo integrar procesos de clasificación dentro de líneas postcosecha de diferentes capacidades.</p>
+            ]]></field>
+            <field name="narrativa_antetitulo">Cada fruto necesita una configuración diferente</field>
+            <field name="narrativa_titulo">Calibrado adaptado a las características del producto</field>
+            <field name="narrativa_intro"><![CDATA[
+                <p>La forma, dimensiones y comportamiento de cada fruta u hortaliza influyen directamente en la configuración del sistema de calibrado.</p>
+                <p>Por eso FERBA dispone de diferentes pasos y configuraciones de calibrador electrónico, diseñados para trabajar con productos específicos y mantener un manejo adecuado durante su clasificación.</p>
+            ]]></field>
+            <field name="cierre_titulo">¿Qué producto necesitas seleccionar y calibrar?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Selección y calibrado electrónico de producto | FERBA</field>
+            <field name="meta_descripcion">Calibradores electrónicos de diferentes pasos para tomate, pepino, mango, pimiento, aguacate y cítricos, integrables con FlexQuality para selección con visión artificial.</field>
+        </record>
+        <record id="maq_cal_114" model="ferba.maquina"><field name="nombre">Calibrador electrónico paso 114 mm</field><field name="slug">calibrador-114</field><field name="categoria_id" ref="cat_seleccion"/><field name="secuencia">10</field><field name="chips">IA, Mango · Pimiento · Aguacate, 2 - 8 líneas</field><field name="tarjeta_imagen">catalogo/seleccion/cards/calibrador-114.webp</field><field name="hero_imagen">catalogo/seleccion/hero.webp</field></record>
+        <record id="maq_cal_92" model="ferba.maquina"><field name="nombre">Calibrador electrónico paso 92.25 mm</field><field name="slug">calibrador-92</field><field name="categoria_id" ref="cat_seleccion"/><field name="secuencia">20</field><field name="chips">IA, Tomate Saladette (Roma), 2 - 8 líneas</field><field name="tarjeta_imagen">catalogo/seleccion/cards/calibrador-92.webp</field><field name="hero_imagen">catalogo/seleccion/hero.webp</field></record>
+        <record id="maq_cal_152" model="ferba.maquina"><field name="nombre">Calibrador electrónico paso 152 mm</field><field name="slug">calibrador-152</field><field name="categoria_id" ref="cat_seleccion"/><field name="secuencia">30</field><field name="chips">IA, Pepino · Berenjena · Calabaza, 2 - 8 líneas</field><field name="tarjeta_imagen">catalogo/seleccion/cards/calibrador-152.webp</field><field name="hero_imagen">catalogo/seleccion/hero.webp</field></record>
+        <record id="maq_cal_citricos" model="ferba.maquina"><field name="nombre">Calibrador electrónico cítricos</field><field name="slug">calibrador-citricos</field><field name="categoria_id" ref="cat_seleccion"/><field name="secuencia">40</field><field name="chips">IA, Cítricos, 2 - 8 líneas</field><field name="tarjeta_imagen">catalogo/seleccion/cards/calibrador-citricos.webp</field><field name="hero_imagen">catalogo/seleccion/hero.webp</field></record>
+
+        <!-- ============================================================ -->
+        <!-- SEMBRADORAS  (categoría con la ficha "Línea de siembra")     -->
+        <!-- ============================================================ -->
+        <record id="cat_sembradoras" model="ferba.categoria">
+            <field name="nombre">Sembradoras</field>
+            <field name="slug">sembradoras</field>
+            <field name="secuencia">80</field>
+            <field name="hero_titulo">Automatiza el proceso de siembra</field>
+            <field name="hero_imagen">catalogo/sembradoras/hero.webp</field>
+            <field name="hero_intro"><![CDATA[
+                <p class="o_ferba_hero__lead">La línea de siembra FERBA integra en un mismo proceso las principales etapas necesarias para preparar charolas de cultivo de forma continua, uniforme y eficiente.</p>
+            ]]></field>
+            <field name="cierre_titulo">¿Quieres integrar una línea de siembra en tu operación?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Línea de siembra automatizada de charolas | FERBA</field>
+            <field name="meta_descripcion">Línea de siembra FERBA: prepara charolas de cultivo de forma continua y uniforme, hasta 200 bandejas/hora, de la mezcla del sustrato al apilado final.</field>
+        </record>
+
+        <record id="maq_linea_siembra" model="ferba.maquina">
+            <field name="nombre">Línea de siembra</field><field name="slug">linea-de-siembra</field>
+            <field name="categoria_id" ref="cat_sembradoras"/><field name="secuencia">10</field>
+            <field name="chips">Siembra, Charolas, Proceso continuo</field>
+            <field name="tarjeta_imagen">catalogo/sembradoras/cards/linea-de-siembra.webp</field>
+            <field name="lema">Prepara charolas de cultivo de forma continua, uniforme y eficiente</field>
+            <field name="hero_imagen">catalogo/sembradoras/hero.webp</field>
+            <field name="intro"><![CDATA[
+                <p class="o_ferba_hero__lead">La línea de siembra FERBA integra en un mismo proceso las principales etapas necesarias para preparar charolas de cultivo.</p>
+                <p class="o_ferba_hero__lead">Desde la mezcla inicial del sustrato hasta la disposición final de las charolas, el sistema permite organizar el flujo de trabajo y mantener condiciones consistentes durante el proceso de siembra.</p>
+            ]]></field>
+            <field name="pasos_titulo">De la preparación del sustrato a la charola lista</field>
+            <field name="galeria_titulo">Galería de imágenes y video</field>
+            <field name="specs_foto">catalogo/sembradoras/specs.webp</field>
+            <field name="cierre_titulo">¿Quieres integrar una línea de siembra en tu operación?</field>
+            <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+            <field name="meta_titulo">Línea de siembra automatizada de charolas | FERBA</field>
+            <field name="meta_descripcion">Hasta 200 bandejas/hora, charola 700x480x130 mm, secado por aire comprimido, estructura de acero negro con pintura electrostática.</field>
+        </record>
+        <record id="dest_siembra_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="valor">200</field><field name="etiqueta">bandejas / hora</field></record>
+        <record id="dest_siembra_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="valor">Acero negro</field><field name="etiqueta">pintura electrostática</field></record>
+        <record id="dest_siembra_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="valor">Proceso</field><field name="etiqueta">continuo</field></record>
+
+        <record id="paso_siembra_1" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="imagen">catalogo/sembradoras/paso-1.webp</field><field name="titulo">Preparación</field><field name="texto">El proceso comienza con la preparación y mezcla del sustrato requerido para las charolas.</field></record>
+        <record id="paso_siembra_2" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="imagen">catalogo/sembradoras/paso-2.webp</field><field name="titulo">Alimentación</field><field name="texto">El material preparado se incorpora al flujo de trabajo de la línea.</field></record>
+        <record id="paso_siembra_3" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="imagen">catalogo/sembradoras/paso-3.webp</field><field name="titulo">Siembra</field><field name="texto">La línea realiza el proceso de siembra manteniendo una distribución uniforme dentro de cada charola.</field></record>
+        <record id="paso_siembra_4" model="ferba.maquina.paso"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="imagen">catalogo/sembradoras/paso-4.webp</field><field name="titulo">Salida y apilado</field><field name="texto">Las charolas terminadas avanzan hasta la etapa final para su disposición y apilado.</field></record>
+
+        <record id="blo_siembra_benef" model="ferba.maquina.bloque">
+            <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
+            <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
+            <field name="titulo">Diseñada para una siembra eficiente y consistente</field>
+        </record>
+        <record id="blo_siembra_benef_1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">10</field><field name="titulo">Uniformidad</field><field name="texto">Un proceso organizado permite optimizar las operaciones necesarias para preparar las charolas y mantener un flujo continuo de trabajo.</field></record>
+        <record id="blo_siembra_benef_2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">20</field><field name="titulo">Diseño resistente</field><field name="texto">Construcción diseñada para trabajar dentro de ambientes productivos y mantener estabilidad durante la operación.</field></record>
+        <record id="blo_siembra_benef_3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_benef"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">Capacidad de procesamiento diseñada para mantener un flujo constante durante la jornada de producción.</field></record>
+
+        <record id="spec_siembra_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="etiqueta">Tamaño de charola</field><field name="valor">700 x 480 x 130 mm</field></record>
+        <record id="spec_siembra_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="etiqueta">Capacidad</field><field name="valor">Hasta 200 bandejas / hora</field></record>
+        <record id="spec_siembra_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="etiqueta">Tipo de secado</field><field name="valor">Aire comprimido</field></record>
+        <record id="spec_siembra_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="etiqueta">Material</field><field name="valor">Acero negro</field></record>
+        <record id="spec_siembra_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">50</field><field name="etiqueta">Acabados</field><field name="valor">Pintura electrostática</field></record>
+
+        <record id="blo_siembra_carac" model="ferba.maquina.bloque">
+            <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
+            <field name="tipo">tarjetas</field><field name="tema">claro</field>
+            <field name="titulo">Construida para operación productiva</field>
+        </record>
+        <record id="blo_siembra_carac_1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">10</field><field name="titulo">Material</field><field name="texto">Estructura fabricada de acuerdo a las necesidades mecánicas del sistema.</field></record>
+        <record id="blo_siembra_carac_2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">20</field><field name="titulo">Acabados</field><field name="texto">Acabado aplicado sobre los componentes correspondientes de la estructura.</field></record>
+        <record id="blo_siembra_carac_3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">30</field><field name="titulo">Tamaño de charola</field><field name="texto">Configuración indicada para el formato de charola establecido.</field></record>
+        <record id="blo_siembra_carac_4" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_siembra_carac"/><field name="secuencia">40</field><field name="titulo">Capacidad</field><field name="texto">Capacidad nominal indicada para la línea de siembra.</field></record>
+
+        <record id="media_siembra_0" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field><field name="imagen">catalogo/sembradoras/gal-video.webp</field><field name="es_video" eval="True"/></record>
+        <record id="media_siembra_1" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field><field name="imagen">catalogo/sembradoras/gal-1.webp</field></record>
+        <record id="media_siembra_2" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">30</field><field name="imagen">catalogo/sembradoras/gal-2.webp</field></record>
+        <record id="media_siembra_3" model="ferba.maquina.media"><field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">40</field><field name="imagen">catalogo/sembradoras/gal-3.webp</field></record>
+
+    </data>
+</odoo>

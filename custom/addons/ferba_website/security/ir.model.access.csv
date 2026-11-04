@@ -1,3 +1,27 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_ferba_evento_analitica,ferba.evento lectura,model_ferba_evento,ferba_website.group_ferba_analitica,1,0,0,0
 access_ferba_evento_disenador,ferba.evento diseñador del sitio,model_ferba_evento,website.group_website_designer,1,0,0,1
+access_ferba_categoria_user,ferba.categoria lectura interna,model_ferba_categoria,base.group_user,1,0,0,0
+access_ferba_categoria_designer,ferba.categoria diseñador,model_ferba_categoria,website.group_website_designer,1,1,1,1
+access_ferba_categoria_subgrupo_user,ferba.categoria.subgrupo lectura interna,model_ferba_categoria_subgrupo,base.group_user,1,0,0,0
+access_ferba_categoria_subgrupo_designer,ferba.categoria.subgrupo diseñador,model_ferba_categoria_subgrupo,website.group_website_designer,1,1,1,1
+access_ferba_categoria_factor_user,ferba.categoria.factor lectura interna,model_ferba_categoria_factor,base.group_user,1,0,0,0
+access_ferba_categoria_factor_designer,ferba.categoria.factor diseñador,model_ferba_categoria_factor,website.group_website_designer,1,1,1,1
+access_ferba_categoria_flujo_user,ferba.categoria.flujo lectura interna,model_ferba_categoria_flujo,base.group_user,1,0,0,0
+access_ferba_categoria_flujo_designer,ferba.categoria.flujo diseñador,model_ferba_categoria_flujo,website.group_website_designer,1,1,1,1
+access_ferba_fruto_user,ferba.fruto lectura interna,model_ferba_fruto,base.group_user,1,0,0,0
+access_ferba_fruto_designer,ferba.fruto diseñador,model_ferba_fruto,website.group_website_designer,1,1,1,1
+access_ferba_maquina_user,ferba.maquina lectura interna,model_ferba_maquina,base.group_user,1,0,0,0
+access_ferba_maquina_designer,ferba.maquina diseñador,model_ferba_maquina,website.group_website_designer,1,1,1,1
+access_ferba_maquina_destacado_user,ferba.maquina.destacado lectura interna,model_ferba_maquina_destacado,base.group_user,1,0,0,0
+access_ferba_maquina_destacado_designer,ferba.maquina.destacado diseñador,model_ferba_maquina_destacado,website.group_website_designer,1,1,1,1
+access_ferba_maquina_spec_user,ferba.maquina.spec lectura interna,model_ferba_maquina_spec,base.group_user,1,0,0,0
+access_ferba_maquina_spec_designer,ferba.maquina.spec diseñador,model_ferba_maquina_spec,website.group_website_designer,1,1,1,1
+access_ferba_maquina_paso_user,ferba.maquina.paso lectura interna,model_ferba_maquina_paso,base.group_user,1,0,0,0
+access_ferba_maquina_paso_designer,ferba.maquina.paso diseñador,model_ferba_maquina_paso,website.group_website_designer,1,1,1,1
+access_ferba_maquina_bloque_user,ferba.maquina.bloque lectura interna,model_ferba_maquina_bloque,base.group_user,1,0,0,0
+access_ferba_maquina_bloque_designer,ferba.maquina.bloque diseñador,model_ferba_maquina_bloque,website.group_website_designer,1,1,1,1
+access_ferba_maquina_bloque_item_user,ferba.maquina.bloque.item lectura interna,model_ferba_maquina_bloque_item,base.group_user,1,0,0,0
+access_ferba_maquina_bloque_item_designer,ferba.maquina.bloque.item diseñador,model_ferba_maquina_bloque_item,website.group_website_designer,1,1,1,1
+access_ferba_maquina_media_user,ferba.maquina.media lectura interna,model_ferba_maquina_media,base.group_user,1,0,0,0
+access_ferba_maquina_media_designer,ferba.maquina.media diseñador,model_ferba_maquina_media,website.group_website_designer,1,1,1,1
