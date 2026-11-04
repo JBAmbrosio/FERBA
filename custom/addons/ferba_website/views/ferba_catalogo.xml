@@ -39,15 +39,16 @@
                     Conocer equipo <t t-call="ferba_website.flecha"/>
                 </span>
             </span>
-            <span class="o_ferba_maqcard__media">
-                <!-- Si un admin subió un ícono manual, manda ése con su tamaño; si no,
-                     el render de siempre. El ?u= con la fecha de guardado refresca la
-                     imagen en cuanto el admin la cambia (sin caché vieja). -->
-                <t t-if="maq.menu_icono">
-                    <img t-attf-src="/web/image/ferba.maquina/#{maq.id}/menu_icono?u=#{maq.write_date and maq.write_date.strftime('%Y%m%d%H%M%S') or ''}"
-                         t-att-alt="maq.nombre" loading="lazy"
-                         t-attf-style="max-height:#{maq.menu_icono_tam or 110}px; max-width:100%; width:auto;"/>
-                </t>
+            <span class="o_ferba_maqcard__media" t-attf-style="--icono-tam:#{maq.menu_icono_tam or 110}px;">
+                <!-- Edición DESDE LA WEB: al pulsar "Editar" en el sitio (como admin), el
+                     ícono se vuelve editable — doble clic para subir/cambiar la imagen, se
+                     guarda en la máquina y se ve al instante. Fuera de edición: si hay ícono
+                     manual se muestra ése; si no, el render de siempre (nada se rompe).
+                     El tamaño se controla con el campo "Tamaño del ícono (px)". -->
+                <span t-if="maq.menu_icono or editable"
+                      class="o_ferba_maqcard__icono"
+                      t-field="maq.menu_icono"
+                      t-options="{'widget': 'image'}"/>
                 <img t-else="" t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
                      t-att-alt="maq.nombre" loading="lazy"/>
             </span>
