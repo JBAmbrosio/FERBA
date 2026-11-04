@@ -40,7 +40,15 @@
                 </span>
             </span>
             <span class="o_ferba_maqcard__media">
-                <img t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
+                <!-- Si un admin subió un ícono manual, manda ése con su tamaño; si no,
+                     el render de siempre. El ?u= con la fecha de guardado refresca la
+                     imagen en cuanto el admin la cambia (sin caché vieja). -->
+                <t t-if="maq.menu_icono">
+                    <img t-attf-src="/web/image/ferba.maquina/#{maq.id}/menu_icono?u=#{maq.write_date and maq.write_date.strftime('%Y%m%d%H%M%S') or ''}"
+                         t-att-alt="maq.nombre" loading="lazy"
+                         t-attf-style="max-height:#{maq.menu_icono_tam or 110}px; max-width:100%; width:auto;"/>
+                </t>
+                <img t-else="" t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
                      t-att-alt="maq.nombre" loading="lazy"/>
             </span>
         </a>

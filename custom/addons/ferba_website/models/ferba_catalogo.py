@@ -219,6 +219,19 @@ class FerbaMaquina(models.Model):
     # Tarjeta (reutilizada en la categoría y en los frutos)
     tarjeta_imagen = fields.Char(help="Miniatura de la tarjeta.")
     tarjeta_texto = fields.Text(translate=True, help="Descripción corta en la tarjeta de la categoría (recepción, lavado, selección…).")
+    # Ícono del MENÚ de máquinas, que un administrador sube a mano desde el backend.
+    # A diferencia del resto de imágenes (rutas a .webp bajo static/), ésta vive en la
+    # base para que pueda corregirse sin tocar archivos ni volver a desplegar. Si está
+    # cargada, REEMPLAZA a `tarjeta_imagen` SOLO en la tarjeta del menú de máquinas; si
+    # se deja vacía, se usa el render de siempre, así nada se rompe.
+    menu_icono = fields.Image(
+        string="Ícono del menú (manual)", max_width=1024, max_height=1024,
+        help="Imagen que el administrador sube para la tarjeta del menú de máquinas. "
+             "Si se deja vacía, se usa el render de 'Miniatura de la tarjeta'.")
+    menu_icono_tam = fields.Integer(
+        string="Tamaño del ícono (px)", default=110,
+        help="Alto máximo del ícono en la tarjeta del menú, en píxeles. Súbelo o bájalo "
+             "para ajustar cómo se ve. Solo aplica cuando hay un 'Ícono del menú' cargado.")
     chips = fields.Char(help="Hasta 3 etiquetas separadas por coma: 'Bolsa, Integración, Empaque continuo'.")
 
     # Hero de la ficha
