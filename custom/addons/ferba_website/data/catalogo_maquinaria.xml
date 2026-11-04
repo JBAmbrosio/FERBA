@@ -46,10 +46,18 @@
         <record id="flujo_rec_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="etiqueta">Contenedor</field></record>
         <record id="flujo_rec_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="etiqueta">Descarga</field></record>
         <record id="flujo_rec_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="etiqueta">Alimentación</field></record>
-        <record id="factor_rec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="titulo">Tipo de contenedor</field><field name="texto">La solución se define según la forma en que el producto llega y es manejado dentro de la empacadora.</field></record>
-        <record id="factor_rec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="titulo">Producto</field><field name="texto">El sistema debe considerar dimensiones, comportamiento y necesidades de manejo.</field></record>
-        <record id="factor_rec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">La configuración se determina en función del volumen que debe alimentar la línea.</field></record>
-        <record id="factor_rec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">40</field><field name="titulo">Integración</field><field name="texto">Diseñamos la recepción considerando los equipos y etapas que continuarán después de la descarga.</field></record>
+        <record id="factor_rec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="titulo">Tipo de contenedor</field><field name="texto">La solución se define según la forma en que el producto llega y es manejado dentro de la empacadora.</field>
+        <field name="icono">iconos/adapt-empaque.svg</field>
+    </record>
+        <record id="factor_rec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="titulo">Producto</field><field name="texto">El sistema debe considerar dimensiones, comportamiento y necesidades de manejo.</field>
+        <field name="icono">iconos/info-producto.svg</field>
+    </record>
+        <record id="factor_rec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">La configuración se determina en función del volumen que debe alimentar la línea.</field>
+        <field name="icono">iconos/info-capacidad.svg</field>
+    </record>
+        <record id="factor_rec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">40</field><field name="titulo">Integración</field><field name="texto">Diseñamos la recepción considerando los equipos y etapas que continuarán después de la descarga.</field>
+        <field name="icono">iconos/adapt-forma.svg</field>
+    </record>
 
         <record id="maq_volcador_bins_rot" model="ferba.maquina"><field name="nombre">Volcador de bins rotativo</field><field name="slug">volcador-bins-rotativo</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">10</field><field name="chips">Bins, Descarga, Inicio de línea</field><field name="tarjeta_imagen">catalogo/recepcion/cards/volcador-bins-rotativo.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
         <record id="maq_volcador_cajas_tor" model="ferba.maquina"><field name="nombre">Volcador de cajas por torsión</field><field name="slug">volcador-cajas-torsion</field><field name="categoria_id" ref="cat_recepcion"/><field name="secuencia">20</field><field name="chips">Cajas, Flujo de producto, Torsión</field><field name="tarjeta_imagen">catalogo/recepcion/cards/volcador-cajas-torsion.webp</field><field name="hero_imagen">catalogo/recepcion/hero.webp</field></record>
@@ -85,10 +93,18 @@
         <record id="flujo_lav_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="etiqueta">Producto recibido</field></record>
         <record id="flujo_lav_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="etiqueta">Lavado y tratamiento</field></record>
         <record id="flujo_lav_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="etiqueta">Producto preparado</field></record>
-        <record id="factor_lav_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="titulo">Producto</field><field name="texto">La solución se define según aquello que debe ser tratado.</field></record>
-        <record id="factor_lav_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="titulo">Capacidad requerida</field><field name="texto">Dimensionamos el sistema considerando el volumen de producto.</field></record>
-        <record id="factor_lav_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="titulo">Integración en línea</field><field name="texto">Definimos entradas y salidas para conectar el equipo con las etapas anteriores y posteriores.</field></record>
-        <record id="factor_lav_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">40</field><field name="titulo">Configuración del proceso</field><field name="texto">Cada proyecto puede requerir diferentes tiempos, velocidades y configuraciones según las necesidades de operación.</field></record>
+        <record id="factor_lav_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="titulo">Producto</field><field name="texto">La solución se define según aquello que debe ser tratado.</field>
+        <field name="icono">iconos/info-producto.svg</field>
+    </record>
+        <record id="factor_lav_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="titulo">Capacidad requerida</field><field name="texto">Dimensionamos el sistema considerando el volumen de producto.</field>
+        <field name="icono">iconos/info-capacidad.svg</field>
+    </record>
+        <record id="factor_lav_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">30</field><field name="titulo">Integración en línea</field><field name="texto">Definimos entradas y salidas para conectar el equipo con las etapas anteriores y posteriores.</field>
+        <field name="icono">iconos/adapt-forma.svg</field>
+    </record>
+        <record id="factor_lav_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">40</field><field name="titulo">Configuración del proceso</field><field name="texto">Cada proyecto puede requerir diferentes tiempos, velocidades y configuraciones según las necesidades de operación.</field>
+        <field name="icono">iconos/adapt-capacidad.svg</field>
+    </record>
 
         <record id="maq_criba_rodillos" model="ferba.maquina"><field name="nombre">Criba de rodillos regulable</field><field name="slug">criba-rodillos-regulable</field><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">10</field><field name="chips">Rodillos, Lavado continuo, Producto</field><field name="tarjeta_imagen">catalogo/lavado/cards/criba-rodillos-regulable.webp</field><field name="hero_imagen">catalogo/lavado/hero.webp</field></record>
         <record id="maq_cepillos_lavado" model="ferba.maquina"><field name="nombre">Unidad de cepillos de lavado</field><field name="slug">unidad-cepillos-lavado</field><field name="categoria_id" ref="cat_lavado"/><field name="secuencia">20</field><field name="chips">Rodillos, Lavado continuo, Producto</field><field name="tarjeta_imagen">catalogo/lavado/cards/unidad-cepillos-lavado.webp</field><field name="hero_imagen">catalogo/lavado/hero.webp</field></record>
@@ -123,10 +139,18 @@
         <record id="flujo_sec_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">20</field><field name="etiqueta">Secado</field></record>
         <record id="flujo_sec_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">30</field><field name="etiqueta">Cepillado / Encerado</field></record>
         <record id="flujo_sec_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">40</field><field name="etiqueta">Selección</field></record>
-        <record id="factor_sec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="titulo">Tipo de fruto</field><field name="texto">Dimensiones, forma y comportamiento del producto.</field></record>
-        <record id="factor_sec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">20</field><field name="titulo">Humedad</field><field name="texto">Condiciones de salida después del lavado.</field></record>
-        <record id="factor_sec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">Volumen de producto que debe manejar la línea.</field></record>
-        <record id="factor_sec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">40</field><field name="titulo">Integración en la línea</field><field name="texto">Conexión con lavado, selección y empaque.</field></record>
+        <record id="factor_sec_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="titulo">Tipo de fruto</field><field name="texto">Dimensiones, forma y comportamiento del producto.</field>
+        <field name="icono">iconos/info-producto.svg</field>
+    </record>
+        <record id="factor_sec_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">20</field><field name="titulo">Humedad</field><field name="texto">Condiciones de salida después del lavado.</field>
+        <field name="icono">iconos/adapt-sensibilidad.svg</field>
+    </record>
+        <record id="factor_sec_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">30</field><field name="titulo">Capacidad</field><field name="texto">Volumen de producto que debe manejar la línea.</field>
+        <field name="icono">iconos/info-capacidad.svg</field>
+    </record>
+        <record id="factor_sec_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_secado"/><field name="secuencia">40</field><field name="titulo">Integración en la línea</field><field name="texto">Conexión con lavado, selección y empaque.</field>
+        <field name="icono">iconos/adapt-forma.svg</field>
+    </record>
 
         <record id="maq_cepillos_secado" model="ferba.maquina"><field name="nombre">Unidad de cepillos de encerado y secado</field><field name="slug">unidad-cepillos-secado</field><field name="categoria_id" ref="cat_secado"/><field name="secuencia">10</field><field name="chips">Cepillado, Encerado, Preparación de producto</field><field name="tarjeta_imagen">catalogo/secado/cards/unidad-cepillos-secado.webp</field><field name="hero_imagen">catalogo/secado/hero.webp</field></record>
 
@@ -155,17 +179,39 @@
             <field name="meta_titulo">Transportadores y bandas para líneas postcosecha | FERBA</field>
             <field name="meta_descripcion">Bandas, rodillos, curvas y elevadores para conectar recepción, lavado, secado, selección y empaque de forma continua, ordenada y eficiente.</field>
         </record>
-        <record id="flujo_tra_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="etiqueta">Recepción y alimentación</field></record>
-        <record id="flujo_tra_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="etiqueta">Lavado y tratamiento</field></record>
-        <record id="flujo_tra_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="etiqueta">Secado y cepillado</field></record>
-        <record id="flujo_tra_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="etiqueta">Selección y calibrado</field></record>
-        <record id="flujo_tra_5" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="etiqueta">Empaque</field></record>
-        <record id="flujo_tra_6" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">60</field><field name="etiqueta">Automatización y control</field></record>
-        <record id="factor_tra_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="titulo">Tipo de producto o carga</field><field name="texto">Fruta, hortalizas, cajas, bins u otros elementos.</field></record>
-        <record id="factor_tra_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="titulo">Capacidad y flujo</field><field name="texto">Volumen que debe desplazarse y continuidad requerida.</field></record>
-        <record id="factor_tra_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="titulo">Recorrido y layout</field><field name="texto">Trayectos rectos, curvos, elevaciones y espacio disponible.</field></record>
-        <record id="factor_tra_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="titulo">Integración con la línea</field><field name="texto">Conexión con equipos anteriores y posteriores.</field></record>
-        <record id="factor_tra_5" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="titulo">Nivel de automatización</field><field name="texto">Soluciones simples o sistemas integrados con acumulación y control.</field></record>
+        <record id="flujo_tra_1" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="etiqueta">Recepción y alimentación</field>
+        <field name="icono">iconos/flujo-recepcion.svg</field>
+    </record>
+        <record id="flujo_tra_2" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="etiqueta">Lavado y tratamiento</field>
+        <field name="icono">iconos/flujo-lavado.svg</field>
+    </record>
+        <record id="flujo_tra_3" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="etiqueta">Secado y cepillado</field>
+        <field name="icono">iconos/flujo-secado.svg</field>
+    </record>
+        <record id="flujo_tra_4" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="etiqueta">Selección y calibrado</field>
+        <field name="icono">iconos/flujo-seleccion.svg</field>
+    </record>
+        <record id="flujo_tra_5" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="etiqueta">Empaque</field>
+        <field name="icono">iconos/flujo-empaque.svg</field>
+    </record>
+        <record id="flujo_tra_6" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">60</field><field name="etiqueta">Automatización y control</field>
+        <field name="icono">iconos/flujo-automatizacion.svg</field>
+    </record>
+        <record id="factor_tra_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="titulo">Tipo de producto o carga</field><field name="texto">Fruta, hortalizas, cajas, bins u otros elementos.</field>
+        <field name="icono">iconos/info-producto.svg</field>
+    </record>
+        <record id="factor_tra_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="titulo">Capacidad y flujo</field><field name="texto">Volumen que debe desplazarse y continuidad requerida.</field>
+        <field name="icono">iconos/info-capacidad.svg</field>
+    </record>
+        <record id="factor_tra_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">30</field><field name="titulo">Recorrido y layout</field><field name="texto">Trayectos rectos, curvos, elevaciones y espacio disponible.</field>
+        <field name="icono">iconos/info-espacio.svg</field>
+    </record>
+        <record id="factor_tra_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">40</field><field name="titulo">Integración con la línea</field><field name="texto">Conexión con equipos anteriores y posteriores.</field>
+        <field name="icono">iconos/adapt-forma.svg</field>
+    </record>
+        <record id="factor_tra_5" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">50</field><field name="titulo">Nivel de automatización</field><field name="texto">Soluciones simples o sistemas integrados con acumulación y control.</field>
+        <field name="icono">iconos/adapt-capacidad.svg</field>
+    </record>
 
         <record id="sg_tra_bandas" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">10</field><field name="nombre">Bandas transportadoras</field></record>
         <record id="sg_tra_rodillos" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_transportadores"/><field name="secuencia">20</field><field name="nombre">Rodillos</field></record>

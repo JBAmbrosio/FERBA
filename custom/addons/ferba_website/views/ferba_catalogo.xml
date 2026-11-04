@@ -119,32 +119,30 @@
                 </a>
             </t>
 
-            <!-- narrativa de la etapa + flujo de iconos -->
+            <!-- narrativa de la etapa + flujo de la línea -->
             <section t-if="categoria.narrativa_titulo or categoria.flujo_ids"
                      class="o_ferba_section o_ferba_section--light">
                 <div class="o_ferba_container">
-                    <div class="o_ferba_split">
-                        <div class="o_ferba_reveal">
-                            <span t-if="categoria.narrativa_antetitulo" class="o_ferba_eyebrow" t-out="categoria.narrativa_antetitulo"/>
-                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.narrativa_titulo"/></h2>
-                            <span class="o_ferba_rule"/>
-                            <t t-out="categoria.narrativa_intro"/>
-                        </div>
-                        <div t-if="categoria.flujo_ids" class="o_ferba_reveal">
-                            <div class="o_ferba_flujo o_ferba_flujo--compacto">
-                                <t t-foreach="categoria.flujo_ids" t-as="paso">
-                                    <span t-if="not paso_first" class="o_ferba_flujo__chevron">
+                    <div t-if="categoria.narrativa_titulo" class="o_ferba_narrativa o_ferba_reveal">
+                        <span t-if="categoria.narrativa_antetitulo" class="o_ferba_eyebrow" t-out="categoria.narrativa_antetitulo"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.narrativa_titulo"/></h2>
+                        <span class="o_ferba_rule"/>
+                        <div class="o_ferba_narrativa__intro"><t t-out="categoria.narrativa_intro"/></div>
+                    </div>
+
+                    <div t-if="categoria.flujo_ids" class="o_ferba_flujocat" data-ferba-grupo="">
+                        <t t-foreach="categoria.flujo_ids" t-as="paso">
+                            <div class="o_ferba_flujocat__paso o_ferba_reveal">
+                                <div class="o_ferba_flujocat__marca">
+                                    <img t-if="paso.icono" t-attf-src="/ferba_website/static/src/img/#{paso.icono}" alt="" loading="lazy"/>
+                                    <span t-else="" class="o_ferba_flujocat__num" t-out="'%02d' % (paso_index + 1)"/>
+                                    <span t-if="not paso_last" class="o_ferba_flujocat__flecha" aria-hidden="true">
                                         <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
                                     </span>
-                                    <div class="o_ferba_flujo__paso">
-                                        <div t-if="paso.icono" class="o_ferba_flujo__icono">
-                                            <img t-attf-src="/ferba_website/static/src/img/#{paso.icono}" alt="" loading="lazy"/>
-                                        </div>
-                                        <span class="o_ferba_flujo__rotulo" t-out="paso.etiqueta"/>
-                                    </div>
-                                </t>
+                                </div>
+                                <span class="o_ferba_flujocat__rotulo" t-out="paso.etiqueta"/>
                             </div>
-                        </div>
+                        </t>
                     </div>
                 </div>
             </section>

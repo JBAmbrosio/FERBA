@@ -47,10 +47,18 @@
         <record id="flujo_emp_5" model="ferba.categoria.flujo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">50</field><field name="etiqueta">Producto empacado</field></record>
 
         <!-- factores -->
-        <record id="factor_emp_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="titulo">Tipo de producto</field><field name="texto">Las características del fruto influyen en el sistema de manejo y empaque requerido.</field></record>
-        <record id="factor_emp_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">20</field><field name="titulo">Presentación</field><field name="texto">Caja, bolsa, clamshell u otro formato comercial requerido.</field></record>
-        <record id="factor_emp_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">30</field><field name="titulo">Peso y cantidad</field><field name="texto">La solución se configura según el peso o cantidad objetivo de cada presentación.</field></record>
-        <record id="factor_emp_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">40</field><field name="titulo">Capacidad y automatización</field><field name="texto">El volumen requerido determina el nivel de automatización y configuración del sistema.</field></record>
+        <record id="factor_emp_1" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="titulo">Tipo de producto</field><field name="texto">Las características del fruto influyen en el sistema de manejo y empaque requerido.</field>
+        <field name="icono">iconos/info-producto.svg</field>
+    </record>
+        <record id="factor_emp_2" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">20</field><field name="titulo">Presentación</field><field name="texto">Caja, bolsa, clamshell u otro formato comercial requerido.</field>
+        <field name="icono">iconos/adapt-empaque.svg</field>
+    </record>
+        <record id="factor_emp_3" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">30</field><field name="titulo">Peso y cantidad</field><field name="texto">La solución se configura según el peso o cantidad objetivo de cada presentación.</field>
+        <field name="icono">iconos/info-capacidad.svg</field>
+    </record>
+        <record id="factor_emp_4" model="ferba.categoria.factor"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">40</field><field name="titulo">Capacidad y automatización</field><field name="texto">El volumen requerido determina el nivel de automatización y configuración del sistema.</field>
+        <field name="icono">iconos/adapt-capacidad.svg</field>
+    </record>
 
         <!-- subgrupos -->
         <record id="sg_emp_estaciones" model="ferba.categoria.subgrupo"><field name="categoria_id" ref="cat_empaque"/><field name="secuencia">10</field><field name="nombre">Estaciones de empaque</field></record>
