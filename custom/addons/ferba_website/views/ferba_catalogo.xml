@@ -19,15 +19,17 @@
          SIEMPRE la URL canónica de la ficha (bajo su categoría), venga de donde
          venga: una máquina = una página. -->
     <template id="tarjeta_maquina" name="Ferba — tarjeta de máquina">
+        <!-- Como la dibujan los PDF de categoría: texto a la IZQUIERDA (nombre, descripción,
+             chips, enlace) y el render a la derecha. `maq_num` (0 = sin número) lo pone quien llama. -->
         <a t-attf-href="/maquinaria/#{maq.categoria_id.slug}/#{maq.slug}"
-           class="o_ferba_maqcard o_ferba_reveal"
+           t-attf-class="o_ferba_maqcard o_ferba_reveal#{' o_ferba_maqcard--desc' if maq.tarjeta_texto else ''}"
            t-attf-data-ferba-senal="interes_maquina:#{maq.slug}">
-            <span class="o_ferba_maqcard__media">
-                <img t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
-                     t-att-alt="maq.nombre" loading="lazy"/>
-            </span>
             <span class="o_ferba_maqcard__body">
-                <span class="o_ferba_maqcard__nombre" t-out="maq.nombre"/>
+                <span class="o_ferba_maqcard__nombre">
+                    <span t-if="maq_num" class="o_ferba_maqcard__num" t-out="'%02d' % maq_num"/>
+                    <t t-out="maq.nombre"/>
+                </span>
+                <span t-if="maq.tarjeta_texto" class="o_ferba_maqcard__texto" t-out="maq.tarjeta_texto"/>
                 <span t-if="maq.chip_lista" class="o_ferba_maqcard__chips">
                     <t t-foreach="maq.chip_lista" t-as="chip">
                         <span class="o_ferba_chip" t-out="chip"/>
@@ -37,7 +39,50 @@
                     Conocer equipo <t t-call="ferba_website.flecha"/>
                 </span>
             </span>
+            <span class="o_ferba_maqcard__media">
+                <img t-attf-src="/ferba_website/static/src/img/#{maq.tarjeta_imagen}"
+                     t-att-alt="maq.nombre" loading="lazy"/>
+            </span>
         </a>
+    </template>
+
+    <!-- ============ snippet: sección oscura "CALIBRADO + FLEXQUALITY" ============
+         Idéntica en los PDF de calibradores y en el de la categoría Selección. Necesita `ver`. -->
+    <template id="fq_seccion" name="Ferba — Calibrado + FlexQuality">
+        <section class="o_ferba_section o_ferba_section--dark o_ferba_fq">
+            <div class="o_ferba_container o_ferba_fq__grid">
+                <div class="o_ferba_reveal">
+                    <span class="o_ferba_eyebrow o_ferba_fq__eyebrow">Calibrado + Flex<span class="o_ferba_q">Q</span>uality</span>
+                    <h2 class="o_ferba_title o_ferba_title--claro"><span class="o_ferba_title__in">Lleva la selección más allá del calibrado convencional</span></h2>
+                    <span class="o_ferba_rule"/>
+                    <p class="o_ferba_fq__txt">Los calibradores FERBA pueden integrarse con Flex<span class="o_ferba_q">Q</span>uality, nuestra tecnología de visión artificial para incorporar nuevos criterios de análisis al proceso de selección.</p>
+                    <p class="o_ferba_fq__txt">Dependiendo de la configuración del proyecto FlexQuality puede analizar:</p>
+                    <ul class="o_ferba_fq__criterios" data-ferba-grupo="">
+                        <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-color.webp?v=#{ver}" alt="" loading="lazy"/><span>Color</span></li>
+                        <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-forma.webp?v=#{ver}" alt="" loading="lazy"/><span>Forma</span></li>
+                        <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-tamano.webp?v=#{ver}" alt="" loading="lazy"/><span>Tamaño</span></li>
+                        <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-defectos.webp?v=#{ver}" alt="" loading="lazy"/><span>Defectos externos</span></li>
+                        <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-calidad.webp?v=#{ver}" alt="" loading="lazy"/><span>Calidad visual</span></li>
+                    </ul>
+                </div>
+                <div class="o_ferba_fq__cards" data-ferba-grupo="">
+                    <article class="o_ferba_fqcard o_ferba_reveal">
+                        <h3>Flex<span class="o_ferba_q">Q</span>uality Full</h3>
+                        <p class="o_ferba_fqcard__sub">Máximo nivel de análisis por módulo</p>
+                        <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-full.webp?v=#{ver}" alt="" loading="lazy"/>
+                        <div class="o_ferba_fqcard__stat o_ferba_fqcard__stat--rojo"><span><b>2</b> líneas</span><span><b>3</b> cámaras</span></div>
+                        <p class="o_ferba_fqcard__txt">Mayor cobertura visual para una inspección más completa y una clasificación más detallada.</p>
+                    </article>
+                    <article class="o_ferba_fqcard o_ferba_reveal">
+                        <h3>Flex<span class="o_ferba_q">Q</span>uality Lite</h3>
+                        <p class="o_ferba_fqcard__sub">Inspección inteligente en una versión más compacta</p>
+                        <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-lite.webp?v=#{ver}" alt="" loading="lazy"/>
+                        <div class="o_ferba_fqcard__stat"><span><b>2</b> líneas</span><span><b>1</b> cámara</span></div>
+                        <p class="o_ferba_fqcard__txt">Análisis esencial para modernizar tu línea de forma accesible y eficiente.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
     </template>
 
     <!-- ============ snippet: bloque de tarjetas con icono ============ -->
@@ -63,6 +108,23 @@
         </section>
     </template>
 
+    <!-- ============ snippet: tarjetas de beneficio (icono a la izquierda del título) ============ -->
+    <template id="benecards" name="Ferba — tarjetas de beneficio">
+        <div class="o_ferba_benecards" data-ferba-grupo="">
+            <t t-foreach="maquina.puntos('beneficio')" t-as="b">
+                <div class="o_ferba_benecard o_ferba_reveal">
+                    <div class="o_ferba_benecard__cab">
+                        <span t-if="b.icono" class="o_ferba_benecard__ico">
+                            <img t-attf-src="/ferba_website/static/src/img/#{b.icono}?v=#{ver}" alt="" loading="lazy"/>
+                        </span>
+                        <h3><t t-out="b.titulo"/><span t-if="b.subtitulo" class="o_ferba_benecard__sub" t-out="b.subtitulo"/></h3>
+                    </div>
+                    <p t-out="b.texto"/>
+                </div>
+            </t>
+        </div>
+    </template>
+
     <!-- ============ snippet: bloque split (texto + imagen) ============ -->
     <template id="bloque_split" name="Ferba — bloque split">
         <section t-attf-class="o_ferba_section o_ferba_section--#{'dark' if bloque.tema == 'oscuro' else 'white'}">
@@ -75,8 +137,10 @@
                         <t t-out="bloque.cuerpo"/>
                     </div>
                     <div t-if="bloque.imagen" class="o_ferba_split__media o_ferba_reveal o_ferba_reveal--wipe">
+                        <!-- un render ("/render-…") es una silueta, no una foto: sin marco ni sombra (clase recorte) -->
                         <img t-attf-src="/ferba_website/static/src/img/#{bloque.imagen}"
-                             t-att-alt="bloque.titulo" class="o_ferba_split__img" loading="lazy"/>
+                             t-att-alt="bloque.titulo"
+                             t-attf-class="o_ferba_split__img#{' o_ferba_split__img--recorte' if '/render-' in (bloque.imagen or '') else ''}" loading="lazy"/>
                     </div>
                 </div>
             </div>
@@ -88,7 +152,8 @@
          ================================================================ -->
     <template id="pagina_categoria" name="Ferba — categoría de maquinaria">
         <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo">Maquinaria</t>
+            <!-- miga del PDF: "MAQUINARIA ——" (enlazada: vuelve a la landing de maquinaria) -->
+            <t t-set="antetitulo"><a href="/maquinaria" class="o_ferba_miga__a">Maquinaria</a><span class="o_ferba_miga__sep"/></t>
             <t t-set="titulo" t-value="categoria.hero_titulo or categoria.nombre"/>
             <t t-set="subtitulo" t-value="categoria.hero_subtitulo"/>
             <t t-set="fondo" t-value="categoria.hero_imagen"/>
@@ -99,7 +164,11 @@
                     <span class="o_ferba_btn__label">Ver equipos</span>
                     <t t-call="ferba_website.flecha"/>
                 </a>
-                <a href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost"
+                <a t-if="categoria.flexquality" href="/flexquality" class="o_ferba_btn o_ferba_btn--ghost">
+                    <span class="o_ferba_btn__label">Ver FlexQuality</span>
+                    <t t-call="ferba_website.flecha"/>
+                </a>
+                <a t-else="" href="/contactenos" class="o_ferba_btn o_ferba_btn--ghost"
                    data-ferba-senal="contacto_directo:categoria">
                     <span class="o_ferba_btn__label">Solicitar asesoría</span>
                     <t t-call="ferba_website.flecha"/>
@@ -107,7 +176,8 @@
             </t>
             <t t-set="cierre_titulo" t-value="categoria.cierre_titulo"/>
             <t t-set="cierre_texto" t-value="categoria.cierre_texto"/>
-            <t t-set="cierre_foto" t-value="categoria.hero_imagen"/>
+            <!-- la banda roja de los PDF de categoría lleva la misma foto que las fichas -->
+            <t t-set="cierre_foto" t-value="'catalogo/_comunes/cta-bg.webp'"/>
             <t t-set="cierre_acciones">
                 <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white">
                     <span class="o_ferba_btn__label">Cotizar solución</span>
@@ -119,40 +189,101 @@
                 </a>
             </t>
 
-            <!-- narrativa de la etapa + flujo de la línea -->
-            <section t-if="categoria.narrativa_titulo or categoria.flujo_ids"
-                     class="o_ferba_section o_ferba_section--light">
+            <!-- PDF · narrativa de la etapa: texto a la IZQUIERDA, visual a la DERECHA
+                 (el visual cambia por categoría: flujo_estilo) -->
+            <section t-if="categoria.narrativa_titulo or categoria.flujo_ids" class="o_ferba_section o_ferba_section--white">
                 <div class="o_ferba_container">
-                    <div t-if="categoria.narrativa_titulo" class="o_ferba_narrativa o_ferba_reveal">
-                        <span t-if="categoria.narrativa_antetitulo" class="o_ferba_eyebrow" t-out="categoria.narrativa_antetitulo"/>
-                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.narrativa_titulo"/></h2>
-                        <span class="o_ferba_rule"/>
-                        <div class="o_ferba_narrativa__intro"><t t-out="categoria.narrativa_intro"/></div>
-                    </div>
-
-                    <div t-if="categoria.flujo_ids" class="o_ferba_flujocat" data-ferba-grupo="">
-                        <t t-foreach="categoria.flujo_ids" t-as="paso">
-                            <div class="o_ferba_flujocat__paso o_ferba_reveal">
-                                <div class="o_ferba_flujocat__marca">
-                                    <img t-if="paso.icono" t-attf-src="/ferba_website/static/src/img/#{paso.icono}" alt="" loading="lazy"/>
-                                    <span t-else="" class="o_ferba_flujocat__num" t-out="'%02d' % (paso_index + 1)"/>
-                                    <span t-if="not paso_last" class="o_ferba_flujocat__flecha" aria-hidden="true">
-                                        <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
-                                    </span>
-                                </div>
-                                <span class="o_ferba_flujocat__rotulo" t-out="paso.etiqueta"/>
+                    <div t-attf-class="o_ferba_catnarr o_ferba_catnarr--#{categoria.flujo_estilo or 'circulos'}">
+                        <div class="o_ferba_catnarr__texto o_ferba_reveal">
+                            <span t-if="categoria.narrativa_antetitulo" class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="categoria.narrativa_antetitulo"/>
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.narrativa_titulo"/></h2>
+                            <span class="o_ferba_rule"/>
+                            <div class="o_ferba_prosa"><t t-out="categoria.narrativa_intro"/></div>
+                        </div>
+                        <div t-if="categoria.flujo_ids" class="o_ferba_catnarr__visual" data-ferba-grupo="">
+                            <!-- recepción: ilustraciones numeradas en zigzag -->
+                            <div t-if="categoria.flujo_estilo == 'zigzag'" class="o_ferba_catzig">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <div class="o_ferba_catzig__item o_ferba_reveal">
+                                        <span class="o_ferba_catzig__num" t-out="'%02d' % (paso_index + 1)"/>
+                                        <img t-if="paso.imagen" t-attf-src="/ferba_website/static/src/img/#{paso.imagen}?v=#{ver}" alt="" loading="lazy"/>
+                                        <span class="o_ferba_catzig__txt">
+                                            <strong t-out="paso.etiqueta"/>
+                                            <small t-if="paso.subetiqueta" t-out="paso.subetiqueta"/>
+                                        </span>
+                                    </div>
+                                </t>
                             </div>
-                        </t>
+                            <!-- lavado: fotos en fila con flechas rojas -->
+                            <div t-elif="categoria.flujo_estilo == 'fila'" class="o_ferba_catfila">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <span t-if="not paso_first" class="o_ferba_catfila__flecha" aria-hidden="true">→</span>
+                                    <div class="o_ferba_catfila__item o_ferba_reveal">
+                                        <span class="o_ferba_catfila__img"><img t-if="paso.imagen" t-attf-src="/ferba_website/static/src/img/#{paso.imagen}?v=#{ver}" alt="" loading="lazy"/></span>
+                                        <strong t-out="paso.etiqueta"/>
+                                        <small t-if="paso.subetiqueta" t-out="paso.subetiqueta"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <!-- secado: rejilla 2x2 numerada con icono -->
+                            <div t-elif="categoria.flujo_estilo == 'rejilla'" class="o_ferba_catrejilla">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <div class="o_ferba_catrejilla__item o_ferba_reveal">
+                                        <span class="o_ferba_catrejilla__num" t-out="'%02d' % (paso_index + 1)"/>
+                                        <span class="o_ferba_catrejilla__cuerpo">
+                                            <img t-if="paso.imagen" t-attf-src="/ferba_website/static/src/img/#{paso.imagen}?v=#{ver}" alt="" loading="lazy"/>
+                                            <strong t-out="paso.etiqueta"/>
+                                            <small t-if="paso.subetiqueta" t-out="paso.subetiqueta"/>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                            <!-- transportadores / empaque: serpentina de 6 iconos (3 + 3, chevrones por CSS) -->
+                            <div t-elif="categoria.flujo_estilo == 'serpentina'" class="o_ferba_catserp">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <div class="o_ferba_catserp__item o_ferba_reveal">
+                                        <img t-if="paso.imagen or paso.icono" t-attf-src="/ferba_website/static/src/img/#{paso.imagen or paso.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <strong t-out="paso.etiqueta"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <!-- selección: tarjetas grises con foto -->
+                            <div t-elif="categoria.flujo_estilo == 'tarjetas'" class="o_ferba_cattarj">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <div class="o_ferba_cattarj__item o_ferba_reveal">
+                                        <strong t-out="paso.etiqueta"/>
+                                        <img t-if="paso.imagen" t-attf-src="/ferba_website/static/src/img/#{paso.imagen}?v=#{ver}" alt="" loading="lazy"/>
+                                        <small t-if="paso.subetiqueta" t-out="paso.subetiqueta"/>
+                                    </div>
+                                </t>
+                            </div>
+                            <!-- círculos numerados (el visual anterior) -->
+                            <div t-else="" class="o_ferba_flujocat">
+                                <t t-foreach="categoria.flujo_ids" t-as="paso">
+                                    <div class="o_ferba_flujocat__paso o_ferba_reveal">
+                                        <div class="o_ferba_flujocat__marca">
+                                            <img t-if="paso.icono" t-attf-src="/ferba_website/static/src/img/#{paso.icono}" alt="" loading="lazy"/>
+                                            <span t-else="" class="o_ferba_flujocat__num" t-out="'%02d' % (paso_index + 1)"/>
+                                            <span t-if="not paso_last" class="o_ferba_flujocat__flecha" aria-hidden="true">
+                                                <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
+                                            </span>
+                                        </div>
+                                        <span class="o_ferba_flujocat__rotulo" t-out="paso.etiqueta"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- nuestros equipos -->
-            <section id="equipos" class="o_ferba_section o_ferba_section--white">
+            <!-- PDF · "NUESTROS EQUIPOS": antetítulo + título a la izquierda, tarjetas (2 o 3 columnas) -->
+            <section id="equipos" class="o_ferba_section o_ferba_section--white o_ferba_section--tighttop">
                 <div class="o_ferba_container">
-                    <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="titulo">Nuestros equipos</t>
-                    </t>
+                    <div class="o_ferba_reveal o_ferba_cabsec o_ferba_cabsec--tight">
+                        <span class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="categoria.equipos_antetitulo or 'Nuestros equipos'"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="categoria.equipos_titulo or 'Nuestros equipos'"/></h2>
+                    </div>
                     <t t-foreach="grupos" t-as="g">
                         <t t-set="subgrupo" t-value="g[0]"/>
                         <div class="o_ferba_maqgrupo o_ferba_reveal">
@@ -160,9 +291,11 @@
                                 <span class="o_ferba_maqgrupo__num" t-out="'%02d' % (g_index + 1)"/>
                                 <span t-out="subgrupo.nombre"/>
                             </h3>
-                            <div class="o_ferba_maqgrid">
+                            <div class="o_ferba_maqgrid" t-attf-style="--ferba-cols:#{categoria.equipos_columnas or '3'}">
                                 <t t-foreach="g[1]" t-as="maq">
-                                    <t t-call="ferba_website.tarjeta_maquina"/>
+                                    <t t-call="ferba_website.tarjeta_maquina">
+                                        <t t-set="maq_num" t-value="numeros.get(maq.id, 0) if categoria.equipos_numerados else 0"/>
+                                    </t>
                                 </t>
                             </div>
                         </div>
@@ -170,21 +303,66 @@
                 </div>
             </section>
 
-            <!-- factores -->
-            <section t-if="categoria.factor_ids" class="o_ferba_section o_ferba_section--dark">
+            <!-- PDF (lavado, secado) · sección oscura extra entre equipos y factores -->
+            <t t-set="extras" t-value="categoria.extras()"/>
+            <section t-if="extras" class="o_ferba_section o_ferba_section--dark">
                 <div class="o_ferba_container">
-                    <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="llano" t-value="True"/>
-                        <t t-set="titulo" t-value="categoria.factor_titulo or 'Factores que definen tu solución'"/>
-                    </t>
-                    <div class="o_ferba_valores" t-attf-style="--ferba-cols:#{len(categoria.factor_ids) or 1}">
-                        <t t-foreach="categoria.factor_ids" t-as="f">
-                            <div class="o_ferba_valor o_ferba_reveal">
-                                <div t-if="f.icono" class="o_ferba_valor__icono">
-                                    <img t-attf-src="/ferba_website/static/src/img/#{f.icono}" alt="" loading="lazy"/>
+                    <!-- lavado: título + icono | un punto con texto | lista de enlaces -->
+                    <div t-if="len(extras) == 1" class="o_ferba_catextra o_ferba_catextra--uno">
+                        <div class="o_ferba_reveal">
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--llano" t-out="categoria.extra_antetitulo"/>
+                            <h2 class="o_ferba_title o_ferba_title--claro"><span class="o_ferba_title__in" t-out="categoria.extra_titulo"/></h2>
+                            <img t-if="extras[0].icono" class="o_ferba_catextra__icono" t-attf-src="/ferba_website/static/src/img/#{extras[0].icono}?v=#{ver}" alt="" loading="lazy"/>
+                        </div>
+                        <div class="o_ferba_reveal o_ferba_catextra__punto">
+                            <h3 t-out="extras[0].titulo"/>
+                            <p t-out="extras[0].texto"/>
+                        </div>
+                        <ul class="o_ferba_catextra__enlaces o_ferba_reveal">
+                            <t t-foreach="extras[0].enlace_lista" t-as="e">
+                                <li><a t-att-href="e[1]"><img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/><span t-out="e[0]"/></a></li>
+                            </t>
+                        </ul>
+                    </div>
+                    <!-- secado: dos (o más) columnas con icono a la izquierda y separador rojo -->
+                    <div t-else="" class="o_ferba_catextra">
+                        <div class="o_ferba_reveal o_ferba_cabsec o_ferba_cabsec--tight">
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--llano" t-out="categoria.extra_antetitulo"/>
+                            <h2 class="o_ferba_title o_ferba_title--claro"><span class="o_ferba_title__in" t-out="categoria.extra_titulo"/></h2>
+                        </div>
+                        <div class="o_ferba_catextra__cols" t-attf-style="--ferba-cols:#{len(extras)}" data-ferba-grupo="">
+                            <t t-foreach="extras" t-as="x">
+                                <div class="o_ferba_catextra__item o_ferba_reveal">
+                                    <img t-if="x.icono" t-attf-src="/ferba_website/static/src/img/#{x.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                    <div>
+                                        <h3 t-out="x.titulo"/>
+                                        <p t-out="x.texto"/>
+                                    </div>
                                 </div>
-                                <h3 class="o_ferba_valor__titulo" t-out="f.titulo"/>
-                                <p class="o_ferba_valor__texto" t-out="f.texto"/>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PDF (selección) · "CALIBRADO + FLEXQUALITY" -->
+            <t t-if="categoria.flexquality" t-call="ferba_website.fq_seccion"/>
+
+            <!-- PDF · "FACTORES QUE DEFINEN TU SOLUCIÓN": antetítulo + título a la izquierda, 4-5 columnas con separador rojo -->
+            <t t-set="factores" t-value="categoria.factores()"/>
+            <section t-if="factores" t-attf-class="o_ferba_section o_ferba_section--#{'dark' if categoria.factor_tema == 'oscuro' else 'white'}">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_reveal o_ferba_cabsec o_ferba_cabsec--tight">
+                        <span class="o_ferba_eyebrow o_ferba_eyebrow--llano" t-out="categoria.factor_antetitulo or 'Factores que definen tu solución'"/>
+                        <h2 t-attf-class="o_ferba_title#{' o_ferba_title--claro' if categoria.factor_tema == 'oscuro' else ''}"><span class="o_ferba_title__in" t-out="categoria.factor_titulo or 'Factores que definen tu solución'"/></h2>
+                    </div>
+                    <div class="o_ferba_cols" t-attf-style="--ferba-cols:#{len(factores)}" data-ferba-grupo="">
+                        <t t-foreach="factores" t-as="f">
+                            <div class="o_ferba_reveal">
+                                <img t-if="f.icono" t-attf-src="/ferba_website/static/src/img/#{f.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                <h3 t-out="f.titulo"/>
+                                <span t-if="f.subtitulo" class="o_ferba_cols__sub" t-out="f.subtitulo"/>
+                                <p t-out="f.texto"/>
                             </div>
                         </t>
                     </div>
@@ -198,23 +376,39 @@
          ================================================================ -->
     <template id="pagina_maquina" name="Ferba — ficha de máquina">
         <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo" t-value="'Maquinaria — %s' % categoria.nombre"/>
-            <t t-set="titulo" t-value="maquina.nombre"/>
+            <!-- miga del PDF: "MAQUINARIA ——— LAVADO Y TRATAMIENTO" (negrita · raya roja · categoría) -->
+            <t t-set="antetitulo"><a href="/maquinaria" class="o_ferba_miga__a">Maquinaria</a><span class="o_ferba_miga__sep"/><a t-attf-href="/maquinaria/#{categoria.slug}" class="o_ferba_miga__b" t-out="categoria.nombre"/></t>
+            <t t-set="titulo" t-value="maquina.hero_titulo or maquina.nombre"/>
             <t t-set="subtitulo" t-value="maquina.lema"/>
             <t t-set="fondo" t-value="maquina.hero_imagen"/>
-            <t t-set="clase_hero">o_ferba_hero--catalogo o_ferba_hero--ficha</t>
+            <!-- hero claro (transportadores): fondo blanco y el render 3D a la derecha -->
+            <t t-set="clase_hero" t-value="'o_ferba_hero--catalogo o_ferba_hero--ficha' + (' o_ferba_hero--claro' if maquina.hero_tema == 'claro' else '')"/>
             <t t-set="intro">
                 <t t-out="maquina.intro"/>
-                <div t-if="maquina.destacado_ids" class="o_ferba_destacados">
+                <!-- badge flotante sobre la foto del hero ("HASTA 1,440 CAJAS/HORA") -->
+                <div t-if="maquina.hero_badge_valor" class="o_ferba_herobadge">
+                    <img t-if="maquina.hero_badge_icono" t-attf-src="/ferba_website/static/src/img/#{maquina.hero_badge_icono}?v=#{ver}" alt="" loading="lazy"/>
+                    <span class="o_ferba_herobadge__txt">
+                        <span t-if="maquina.hero_badge_prefijo" class="o_ferba_herobadge__pre" t-out="maquina.hero_badge_prefijo"/>
+                        <span class="o_ferba_herobadge__val" t-out="maquina.hero_badge_valor"/>
+                        <span t-if="maquina.hero_badge_etiqueta" class="o_ferba_herobadge__etq" t-out="maquina.hero_badge_etiqueta"/>
+                    </span>
+                </div>
+                <div t-if="maquina.destacado_ids" class="o_ferba_fichabadges">
                     <t t-foreach="maquina.destacado_ids" t-as="d">
-                        <div class="o_ferba_destacado">
-                            <img t-if="d.icono" class="o_ferba_destacado__icono"
-                                 t-attf-src="/ferba_website/static/src/img/#{d.icono}" alt="" loading="lazy"/>
-                            <span class="o_ferba_destacado__texto">
-                                <span class="o_ferba_destacado__valor" t-out="d.valor"/>
-                                <span class="o_ferba_destacado__etq" t-out="d.etiqueta"/>
+                        <span t-attf-class="o_ferba_fichabadge#{' o_ferba_fichabadge--dest' if maquina.destacados_estilo in ('valor', 'pre') else ''}">
+                            <img t-if="d.icono" t-attf-src="/ferba_website/static/src/img/#{d.icono}?v=#{ver}" alt="" loading="lazy"/>
+                            <span t-if="maquina.destacados_estilo == 'valor'" class="o_ferba_fichabadge__txt">
+                                <span class="o_ferba_fichabadge__val" t-out="d.valor"/>
+                                <span t-if="d.etiqueta" class="o_ferba_fichabadge__etq" t-out="d.etiqueta"/>
                             </span>
-                        </div>
+                            <!-- 'pre': la etiqueta chica va ARRIBA del valor ("HASTA / 200 BANDEJAS / HORA") -->
+                            <span t-elif="maquina.destacados_estilo == 'pre'" class="o_ferba_fichabadge__txt">
+                                <span t-if="d.etiqueta" class="o_ferba_fichabadge__etq" t-out="d.etiqueta"/>
+                                <span class="o_ferba_fichabadge__val o_ferba_fichabadge__val--md" t-out="d.valor"/>
+                            </span>
+                            <span t-else="" t-out="d.valor"/>
+                        </span>
                     </t>
                 </div>
             </t>
@@ -231,7 +425,8 @@
             </t>
             <t t-set="cierre_titulo" t-value="maquina.cierre_titulo"/>
             <t t-set="cierre_texto" t-value="maquina.cierre_texto"/>
-            <t t-set="cierre_foto" t-value="maquina.hero_imagen"/>
+            <!-- la banda roja de TODOS los PDF de máquina lleva la misma foto (línea con tomates) -->
+            <t t-set="cierre_foto" t-value="maquina.cierre_imagen or 'catalogo/_comunes/cta-bg.webp'"/>
             <t t-set="cierre_acciones">
                 <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white"
                    t-attf-data-ferba-senal="contacto_directo:#{maquina.slug}">
@@ -249,59 +444,342 @@
                 <t t-call="ferba_website.bloque_split"/>
             </t>
 
-            <!-- 2) beneficios (tarjetas oscuras) -->
+            <!-- PDF (hornos, envasadora) · plano con cotas -->
+            <section t-if="maquina.dibujo_imagen" class="o_ferba_section o_ferba_section--white o_ferba_section--tighttop">
+                <div class="o_ferba_container">
+                    <figure class="o_ferba_dibujo o_ferba_reveal">
+                        <img t-attf-src="/ferba_website/static/src/img/#{maquina.dibujo_imagen}?v=#{ver}" t-attf-alt="Dimensiones de #{maquina.nombre}" loading="lazy"/>
+                    </figure>
+                </div>
+            </section>
+
+            <!-- 2) beneficios (tarjetas oscuras, compat. bloques antiguos) -->
             <t t-foreach="beneficios" t-as="bloque">
                 <t t-call="ferba_website.bloque_tarjetas"/>
             </t>
 
-            <!-- 3) pasos del proceso -->
-            <section t-if="maquina.paso_ids" class="o_ferba_section o_ferba_section--white">
+            <!-- PDF · BENEFICIOS como sección propia (oscura): encabezado izq., tarjetas der. -->
+            <section t-if="maquina.beneficios_pos == 'seccion' and maquina.puntos('beneficio')"
+                     t-attf-class="o_ferba_section o_ferba_section--#{'light' if maquina.beneficios_tema == 'claro' else 'dark'}">
                 <div class="o_ferba_container">
-                    <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="llano" t-value="True"/>
-                        <t t-set="titulo" t-value="maquina.pasos_titulo or 'Del inicio al producto terminado'"/>
-                    </t>
-                    <div class="o_ferba_pasos">
-                        <t t-foreach="maquina.paso_ids" t-as="p">
-                            <span t-if="not p_first" class="o_ferba_pasos__chevron">
-                                <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
-                            </span>
-                            <article class="o_ferba_paso o_ferba_reveal">
-                                <div t-attf-class="o_ferba_paso__media#{'' if p.imagen else ' o_ferba_paso__media--num'}">
-                                    <img t-if="p.imagen" t-attf-src="/ferba_website/static/src/img/#{p.imagen}"
-                                         t-att-alt="p.titulo" loading="lazy"/>
-                                    <span class="o_ferba_paso__num" t-out="'%02d' % (p_index + 1)"/>
+                    <div class="o_ferba_benesec">
+                        <div class="o_ferba_reveal">
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.beneficios_antetitulo or 'Beneficios principales'"/>
+                            <h2 t-attf-class="o_ferba_title#{'' if maquina.beneficios_tema == 'claro' else ' o_ferba_title--claro'}"><span class="o_ferba_title__in" t-out="maquina.beneficios_titulo"/></h2>
+                        </div>
+                        <t t-call="ferba_website.benecards"/>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PDF · "una separación que protege toda la línea": texto + render + 3 puntos -->
+            <section t-if="maquina.protege_titulo" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_protege">
+                        <div class="o_ferba_protege__texto o_ferba_reveal">
+                            <span t-if="maquina.protege_antetitulo" class="o_ferba_eyebrow" t-out="maquina.protege_antetitulo"/>
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.protege_titulo"/></h2>
+                            <span class="o_ferba_rule"/>
+                            <div class="o_ferba_prosa"><t t-out="maquina.protege_intro"/></div>
+                        </div>
+                        <div t-if="maquina.protege_imagen" class="o_ferba_protege__fig o_ferba_reveal o_ferba_reveal--wipe">
+                            <img t-attf-src="/ferba_website/static/src/img/#{maquina.protege_imagen}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
+                        </div>
+                        <div class="o_ferba_protege__puntos" data-ferba-grupo="">
+                            <t t-foreach="maquina.puntos('protege')" t-as="p">
+                                <div class="o_ferba_puntoicono o_ferba_reveal">
+                                    <span class="o_ferba_puntoicono__ico">
+                                        <img t-if="p.icono and '/' in p.icono" t-attf-src="/ferba_website/static/src/img/#{p.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <span t-elif="p.icono" class="o_ferba_puntoicono__glifo" t-out="p.icono"/>
+                                    </span>
+                                    <div class="o_ferba_puntoicono__txt">
+                                        <h3 t-out="p.titulo"/>
+                                        <p t-out="p.texto"/>
+                                    </div>
                                 </div>
-                                <h3 class="o_ferba_paso__titulo" t-out="p.titulo"/>
-                                <p class="o_ferba_paso__texto" t-out="p.texto"/>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PDF · "EL RETO": tarjetas oscuras numeradas con ilustración -->
+            <section t-if="maquina.reto_titulo" class="o_ferba_section o_ferba_section--dark">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_reveal o_ferba_retocab">
+                        <span class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.reto_antetitulo"/>
+                        <h2 class="o_ferba_title o_ferba_title--claro"><span class="o_ferba_title__in"><t t-out="maquina.reto_titulo"/></span></h2>
+                        <p t-if="maquina.reto_intro" class="o_ferba_retocab__sub" t-out="maquina.reto_intro"/>
+                    </div>
+                    <div class="o_ferba_retos" data-ferba-grupo="">
+                        <t t-foreach="maquina.puntos('reto')" t-as="p">
+                            <article class="o_ferba_retocard o_ferba_reveal">
+                                <div class="o_ferba_retocard__cab">
+                                    <span class="o_ferba_retocard__num" t-out="'%02d' % (p_index + 1)"/>
+                                    <h3 t-out="p.titulo"/>
+                                </div>
+                                <p class="o_ferba_retocard__txt" t-out="p.texto"/>
+                                <div t-if="p.imagen" class="o_ferba_retocard__ilustra">
+                                    <img t-attf-src="/ferba_website/static/src/img/#{p.imagen}?v=#{ver}" alt="" loading="lazy"/>
+                                </div>
                             </article>
                         </t>
                     </div>
                 </div>
             </section>
 
-            <!-- 4) datos técnicos (tabla + foto) -->
-            <section t-if="maquina.spec_ids" id="datos" class="o_ferba_section o_ferba_section--dark o_ferba_datos">
+            <!-- PDF · "CÓMO FUNCIONA": pasos en tarjeta con chevrón + diagrama -->
+            <section t-if="maquina.paso_ids" class="o_ferba_section o_ferba_section--white">
                 <div class="o_ferba_container">
-                    <div class="o_ferba_datos__split">
-                        <div class="o_ferba_reveal">
-                            <span class="o_ferba_eyebrow">Datos técnicos</span>
-                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.specs_titulo or 'Especificaciones principales'"/></h2>
-                            <span class="o_ferba_rule"/>
-                            <table class="o_ferba_specs">
-                                <tbody>
-                                    <t t-foreach="maquina.spec_ids" t-as="s">
-                                        <tr>
-                                            <th t-out="s.etiqueta"/>
-                                            <td t-out="s.valor"/>
-                                        </tr>
-                                    </t>
-                                </tbody>
-                            </table>
+                    <div class="o_ferba_reveal o_ferba_cabsec">
+                        <span class="o_ferba_eyebrow" t-out="maquina.pasos_antetitulo or 'Cómo funciona'"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.pasos_titulo or 'Cómo funciona'"/></h2>
+                        <span class="o_ferba_rule"/>
+                        <p t-if="maquina.pasos_intro" class="o_ferba_prosa" t-out="maquina.pasos_intro"/>
+                    </div>
+                    <t t-set="pasos_foto" t-value="any(p.imagen for p in maquina.paso_ids)"/>
+                    <t t-set="pasos_tarjeta" t-value="pasos_foto and maquina.pasos_estilo == 'tarjeta'"/>
+                    <div t-attf-class="o_ferba_comofunciona#{' o_ferba_comofunciona--tarjeta' if pasos_tarjeta else (' o_ferba_comofunciona--foto' if pasos_foto else '')}" data-ferba-grupo="">
+                        <t t-foreach="maquina.paso_ids" t-as="p">
+                            <span t-if="not p_first" class="o_ferba_comofunciona__chevron" aria-hidden="true">
+                                <img src="/ferba_website/static/src/img/iconos/chevron-rojo.svg" alt="" loading="lazy"/>
+                            </span>
+                            <article class="o_ferba_pasocard o_ferba_reveal">
+                                <!-- tarjeta con borde: "01 Título" arriba, foto, texto (línea de siembra) -->
+                                <t t-if="pasos_tarjeta">
+                                    <div class="o_ferba_pasocard__cab">
+                                        <span class="o_ferba_pasocard__num" t-out="'%02d' % (p_index + 1)"/>
+                                        <h3 class="o_ferba_pasocard__tit" t-out="p.titulo"/>
+                                    </div>
+                                    <div t-if="p.imagen" class="o_ferba_pasocard__foto">
+                                        <img t-attf-src="/ferba_website/static/src/img/#{p.imagen}?v=#{ver}" t-att-alt="p.titulo" loading="lazy"/>
+                                    </div>
+                                </t>
+                                <t t-elif="p.imagen">
+                                    <span class="o_ferba_pasocard__num" t-out="'%02d' % (p_index + 1)"/>
+                                    <div class="o_ferba_pasocard__foto">
+                                        <img t-attf-src="/ferba_website/static/src/img/#{p.imagen}?v=#{ver}" t-att-alt="p.titulo" loading="lazy"/>
+                                    </div>
+                                    <h3 class="o_ferba_pasocard__tit" t-out="p.titulo"/>
+                                </t>
+                                <h3 t-else="" class="o_ferba_pasocard__tit"><span class="o_ferba_pasocard__n" t-out="(p_index + 1)"/>. <t t-out="p.titulo"/></h3>
+                                <p class="o_ferba_pasocard__txt" t-out="p.texto"/>
+                            </article>
+                        </t>
+                    </div>
+                    <div t-if="maquina.diagrama_imagen" class="o_ferba_diagrama o_ferba_reveal o_ferba_reveal--wipe">
+                        <img t-attf-src="/ferba_website/static/src/img/#{maquina.diagrama_imagen}?v=#{ver}" alt="" loading="lazy"/>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PDF · "AJUSTE REGULABLE": render + tarjetas A/B/C -->
+            <section t-if="maquina.ajuste_titulo" class="o_ferba_section o_ferba_section--white o_ferba_section--tighttop">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_reveal o_ferba_cabsec">
+                        <span t-if="maquina.ajuste_antetitulo" class="o_ferba_eyebrow" t-out="maquina.ajuste_antetitulo"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.ajuste_titulo"/></h2>
+                        <span class="o_ferba_rule"/>
+                        <p t-if="maquina.ajuste_intro" class="o_ferba_prosa" t-out="maquina.ajuste_intro"/>
+                    </div>
+                    <div class="o_ferba_ajuste">
+                        <figure t-if="maquina.ajuste_imagen" class="o_ferba_ajuste__fig o_ferba_reveal">
+                            <img t-attf-src="/ferba_website/static/src/img/#{maquina.ajuste_imagen}?v=#{ver}" alt="" loading="lazy"/>
+                            <figcaption t-if="maquina.ajuste_caption or maquina.ajuste_subcaption">
+                                <span t-if="maquina.ajuste_caption" class="o_ferba_ajuste__cap" t-out="maquina.ajuste_caption"/>
+                                <span t-if="maquina.ajuste_subcaption" class="o_ferba_ajuste__sub" t-out="maquina.ajuste_subcaption"/>
+                            </figcaption>
+                        </figure>
+                        <div class="o_ferba_abc" data-ferba-grupo="">
+                            <t t-foreach="maquina.puntos('ajuste')" t-as="p">
+                                <div class="o_ferba_abccard o_ferba_reveal">
+                                    <div class="o_ferba_abccard__cab">
+                                        <span class="o_ferba_abccard__letra" t-out="'ABCDEF'[p_index] + ')'"/>
+                                        <h3 t-out="p.titulo"/>
+                                    </div>
+                                    <div class="o_ferba_abccard__txt">
+                                        <p t-out="p.texto"/>
+                                    </div>
+                                </div>
+                            </t>
                         </div>
-                        <div t-if="maquina.specs_foto" class="o_ferba_datos__foto o_ferba_reveal o_ferba_reveal--wipe">
-                            <img t-attf-src="/ferba_website/static/src/img/#{maquina.specs_foto}"
-                                 t-att-alt="maquina.nombre" loading="lazy"/>
+                    </div>
+                    <p t-if="maquina.ajuste_nota" class="o_ferba_ajuste__nota" t-out="maquina.ajuste_nota"/>
+                </div>
+            </section>
+
+            <!-- PDF · "DATOS TÉCNICOS": specs en chips + (checklist+chips | beneficios) -->
+            <t t-set="datos_benef" t-value="maquina.beneficios_pos != 'seccion' and maquina.puntos('beneficio')"/>
+            <section t-if="maquina.spec_ids or maquina.puntos('caracteristica') or datos_benef" id="datos"
+                     t-attf-class="o_ferba_section o_ferba_section--#{'dark' if maquina.datos_tema == 'oscuro' else 'white'}#{' o_ferba_section--datosfoto' if maquina.specs_foto else ''}">
+                <div class="o_ferba_container">
+                    <!-- el antetítulo "DATOS TÉCNICOS" va DENTRO de la columna de specs (como el PDF) -->
+                    <span t-if="not maquina.spec_ids" class="o_ferba_eyebrow o_ferba_eyebrow--rojo o_ferba_reveal" t-out="maquina.datos_antetitulo or 'Datos técnicos'"/>
+                    <div class="o_ferba_datos2">
+                        <div t-if="maquina.spec_ids" class="o_ferba_reveal">
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.datos_antetitulo or 'Datos técnicos'"/>
+                            <h2 t-attf-class="o_ferba_title o_ferba_title--sm#{' o_ferba_title--claro' if maquina.datos_tema == 'oscuro' else ''}"><span class="o_ferba_title__in" t-out="maquina.specs_titulo or 'Especificaciones principales'"/></h2>
+                            <ul class="o_ferba_specchips">
+                                <t t-foreach="maquina.spec_ids" t-as="s">
+                                    <li class="o_ferba_specchip">
+                                        <span class="o_ferba_specchip__k" t-out="s.etiqueta"/>
+                                        <span class="o_ferba_specchip__v" t-out="s.valor"/>
+                                    </li>
+                                </t>
+                            </ul>
+                        </div>
+                        <!-- columna derecha: beneficios (tarjetas icono) O checklist+chips O foto a sangre -->
+                        <div t-if="datos_benef" class="o_ferba_reveal">
+                            <!-- antetítulo "BENEFICIOS PRINCIPALES" en blanco/regular, como el PDF -->
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--llano" t-out="maquina.beneficios_antetitulo or 'Beneficios principales'"/>
+                            <h2 t-attf-class="o_ferba_title o_ferba_title--sm#{' o_ferba_title--claro' if maquina.datos_tema == 'oscuro' else ''}"><span class="o_ferba_title__in" t-out="maquina.beneficios_titulo or 'Beneficios principales'"/></h2>
+                            <t t-call="ferba_website.benecards"/>
+                        </div>
+                        <!-- tarjeta NEGRA "una línea diseñada como sistema": 4 columnas con icono blanco (línea de siembra) -->
+                        <div t-elif="maquina.puntos('sistema')" class="o_ferba_reveal o_ferba_sistemacard">
+                            <span class="o_ferba_eyebrow o_ferba_eyebrow--llano" t-out="maquina.sistema_antetitulo"/>
+                            <h2 class="o_ferba_title o_ferba_title--sm o_ferba_title--claro"><span class="o_ferba_title__in" t-out="maquina.sistema_titulo"/></h2>
+                            <div class="o_ferba_cols" data-ferba-grupo="">
+                                <t t-foreach="maquina.puntos('sistema')" t-as="c">
+                                    <div class="o_ferba_reveal">
+                                        <img t-if="c.icono" t-attf-src="/ferba_website/static/src/img/#{c.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <h3 t-out="c.titulo"/>
+                                        <p t-out="c.texto"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                        <div t-elif="maquina.puntos('caracteristica')" class="o_ferba_reveal">
+                            <h2 class="o_ferba_title o_ferba_title--sm"><span class="o_ferba_title__in" t-out="maquina.caracteristicas_titulo or 'Características destacadas'"/></h2>
+                            <ul class="o_ferba_checklist">
+                                <t t-foreach="maquina.puntos('caracteristica')" t-as="c">
+                                    <li>
+                                        <img src="/ferba_website/static/src/img/iconos/check-rojo.svg" alt="" loading="lazy"/>
+                                        <span t-out="c.titulo"/>
+                                    </li>
+                                </t>
+                            </ul>
+                            <div t-if="maquina.puntos('chip')" class="o_ferba_chips">
+                                <t t-foreach="maquina.puntos('chip')" t-as="ch">
+                                    <div class="o_ferba_chip">
+                                        <img t-if="ch.icono" t-attf-src="/ferba_website/static/src/img/#{ch.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <span t-out="ch.titulo"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                        <!-- tarjetas de CIFRA (calibradores): icono + número grande rojo + etiqueta.
+                             Son puntos 'chip' con subtitulo (texto = prefijo "Hasta", titulo = "360", subtitulo = "frutos/min/línea") -->
+                        <div t-elif="maquina.puntos('chip') and any(c.subtitulo for c in maquina.puntos('chip'))" class="o_ferba_reveal">
+                            <h2 class="o_ferba_title o_ferba_title--sm"><span class="o_ferba_title__in" t-out="maquina.caracteristicas_titulo or 'Características destacadas'"/></h2>
+                            <div class="o_ferba_statcards">
+                                <t t-foreach="maquina.puntos('chip')" t-as="ch">
+                                    <div class="o_ferba_statcard">
+                                        <img t-if="ch.icono" t-attf-src="/ferba_website/static/src/img/#{ch.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <span class="o_ferba_statcard__txt">
+                                            <span t-if="ch.texto" class="o_ferba_statcard__pre" t-out="ch.texto"/>
+                                            <span class="o_ferba_statcard__val" t-out="ch.titulo"/>
+                                            <span class="o_ferba_statcard__etq" t-out="ch.subtitulo"/>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                        <!-- solo chips (sin checklist): tarjeta gris con filas icono + texto -->
+                        <div t-elif="maquina.puntos('chip')" class="o_ferba_reveal o_ferba_chipcard">
+                            <t t-foreach="maquina.puntos('chip')" t-as="ch">
+                                <div class="o_ferba_chip">
+                                    <img t-if="ch.icono" t-attf-src="/ferba_website/static/src/img/#{ch.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                    <span t-out="ch.titulo"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+                <!-- foto grande a sangre en la mitad derecha (volcadores, lavadoras…) -->
+                <div t-if="maquina.specs_foto" class="o_ferba_datos__fotofull">
+                    <img t-attf-src="/ferba_website/static/src/img/#{maquina.specs_foto}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
+                </div>
+            </section>
+
+            <!-- PDF (línea de siembra) · "CARACTERÍSTICAS DE CONSTRUCCIÓN": 4 columnas con separador rojo -->
+            <section t-if="maquina.puntos('construccion')" class="o_ferba_section o_ferba_section--white">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_reveal o_ferba_cabsec">
+                        <span class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.construccion_antetitulo or 'Características de construcción'"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.construccion_titulo"/></h2>
+                    </div>
+                    <div class="o_ferba_cols" data-ferba-grupo="">
+                        <t t-foreach="maquina.puntos('construccion')" t-as="c">
+                            <div class="o_ferba_reveal">
+                                <img t-if="c.icono" t-attf-src="/ferba_website/static/src/img/#{c.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                <h3 t-out="c.titulo"/>
+                                <p t-out="c.texto"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PDF (calibradores) · "CALIBRADO + FLEXQUALITY": dos secciones idénticas en todos
+                 los PDF de calibradores; solo cambian la foto y el icono de "Calibre". -->
+            <t t-if="maquina.flexquality">
+                <t t-call="ferba_website.fq_seccion"/>
+                <section class="o_ferba_section o_ferba_section--white o_ferba_fq2">
+                    <div class="o_ferba_container">
+                        <div class="o_ferba_fq2__top">
+                            <div class="o_ferba_reveal">
+                                <span class="o_ferba_eyebrow o_ferba_fq2__eyebrow">Calibrado + Flex<span class="o_ferba_q">Q</span>uality</span>
+                                <h2 class="o_ferba_title"><span class="o_ferba_title__in">Del campo a calidad comercial</span></h2>
+                                <span class="o_ferba_rule"/>
+                                <p class="o_ferba_prosa">Dos frutos pueden tener el mismo peso y tamaño, pero diferir en apariencia o calidad superficial. FlexQuality te permite clasificar por calibre y por calidad, para un mejor destino comercial.</p>
+                            </div>
+                            <div t-if="maquina.fq_foto" class="o_ferba_fq2__foto o_ferba_reveal o_ferba_reveal--wipe">
+                                <img t-attf-src="/ferba_website/static/src/img/#{maquina.fq_foto}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
+                            </div>
+                        </div>
+                        <div class="o_ferba_fq2__cards" data-ferba-grupo="">
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/#{maquina.fq_calibre_icono or 'catalogo/_comunes/fq-card-color.webp'}?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Calibre</h3><p>Peso · Tamaño · Volumen</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-color.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Color</h3><p>Características visuales configuradas</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-calidad.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Calidad</h3><p>Inspección mediante FlexQuality</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-destino.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Destino</h3><p>Asignación automática de salida</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </t>
+
+            <!-- PDF · "APLICACIONES": intro + tarjetas con foto -->
+            <section t-if="maquina.puntos('aplica')" class="o_ferba_section o_ferba_section--white o_ferba_section--tighttop">
+                <div class="o_ferba_container">
+                    <div class="o_ferba_aplicawrap">
+                        <div class="o_ferba_reveal o_ferba_aplicawrap__intro">
+                            <span t-if="maquina.aplica_antetitulo" class="o_ferba_eyebrow" t-out="maquina.aplica_antetitulo"/>
+                            <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.aplica_titulo"/></h2>
+                            <span class="o_ferba_rule"/>
+                            <p t-if="maquina.aplica_intro" class="o_ferba_prosa" t-out="maquina.aplica_intro"/>
+                        </div>
+                        <div class="o_ferba_aplicaciones" data-ferba-grupo="">
+                            <t t-foreach="maquina.puntos('aplica')" t-as="a">
+                                <article class="o_ferba_aplica o_ferba_reveal">
+                                    <div class="o_ferba_aplica__img">
+                                        <img t-if="a.imagen" t-attf-src="/ferba_website/static/src/img/#{a.imagen}?v=#{ver}" t-att-alt="a.titulo" loading="lazy"/>
+                                    </div>
+                                    <h3 class="o_ferba_aplica__tit" t-out="a.titulo"/>
+                                    <p class="o_ferba_aplica__txt" t-out="a.texto"/>
+                                </article>
+                            </t>
                         </div>
                     </div>
                 </div>
@@ -313,7 +791,7 @@
             </t>
 
             <!-- ficha en preparación: cuando aún no hay cuerpo (M2) -->
-            <section t-if="not (splits or beneficios or caracteristicas or maquina.paso_ids or maquina.spec_ids or maquina.media_ids)"
+            <section t-if="not (splits or beneficios or caracteristicas or maquina.paso_ids or maquina.spec_ids or maquina.media_ids or maquina.protege_titulo or maquina.reto_titulo or maquina.ajuste_titulo or maquina.punto_ids)"
                      class="o_ferba_section o_ferba_section--white">
                 <div class="o_ferba_container o_ferba_stub">
                     <span class="o_ferba_eyebrow">En preparación</span>
@@ -339,21 +817,22 @@
             <!-- 6) galería -->
             <section t-if="maquina.media_ids" class="o_ferba_section o_ferba_section--light">
                 <div class="o_ferba_container">
-                    <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="llano" t-value="True"/>
-                        <t t-set="titulo" t-value="maquina.galeria_titulo or 'Galería de imágenes y video'"/>
-                    </t>
+                    <!-- cabecera a la izquierda con antetítulo, como en el PDF ("CONOCE … EN DETALLE") -->
+                    <div class="o_ferba_cabsec o_ferba_reveal">
+                        <span t-if="maquina.galeria_antetitulo" class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.galeria_antetitulo"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.galeria_titulo or 'Galería de imágenes y video'"/></h2>
+                    </div>
                     <div class="o_ferba_galeria">
                         <t t-foreach="maquina.media_ids" t-as="m">
                             <t t-if="m.es_video">
                                 <a t-att-href="m.video_url or '#'" target="_blank" rel="noopener"
                                    class="o_ferba_galeria__item o_ferba_galeria__item--video o_ferba_reveal">
-                                    <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}" alt="Video" loading="lazy"/>
+                                    <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}?v=#{ver}" alt="Video" loading="lazy"/>
                                     <span class="o_ferba_galeria__play" aria-hidden="true"/>
                                 </a>
                             </t>
                             <span t-else="" class="o_ferba_galeria__item o_ferba_reveal">
-                                <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}" t-att-alt="maquina.nombre" loading="lazy"/>
+                                <img t-attf-src="/ferba_website/static/src/img/#{m.imagen}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
                             </span>
                         </t>
                     </div>
@@ -414,7 +893,7 @@
                             </h3>
                             <div class="o_ferba_maqgrid">
                                 <t t-foreach="g[1]" t-as="maq">
-                                    <t t-call="ferba_website.tarjeta_maquina"/>
+                                    <t t-call="ferba_website.tarjeta_maquina"><t t-set="maq_num" t-value="0"/></t>
                                 </t>
                             </div>
                         </div>

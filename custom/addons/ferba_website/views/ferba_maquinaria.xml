@@ -83,7 +83,7 @@
                          'Sistemas diseñados para limpiar, lavar y preparar frutas y hortalizas antes de su selección, clasificación o empaque.'),
                         ('secado',         'maqc-secado.svg',         'Secado y cepillado',        'maquinaria-05-461x308.webp',
                          'Unidades para retirar humedad, mejorar la presentación y preparar el producto para procesos posteriores.'),
-                        ('transportadores','maqc-seleccion.svg',      'Transportadores / bandas',  'maquinaria-10-271x150.webp',
+                        ('transportadores','../catalogo/_comunes/maqc-transportadores.webp', 'Transportadores / bandas',  'maquinaria-10-271x150.webp',
                          'Bandas, rodillos y sistemas de transporte para conectar cada etapa de la línea de forma continua, eficiente y segura.'),
                         ('seleccion',      'maqc-seleccion.svg',      'Selección y calibrado',     'maquinaria-09-683x289.webp',
                          'Equipos para ordenar, clasificar y separar el producto según criterios como tamaño, peso, color, calidad, entre otros.'),

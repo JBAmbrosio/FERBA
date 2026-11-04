@@ -90,8 +90,17 @@ class CatalogoFerba(http.Controller):
             if sueltas:
                 grupos.append((request.env['ferba.categoria.subgrupo'], sueltas))
         else:
-            grupos = [(request.env['ferba.categoria.subgrupo'], maquinas)]
-        vals = {'categoria': cat, 'grupos': grupos}
+            grupos = [(request.env['ferba.categoria.subgrupo'], maquinas.sorted(lambda m: (m.secuencia, m.id)))]
+        # Número de cada tarjeta (01, 02…) cuando la categoría las numera (selección).
+        numeros, n = {}, 0
+        for _sg, items in grupos:
+            for m in items:
+                n += 1
+                numeros[m.id] = n
+        modulo = request.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ferba_website')], limit=1)
+        vals = {'categoria': cat, 'grupos': grupos, 'numeros': numeros,
+                'ver': (modulo.installed_version or '0').replace('.', '')}
         vals.update(_seo(cat))
         return request.render('ferba_website.pagina_categoria', vals)
 
@@ -108,9 +117,15 @@ class CatalogoFerba(http.Controller):
         # render es fijo y coincide con los PDFs: splits -> beneficios (tarjetas
         # oscuras) -> pasos -> specs -> características (tarjetas claras) -> galería.
         bloques = maq.bloque_ids
+        # Versión del módulo como cache-buster de las imágenes de la ficha: cada
+        # republicación cambia la URL (?v=...) y el navegador no sirve la vieja
+        # (los static llevan max-age de 7 días).
+        modulo = request.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ferba_website')], limit=1)
         vals = {
             'maquina': maq,
             'categoria': maq.categoria_id,
+            'ver': (modulo.installed_version or '0').replace('.', ''),
             'splits': bloques.filtered(lambda b: b.tipo == 'split'),
             'beneficios': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'oscuro'),
             'caracteristicas': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'claro'),
