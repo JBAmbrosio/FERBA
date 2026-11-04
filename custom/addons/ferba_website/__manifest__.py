@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Ferba — Sitio web',
-    'version': '19.0.1.19.1',
+    'version': '19.0.1.20.0',
     'author': 'Simdata Group',
     'category': 'Website/Website',
     'summary': 'Tema y páginas del sitio público de Ferba Postharvest Technology',
@@ -48,6 +48,7 @@ de seguridad.
         'data/catalogo_maquinaria.xml', # contenido M2: 5 categorias + Linea de siembra
         'data/catalogo_frutos.xml',     # contenido M3: 10 frutos + M2M fruto<->maquina
         'data/catalogo_fichas.xml',     # fichas detalladas de equipo (por lotes)
+        'data/catalogo_iconos_menu.xml',# iconos del menú por máquina (campo menu_icono), entregados por el cliente
     ],
     'assets': {
         'web.assets_frontend': [

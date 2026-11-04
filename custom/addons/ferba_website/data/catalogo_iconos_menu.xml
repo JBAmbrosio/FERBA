@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         Iconos del MENU de maquinas (campo menu_icono).
+         Imagenes entregadas por el cliente (carpeta ICONOS MAQUINARIA),
+         optimizadas a webp. Reemplazan el render automatico SOLO en la
+         tarjeta del menu de maquinas. Un admin puede sustituir cualquiera
+         desde el editor del sitio o el backend sin tocar este archivo.
+         ================================================================ -->
+    <data>
+
+        <!-- RECEPCION Y ALIMENTACION -->
+        <record id="maq_volcador_bins_rot" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/volcador-bins-rotativo.webp"/></record>
+        <record id="maq_volcador_cajas_tor" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/volcador-cajas-torsion.webp"/></record>
+        <record id="maq_volcador_cajas_rot" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/volcador-cajas-rotativo.webp"/></record>
+        <record id="maq_tanque_recepcion" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/tanque-recepcion.webp"/></record>
+        <record id="maq_lavadora_cajas" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/lavadora-cajas.webp"/></record>
+        <record id="maq_lavadora_bins" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/lavadora-bins.webp"/></record>
+
+        <!-- LAVADO Y TRATAMIENTO -->
+        <record id="maq_criba_rodillos" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/criba-rodillos-regulable.webp"/></record>
+        <record id="maq_cepillos_lavado" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/unidad-cepillos-lavado.webp"/></record>
+        <record id="maq_criba_malla" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/criba-malla-descanicadora.webp"/></record>
+
+        <!-- SECADO Y CEPILLADO -->
+        <record id="maq_cepillos_secado" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/unidad-cepillos-secado.webp"/></record>
+
+        <!-- TRANSPORTADORES Y BANDAS -->
+        <record id="maq_tra_banda" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/transportador-de-banda.webp"/></record>
+        <record id="maq_tra_banda_modular" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/transportador-de-banda-modular.webp"/></record>
+        <record id="maq_tra_banda_reforzada" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/transportador-de-banda-reforzada.webp"/></record>
+        <record id="maq_tra_rodillos_grav" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/transportador-rodillos-gravedad.webp"/></record>
+        <record id="maq_tra_curva_grav" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/curva-rodillos-gravedad.webp"/></record>
+        <record id="maq_tra_curva_vivos" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/curva-rodillos-vivos.webp"/></record>
+        <record id="maq_tra_elevador_banda" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/elevador-de-banda.webp"/></record>
+        <record id="maq_tra_elevador_rodillos" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/elevador-de-rodillos.webp"/></record>
+
+        <!-- SELECCION Y CALIBRADO -->
+        <record id="maq_cal_114" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/calibrador-114.webp"/></record>
+        <record id="maq_cal_92" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/calibrador-92.webp"/></record>
+        <record id="maq_cal_152" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/calibrador-152.webp"/></record>
+        <record id="maq_cal_citricos" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/calibrador-citricos.webp"/></record>
+
+        <!-- SEMBRADORAS -->
+        <record id="maq_linea_siembra" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/linea-de-siembra.webp"/></record>
+
+        <!-- EMPAQUE -->
+        <record id="maq_bancos_empaque" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/bancos-de-empaque.webp"/></record>
+        <record id="maq_modulo_empacado" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/modulo-de-empacado.webp"/></record>
+        <record id="maq_mesa_giratoria" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/mesa-giratoria.webp"/></record>
+        <record id="maq_pesadora_cajas" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/pesadora-llenadora-cajas.webp"/></record>
+        <record id="maq_multipesadora" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/multipesadora.webp"/></record>
+        <record id="maq_pesadora_doble_bolsa" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/pesadora-doble-bolsa.webp"/></record>
+        <record id="maq_flowpack" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/flowpack.webp"/></record>
+        <record id="maq_empaquetadora_automatica" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/empaquetadora-automatica.webp"/></record>
+        <record id="maq_envasadora_automatica" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/envasadora-automatica.webp"/></record>
+        <record id="maq_horno_fp560" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/horno-fp560.webp"/></record>
+        <record id="maq_horno_fp560a" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/horno-fp560a.webp"/></record>
+        <record id="maq_horno_fp6000" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/horno-fp6000.webp"/></record>
+        <record id="maq_horno_sk1" model="ferba.maquina"><field name="menu_icono" type="base64" file="ferba_website/static/src/img/catalogo/_iconos_menu/horno-sk1.webp"/></record>
+    </data>
+</odoo>
