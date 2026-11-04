@@ -245,6 +245,12 @@ class FerbaMaquina(models.Model):
     specs_foto = fields.Char(help="Foto grande junto a la tabla de specs (opcional).")
     caracteristicas_titulo = fields.Char(translate=True, default="Características destacadas")
 
+    # --- CALIBRADO + FLEXQUALITY (calibradores): dos secciones fijas del PDF ---
+    flexquality = fields.Boolean(help="Pinta las secciones 'Lleva la selección más allá del calibrado' "
+                                      "y 'Del campo a calidad comercial' (idénticas en los PDF de calibradores).")
+    fq_foto = fields.Char(help="Foto grande de 'Del campo a calidad comercial'.")
+    fq_calibre_icono = fields.Char(help="Icono de la tarjeta 'Calibre' (pepino, tomate…).")
+
     # --- APLICACIONES ---
     aplica_antetitulo = fields.Char(translate=True, default="Aplicaciones")
     aplica_titulo = fields.Char(translate=True)

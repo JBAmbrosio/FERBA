@@ -105,7 +105,8 @@
          ================================================================ -->
     <template id="pagina_categoria" name="Ferba — categoría de maquinaria">
         <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo">Maquinaria</t>
+            <!-- miga enlazada: vuelve a la landing de maquinaria -->
+            <t t-set="antetitulo"><a href="/maquinaria" class="o_ferba_miga__a">Maquinaria</a></t>
             <t t-set="titulo" t-value="categoria.hero_titulo or categoria.nombre"/>
             <t t-set="subtitulo" t-value="categoria.hero_subtitulo"/>
             <t t-set="fondo" t-value="categoria.hero_imagen"/>
@@ -216,7 +217,7 @@
     <template id="pagina_maquina" name="Ferba — ficha de máquina">
         <t t-call="ferba_website.pagina_base">
             <!-- miga del PDF: "MAQUINARIA ——— LAVADO Y TRATAMIENTO" (negrita · raya roja · categoría) -->
-            <t t-set="antetitulo"><span class="o_ferba_miga__a">Maquinaria</span><span class="o_ferba_miga__sep"/><span class="o_ferba_miga__b" t-out="categoria.nombre"/></t>
+            <t t-set="antetitulo"><a href="/maquinaria" class="o_ferba_miga__a">Maquinaria</a><span class="o_ferba_miga__sep"/><a t-attf-href="/maquinaria/#{categoria.slug}" class="o_ferba_miga__b" t-out="categoria.nombre"/></t>
             <t t-set="titulo" t-value="maquina.hero_titulo or maquina.nombre"/>
             <t t-set="subtitulo" t-value="maquina.lema"/>
             <t t-set="fondo" t-value="maquina.hero_imagen"/>
@@ -464,6 +465,23 @@
                                 </t>
                             </div>
                         </div>
+                        <!-- tarjetas de CIFRA (calibradores): icono + número grande rojo + etiqueta.
+                             Son puntos 'chip' con subtitulo (texto = prefijo "Hasta", titulo = "360", subtitulo = "frutos/min/línea") -->
+                        <div t-elif="maquina.puntos('chip') and any(c.subtitulo for c in maquina.puntos('chip'))" class="o_ferba_reveal">
+                            <h2 class="o_ferba_title o_ferba_title--sm"><span class="o_ferba_title__in" t-out="maquina.caracteristicas_titulo or 'Características destacadas'"/></h2>
+                            <div class="o_ferba_statcards">
+                                <t t-foreach="maquina.puntos('chip')" t-as="ch">
+                                    <div class="o_ferba_statcard">
+                                        <img t-if="ch.icono" t-attf-src="/ferba_website/static/src/img/#{ch.icono}?v=#{ver}" alt="" loading="lazy"/>
+                                        <span class="o_ferba_statcard__txt">
+                                            <span t-if="ch.texto" class="o_ferba_statcard__pre" t-out="ch.texto"/>
+                                            <span class="o_ferba_statcard__val" t-out="ch.titulo"/>
+                                            <span class="o_ferba_statcard__etq" t-out="ch.subtitulo"/>
+                                        </span>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
                         <!-- solo chips (sin checklist): tarjeta gris con filas icono + texto -->
                         <div t-elif="maquina.puntos('chip')" class="o_ferba_reveal o_ferba_chipcard">
                             <t t-foreach="maquina.puntos('chip')" t-as="ch">
@@ -480,6 +498,78 @@
                     <img t-attf-src="/ferba_website/static/src/img/#{maquina.specs_foto}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
                 </div>
             </section>
+
+            <!-- PDF (calibradores) · "CALIBRADO + FLEXQUALITY": dos secciones idénticas en todos
+                 los PDF de calibradores; solo cambian la foto y el icono de "Calibre". -->
+            <t t-if="maquina.flexquality">
+                <section class="o_ferba_section o_ferba_section--dark o_ferba_fq">
+                    <div class="o_ferba_container o_ferba_fq__grid">
+                        <div class="o_ferba_reveal">
+                            <span class="o_ferba_eyebrow o_ferba_fq__eyebrow">Calibrado + Flex<span class="o_ferba_q">Q</span>uality</span>
+                            <h2 class="o_ferba_title o_ferba_title--claro"><span class="o_ferba_title__in">Lleva la selección más allá del calibrado convencional</span></h2>
+                            <span class="o_ferba_rule"/>
+                            <p class="o_ferba_fq__txt">Los calibradores FERBA pueden integrarse con Flex<span class="o_ferba_q">Q</span>uality, nuestra tecnología de visión artificial para incorporar nuevos criterios de análisis al proceso de selección.</p>
+                            <p class="o_ferba_fq__txt">Dependiendo de la configuración del proyecto FlexQuality puede analizar:</p>
+                            <ul class="o_ferba_fq__criterios" data-ferba-grupo="">
+                                <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-color.webp?v=#{ver}" alt="" loading="lazy"/><span>Color</span></li>
+                                <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-forma.webp?v=#{ver}" alt="" loading="lazy"/><span>Forma</span></li>
+                                <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-tamano.webp?v=#{ver}" alt="" loading="lazy"/><span>Tamaño</span></li>
+                                <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-defectos.webp?v=#{ver}" alt="" loading="lazy"/><span>Defectos externos</span></li>
+                                <li class="o_ferba_reveal"><img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-calidad.webp?v=#{ver}" alt="" loading="lazy"/><span>Calidad visual</span></li>
+                            </ul>
+                        </div>
+                        <div class="o_ferba_fq__cards" data-ferba-grupo="">
+                            <article class="o_ferba_fqcard o_ferba_reveal">
+                                <h3>Flex<span class="o_ferba_q">Q</span>uality Full</h3>
+                                <p class="o_ferba_fqcard__sub">Máximo nivel de análisis por módulo</p>
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-full.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <div class="o_ferba_fqcard__stat o_ferba_fqcard__stat--rojo"><span><b>2</b> líneas</span><span><b>3</b> cámaras</span></div>
+                                <p class="o_ferba_fqcard__txt">Mayor cobertura visual para una inspección más completa y una clasificación más detallada.</p>
+                            </article>
+                            <article class="o_ferba_fqcard o_ferba_reveal">
+                                <h3>Flex<span class="o_ferba_q">Q</span>uality Lite</h3>
+                                <p class="o_ferba_fqcard__sub">Inspección inteligente en una versión más compacta</p>
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-lite.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <div class="o_ferba_fqcard__stat"><span><b>2</b> líneas</span><span><b>1</b> cámara</span></div>
+                                <p class="o_ferba_fqcard__txt">Análisis esencial para modernizar tu línea de forma accesible y eficiente.</p>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+                <section class="o_ferba_section o_ferba_section--white o_ferba_fq2">
+                    <div class="o_ferba_container">
+                        <div class="o_ferba_fq2__top">
+                            <div class="o_ferba_reveal">
+                                <span class="o_ferba_eyebrow o_ferba_fq2__eyebrow">Calibrado + Flex<span class="o_ferba_q">Q</span>uality</span>
+                                <h2 class="o_ferba_title"><span class="o_ferba_title__in">Del campo a calidad comercial</span></h2>
+                                <span class="o_ferba_rule"/>
+                                <p class="o_ferba_prosa">Dos frutos pueden tener el mismo peso y tamaño, pero diferir en apariencia o calidad superficial. FlexQuality te permite clasificar por calibre y por calidad, para un mejor destino comercial.</p>
+                            </div>
+                            <div t-if="maquina.fq_foto" class="o_ferba_fq2__foto o_ferba_reveal o_ferba_reveal--wipe">
+                                <img t-attf-src="/ferba_website/static/src/img/#{maquina.fq_foto}?v=#{ver}" t-att-alt="maquina.nombre" loading="lazy"/>
+                            </div>
+                        </div>
+                        <div class="o_ferba_fq2__cards" data-ferba-grupo="">
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/#{maquina.fq_calibre_icono or 'catalogo/_comunes/fq-card-color.webp'}?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Calibre</h3><p>Peso · Tamaño · Volumen</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-color.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Color</h3><p>Características visuales configuradas</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-calidad.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Calidad</h3><p>Inspección mediante FlexQuality</p>
+                            </div>
+                            <div class="o_ferba_fq2card o_ferba_reveal">
+                                <img t-attf-src="/ferba_website/static/src/img/catalogo/_comunes/fq-card-destino.webp?v=#{ver}" alt="" loading="lazy"/>
+                                <h3>Destino</h3><p>Asignación automática de salida</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </t>
 
             <!-- PDF · "APLICACIONES": intro + tarjetas con foto -->
             <section t-if="maquina.puntos('aplica')" class="o_ferba_section o_ferba_section--white o_ferba_section--tighttop">
@@ -538,10 +628,11 @@
             <!-- 6) galería -->
             <section t-if="maquina.media_ids" class="o_ferba_section o_ferba_section--light">
                 <div class="o_ferba_container">
-                    <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="llano" t-value="True"/>
-                        <t t-set="titulo" t-value="maquina.galeria_titulo or 'Galería de imágenes y video'"/>
-                    </t>
+                    <!-- cabecera a la izquierda con antetítulo, como en el PDF ("CONOCE … EN DETALLE") -->
+                    <div class="o_ferba_cabsec o_ferba_reveal">
+                        <span t-if="maquina.galeria_antetitulo" class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.galeria_antetitulo"/>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.galeria_titulo or 'Galería de imágenes y video'"/></h2>
+                    </div>
                     <div class="o_ferba_galeria">
                         <t t-foreach="maquina.media_ids" t-as="m">
                             <t t-if="m.es_video">

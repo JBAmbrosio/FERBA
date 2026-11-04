@@ -151,7 +151,11 @@
         flex-wrap: wrap;
         gap: 0.35rem;
         margin-bottom: 0.9rem;
+        // Una etiqueta larga ("Transporte continuo") parte en dos renglones; nunca se
+        // sale de la tarjeta.
+        .o_ferba_chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
     }
+    overflow-wrap: anywhere;
     &__enlace {
         margin-top: auto;
         display: inline-flex;
@@ -704,7 +708,10 @@
     display: flex; flex-wrap: wrap; gap: 1.4rem 2rem;
     margin-top: 2rem; padding-top: 1.6rem; border-top: 1px solid $ferba-gray-line;
 }
-.o_ferba_chip {
+// Solo los chips con icono de la sección de datos (antes la regla era `.o_ferba_chip` a
+// secas y pisaba a las etiquetas de las tarjetas de máquina: salían en versalitas con
+// interletrado y se salían de la tarjeta).
+.o_ferba_chips .o_ferba_chip, .o_ferba_chipcard .o_ferba_chip {
     display: inline-flex; align-items: center; gap: 0.6rem;
     font-weight: $ferba-fw-bold; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem;
     img { height: 28px; width: 28px; object-fit: contain; }
@@ -851,13 +858,18 @@
 
 // --- Hero de la ficha, como lo dibujan los PDF ---------------------------
 // Miga "MAQUINARIA ——— LAVADO Y TRATAMIENTO": la raíz en negrita, una raya roja y la
-// categoría en regular.
-.o_ferba_hero--ficha .o_ferba_eyebrow {
+// categoría en regular. Cada tramo es un ENLACE para volver hacia atrás (maquinaria →
+// categoría → máquina): la "cebolla" que pidió el usuario.
+.o_ferba_hero--catalogo .o_ferba_eyebrow {
     display: flex; align-items: center; flex-wrap: wrap; gap: 0.9rem;
     color: $ferba-white; letter-spacing: 0.1em;
+    a { color: inherit; text-decoration: none; transition: color $ferba-dur-hover ease; }
+    a:hover, a:focus-visible { color: $ferba-red; }
     .o_ferba_miga__sep { display: inline-block; width: 44px; height: 2px; background: $ferba-red; }
     .o_ferba_miga__b { font-weight: $ferba-fw-regular; letter-spacing: 0.06em; opacity: .92; }
 }
+// Las palabras nunca se salen de su caja (tarjetas, chips, títulos largos).
+.o_ferba_page { overflow-wrap: break-word; }
 // Orden del PDF: miga → título → regla roja → lema → intro → destacados → botones.
 // (pagina_base pinta el lema ANTES de la regla; aquí se reordena sin tocar el andamio.)
 .o_ferba_hero--ficha .o_ferba_hero__text {
@@ -896,4 +908,78 @@
     @media (max-width: 991px) {
         .o_ferba_hero__media { inset: auto; width: auto; height: 56vw; margin: 1.6rem $ferba-gutter 0; }
     }
+}
+
+// --- Tarjetas de CIFRA en datos técnicos (calibradores): icono + número rojo + etiqueta ---
+.o_ferba_statcards {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin-top: 1.4rem;
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+.o_ferba_statcard {
+    display: flex; align-items: center; gap: 0.9rem; padding: 1rem 1.1rem;
+    border: 2px solid $ferba-gray; border-radius: $ferba-radius-lg; background: $ferba-white;
+    img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+    &__txt { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
+    &__pre, &__etq { font-size: 0.66rem; font-weight: $ferba-fw-bold; letter-spacing: 0.14em; text-transform: uppercase; color: $ferba-ink; }
+    &__val { font-size: 1.75rem; font-weight: $ferba-fw-bold; color: $ferba-red; letter-spacing: 0.08em; line-height: 1; margin: 0.1rem 0; }
+}
+
+// --- CALIBRADO + FLEXQUALITY, sección oscura: criterios a la izquierda, Full/Lite a la derecha ---
+.o_ferba_fq__grid {
+    display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(1.6rem, 4vw, 3.5rem); align-items: start;
+    @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+// (dos clases: la regla genérica `.o_ferba_section--dark .o_ferba_eyebrow` lo pintaría rojo)
+.o_ferba_fq .o_ferba_fq__eyebrow { color: $ferba-white; font-weight: $ferba-fw-regular; letter-spacing: 0.06em; }
+.o_ferba_fq__txt { color: rgba(255, 255, 255, .86); font-size: 0.98rem; line-height: 1.6; max-width: 56ch; margin: 0 0 1rem; }
+.o_ferba_fq__criterios {
+    list-style: none; margin: 1.8rem 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 2.2rem 2.4rem; max-width: 36rem;
+    li {
+        display: flex; flex-direction: column; align-items: center; gap: 0.8rem; min-width: 96px;
+        font-size: 0.8rem; font-weight: $ferba-fw-bold; letter-spacing: 0.04em; text-transform: uppercase;
+        color: $ferba-white; text-align: center;
+    }
+    img { height: 54px; width: auto; max-width: 130px; object-fit: contain; }
+}
+.o_ferba_fq__cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+.o_ferba_fqcard {
+    background: #e7e7e7; color: $ferba-ink; text-align: center;
+    padding: 1.4rem 1rem 1.5rem; display: flex; flex-direction: column; align-items: center;
+    h3 { margin: 0 0 0.35rem; font-size: 1.35rem; font-weight: $ferba-fw-bold; }
+    &__sub { margin: 0 0 0.6rem; font-size: 0.92rem; line-height: 1.4; }
+    > img { width: 150px; max-width: 70%; height: auto; display: block; }
+    // la barra de cifras pisa el pie de la ilustración, como en el PDF
+    &__stat {
+        display: flex; justify-content: center; align-self: stretch; margin: -1.1rem 0.2rem 0.9rem;
+        padding: 0.5rem 0.4rem; background: #4a4a4a; color: $ferba-white; position: relative;
+        font-size: 1.02rem; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1;
+        > span { padding: 0 0.9rem; display: inline-flex; align-items: baseline; }
+        > span + span { border-left: 2px solid rgba(255, 255, 255, .75); }
+        b { font-size: 1.6rem; font-weight: $ferba-fw-bold; margin-right: 0.35rem; }
+        &--rojo { background: $ferba-red; }
+    }
+    &__txt { margin: 0; font-size: 0.85rem; line-height: 1.5; color: lighten($ferba-ink, 18%); max-width: 30ch; }
+}
+
+// --- CALIBRADO + FLEXQUALITY, sección blanca: "Del campo a calidad comercial" + 4 tarjetas ---
+.o_ferba_fq2__eyebrow { color: $ferba-ink; font-weight: $ferba-fw-regular; letter-spacing: 0.06em; }
+.o_ferba_fq2__top {
+    display: grid; grid-template-columns: 1fr 1.35fr; gap: clamp(1.6rem, 4vw, 3rem); align-items: center; margin-bottom: 1.8rem;
+    @media (max-width: 991px) { grid-template-columns: 1fr; }
+}
+.o_ferba_fq2__foto img { width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; border-radius: $ferba-radius-lg; display: block; }
+.o_ferba_fq2__cards {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.9rem; max-width: 1100px; margin: 0 auto;
+    @media (max-width: 991px) { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 575px) { grid-template-columns: 1fr; }
+}
+.o_ferba_fq2card {
+    background: $ferba-gray-light; border-radius: $ferba-radius-lg; padding: 1.6rem 1rem 1.4rem; text-align: center;
+    img { height: 64px; width: auto; max-width: 90px; object-fit: contain; margin-bottom: 0.9rem; }
+    h3 { margin: 0 0 0.5rem; font-size: 1.05rem; font-weight: $ferba-fw-bold; }
+    p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: lighten($ferba-ink, 20%); }
 }
