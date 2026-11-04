@@ -175,22 +175,83 @@ class FerbaMaquina(models.Model):
     chips = fields.Char(help="Hasta 3 etiquetas separadas por coma: 'Bolsa, Integración, Empaque continuo'.")
 
     # Hero de la ficha
+    hero_titulo = fields.Char(translate=True, help="Título del hero si difiere del nombre (p. ej. 'Volcador rotativo de bins').")
+    hero_badge_icono = fields.Char(help="Icono del badge flotante del hero (ruta bajo static/src/img/).")
+    hero_badge_prefijo = fields.Char(translate=True, help="Línea chica arriba del valor: 'Hasta'.")
+    hero_badge_valor = fields.Char(translate=True, help="Valor grande del badge flotante: '1,440'. Si está vacío no se pinta.")
+    hero_badge_etiqueta = fields.Char(translate=True, help="Línea chica bajo el valor: 'cajas/hora'.")
     lema = fields.Char(translate=True, help="Lema bajo el nombre en el hero.")
     intro = fields.Html(translate=True, sanitize=False)
     hero_imagen = fields.Char()
     destacado_ids = fields.One2many('ferba.maquina.destacado', 'maquina_id',
                                     help="Los 3 destacados del hero (valor + etiqueta).")
+    destacados_estilo = fields.Selection([
+        ('badge', 'Badge: icono + etiqueta corta (AJUSTABLE · MODULAR…)'),
+        ('valor', 'Valor grande + etiqueta (200 BINS/HORA · ACERO INOXIDABLE…)'),
+    ], default='badge')
 
-    # Cuerpo
+    # Cuerpo (bloques genéricos, se conservan por compatibilidad)
     bloque_ids = fields.One2many('ferba.maquina.bloque', 'maquina_id')
-    paso_ids = fields.One2many('ferba.maquina.paso', 'maquina_id')
-    pasos_antetitulo = fields.Char(translate=True)
-    pasos_titulo = fields.Char(translate=True)
 
-    # Datos técnicos
+    # --- Sección "protege toda la línea" (render + 3 puntos con icono) ---
+    protege_antetitulo = fields.Char(translate=True)
+    protege_titulo = fields.Char(translate=True)
+    protege_intro = fields.Html(translate=True, sanitize=False)
+    protege_imagen = fields.Char()
+
+    # --- EL RETO (tarjetas oscuras numeradas con ilustración) ---
+    reto_antetitulo = fields.Char(translate=True, default="El reto")
+    reto_titulo = fields.Html(translate=True, sanitize=False,
+                              help="Puede llevar <u> para subrayar en rojo.")
+    reto_intro = fields.Text(translate=True)
+
+    # --- CÓMO FUNCIONA (pasos numerados + diagrama) ---
+    paso_ids = fields.One2many('ferba.maquina.paso', 'maquina_id')
+    pasos_antetitulo = fields.Char(translate=True, default="Cómo funciona")
+    pasos_titulo = fields.Char(translate=True)
+    pasos_intro = fields.Text(translate=True)
+    diagrama_imagen = fields.Char()
+    diagrama_leyenda = fields.Char(
+        translate=True,
+        help="Etiquetas del diagrama separadas por |: 'Producto menor al calibre|Producto que continúa'.")
+
+    # --- AJUSTE REGULABLE (render + A/B/C) ---
+    ajuste_antetitulo = fields.Char(translate=True)
+    ajuste_titulo = fields.Char(translate=True)
+    ajuste_intro = fields.Text(translate=True)
+    ajuste_imagen = fields.Char()
+    ajuste_caption = fields.Char(translate=True, help="Título bajo el render (p. ej. 'Mecanismo de regulación').")
+    ajuste_subcaption = fields.Char(translate=True, help="Línea bajo el título del render, dentro de la tarjeta.")
+    ajuste_nota = fields.Char(translate=True, help="Nota en cursiva al pie de la sección.")
+
+    # --- DATOS TÉCNICOS (tabla de specs + checklist/beneficios + chips) ---
+    datos_antetitulo = fields.Char(translate=True, default="Datos técnicos")
+    datos_tema = fields.Selection([('claro', 'Claro'), ('oscuro', 'Oscuro')],
+                                  default='claro', help="Fondo de la sección de datos técnicos.")
+    beneficios_antetitulo = fields.Char(translate=True, default="Beneficios principales")
+    beneficios_titulo = fields.Char(translate=True,
+                                    help="Título de los beneficios (columna de datos o sección propia).")
+    beneficios_pos = fields.Selection([
+        ('datos', 'En la columna derecha de datos técnicos'),
+        ('seccion', 'Sección propia oscura (título a la izquierda, tarjetas a la derecha)'),
+    ], default='datos', help="Dónde se pintan los puntos de sección 'beneficio'.")
     specs_titulo = fields.Char(translate=True, default="Especificaciones principales")
     spec_ids = fields.One2many('ferba.maquina.spec', 'maquina_id')
-    specs_foto = fields.Char(help="Foto grande junto a la tabla de specs.")
+    specs_foto = fields.Char(help="Foto grande junto a la tabla de specs (opcional).")
+    caracteristicas_titulo = fields.Char(translate=True, default="Características destacadas")
+
+    # --- APLICACIONES ---
+    aplica_antetitulo = fields.Char(translate=True, default="Aplicaciones")
+    aplica_titulo = fields.Char(translate=True)
+    aplica_intro = fields.Text(translate=True)
+
+    # Puntos flexibles de varias secciones (se filtran por `seccion` en la vista)
+    punto_ids = fields.One2many('ferba.maquina.punto', 'maquina_id')
+
+    def puntos(self, seccion):
+        """Puntos de una sección, ordenados. Uso en QWeb: maquina.puntos('reto')."""
+        self.ensure_one()
+        return self.punto_ids.filtered(lambda p: p.seccion == seccion)
 
     # Galería
     galeria_antetitulo = fields.Char(translate=True)
@@ -297,6 +358,40 @@ class FerbaMaquinaBloqueItem(models.Model):
     bloque_id = fields.Many2one('ferba.maquina.bloque', required=True, ondelete='cascade')
     icono = fields.Char()
     titulo = fields.Char(required=True, translate=True)
+    texto = fields.Text(translate=True)
+    secuencia = fields.Integer(default=10)
+
+
+class FerbaMaquinaPunto(models.Model):
+    """Punto de una de las secciones fijas de la ficha (plantilla del PDF).
+
+    Un solo modelo cubre varias secciones, discriminadas por `seccion`:
+      - protege: los 3 puntos con icono de 'protege toda la línea' (icono+titulo+texto).
+      - reto: las tarjetas oscuras numeradas de 'El reto' (imagen ilustrada+titulo+texto).
+      - ajuste: A/B/C de 'Ajuste regulable' (la letra sale del orden; titulo+texto).
+      - caracteristica: ítem del checklist de 'Características destacadas' (titulo).
+      - chip: chip destacado al pie de datos técnicos (icono+titulo).
+      - aplica: tarjeta de 'Aplicaciones' (imagen+titulo+texto).
+    """
+    _name = 'ferba.maquina.punto'
+    _description = 'Ferba — punto de sección de máquina'
+    _order = 'secuencia, id'
+    _rec_name = 'titulo'
+
+    maquina_id = fields.Many2one('ferba.maquina', required=True, ondelete='cascade')
+    seccion = fields.Selection([
+        ('protege', 'Protege la línea'),
+        ('reto', 'El reto'),
+        ('ajuste', 'Ajuste regulable (A/B/C)'),
+        ('beneficio', 'Beneficio (tarjeta icono, col. de datos)'),
+        ('caracteristica', 'Característica (checklist)'),
+        ('chip', 'Chip destacado'),
+        ('aplica', 'Aplicación'),
+    ], required=True, index=True)
+    icono = fields.Char(help="Ruta del icono/SVG bajo static/src/img/.")
+    imagen = fields.Char(help="Imagen bajo static/src/img/ (reto, aplicaciones).")
+    titulo = fields.Char(translate=True)
+    subtitulo = fields.Char(translate=True, help="Línea corta en rojo bajo el título (beneficios).")
     texto = fields.Text(translate=True)
     secuencia = fields.Integer(default=10)
 

@@ -108,9 +108,15 @@ class CatalogoFerba(http.Controller):
         # render es fijo y coincide con los PDFs: splits -> beneficios (tarjetas
         # oscuras) -> pasos -> specs -> características (tarjetas claras) -> galería.
         bloques = maq.bloque_ids
+        # Versión del módulo como cache-buster de las imágenes de la ficha: cada
+        # republicación cambia la URL (?v=...) y el navegador no sirve la vieja
+        # (los static llevan max-age de 7 días).
+        modulo = request.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ferba_website')], limit=1)
         vals = {
             'maquina': maq,
             'categoria': maq.categoria_id,
+            'ver': (modulo.installed_version or '0').replace('.', ''),
             'splits': bloques.filtered(lambda b: b.tipo == 'split'),
             'beneficios': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'oscuro'),
             'caracteristicas': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'claro'),

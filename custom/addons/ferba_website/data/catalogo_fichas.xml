@@ -9,782 +9,1117 @@
 
     <!-- ================= RECEPCIÓN ================= -->
 
-    <!-- Volcador de bins rotativo -->
+    <!-- Volcador rotativo de bins  (fiel al PDF: hero con 3 destacados valor+etiqueta,
+         split con render, beneficios como sección oscura, 5 pasos con foto, datos
+         oscuro con foto a sangre, 5 características, galería con video) -->
     <record id="maq_volcador_bins_rot" model="ferba.maquina">
+        <field name="hero_titulo">Volcador rotativo de bins</field>
         <field name="lema">Descarga automática y controlada para mantener tu línea en movimiento</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/volcador-bins-rot/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/volcador-bins/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Volcador Rotativo de Bins FERBA está diseñado para realizar la descarga del producto contenido en bins e incorporarlo de manera continua a las siguientes etapas de la línea postcosecha.</p>
         ]]></field>
-        <field name="pasos_titulo">Del bin recibido a la línea alimentada</field>
-        <field name="specs_foto">catalogo/recepcion/fichas/volcador-bins-rot/specs.webp</field>
+        <field name="destacados_estilo">valor</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Más productividad desde el inicio</field>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">De la preparación del sustrato a la charola lista</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/recepcion/volcador-bins/datos-foto.webp</field>
+
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de bins?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Volcador rotativo de bins: descarga automática | FERBA</field>
-        <field name="meta_descripcion">El Volcador Rotativo de Bins FERBA descarga el producto de los bins e incorpora el flujo a la línea postcosecha: hasta 200 bins/hora, control automático o manual, acero inoxidable.</field>
+        <field name="meta_titulo">Volcador rotativo de bins: descarga automática hasta 200 bins/hora | FERBA</field>
+        <field name="meta_descripcion">El Volcador Rotativo de Bins FERBA descarga hasta 200 bins por hora en modo automático o manual, con sistema neumático de ajuste y doble transportador, para alimentar de forma continua la línea postcosecha.</field>
     </record>
-    <record id="dest_volc_bins_1" model="ferba.maquina.destacado">
+
+    <!-- hero: destacados (icono + valor grande + etiqueta) -->
+    <record id="dest_vbr_1" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
-        <field name="valor">200</field><field name="etiqueta">bins por hora</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/dest-capacidad.webp</field>
+        <field name="valor">200</field><field name="etiqueta">bins/hora</field>
     </record>
-    <record id="dest_volc_bins_2" model="ferba.maquina.destacado">
+    <record id="dest_vbr_2" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/dest-rotativo.webp</field>
+        <field name="valor">Rotativo</field>
+    </record>
+    <record id="dest_vbr_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/dest-acero.webp</field>
         <field name="valor">Acero</field><field name="etiqueta">inoxidable</field>
     </record>
-    <record id="dest_volc_bins_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
-        <field name="valor">Rotativo</field><field name="etiqueta">sistema de volteo</field>
-    </record>
-    <record id="blo_volc_bins_split" model="ferba.maquina.bloque">
+
+    <!-- split: "descarga de bins integrada" + render -->
+    <record id="blo_vbr_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución para iniciar la línea</field>
         <field name="titulo">Descarga de bins integrada al proceso postcosecha</field>
-        <field name="imagen">catalogo/recepcion/fichas/volcador-bins-rot/split.webp</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>La recepción del producto marca el inicio de toda la operación. Por eso, contar con un sistema de descarga continuo ayuda a mantener alimentadas las siguientes etapas del proceso.</p>
-            <p>El Volcador Rotativo de Bins FERBA recibe el contenedor, realiza el movimiento de volteo y descarga su contenido para incorporarlo al flujo de la línea.</p>
+            <p>El Volcador Rotativo de Bins FERBA recibe el contenedor, realiza el movimiento de volteo y descarga de su contenido para incorporarlo al flujo de la línea.</p>
             <p>Su operación puede realizarse en modo automático o manual, permitiendo adaptarse a diferentes necesidades de trabajo.</p>
         ]]></field>
     </record>
-    <record id="blo_volc_bins_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_volc_bins_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Más productividad desde el inicio</field>
+
+    <!-- beneficios principales (sección oscura) -->
+    <record id="pt_vbr_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ben-capacidad.webp</field>
+        <field name="titulo">Alta capacidad de operación</field>
+        <field name="subtitulo">Hasta 200 bins por hora</field>
         <field name="texto">Diseñado para mantener un flujo continuo de descarga dentro de operaciones postcosecha de alta demanda.</field>
     </record>
-    <record id="it_volc_bins_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Alta capacidad de operación</field>
-        <field name="texto">Hasta 200 bins por hora.</field>
-    </record>
-    <record id="it_volc_bins_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_benef"/><field name="secuencia">30</field>
+    <record id="pt_vbr_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ben-control.webp</field>
         <field name="titulo">Operación automática o manual</field>
         <field name="texto">El sistema permite trabajar bajo diferentes modalidades de control según las necesidades de operación.</field>
     </record>
-    <record id="it_volc_bins_b4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_benef"/><field name="secuencia">40</field>
+    <record id="pt_vbr_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ben-integracion.webp</field>
         <field name="titulo">Diseñado para integración</field>
         <field name="texto">Puede complementarse con transportadores, sistemas de estibado y otros equipos para formar una solución completa.</field>
     </record>
-    <record id="paso_volc_bins_1" model="ferba.maquina.paso">
+
+    <!-- una solución integral: 5 pasos con foto -->
+    <record id="paso_vbr_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/paso-1.webp</field>
         <field name="titulo">Recepción</field>
-        <field name="texto">El bin con producto ingresa al sistema y se posiciona para iniciar el ciclo de descarga.</field>
+        <field name="texto">El Bin con producto ingresa al sistema y se posiciona para iniciar el ciclo de descarga.</field>
     </record>
-    <record id="paso_volc_bins_2" model="ferba.maquina.paso">
+    <record id="paso_vbr_2" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/paso-2.webp</field>
         <field name="titulo">Ajuste y posicionamiento</field>
         <field name="texto">El sistema neumático permite realizar el ajuste necesario del bin antes del movimiento de volteo.</field>
     </record>
-    <record id="paso_volc_bins_3" model="ferba.maquina.paso">
+    <record id="paso_vbr_3" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/paso-3.webp</field>
         <field name="titulo">Volteo rotativo</field>
         <field name="texto">El equipo realiza el movimiento controlado de rotación para efectuar la descarga.</field>
     </record>
-    <record id="paso_volc_bins_4" model="ferba.maquina.paso">
+    <record id="paso_vbr_4" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/paso-4.webp</field>
         <field name="titulo">Transferencia del producto</field>
         <field name="texto">El producto es recibido por el sistema de transporte y continúa hacia las siguientes etapas de la línea.</field>
     </record>
-    <record id="paso_volc_bins_5" model="ferba.maquina.paso">
+    <record id="paso_vbr_5" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">50</field>
-        <field name="titulo">Salida del bin</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/paso-5.webp</field>
+        <field name="titulo">Salida del Bin</field>
         <field name="texto">Una vez completado el ciclo, el contenedor queda listo para continuar dentro del flujo operativo.</field>
     </record>
-    <record id="spec_volc_bins_1" model="ferba.maquina.spec">
+
+    <!-- datos técnicos -->
+    <record id="spec_vbr_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 200 bins/hora</field>
+    </record>
+    <record id="spec_vbr_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
         <field name="etiqueta">Tipo de volcador</field><field name="valor">Rotativo</field>
     </record>
-    <record id="spec_volc_bins_2" model="ferba.maquina.spec">
-        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
-        <field name="etiqueta">Capacidad</field><field name="valor">Hasta 200 bins / hora</field>
-    </record>
-    <record id="spec_volc_bins_3" model="ferba.maquina.spec">
+    <record id="spec_vbr_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
         <field name="etiqueta">Modo de control</field><field name="valor">Automático / Manual</field>
     </record>
-    <record id="spec_volc_bins_4" model="ferba.maquina.spec">
+    <record id="spec_vbr_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">40</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+        <field name="etiqueta">Tipo de alimentación</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
     </record>
-    <record id="blo_volc_bins_carac" model="ferba.maquina.bloque">
+
+    <!-- características del equipo: 5 tarjetas claras con icono -->
+    <record id="blo_vbr_carac" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
         <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características del equipo</field>
+        <field name="titulo">Construido para una operación continua</field>
     </record>
-    <record id="it_volc_bins_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_carac"/><field name="secuencia">10</field>
+    <record id="it_vbr_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vbr_carac"/><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ic-recubrimiento.webp</field>
         <field name="titulo">Recubrimiento anticorrosivo</field>
-        <field name="texto">Componentes protegidos mediante un acabado destinado a mejorar su comportamiento frente a condiciones de trabajo exigentes.</field>
+        <field name="texto">Componentes protegidos mediante acabado destinado a mejorar su comportamiento frente a condiciones de trabajo exigentes.</field>
     </record>
-    <record id="it_volc_bins_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_carac"/><field name="secuencia">20</field>
+    <record id="it_vbr_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vbr_carac"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ic-doble-banda.webp</field>
         <field name="titulo">Doble transportador de banda</field>
         <field name="texto">Sistema de transporte incorporado para acompañar el flujo operativo del equipo.</field>
     </record>
-    <record id="it_volc_bins_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_carac"/><field name="secuencia">30</field>
+    <record id="it_vbr_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vbr_carac"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ic-neumatico.webp</field>
         <field name="titulo">Sistema neumático de ajuste</field>
         <field name="texto">Permite realizar el ajuste necesario del bin dentro del ciclo de operación.</field>
     </record>
-    <record id="it_volc_bins_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_carac"/><field name="secuencia">40</field>
+    <record id="it_vbr_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vbr_carac"/><field name="secuencia">40</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ic-mantenimiento.webp</field>
         <field name="titulo">Poco mantenimiento</field>
         <field name="texto">Diseñado para facilitar la operación y reducir necesidades frecuentes de intervención.</field>
     </record>
-    <record id="it_volc_bins_c5" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_bins_carac"/><field name="secuencia">50</field>
+    <record id="it_vbr_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vbr_carac"/><field name="secuencia">50</field>
+        <field name="icono">catalogo/recepcion/volcador-bins/ic-operacion.webp</field>
         <field name="titulo">Operación sencilla</field>
         <field name="texto">Configuración orientada a facilitar el uso cotidiano del equipo.</field>
     </record>
 
-    <!-- Volcador de cajas por torsión -->
+    <!-- galería: video (miniatura) + 4 fotos -->
+    <record id="media_vbr_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/galeria-video.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_vbr_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/galeria-2.webp</field>
+    </record>
+    <record id="media_vbr_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/galeria-3.webp</field>
+    </record>
+    <record id="media_vbr_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/galeria-4.webp</field>
+    </record>
+    <record id="media_vbr_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/volcador-bins/galeria-5.webp</field>
+    </record>
+
+    <!-- Volcador de cajas por torsión  (fiel al PDF: hero con badge "HASTA 900 CAJAS/HORA",
+         split con render, beneficios en sección oscura, datos en blanco con tarjeta de
+         destacados a la derecha; sin pasos ni galería) -->
     <record id="maq_volcador_cajas_tor" model="ferba.maquina">
         <field name="lema">Descarga rápida y segura mediante un sistema de inclinación progresiva</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/volcador-cajas-torsion/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/volcador-cajas-torsion/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Volcador de Cajas por Torsión FERBA está diseñado para vaciar cajas de producto de manera continua, utilizando dos líneas de cadenas que inclinan progresivamente cada contenedor durante su recorrido.</p>
             <p class="o_ferba_hero__lead">El movimiento descendente de la caja favorece una descarga eficiente, ayudando a evitar que producto permanezca en su interior antes de continuar hacia las siguientes etapas de la línea postcosecha.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/recepcion/fichas/volcador-cajas-torsion/specs.webp</field>
+        <field name="hero_badge_icono">catalogo/recepcion/volcador-cajas-torsion/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">900</field>
+        <field name="hero_badge_etiqueta">cajas/hora</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Más productividad desde el inicio</field>
+
+        <field name="datos_tema">claro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Volcador de cajas por torsión: descarga progresiva | FERBA</field>
-        <field name="meta_descripcion">El Volcador de Cajas por Torsión FERBA vacía cajas de forma continua con dos líneas de cadenas de inclinación progresiva: 12–15 cajas/minuto, acero inoxidable y acero negro.</field>
+        <field name="meta_titulo">Volcador de cajas por torsión: descarga progresiva hasta 900 cajas/hora | FERBA</field>
+        <field name="meta_descripcion">El Volcador de Cajas por Torsión FERBA vacía de 12 a 15 cajas por minuto con dos líneas de cadenas que inclinan progresivamente el contenedor, integrando la descarga en el mismo flujo de transporte.</field>
     </record>
-    <record id="dest_volc_tor_1" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">10</field>
-        <field name="valor">720–900</field><field name="etiqueta">cajas por hora</field>
-    </record>
-    <record id="dest_volc_tor_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">20</field>
-        <field name="valor">Acero</field><field name="etiqueta">inox. y acero negro</field>
-    </record>
-    <record id="dest_volc_tor_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">30</field>
-        <field name="valor">Torsión</field><field name="etiqueta">sistema de volteo</field>
-    </record>
-    <record id="blo_volc_tor_split" model="ferba.maquina.bloque">
+
+    <record id="blo_vct_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución para descarga progresiva</field>
         <field name="titulo">De la caja llena al producto dentro de la línea</field>
-        <field name="imagen">catalogo/recepcion/fichas/volcador-cajas-torsion/split.webp</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-torsion/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>El Volcador de Cajas por Torsión ofrece una alternativa de descarga donde la caja cambia progresivamente de posición durante su desplazamiento.</p>
             <p>Dos líneas de cadenas controlan el movimiento del contenedor, generando la inclinación necesaria para liberar el producto mientras la caja continúa avanzando.</p>
             <p>Este principio permite integrar el vaciado dentro del mismo flujo de transporte, evitando una operación independiente de descarga.</p>
         ]]></field>
     </record>
-    <record id="blo_volc_tor_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_volc_tor_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_tor_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Más productividad desde el inicio</field>
+
+    <record id="pt_vct_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/ben-capacidad.webp</field>
+        <field name="titulo">Descarga continua</field>
+        <field name="subtitulo">12-15 cajas por minuto</field>
         <field name="texto">Capacidad diseñada para mantener una alimentación constante hacia las siguientes etapas de proceso.</field>
     </record>
-    <record id="it_volc_tor_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_tor_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Descarga continua</field>
-        <field name="texto">Entre 12 y 15 cajas por minuto, manteniendo el flujo hacia las siguientes etapas.</field>
-    </record>
-    <record id="it_volc_tor_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_tor_benef"/><field name="secuencia">30</field>
+    <record id="pt_vct_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/ben-torsion.webp</field>
         <field name="titulo">Sistema por torsión</field>
+        <field name="subtitulo">Inclinación progresiva</field>
         <field name="texto">El movimiento de las cadenas modifica progresivamente la posición de la caja para realizar el vaciado durante su recorrido.</field>
     </record>
-    <record id="it_volc_tor_b4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_tor_benef"/><field name="secuencia">40</field>
+    <record id="pt_vct_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/ben-eficiente.webp</field>
         <field name="titulo">Descarga eficiente</field>
         <field name="texto">El movimiento descendente ayuda a liberar el producto contenido en la caja y reducir la posibilidad de que permanezcan piezas en su interior.</field>
     </record>
-    <record id="spec_volc_tor_1" model="ferba.maquina.spec">
+
+    <record id="spec_vct_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">10</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">12-15 cajas / minuto</field>
+    </record>
+    <record id="spec_vct_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">20</field>
         <field name="etiqueta">Tipo de volcador</field><field name="valor">Torsión</field>
     </record>
-    <record id="spec_volc_tor_2" model="ferba.maquina.spec">
-        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">20</field>
-        <field name="etiqueta">Capacidad</field><field name="valor">12–15 cajas / minuto</field>
-    </record>
-    <record id="spec_volc_tor_3" model="ferba.maquina.spec">
+    <record id="spec_vct_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">30</field>
-        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field>
     </record>
-    <record id="spec_volc_tor_4" model="ferba.maquina.spec">
+    <record id="spec_vct_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">40</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+        <field name="etiqueta">Tipo de alimentación</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+    </record>
+    <record id="spec_vct_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="secuencia">50</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero negro</field>
     </record>
 
-    <!-- Volcador de cajas rotativo 180° -->
+    <!-- tarjeta gris de destacados a la derecha de los datos -->
+    <record id="pt_vct_chip1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">chip</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/chip-acero.webp</field>
+        <field name="titulo">Acero inoxidable y acero negro</field>
+    </record>
+    <record id="pt_vct_chip2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">chip</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/chip-capacidad.webp</field>
+        <field name="titulo">720-900 cajas/hora</field>
+    </record>
+    <record id="pt_vct_chip3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">chip</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-torsion/chip-torsion.webp</field>
+        <field name="titulo">Sistema por torsión</field>
+    </record>
+
+    <!-- Volcador rotativo de cajas 180°  (fiel al PDF: hero con badge flotante
+         "HASTA 1,440 CAJAS/HORA", split con render, beneficios en sección oscura,
+         5 pasos con foto, datos oscuro con foto a sangre, 4 características, galería) -->
     <record id="maq_volcador_cajas_rot" model="ferba.maquina">
+        <field name="hero_titulo">Volcador rotativo de cajas 180°</field>
         <field name="lema">Descarga continua de cajas para mantener el producto en movimiento</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/volcador-cajas-rotativo/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/volcador-cajas-rotativo/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Volcador de Cajas Doble Rotativo 180° FERBA está diseñado para automatizar la descarga de producto contenido en cajas e incorporarlo de manera continua a las siguientes etapas de la línea postcosecha.</p>
             <p class="o_ferba_hero__lead">Su sistema de volteo rotativo permite trabajar a alta velocidad, combinando transporte y descarga dentro de una operación automatizada y compacta.</p>
         ]]></field>
+        <field name="hero_badge_icono">catalogo/recepcion/volcador-cajas-rotativo/hero-gauge.webp</field>
+        <field name="hero_badge_prefijo">Hasta</field>
+        <field name="hero_badge_valor">1,440</field>
+        <field name="hero_badge_etiqueta">cajas/hora</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Más productividad desde el inicio</field>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
         <field name="pasos_titulo">De la caja al producto listo para continuar</field>
-        <field name="specs_foto">catalogo/recepcion/fichas/volcador-cajas-rotativo/specs.webp</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/recepcion/volcador-cajas-rotativo/datos-foto.webp</field>
+
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Volcador rotativo de cajas 180°: descarga continua | FERBA</field>
-        <field name="meta_descripcion">El Volcador de Cajas Doble Rotativo 180° FERBA descarga cajas de forma continua a alta velocidad: hasta 1,440 cajas/hora, volteo 180°, control automático o manual.</field>
+        <field name="meta_titulo">Volcador rotativo de cajas 180°: hasta 1,440 cajas/hora | FERBA</field>
+        <field name="meta_descripcion">El Volcador de Cajas Doble Rotativo 180° FERBA descarga hasta 24 cajas por minuto con volteo rotativo, en modo automático o manual, para alimentar de forma continua la línea postcosecha.</field>
     </record>
-    <record id="dest_volc_rot_1" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
-        <field name="valor">1,440</field><field name="etiqueta">cajas por hora</field>
-    </record>
-    <record id="dest_volc_rot_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
-        <field name="valor">180°</field><field name="etiqueta">volteo rotativo</field>
-    </record>
-    <record id="dest_volc_rot_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">30</field>
-        <field name="valor">Doble</field><field name="etiqueta">sistema rotativo</field>
-    </record>
-    <record id="blo_volc_rot_split" model="ferba.maquina.bloque">
+
+    <record id="blo_vcr_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución para descarga continua</field>
         <field name="titulo">De la caja llena al flujo de proceso</field>
-        <field name="imagen">catalogo/recepcion/fichas/volcador-cajas-rotativo/split.webp</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>En líneas donde el producto llega contenido en cajas, la descarga debe realizarse de forma continua para evitar interrupciones en las etapas posteriores.</p>
             <p>El Volcador de Cajas Doble Rotativo FERBA recibe las cajas, las transporta hacia el sistema de volteo y realiza una rotación de 180° para liberar el producto y continuar el flujo de la operación.</p>
             <p>Su configuración permite trabajar en modo automático o manual, facilitando su integración en diferentes tipos de líneas.</p>
         ]]></field>
     </record>
-    <record id="blo_volc_rot_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_volc_rot_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Más productividad desde el inicio</field>
+
+    <record id="pt_vcr_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ben-capacidad.webp</field>
+        <field name="titulo">Alta capacidad de operación</field>
+        <field name="subtitulo">Hasta 1440 cajas por hora</field>
         <field name="texto">Capacidad de vaciado de hasta 24 cajas por minuto, diseñada para mantener un flujo continuo en operaciones de alta demanda.</field>
     </record>
-    <record id="it_volc_rot_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Alta capacidad de operación</field>
-        <field name="texto">Hasta 1,440 cajas por hora.</field>
-    </record>
-    <record id="it_volc_rot_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_benef"/><field name="secuencia">30</field>
+    <record id="pt_vcr_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ben-rotativo.webp</field>
         <field name="titulo">Doble sistema rotativo</field>
+        <field name="subtitulo">Volteo 180°</field>
         <field name="texto">Sistema desarrollado para realizar la descarga de manera continua mediante movimiento rotativo.</field>
     </record>
-    <record id="it_volc_rot_b4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_benef"/><field name="secuencia">40</field>
+    <record id="pt_vcr_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ben-control.webp</field>
         <field name="titulo">Operación automática o manual</field>
         <field name="texto">Permite adaptar el funcionamiento a distintas condiciones de producción y necesidades de operación.</field>
     </record>
-    <record id="paso_volc_rot_1" model="ferba.maquina.paso">
+
+    <record id="paso_vcr_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-1.webp</field>
         <field name="titulo">Recepción</field>
         <field name="texto">La caja con producto ingresa al sistema mediante el transportador de alimentación.</field>
     </record>
-    <record id="paso_volc_rot_2" model="ferba.maquina.paso">
+    <record id="paso_vcr_2" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-2.webp</field>
         <field name="titulo">Ajuste y posicionamiento</field>
         <field name="texto">La caja es colocada dentro del mecanismo rotativo para iniciar el ciclo de descarga.</field>
     </record>
-    <record id="paso_volc_rot_3" model="ferba.maquina.paso">
+    <record id="paso_vcr_3" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-3.webp</field>
         <field name="titulo">Rotación 180°</field>
         <field name="texto">El sistema realiza el movimiento de volteo para liberar el producto contenido en la caja.</field>
     </record>
-    <record id="paso_volc_rot_4" model="ferba.maquina.paso">
+    <record id="paso_vcr_4" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-4.webp</field>
         <field name="titulo">Descarga</field>
         <field name="texto">El producto se transfiere hacia la siguiente etapa del proceso postcosecha.</field>
     </record>
-    <record id="paso_volc_rot_5" model="ferba.maquina.paso">
+    <record id="paso_vcr_5" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-5.webp</field>
         <field name="titulo">Salida de caja</field>
         <field name="texto">La caja vacía continúa su recorrido para reincorporarse al flujo de manejo de contenedores.</field>
     </record>
-    <record id="spec_volc_rot_1" model="ferba.maquina.spec">
+
+    <record id="spec_vcr_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
-        <field name="etiqueta">Tipo de volcador</field><field name="valor">Rotativo</field>
-    </record>
-    <record id="spec_volc_rot_2" model="ferba.maquina.spec">
-        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
         <field name="etiqueta">Capacidad</field><field name="valor">24 cajas / minuto</field>
     </record>
-    <record id="spec_volc_rot_3" model="ferba.maquina.spec">
+    <record id="spec_vcr_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
+        <field name="etiqueta">Tipo de volcador</field><field name="valor">Rotativo</field>
+    </record>
+    <record id="spec_vcr_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">30</field>
         <field name="etiqueta">Modo de control</field><field name="valor">Automático / Manual</field>
     </record>
-    <record id="spec_volc_rot_4" model="ferba.maquina.spec">
+    <record id="spec_vcr_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">40</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+        <field name="etiqueta">Tipo de alimentación</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
     </record>
-    <record id="blo_volc_rot_carac" model="ferba.maquina.bloque">
+
+    <record id="blo_vcr_carac" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">30</field>
         <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características del equipo</field>
+        <field name="titulo">Construido para una operación continua</field>
     </record>
-    <record id="it_volc_rot_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_carac"/><field name="secuencia">10</field>
+    <record id="it_vcr_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vcr_carac"/><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ic-acero.webp</field>
         <field name="titulo">Acero negro</field>
         <field name="texto">Estructura principal fabricada para soportar las condiciones mecánicas requeridas durante la operación.</field>
     </record>
-    <record id="it_volc_rot_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_carac"/><field name="secuencia">20</field>
+    <record id="it_vcr_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vcr_carac"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ic-contacto.webp</field>
         <field name="titulo">Contacto con producto en acero inoxidable</field>
         <field name="texto">Las partes que tienen contacto directo con la fruta están fabricadas en acero inoxidable.</field>
     </record>
-    <record id="it_volc_rot_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_carac"/><field name="secuencia">30</field>
+    <record id="it_vcr_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vcr_carac"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ic-banda.webp</field>
         <field name="titulo">Banda antideslizante</field>
         <field name="texto">Transportador equipado con banda diseñada para ayudar a mantener estabilidad durante el movimiento de las cajas.</field>
     </record>
-    <record id="it_volc_rot_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_volc_rot_carac"/><field name="secuencia">40</field>
+    <record id="it_vcr_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_vcr_carac"/><field name="secuencia">40</field>
+        <field name="icono">catalogo/recepcion/volcador-cajas-rotativo/ic-control.webp</field>
         <field name="titulo">Control automático / manual</field>
         <field name="texto">Configuración que permite adaptar la operación a las necesidades de cada línea.</field>
     </record>
 
-    <!-- Tanque de recepción -->
+    <record id="media_vcr_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/galeria-video.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_vcr_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/galeria-2.webp</field>
+    </record>
+    <record id="media_vcr_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-3.webp</field>
+    </record>
+    <record id="media_vcr_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/paso-2.webp</field>
+    </record>
+    <record id="media_vcr_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/galeria-5.webp</field>
+    </record>
+
+    <!-- Tanque de recepción  (fiel al PDF: hero con 3 destacados valor+etiqueta, split
+         con render, beneficios en sección oscura, 5 pasos con foto, datos oscuro con
+         foto a sangre; sin características ni galería) -->
     <record id="maq_tanque_recepcion" model="ferba.maquina">
         <field name="lema">Recepción cuidadosa del producto desde el inicio de tu línea</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/tanque-recepcion/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/tanque-recepcion/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Tanque de Recepción FERBA permite recibir frutas y hortalizas provenientes directamente de campo o de cámaras frigoríficas, utilizando agua como medio para facilitar su incorporación controlada a la línea postcosecha.</p>
             <p class="o_ferba_hero__lead">Dependiendo de las necesidades del proceso, el agua puede acondicionarse para integrar operaciones adicionales como desinfección o preenfriado, mientras que el diseño del tanque puede adaptarse al espacio disponible en cada instalación.</p>
         ]]></field>
+        <field name="destacados_estilo">valor</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Más productividad desde el inicio</field>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
         <field name="pasos_titulo">De la recepción a la alimentación de la línea</field>
-        <field name="specs_foto">catalogo/recepcion/fichas/tanque-recepcion/specs.webp</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/recepcion/tanque-recepcion/datos-foto.webp</field>
+
         <field name="cierre_titulo">¿Necesitas integrar un tanque de recepción a tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Tanque de recepción: recepción con agua | FERBA</field>
-        <field name="meta_descripcion">El Tanque de Recepción FERBA recibe el producto con agua para un manejo más cuidadoso desde el inicio de la línea: acero inoxidable, diseño adaptable y procesos opcionales de desinfección o preenfriado.</field>
+        <field name="meta_titulo">Tanque de recepción: recepción cuidadosa mediante agua | FERBA</field>
+        <field name="meta_descripcion">El Tanque de Recepción FERBA recibe frutas y hortalizas de campo o cámara usando agua como medio de recepción, con opción de desinfección o preenfriado, en acero inoxidable y formato adaptable al proyecto.</field>
     </record>
-    <record id="dest_tanque_1" model="ferba.maquina.destacado">
+
+    <record id="dest_tnq_1" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">10</field>
-        <field name="valor">Agua</field><field name="etiqueta">medio de recepción</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/dest-diseno.webp</field>
+        <field name="valor">Diseño</field><field name="etiqueta">adaptable</field>
     </record>
-    <record id="dest_tanque_2" model="ferba.maquina.destacado">
+    <record id="dest_tnq_2" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/dest-acero.webp</field>
         <field name="valor">Acero</field><field name="etiqueta">inoxidable</field>
     </record>
-    <record id="dest_tanque_3" model="ferba.maquina.destacado">
+    <record id="dest_tnq_3" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">30</field>
-        <field name="valor">Adaptable</field><field name="etiqueta">diseño a medida</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/dest-recepcion.webp</field>
+        <field name="valor">Recepción</field><field name="etiqueta">mediante agua</field>
     </record>
-    <record id="blo_tanque_split" model="ferba.maquina.bloque">
+
+    <record id="blo_tnq_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una recepción diseñada para proteger el producto</field>
         <field name="titulo">Del campo al proceso con un manejo más cuidadoso</field>
-        <field name="imagen">catalogo/recepcion/fichas/tanque-recepcion/split.webp</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>La recepción es uno de los primeros puntos críticos de una línea postcosecha. El Tanque de Recepción FERBA permite incorporar el producto utilizando agua como medio de recepción y desplazamiento, ayudando a reducir impactos durante esta etapa inicial.</p>
             <p>El producto puede proceder directamente de campo o de almacenamiento refrigerado y continuar posteriormente hacia sistemas de transporte, lavado, tratamiento, selección u otras etapas de proceso.</p>
             <p>La configuración del equipo puede adaptarse a las condiciones físicas de cada proyecto.</p>
         ]]></field>
     </record>
-    <record id="blo_tanque_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_tanque_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_tanque_benef"/><field name="secuencia">10</field>
+
+    <record id="pt_tnq_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/ben-manejo.webp</field>
         <field name="titulo">Manejo cuidadoso del producto</field>
         <field name="texto">El uso de agua durante la recepción ayuda a disminuir golpes y movimientos bruscos al incorporar el producto a la línea.</field>
     </record>
-    <record id="it_tanque_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_tanque_benef"/><field name="secuencia">20</field>
+    <record id="pt_tnq_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/ben-procesos.webp</field>
         <field name="titulo">Procesos adicionales</field>
         <field name="texto">El sistema permite integrar, cuando el proyecto lo requiera, tratamientos en el agua como desinfección o preenfriado.</field>
     </record>
-    <record id="it_tanque_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_tanque_benef"/><field name="secuencia">30</field>
+    <record id="pt_tnq_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/tanque-recepcion/ben-config.webp</field>
         <field name="titulo">Configuración adaptable</field>
         <field name="texto">El tanque puede fabricarse de acuerdo con las dimensiones y distribución disponibles dentro de la instalación.</field>
     </record>
-    <record id="paso_tanque_1" model="ferba.maquina.paso">
+
+    <record id="paso_tnq_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/paso-1.webp</field>
         <field name="titulo">Alimentación</field>
         <field name="texto">El producto es incorporado al tanque, directamente o mediante equipos complementarios según la configuración de la instalación.</field>
     </record>
-    <record id="paso_tanque_2" model="ferba.maquina.paso">
+    <record id="paso_tnq_2" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/paso-2.webp</field>
         <field name="titulo">Recepción mediante agua</field>
         <field name="texto">El agua funciona como medio para recibir y manejar el producto durante esta primera etapa del proceso.</field>
     </record>
-    <record id="paso_tanque_3" model="ferba.maquina.paso">
+    <record id="paso_tnq_3" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/paso-3.webp</field>
         <field name="titulo">Tratamiento opcional</field>
         <field name="texto">Cuando el proyecto lo requiere, el agua puede acondicionarse para integrar procesos como desinfección o preenfriado.</field>
     </record>
-    <record id="paso_tanque_4" model="ferba.maquina.paso">
+    <record id="paso_tnq_4" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/paso-4.webp</field>
         <field name="titulo">Extracción</field>
         <field name="texto">El producto es retirado del tanque mediante el sistema definido para la línea.</field>
     </record>
-    <record id="paso_tanque_5" model="ferba.maquina.paso">
+    <record id="paso_tnq_5" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/tanque-recepcion/paso-5.webp</field>
         <field name="titulo">Transferencia</field>
         <field name="texto">Una vez fuera del tanque, el producto continúa hacia las siguientes etapas del proceso postcosecha.</field>
     </record>
-    <record id="spec_tanque_1" model="ferba.maquina.spec">
+
+    <record id="spec_tnq_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">10</field>
-        <field name="etiqueta">Construcción</field><field name="valor">Adaptable al proyecto</field>
-    </record>
-    <record id="spec_tanque_2" model="ferba.maquina.spec">
-        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">20</field>
         <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
     </record>
-    <record id="spec_tanque_3" model="ferba.maquina.spec">
+    <record id="spec_tnq_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">20</field>
+        <field name="etiqueta">Construcción</field><field name="valor">Adaptable al proyecto</field>
+    </record>
+    <record id="spec_tnq_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_tanque_recepcion"/><field name="secuencia">30</field>
         <field name="etiqueta">Formatos</field><field name="valor">Rectangular, circular o trapezoidal</field>
     </record>
 
-    <!-- Lavadora de cajas -->
+    <!-- Lavadora de cajas  (fiel al PDF: hero con 3 destacados, split con render,
+         beneficios oscuros, 5 pasos con foto, datos oscuro con foto a sangre,
+         5 características, galería con video) -->
     <record id="maq_lavadora_cajas" model="ferba.maquina">
         <field name="lema">Limpieza y sanitización continua para reincorporar cajas a la operación</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/lavadora-cajas/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/lavadora-cajas/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Lavadora de Cajas FERBA está diseñada para limpiar y sanitizar cajas utilizadas durante el manejo de frutas y hortalizas, integrándose directamente al flujo de la línea postcosecha.</p>
             <p class="o_ferba_hero__lead">Mediante un sistema de aspersión a presión, filtración y recirculación de agua, permite realizar un proceso continuo de lavado y preparar los contenedores para volver a incorporarlos a la operación.</p>
         ]]></field>
-        <field name="pasos_titulo">De la caja utilizada a la caja lista para volver al proceso</field>
-        <field name="specs_foto">catalogo/recepcion/fichas/lavadora-cajas/specs.webp</field>
+        <field name="destacados_estilo">valor</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Lavado continuo para una operación más higiénica</field>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">De la caja utilizada a la caja preparada para volver al proceso</field>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto">catalogo/recepcion/lavadora-cajas/datos-foto.webp</field>
+
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el lavado de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Lavadora de cajas: lavado y sanitización continua | FERBA</field>
-        <field name="meta_descripcion">La Lavadora de Cajas FERBA limpia y sanitiza contenedores con aspersión a presión, filtración y recirculación de agua, integrándose al flujo de la línea postcosecha.</field>
+        <field name="meta_titulo">Lavadora de cajas: lavado a presión con recirculación de agua | FERBA</field>
+        <field name="meta_descripcion">La Lavadora de Cajas FERBA limpia y sanitiza cajas con aspersión a presión, filtración y recirculación de agua, en acero inoxidable, integrada al flujo de la línea postcosecha.</field>
     </record>
-    <record id="dest_lavc_1" model="ferba.maquina.destacado">
+
+    <record id="dest_lvc_1" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
-        <field name="valor">Presión</field><field name="etiqueta">lavado por aspersión</field>
-    </record>
-    <record id="dest_lavc_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/dest-acero.webp</field>
         <field name="valor">Acero</field><field name="etiqueta">inoxidable</field>
     </record>
-    <record id="dest_lavc_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
-        <field name="valor">Agua</field><field name="etiqueta">recirculación</field>
+    <record id="dest_lvc_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/dest-presion.webp</field>
+        <field name="valor">Lavado a</field><field name="etiqueta">presión</field>
     </record>
-    <record id="blo_lavc_split" model="ferba.maquina.bloque">
+    <record id="dest_lvc_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/dest-recirc.webp</field>
+        <field name="valor">Recirculación</field><field name="etiqueta">de agua</field>
+    </record>
+
+    <record id="blo_lvc_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución integrada al manejo de cajas</field>
         <field name="titulo">De la caja vacía a un contenedor listo para reincorporarse</field>
-        <field name="imagen">catalogo/recepcion/fichas/lavadora-cajas/split.webp</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>Después de la descarga del producto, las cajas pueden continuar directamente hacia el sistema de lavado sin interrumpir el flujo de la operación.</p>
             <p>La Lavadora de Cajas FERBA recibe los contenedores vacíos, los transporta a través del túnel de lavado y aplica agua a presión para remover residuos y suciedad acumulada.</p>
             <p>Dependiendo de la configuración, el sistema puede incorporar uno o más circuitos de recirculación, filtración y diferentes tratamientos de limpieza.</p>
         ]]></field>
     </record>
-    <record id="blo_lavc_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_lavc_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Lavado continuo para una operación más higiénica</field>
+
+    <record id="pt_lvc_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ben-limpieza.webp</field>
+        <field name="titulo">Limpieza continua</field>
         <field name="texto">Pensada para integrarse después del volcador y mantener el movimiento de cajas dentro de una operación automatizada.</field>
     </record>
-    <record id="it_lavc_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Limpieza y sanitización</field>
+    <record id="pt_lvc_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ben-sanitiza.webp</field>
+        <field name="titulo">Lavado y sanitización</field>
         <field name="texto">La aspersión a presión permite retirar residuos presentes en los contenedores y facilita procesos de sanitización.</field>
     </record>
-    <record id="it_lavc_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_benef"/><field name="secuencia">30</field>
+    <record id="pt_lvc_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ben-recirc.webp</field>
         <field name="titulo">Recirculación de agua</field>
         <field name="texto">El sistema puede recuperar, filtrar y recircular agua para mejorar la eficiencia operativa.</field>
     </record>
-    <record id="paso_lavc_1" model="ferba.maquina.paso">
+
+    <record id="paso_lvc_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-1.webp</field>
         <field name="titulo">Recepción</field>
         <field name="texto">La caja vacía proveniente del proceso de descarga ingresa al transportador de la lavadora.</field>
     </record>
-    <record id="paso_lavc_2" model="ferba.maquina.paso">
+    <record id="paso_lvc_2" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-2.webp</field>
         <field name="titulo">Entrada</field>
         <field name="texto">La caja entra a la zona de lavado, donde recibe agua impulsada mediante el sistema de bombeo.</field>
     </record>
-    <record id="paso_lavc_3" model="ferba.maquina.paso">
+    <record id="paso_lvc_3" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-3.webp</field>
         <field name="titulo">Lavado a presión</field>
         <field name="texto">Las duchas distribuyen el agua sobre diferentes zonas del contenedor para desprender suciedad y residuos.</field>
     </record>
-    <record id="paso_lavc_4" model="ferba.maquina.paso">
+    <record id="paso_lvc_4" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-4.webp</field>
         <field name="titulo">Filtración y recolección</field>
         <field name="texto">El agua utilizada pasa por el sistema de filtraje y puede reincorporarse al circuito de lavado.</field>
     </record>
-    <record id="paso_lavc_5" model="ferba.maquina.paso">
+    <record id="paso_lvc_5" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-5.webp</field>
         <field name="titulo">Salida</field>
         <field name="texto">La caja limpia continúa hacia la siguiente etapa de manejo, apilado o reincorporación a la operación.</field>
     </record>
-    <record id="spec_lavc_1" model="ferba.maquina.spec">
+
+    <record id="spec_lvc_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
-        <field name="etiqueta">Transportador</field><field name="valor">Cadena</field>
-    </record>
-    <record id="spec_lavc_2" model="ferba.maquina.spec">
-        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
         <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
     </record>
-    <record id="spec_lavc_3" model="ferba.maquina.spec">
+    <record id="spec_lvc_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
+        <field name="etiqueta">Transportador</field><field name="valor">Cadena</field>
+    </record>
+    <record id="spec_lvc_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
         <field name="etiqueta">Duchas</field><field name="valor">Tubería PVC</field>
     </record>
-    <record id="spec_lavc_4" model="ferba.maquina.spec">
+    <record id="spec_lvc_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">40</field>
         <field name="etiqueta">Bomba</field><field name="valor">Motobomba centrífuga trifásica</field>
     </record>
-    <record id="spec_lavc_5" model="ferba.maquina.spec">
+    <record id="spec_lvc_5" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">50</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220–240 / 440–480 / 600 VAC · 3PH · 60 Hz + PE</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">220–240 VAC / 3PH / 60 Hz + PE</field>
     </record>
-    <record id="blo_lavc_carac" model="ferba.maquina.bloque">
+    <record id="spec_lvc_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">440–480 VAC / 3PH / 60 Hz + PE</field>
+    </record>
+    <record id="spec_lvc_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">600 VAC / 3PH / 60 Hz + PE</field>
+    </record>
+
+    <record id="blo_lvc_carac" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
         <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características del equipo</field>
+        <field name="titulo">Construido para una operación continua</field>
     </record>
-    <record id="it_lavc_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_carac"/><field name="secuencia">10</field>
+    <record id="it_lvc_c1" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_lvc_carac"/><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ic-acero.webp</field>
         <field name="titulo">Construcción en acero inoxidable</field>
         <field name="texto">Chasis y estructura desarrollados para trabajar en ambientes donde existe contacto constante con agua y procesos de limpieza.</field>
     </record>
-    <record id="it_lavc_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_carac"/><field name="secuencia">20</field>
+    <record id="it_lvc_c2" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_lvc_carac"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ic-aspersion.webp</field>
         <field name="titulo">Sistema de aspersión</field>
         <field name="texto">Uno o más sistemas de rociado permiten distribuir el agua durante el recorrido de las cajas dentro del túnel.</field>
     </record>
-    <record id="it_lavc_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_carac"/><field name="secuencia">30</field>
+    <record id="it_lvc_c3" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_lvc_carac"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ic-filtracion.webp</field>
         <field name="titulo">Filtración adaptable</field>
         <field name="texto">El sistema puede incorporar filtración mediante láminas perforadas o banda modular, dependiendo de la configuración.</field>
     </record>
-    <record id="it_lavc_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_carac"/><field name="secuencia">40</field>
+    <record id="it_lvc_c4" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_lvc_carac"/><field name="secuencia">40</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ic-quimicos.webp</field>
         <field name="titulo">Compatible con productos de limpieza</field>
         <field name="texto">La operación puede complementarse con productos destinados al proceso de limpieza y sanitización.</field>
     </record>
-    <record id="it_lavc_c5" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavc_carac"/><field name="secuencia">50</field>
+    <record id="it_lvc_c5" model="ferba.maquina.bloque.item">
+        <field name="bloque_id" ref="blo_lvc_carac"/><field name="secuencia">50</field>
+        <field name="icono">catalogo/recepcion/lavadora-cajas/ic-solidos.webp</field>
         <field name="titulo">Eliminación de sólidos</field>
         <field name="texto">El sistema permite separar residuos presentes en el agua para mantener mejores condiciones dentro del circuito.</field>
     </record>
 
-    <!-- Lavadora de bins -->
+    <record id="media_lvc_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/galeria-video.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_lvc_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-1.webp</field>
+    </record>
+    <record id="media_lvc_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/galeria-3.webp</field>
+    </record>
+    <record id="media_lvc_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-3.webp</field>
+    </record>
+    <record id="media_lvc_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/lavadora-cajas/paso-5.webp</field>
+    </record>
+
+    <!-- Lavadora de bins  (fiel al PDF: hero con 3 destacados, split con render,
+         beneficios oscuros, 5 pasos con foto, datos en blanco con checklist + 3 chips,
+         galería con video) -->
     <record id="maq_lavadora_bins" model="ferba.maquina">
         <field name="lema">Lavado profundo y continuo para mantener tus bins listos para volver a la operación</field>
-        <field name="hero_imagen">catalogo/recepcion/fichas/lavadora-bins/hero.webp</field>
+        <field name="hero_imagen">catalogo/recepcion/lavadora-bins/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Lavadora de Bins FERBA está diseñada para realizar una limpieza profunda y eficiente de contenedores utilizados en procesos postcosecha.</p>
             <p class="o_ferba_hero__lead">Su sistema de aspersión de alta presión, impulsado mediante una bomba de alto desempeño, permite desprender residuos adheridos a los bins durante cada ciclo de lavado, mientras un sistema de filtración continua ayuda a recuperar el agua y retirar sólidos durante la operación.</p>
         ]]></field>
-        <field name="pasos_titulo">Del bin utilizado al contenedor listo para reincorporarse</field>
-        <field name="specs_foto">catalogo/recepcion/fichas/lavadora-bins/specs.webp</field>
+        <field name="destacados_estilo">valor</field>
+
+        <field name="beneficios_pos">seccion</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Limpieza profunda con un proceso más eficiente</field>
+
+        <field name="pasos_antetitulo">Una solución integral</field>
+        <field name="pasos_titulo">De la caja utilizada a la caja preparada para volver al proceso</field>
+
+        <field name="datos_tema">claro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="specs_foto" eval="False"/>
+        <field name="caracteristicas_titulo">Características destacadas</field>
+
+        <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
+        <field name="galeria_titulo">Galería de imágenes y video</field>
+
         <field name="cierre_titulo">¿Necesitas automatizar el lavado de bins?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Lavadora de bins: lavado profundo a alta presión | FERBA</field>
-        <field name="meta_descripcion">La Lavadora de Bins FERBA realiza una limpieza profunda de contenedores con aspersión de alta presión y filtración continua del agua: 2 bins/minuto, acero inoxidable.</field>
+        <field name="meta_titulo">Lavadora de bins: lavado a alta presión, 2 bins/minuto | FERBA</field>
+        <field name="meta_descripcion">La Lavadora de Bins FERBA limpia hasta 2 bins por minuto con aspersión de alta presión, filtración continua y extracción de sólidos en tiempo real, en acero inoxidable y compatible con químicos desinfectantes.</field>
     </record>
-    <record id="dest_lavb_1" model="ferba.maquina.destacado">
+
+    <record id="dest_lvb_1" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
-        <field name="valor">Presión</field><field name="etiqueta">lavado por aspersión</field>
-    </record>
-    <record id="dest_lavb_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/dest-acero.webp</field>
         <field name="valor">Acero</field><field name="etiqueta">inoxidable</field>
     </record>
-    <record id="dest_lavb_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
-        <field name="valor">2</field><field name="etiqueta">bins por minuto</field>
+    <record id="dest_lvb_2" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/dest-presion.webp</field>
+        <field name="valor">Lavado a</field><field name="etiqueta">presión</field>
     </record>
-    <record id="blo_lavb_split" model="ferba.maquina.bloque">
+    <record id="dest_lvb_3" model="ferba.maquina.destacado">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/dest-capacidad.webp</field>
+        <field name="valor">2 bins /</field><field name="etiqueta">minuto</field>
+    </record>
+
+    <record id="blo_lvb_split" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
         <field name="tipo">split</field><field name="tema">claro</field>
         <field name="antetitulo">Una solución para recuperar bins después de la operación</field>
         <field name="titulo">Del bin utilizado al contenedor listo para reincorporarse</field>
-        <field name="imagen">catalogo/recepcion/fichas/lavadora-bins/split.webp</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/render-split.webp</field>
         <field name="cuerpo"><![CDATA[
             <p>Después de vaciar el producto, los bins pueden continuar hacia un proceso automatizado de limpieza antes de reincorporarse nuevamente a la operación.</p>
             <p>La Lavadora de Bins FERBA recibe el contenedor, lo transporta hacia el interior del túnel y aplica agua mediante un sistema de aspersión de alta presión diseñado para alcanzar diferentes superficies del bin.</p>
             <p>Al mismo tiempo, el agua utilizada pasa por un sistema continuo de filtración que permite separar residuos sólidos durante el funcionamiento del equipo.</p>
         ]]></field>
     </record>
-    <record id="blo_lavb_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Beneficios principales</field>
-    </record>
-    <record id="it_lavb_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_benef"/><field name="secuencia">10</field>
+
+    <record id="pt_lvb_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/ben-limpieza.webp</field>
         <field name="titulo">Limpieza profunda y estable</field>
         <field name="texto">El sistema de aspersión de alta presión ayuda a desprender suciedad y residuos adheridos a las superficies del contenedor.</field>
     </record>
-    <record id="it_lavb_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_benef"/><field name="secuencia">20</field>
+    <record id="pt_lvb_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/ben-agua.webp</field>
         <field name="titulo">Menor consumo de agua</field>
         <field name="texto">La recuperación y filtración continua permiten reutilizar agua dentro del proceso de lavado.</field>
     </record>
-    <record id="it_lavb_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_benef"/><field name="secuencia">30</field>
+    <record id="pt_lvb_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/ben-sanitario.webp</field>
         <field name="titulo">Mejor desempeño sanitario</field>
         <field name="texto">La posibilidad de integrar productos químicos o desinfectantes permite adaptar el lavado a diferentes necesidades sanitarias de la operación.</field>
     </record>
-    <record id="paso_lavb_1" model="ferba.maquina.paso">
+
+    <record id="paso_lvb_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-1.webp</field>
         <field name="titulo">Recepción</field>
         <field name="texto">El bin vacío ingresa al sistema de alimentación de la lavadora.</field>
     </record>
-    <record id="paso_lavb_2" model="ferba.maquina.paso">
+    <record id="paso_lvb_2" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-2.webp</field>
         <field name="titulo">Entrada</field>
         <field name="texto">El transportador de cadena desplaza el contenedor hacia el interior del túnel de lavado.</field>
     </record>
-    <record id="paso_lavb_3" model="ferba.maquina.paso">
+    <record id="paso_lvb_3" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-3.webp</field>
         <field name="titulo">Lavado a presión</field>
         <field name="texto">La presión del agua ayuda a desprender residuos acumulados durante el uso del contenedor.</field>
     </record>
-    <record id="paso_lavb_4" model="ferba.maquina.paso">
+    <record id="paso_lvb_4" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-4.webp</field>
         <field name="titulo">Filtración y recolección</field>
         <field name="texto">El agua pasa a través del sistema de filtración continua para separar residuos sólidos.</field>
     </record>
-    <record id="paso_lavb_5" model="ferba.maquina.paso">
+    <record id="paso_lvb_5" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-5.webp</field>
         <field name="titulo">Salida</field>
         <field name="texto">Una vez completado el ciclo, el bin continúa hacia la siguiente etapa de manejo o reincorporación.</field>
     </record>
-    <record id="spec_lavb_1" model="ferba.maquina.spec">
+
+    <record id="spec_lvb_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
-        <field name="etiqueta">Transportador</field><field name="valor">Cadena</field>
+        <field name="etiqueta">Capacidad</field><field name="valor">2 bins / minuto</field>
     </record>
-    <record id="spec_lavb_2" model="ferba.maquina.spec">
+    <record id="spec_lvb_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
         <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
     </record>
-    <record id="spec_lavb_3" model="ferba.maquina.spec">
+    <record id="spec_lvb_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
-        <field name="etiqueta">Capacidad</field><field name="valor">2 bins / minuto</field>
+        <field name="etiqueta">Transportador</field><field name="valor">Cadena</field>
     </record>
-    <record id="spec_lavb_4" model="ferba.maquina.spec">
+    <record id="spec_lvb_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">40</field>
         <field name="etiqueta">Duchas</field><field name="valor">Tubería PVC</field>
     </record>
-    <record id="spec_lavb_5" model="ferba.maquina.spec">
+    <record id="spec_lvb_5" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">50</field>
         <field name="etiqueta">Bomba</field><field name="valor">Motobomba centrífuga trifásica</field>
     </record>
-    <record id="spec_lavb_6" model="ferba.maquina.spec">
+    <record id="spec_lvb_6" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">60</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220–240 / 440–480 / 600 VAC · 3PH · 60 Hz + PE</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">220–240 VAC / 3PH / 60 Hz + PE</field>
     </record>
-    <record id="blo_lavb_carac" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características destacadas</field>
+    <record id="spec_lvb_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">440–480 VAC / 3PH / 60 Hz + PE</field>
     </record>
-    <record id="it_lavb_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">10</field>
+    <record id="spec_lvb_8" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">80</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">600 VAC / 3PH / 60 Hz + PE</field>
+    </record>
+
+    <record id="pt_lvb_car1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">10</field>
         <field name="titulo">Chasis y transmisión en acero inoxidable</field>
     </record>
-    <record id="it_lavb_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">20</field>
-        <field name="titulo">Filtrado constante del agua</field>
-    </record>
-    <record id="it_lavb_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">30</field>
-        <field name="titulo">Compatible con químicos desinfectantes</field>
-    </record>
-    <record id="it_lavb_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">40</field>
+    <record id="pt_lvb_car2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">20</field>
         <field name="titulo">Aspersión a alta presión</field>
     </record>
-    <record id="it_lavb_c5" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">50</field>
+    <record id="pt_lvb_car3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">30</field>
+        <field name="titulo">Filtrado constante del agua</field>
+    </record>
+    <record id="pt_lvb_car4" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">40</field>
         <field name="titulo">Extracción de sólidos en tiempo real</field>
     </record>
-    <record id="it_lavb_c6" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_lavb_carac"/><field name="secuencia">60</field>
+    <record id="pt_lvb_car5" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">50</field>
+        <field name="titulo">Compatible con químicos desinfectantes</field>
+    </record>
+    <record id="pt_lvb_car6" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">caracteristica</field><field name="secuencia">60</field>
         <field name="titulo">Diseño flexible según necesidades del cliente</field>
+    </record>
+
+    <record id="pt_lvb_chip1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">chip</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/chip-acero.webp</field>
+        <field name="titulo">Acero inoxidable</field>
+    </record>
+    <record id="pt_lvb_chip2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">chip</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/chip-presion.webp</field>
+        <field name="titulo">Lavado a presión</field>
+    </record>
+    <record id="pt_lvb_chip3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="seccion">chip</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/recepcion/lavadora-bins/chip-capacidad.webp</field>
+        <field name="titulo">2 bins / minuto</field>
+    </record>
+
+    <record id="media_lvb_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/galeria-video.webp</field>
+        <field name="es_video" eval="True"/>
+    </record>
+    <record id="media_lvb_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-3.webp</field>
+    </record>
+    <record id="media_lvb_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-2.webp</field>
+    </record>
+    <record id="media_lvb_4" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">40</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/paso-5.webp</field>
+    </record>
+    <record id="media_lvb_5" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">50</field>
+        <field name="imagen">catalogo/recepcion/lavadora-bins/galeria-5.webp</field>
     </record>
 
     <!-- ================= LAVADO Y TRATAMIENTO ================= -->
 
-    <!-- Criba de rodillos regulable -->
+    <!-- Criba de rodillos regulable  (reconstruida fiel al PDF del cliente) -->
     <record id="maq_criba_rodillos" model="ferba.maquina">
         <field name="lema">Separación precisa por diámetro para una línea más limpia, estable y rentable</field>
-        <field name="hero_imagen">catalogo/lavado/fichas/criba-rodillos-regulable/hero.webp</field>
+        <field name="hero_imagen">catalogo/lavado/criba/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Criba de Rodillos Regulable FERBA combina transporte, selección por diámetro y descarga independiente del producto separado dentro de un mismo equipo.</p>
             <p class="o_ferba_hero__lead">Su apertura entre rodillos puede ajustarse de acuerdo con el producto y el calibre requerido, permitiendo retirar frutos pequeños, residuos o material fuera de especificación antes de que continúen hacia otras etapas del proceso.</p>
         ]]></field>
+
+        <field name="protege_antetitulo">Controla el producto antes de que el problema avance</field>
+        <field name="protege_titulo">Una separación inicial que protege toda la línea</field>
+        <field name="protege_imagen">catalogo/lavado/criba/render-protege.webp</field>
+        <field name="protege_intro"><![CDATA[
+            <p>Las variaciones de tamaño, residuos y una alimentación irregular pueden afectar las etapas posteriores del proceso.</p>
+            <p>Cuando producto fuera de especificación avanza innecesariamente, aumenta el retrabajo, se vuelve más inestable el flujo y crece la manipulación manual.</p>
+            <p>La Criba de Rodillos Regulable actúa antes de que este problema se multiplique, separando por diámetro y estabilizando la alimentación hacia los siguientes equipos.</p>
+        ]]></field>
+
+        <field name="reto_antetitulo">El reto</field>
+        <field name="reto_titulo"><![CDATA[Lo que ocurre cuando el producto entra <u>sin</u> una separación inicial]]></field>
+        <field name="reto_intro">Variaciones de tamaño, residuos y alimentación irregular impactan toda la línea posterior.</field>
+
+        <field name="pasos_antetitulo">Cómo funciona</field>
         <field name="pasos_titulo">Tres movimientos, una separación controlada</field>
-        <field name="specs_foto">catalogo/lavado/fichas/criba-rodillos-regulable/specs.webp</field>
+        <field name="pasos_intro">El producto avanza sobre una superficie de rodillos giratorios mientras la apertura seleccionada determina qué producto continúa y cuál se separa.</field>
+        <field name="diagrama_imagen">catalogo/lavado/criba/diagrama.webp</field>
+
+        <field name="ajuste_antetitulo">Ajuste regulable</field>
+        <field name="ajuste_titulo">Una apertura adaptable a cada producto</field>
+        <field name="ajuste_intro">El sistema permite modificar la separación de trabajo sin cambiar la función principal del equipo.</field>
+        <field name="ajuste_imagen">catalogo/lavado/criba/render-ajuste.webp</field>
+        <field name="ajuste_caption">Mecanismo de regulación</field>
+        <field name="ajuste_subcaption">La apertura se define de acuerdo con el diámetro objetivo y las condiciones del producto.</field>
+        <field name="ajuste_nota">La configuración final se valida con muestras de producto y requerimientos de capacidad.</field>
+
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="caracteristicas_titulo">Características destacadas</field>
+
+        <field name="aplica_antetitulo">Aplicaciones</field>
+        <field name="aplica_titulo">Una solución para diferentes productos</field>
+        <field name="aplica_intro">La criba puede configurarse para frutos redondos y alargados, siempre que la separación requerida se defina por diámetro.</field>
+
         <field name="cierre_titulo">¿Qué necesitas separar dentro de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Criba de rodillos regulable: separación por diámetro | FERBA</field>
         <field name="meta_descripcion">La Criba de Rodillos Regulable FERBA separa por diámetro con apertura ajustable: retira frutos pequeños, residuos y material fuera de especificación antes de las siguientes etapas.</field>
     </record>
+
+    <!-- hero: badges -->
     <record id="dest_cribr_1" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
-        <field name="valor">Ajustable</field><field name="etiqueta">apertura regulable</field>
+        <field name="icono">catalogo/lavado/criba/badge-ajustable.webp</field><field name="valor">Ajustable</field>
     </record>
     <record id="dest_cribr_2" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
-        <field name="valor">Multiproducto</field><field name="etiqueta">redondos y alargados</field>
+        <field name="icono">catalogo/lavado/criba/badge-modular.webp</field><field name="valor">Modular</field>
     </record>
     <record id="dest_cribr_3" model="ferba.maquina.destacado">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
-        <field name="valor">Modular</field><field name="etiqueta">diseño configurable</field>
+        <field name="icono">catalogo/lavado/criba/badge-multiproducto.webp</field><field name="valor">Multiproducto</field>
     </record>
-    <record id="blo_cribr_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
-        <field name="tipo">split</field><field name="tema">claro</field>
-        <field name="antetitulo">Controla el producto antes de que el problema avance</field>
-        <field name="titulo">Una separación inicial que protege toda la línea</field>
-        <field name="imagen">catalogo/lavado/fichas/criba-rodillos-regulable/split.webp</field>
-        <field name="cuerpo"><![CDATA[
-            <p>Las variaciones de tamaño, residuos y una alimentación irregular pueden afectar las etapas posteriores del proceso.</p>
-            <p>Cuando producto fuera de especificación avanza innecesariamente, aumenta el retrabajo, se vuelve más inestable el flujo y crece la manipulación manual.</p>
-            <p>La Criba de Rodillos Regulable actúa antes de que este problema se multiplique, separando por diámetro y estabilizando la alimentación hacia los siguientes equipos.</p>
-        ]]></field>
-    </record>
-    <record id="blo_cribr_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Una separación que protege toda la línea</field>
-    </record>
-    <record id="it_cribr_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Separación precisa</field>
+
+    <!-- protege: 3 puntos (glifo Ø/↔/→) -->
+    <record id="pt_cribr_pro1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">protege</field><field name="secuencia">10</field>
+        <field name="icono">Ø</field><field name="titulo">Separación precisa</field>
         <field name="texto">La apertura entre rodillos define qué producto continúa y cuál se retira.</field>
     </record>
-    <record id="it_cribr_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Ajuste por producto</field>
+    <record id="pt_cribr_pro2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">protege</field><field name="secuencia">20</field>
+        <field name="icono">↔</field><field name="titulo">Ajuste por producto</field>
         <field name="texto">La regulación permite adaptar el equipo a diferentes diámetros y aplicaciones.</field>
     </record>
-    <record id="it_cribr_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_benef"/><field name="secuencia">30</field>
-        <field name="titulo">Integración sencilla</field>
+    <record id="pt_cribr_pro3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">protege</field><field name="secuencia">30</field>
+        <field name="icono">→</field><field name="titulo">Integración sencilla</field>
         <field name="texto">Puede incorporarse al inicio, en una etapa intermedia o al final de la línea.</field>
+    </record>
+
+    <!-- el reto: 3 tarjetas ilustradas -->
+    <record id="pt_cribr_reto1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">reto</field><field name="secuencia">10</field>
+        <field name="imagen">catalogo/lavado/criba/reto-1.webp</field><field name="titulo">Producto fuera de especificación</field>
+        <field name="texto">Frutos pequeños, residuos o materiales no deseados avanzan hacia equipos donde generan retrabajo y pérdidas de tiempo.</field>
+    </record>
+    <record id="pt_cribr_reto2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">reto</field><field name="secuencia">20</field>
+        <field name="imagen">catalogo/lavado/criba/reto-2.webp</field><field name="titulo">Flujo inestable</field>
+        <field name="texto">Una alimentación sin control afecta la continuidad del proceso y dificulta mantener un ritmo uniforme de trabajo.</field>
+    </record>
+    <record id="pt_cribr_reto3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">reto</field><field name="secuencia">30</field>
+        <field name="imagen">catalogo/lavado/criba/reto-3.webp</field><field name="titulo">Mayor costo operativo</field>
+        <field name="texto">Más manipulación, limpieza y revisiones manuales elevan el costo por kilogramo procesado.</field>
+    </record>
+
+    <!-- ajuste: A/B/C -->
+    <record id="pt_cribr_aj1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">ajuste</field><field name="secuencia">10</field>
+        <field name="titulo">Apertura menor</field>
+        <field name="texto">Retira producto pequeño, residuos o material fuera de especificación.</field>
+    </record>
+    <record id="pt_cribr_aj2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">ajuste</field><field name="secuencia">20</field>
+        <field name="titulo">Apertura mayor</field>
+        <field name="texto">Permite seleccionar frutos de mayor diámetro o definir otra categoría.</field>
+    </record>
+    <record id="pt_cribr_aj3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">ajuste</field><field name="secuencia">30</field>
+        <field name="titulo">Configuración según proyecto</field>
+        <field name="texto">El diámetro de los rodillos, la apertura, el número de etapas y la velocidad se determinan de acuerdo con el objetivo de cribado.</field>
     </record>
     <record id="paso_cribr_1" model="ferba.maquina.paso">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
@@ -801,114 +1136,131 @@
         <field name="titulo">Descarga diferenciada</field>
         <field name="texto">El producto separado se dirige a una salida inferior para descarte, segunda calidad o proceso alterno.</field>
     </record>
+    <!-- datos técnicos: especificaciones (orden y repeticiones del PDF) -->
     <record id="spec_cribr_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">10</field>
-        <field name="etiqueta">Separación</field><field name="valor">Por diámetro</field>
+        <field name="etiqueta">Sistema de selección</field><field name="valor">Rodillos regulables</field>
     </record>
     <record id="spec_cribr_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">20</field>
-        <field name="etiqueta">Sistema de selección</field><field name="valor">Rodillos regulables</field>
+        <field name="etiqueta">Separación</field><field name="valor">Por diámetro</field>
     </record>
     <record id="spec_cribr_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
-        <field name="etiqueta">Control de velocidad</field><field name="valor">Variador de frecuencia</field>
+        <field name="etiqueta">Control de vel.</field><field name="valor">Variador de frecuencia</field>
     </record>
     <record id="spec_cribr_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">40</field>
-        <field name="etiqueta">Accionamiento</field><field name="valor">Continuo</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero negro</field>
     </record>
     <record id="spec_cribr_5" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">50</field>
-        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field>
     </record>
     <record id="spec_cribr_6" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">60</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 440 VAC · 3 fases · 60 Hz</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">220 VAC / 3 fases / 60 Hz</field>
     </record>
-    <record id="blo_cribr_carac" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">30</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características destacadas</field>
+    <record id="spec_cribr_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">440 VAC / 3 fases / 60 Hz</field>
     </record>
-    <record id="it_cribr_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">10</field>
+    <record id="spec_cribr_8" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="secuencia">80</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Continuo</field>
+    </record>
+
+    <!-- características destacadas: checklist -->
+    <record id="pt_cribr_car1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">10</field>
         <field name="titulo">Separación precisa por diámetro</field>
     </record>
-    <record id="it_cribr_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">20</field>
-        <field name="titulo">Descarga independiente del producto separado</field>
-    </record>
-    <record id="it_cribr_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">30</field>
+    <record id="pt_cribr_car2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">20</field>
         <field name="titulo">Rodillos ajustables</field>
     </record>
-    <record id="it_cribr_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">40</field>
+    <record id="pt_cribr_car3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">30</field>
+        <field name="titulo">Descarga independiente del producto separado</field>
+    </record>
+    <record id="pt_cribr_car4" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">40</field>
         <field name="titulo">Diseño modular y configurable</field>
     </record>
-    <record id="it_cribr_c5" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">50</field>
+    <record id="pt_cribr_car5" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">50</field>
+        <field name="titulo">Integración sencilla en diferentes etapas de la línea</field>
+    </record>
+    <record id="pt_cribr_car6" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">60</field>
         <field name="titulo">Construcción robusta para uso industrial</field>
     </record>
-    <record id="it_cribr_c6" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribr_carac"/><field name="secuencia">60</field>
+    <record id="pt_cribr_car7" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">caracteristica</field><field name="secuencia">70</field>
         <field name="titulo">Opcional con variador de velocidad</field>
+    </record>
+
+    <!-- chips destacados al pie de datos técnicos -->
+    <record id="pt_cribr_chip1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">chip</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/lavado/criba/chip-rodillos.webp</field><field name="titulo">Rodillos ajustables</field>
+    </record>
+    <record id="pt_cribr_chip2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">chip</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/lavado/criba/chip-separacion.webp</field><field name="titulo">Separación por diámetro</field>
+    </record>
+    <record id="pt_cribr_chip3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">chip</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/lavado/criba/chip-flujo.webp</field><field name="titulo">Flujo continuo</field>
+    </record>
+
+    <!-- aplicaciones -->
+    <record id="pt_cribr_ap1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">aplica</field><field name="secuencia">10</field>
+        <field name="imagen">catalogo/lavado/criba/app-tomate.webp</field><field name="titulo">Tomate Grape</field>
+        <field name="texto">Separación de frutos pequeños y producto fuera de calibre.</field>
+    </record>
+    <record id="pt_cribr_ap2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">aplica</field><field name="secuencia">20</field>
+        <field name="imagen">catalogo/lavado/criba/app-citricos.webp</field><field name="titulo">Cítricos</field>
+        <field name="texto">Selección inicial y eliminación de calibres menores.</field>
+    </record>
+    <record id="pt_cribr_ap3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_rodillos"/><field name="seccion">aplica</field><field name="secuencia">30</field>
+        <field name="imagen">catalogo/lavado/criba/app-jalapeno.webp</field><field name="titulo">Chile Jalapeño</field>
+        <field name="texto">Clasificación por diámetro en producto alargado.</field>
     </record>
 
     <!-- Unidad de cepillos de lavado  (su PDF trae, por error del cliente, el
          bloque de texto del Volcador de bins; se omite ese split) -->
+    <!-- Unidad de cepillos de lavado  (fiel al PDF: hero sin badges, datos técnicos
+         OSCURO con specs + beneficios, y "características del equipo" en 5 tarjetas.
+         Se omite el split de "descarga de bins" por ser un error del cliente en su PDF.) -->
     <record id="maq_cepillos_lavado" model="ferba.maquina">
         <field name="lema">Limpieza uniforme mediante cepillos y aspersión</field>
-        <field name="hero_imagen">catalogo/lavado/fichas/unidad-cepillos-lavado/hero.webp</field>
+        <field name="hero_imagen">catalogo/lavado/cepillos/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Unidad de Cepillos de Lavado FERBA está diseñada para remover suciedad e impurezas adheridas a la superficie de frutas y hortalizas mediante el contacto controlado con cepillos especialmente seleccionados para cada aplicación.</p>
             <p class="o_ferba_hero__lead">El sistema puede complementarse con aspersión de agua y productos de limpieza, permitiendo integrar el lavado dentro de una línea postcosecha de forma continua.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/lavado/fichas/unidad-cepillos-lavado/specs.webp</field>
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_titulo">Limpieza uniforme mediante contacto controlado</field>
         <field name="cierre_titulo">¿Necesitas integrar lavado por cepillos a tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Unidad de cepillos de lavado: limpieza uniforme | FERBA</field>
         <field name="meta_descripcion">La Unidad de Cepillos de Lavado FERBA remueve suciedad e impurezas con cepillos seleccionados por producto y aspersión de agua, integrándose a la línea postcosecha.</field>
     </record>
-    <record id="dest_cepl_1" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">10</field>
-        <field name="valor">Cepillos</field><field name="etiqueta">según producto</field>
-    </record>
-    <record id="dest_cepl_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
-        <field name="valor">Aspersión</field><field name="etiqueta">de agua</field>
-    </record>
-    <record id="dest_cepl_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
-        <field name="valor">Modular</field><field name="etiqueta">construcción</field>
-    </record>
-    <record id="blo_cepl_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Limpieza uniforme mediante contacto controlado</field>
-    </record>
-    <record id="it_cepl_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Cepillos especializados</field>
-        <field name="texto">Seleccionados según producto y tratamiento.</field>
-    </record>
-    <record id="it_cepl_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Aspersión de agua</field>
-        <field name="texto">Sistema de boquillas para una limpieza eficiente.</field>
-    </record>
-    <record id="it_cepl_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cepl_benef"/><field name="secuencia">30</field>
-        <field name="titulo">Construcción modular</field>
-        <field name="texto">Estructura modular ajustable a diferentes configuraciones.</field>
-    </record>
+
+    <!-- datos técnicos (orden del PDF) -->
     <record id="spec_cepl_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">10</field>
-        <field name="etiqueta">Cepillos</field><field name="valor">Según producto</field>
+        <field name="etiqueta">Sistema de limpieza</field><field name="valor">Cepillos + Aspersión</field>
     </record>
     <record id="spec_cepl_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">20</field>
-        <field name="etiqueta">Sistema de limpieza</field><field name="valor">Cepillos + aspersión</field>
+        <field name="etiqueta">Cepillos</field><field name="valor">Según producto</field>
     </record>
     <record id="spec_cepl_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
@@ -916,12 +1268,34 @@
     </record>
     <record id="spec_cepl_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">40</field>
-        <field name="etiqueta">Material</field><field name="valor">Acero inoxidable y acero negro</field>
+        <field name="etiqueta">Tipo de alimentación</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
     </record>
     <record id="spec_cepl_5" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">50</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">220V / 440V / 3F / 60 Hz</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inox. · Acero negro</field>
     </record>
+
+    <!-- beneficios (columna derecha de datos técnicos, iconos del PDF) -->
+    <record id="pt_cepl_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-cepillos.webp</field>
+        <field name="titulo">Cepillos especializados</field>
+        <field name="texto">Seleccionados según producto y tratamiento.</field>
+    </record>
+    <record id="pt_cepl_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-aspersion.webp</field>
+        <field name="titulo">Aspersión de agua</field>
+        <field name="texto">Sistema de boquillas para una limpieza eficiente.</field>
+    </record>
+    <record id="pt_cepl_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">iconos/ben-modular.svg</field>
+        <field name="titulo">Construcción modular</field>
+        <field name="texto">Estructura modular ajustable a diferentes configuraciones.</field>
+    </record>
+
+    <!-- características del equipo: 5 tarjetas claras con icono -->
     <record id="blo_cepl_carac" model="ferba.maquina.bloque">
         <field name="maquina_id" ref="maq_cepillos_lavado"/><field name="secuencia">30</field>
         <field name="tipo">tarjetas</field><field name="tema">claro</field>
@@ -929,143 +1303,177 @@
     </record>
     <record id="it_cepl_c1" model="ferba.maquina.bloque.item">
         <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">10</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-cepillos.webp</field>
         <field name="titulo">Lavado con cepillos</field>
         <field name="texto">El contacto con las cerdas ayuda a remover suciedad e impurezas presentes sobre la superficie.</field>
     </record>
     <record id="it_cepl_c2" model="ferba.maquina.bloque.item">
         <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">20</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-aspersion.webp</field>
         <field name="titulo">Sistema de aspersión</field>
         <field name="texto">Permite aplicar agua y, cuando la configuración lo requiere, productos destinados al proceso de limpieza.</field>
     </record>
     <record id="it_cepl_c3" model="ferba.maquina.bloque.item">
         <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">30</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-usuario.webp</field>
         <field name="titulo">Adaptable al usuario</field>
         <field name="texto">La configuración del equipo puede definirse según las condiciones específicas del proceso.</field>
     </record>
     <record id="it_cepl_c4" model="ferba.maquina.bloque.item">
         <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">40</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-mantenimiento.webp</field>
         <field name="titulo">Poco mantenimiento</field>
         <field name="texto">El diseño mecánico está orientado a facilitar las tareas habituales de inspección y mantenimiento.</field>
     </record>
     <record id="it_cepl_c5" model="ferba.maquina.bloque.item">
         <field name="bloque_id" ref="blo_cepl_carac"/><field name="secuencia">50</field>
+        <field name="icono">catalogo/lavado/cepillos/ic-operacion.webp</field>
         <field name="titulo">Operación sencilla</field>
         <field name="texto">Configuración orientada a facilitar el uso cotidiano del equipo.</field>
     </record>
 
     <!-- Criba de malla descanicadora -->
+    <!-- Criba de malla descanicadora  (reconstruida fiel al PDF: hero sin badges,
+         protege, el reto, datos; sin cómo-funciona/ajuste/aplicaciones) -->
     <record id="maq_criba_malla" model="ferba.maquina">
         <field name="lema">Separa producto pequeño e impurezas antes de que continúen por la línea</field>
-        <field name="hero_imagen">catalogo/lavado/fichas/criba-malla-descanicadora/hero.webp</field>
+        <field name="hero_imagen">catalogo/lavado/malla-descanicadora/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Criba de Malla Descanicadora FERBA está diseñada para separar del flujo frutas de menor diámetro, residuos y material no deseado mediante una superficie de malla seleccionada de acuerdo con el calibre requerido.</p>
             <p class="o_ferba_hero__lead">Su sistema incorpora un movimiento de vaivén que ayuda a distribuir y acomodar el producto sobre la superficie, favoreciendo que las piezas correspondientes al diámetro seleccionado atraviesen los orificios mientras el resto continúa hacia las siguientes etapas.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/lavado/fichas/criba-malla-descanicadora/specs.webp</field>
+
+        <field name="protege_antetitulo">Una primera separación que protege el proceso</field>
+        <field name="protege_titulo">Retira lo que no debe continuar</field>
+        <field name="protege_imagen">catalogo/lavado/malla-descanicadora/render-protege.webp</field>
+        <field name="protege_intro"><![CDATA[
+            <p>Cuando producto demasiado pequeño, piedras, residuos u otros materiales avanzan innecesariamente por la línea, terminan ocupando capacidad y pueden incrementar las labores de limpieza y selección posteriores.</p>
+            <p>La Criba de Malla Descanicadora permite realizar esta separación desde las primeras etapas del proceso, ayudando a que el producto que continúa hacia lavado, tratamiento o selección llegue en mejores condiciones.</p>
+        ]]></field>
+
+        <field name="reto_antetitulo">El reto</field>
+        <field name="reto_titulo"><![CDATA[Lo que ocurre cuando el producto entra <u>sin</u> una separación inicial]]></field>
+        <field name="reto_intro">Variaciones de tamaño, residuos y alimentación irregular impactan toda la línea posterior.</field>
+
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="caracteristicas_titulo">Características destacadas</field>
+
         <field name="cierre_titulo">¿Qué necesitas separar dentro de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Criba de malla descanicadora: primera separación | FERBA</field>
         <field name="meta_descripcion">La Criba de Malla Descanicadora FERBA separa frutos pequeños, residuos e impurezas con malla intercambiable y movimiento de vaivén: hasta 400 frutos/minuto.</field>
     </record>
-    <record id="dest_cribm_1" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
-        <field name="valor">400</field><field name="etiqueta">frutos por minuto</field>
-    </record>
-    <record id="dest_cribm_2" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
-        <field name="valor">Malla</field><field name="etiqueta">intercambiable</field>
-    </record>
-    <record id="dest_cribm_3" model="ferba.maquina.destacado">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
-        <field name="valor">Vaivén</field><field name="etiqueta">rol botador</field>
-    </record>
-    <record id="blo_cribm_split" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
-        <field name="tipo">split</field><field name="tema">claro</field>
-        <field name="antetitulo">Una primera separación que protege el proceso</field>
-        <field name="titulo">Retira lo que no debe continuar</field>
-        <field name="imagen">catalogo/lavado/fichas/criba-malla-descanicadora/split.webp</field>
-        <field name="cuerpo"><![CDATA[
-            <p>Cuando producto demasiado pequeño, piedras, residuos u otros materiales avanzan innecesariamente por la línea, terminan ocupando capacidad y pueden incrementar las labores de limpieza y selección posteriores.</p>
-            <p>La Criba de Malla Descanicadora permite realizar esta separación desde las primeras etapas del proceso, ayudando a que el producto que continúa hacia lavado, tratamiento o selección llegue en mejores condiciones.</p>
-        ]]></field>
-    </record>
-    <record id="blo_cribm_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">oscuro</field>
-        <field name="titulo">Retira lo que no debe continuar</field>
-    </record>
-    <record id="it_cribm_b1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">10</field>
-        <field name="titulo">Separación precisa</field>
+
+    <!-- protege: 3 puntos (glifo) -->
+    <record id="pt_cribm_pro1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">protege</field><field name="secuencia">10</field>
+        <field name="icono">Ø</field><field name="titulo">Separación precisa</field>
         <field name="texto">La malla define qué producto continúa y cuál se retira.</field>
     </record>
-    <record id="it_cribm_b2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">20</field>
-        <field name="titulo">Movimiento vaivén</field>
+    <record id="pt_cribm_pro2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">protege</field><field name="secuencia">20</field>
+        <field name="icono">↔</field><field name="titulo">Movimiento vaivén</field>
         <field name="texto">Un rol botador genera un movimiento que acomoda el producto sobre la malla.</field>
     </record>
-    <record id="it_cribm_b3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_benef"/><field name="secuencia">30</field>
-        <field name="titulo">Integración sencilla</field>
+    <record id="pt_cribm_pro3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">protege</field><field name="secuencia">30</field>
+        <field name="icono">→</field><field name="titulo">Integración sencilla</field>
         <field name="texto">Puede incorporarse al inicio, en una etapa intermedia o al final de la línea.</field>
     </record>
+
+    <!-- el reto: ilustraciones compartidas -->
+    <record id="pt_cribm_reto1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">reto</field><field name="secuencia">10</field>
+        <field name="imagen">catalogo/_comunes/reto-1.webp</field><field name="titulo">Producto fuera de especificación</field>
+        <field name="texto">Frutos pequeños, residuos o materiales no deseados avanzan hacia equipos donde generan retrabajo y pérdidas de tiempo.</field>
+    </record>
+    <record id="pt_cribm_reto2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">reto</field><field name="secuencia">20</field>
+        <field name="imagen">catalogo/_comunes/reto-2.webp</field><field name="titulo">Flujo inestable</field>
+        <field name="texto">Una alimentación sin control afecta la continuidad del proceso y dificulta mantener un ritmo uniforme de trabajo.</field>
+    </record>
+    <record id="pt_cribm_reto3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">reto</field><field name="secuencia">30</field>
+        <field name="imagen">catalogo/_comunes/reto-3.webp</field><field name="titulo">Mayor costo operativo</field>
+        <field name="texto">Más manipulación, limpieza y revisiones manuales elevan el costo por kilogramo procesado.</field>
+    </record>
+
+    <!-- datos técnicos: specs (orden/repeticiones del PDF) -->
     <record id="spec_cribm_1" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">10</field>
-        <field name="etiqueta">Sistema de selección</field><field name="valor">Malla intercambiable</field>
+        <field name="etiqueta">Sistema de selección</field><field name="valor">Malla por diámetro</field>
     </record>
     <record id="spec_cribm_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">20</field>
-        <field name="etiqueta">Cribado</field><field name="valor">Por diámetro</field>
+        <field name="etiqueta">Movimiento</field><field name="valor">Vaivén rol botador</field>
     </record>
     <record id="spec_cribm_3" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
-        <field name="etiqueta">Movimiento</field><field name="valor">Vaivén (rol botador)</field>
+        <field name="etiqueta">Cribado</field><field name="valor">Malla intercambiable</field>
     </record>
     <record id="spec_cribm_4" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">40</field>
-        <field name="etiqueta">Opcional</field><field name="valor">Banda sanitaria</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero negro</field>
     </record>
     <record id="spec_cribm_5" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">50</field>
-        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable</field>
     </record>
     <record id="spec_cribm_6" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">60</field>
-        <field name="etiqueta">Alimentación eléctrica</field><field name="valor">240 / 480 VAC · 3PH · 60 Hz</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">240 VAC / 3 PH / 60 Hz</field>
     </record>
-    <record id="blo_cribm_carac" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">30</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Características destacadas</field>
+    <record id="spec_cribm_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">480 VAC / 3 PH / 60 Hz</field>
     </record>
-    <record id="it_cribm_c1" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">10</field>
+    <record id="spec_cribm_8" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="secuencia">80</field>
+        <field name="etiqueta">Opcional</field><field name="valor">Banda sanitaria</field>
+    </record>
+
+    <!-- características destacadas: checklist -->
+    <record id="pt_cribm_car1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">10</field>
         <field name="titulo">Separación de producto pequeño e impurezas</field>
     </record>
-    <record id="it_cribm_c2" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">20</field>
-        <field name="titulo">Mallas intercambiables y desmontaje rápido</field>
-    </record>
-    <record id="it_cribm_c3" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">30</field>
-        <field name="titulo">Banda sanitaria opcional</field>
-    </record>
-    <record id="it_cribm_c4" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">40</field>
+    <record id="pt_cribm_car2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">20</field>
         <field name="titulo">Movimiento de vaivén para mejor distribución</field>
     </record>
-    <record id="it_cribm_c5" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">50</field>
+    <record id="pt_cribm_car3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">30</field>
+        <field name="titulo">Mallas intercambiables y desmontaje rápido</field>
+    </record>
+    <record id="pt_cribm_car4" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">40</field>
         <field name="titulo">Construcción robusta para uso industrial</field>
     </record>
-    <record id="it_cribm_c6" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">60</field>
+    <record id="pt_cribm_car5" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">50</field>
+        <field name="titulo">Banda sanitaria opcional</field>
+    </record>
+    <record id="pt_cribm_car6" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">60</field>
         <field name="titulo">Bajo mantenimiento</field>
     </record>
-    <record id="it_cribm_c7" model="ferba.maquina.bloque.item">
-        <field name="bloque_id" ref="blo_cribm_carac"/><field name="secuencia">70</field>
+    <record id="pt_cribm_car7" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">caracteristica</field><field name="secuencia">70</field>
         <field name="titulo">Integración sencilla en diferentes etapas de la línea</field>
+    </record>
+
+    <!-- chips -->
+    <record id="pt_cribm_chip1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">chip</field><field name="secuencia">10</field>
+        <field name="icono">iconos/adapt-empaque.svg</field><field name="titulo">Malla intercambiable</field>
+    </record>
+    <record id="pt_cribm_chip2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">chip</field><field name="secuencia">20</field>
+        <field name="icono">iconos/adapt-forma.svg</field><field name="titulo">Separación por diámetro</field>
+    </record>
+    <record id="pt_cribm_chip3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_criba_malla"/><field name="seccion">chip</field><field name="secuencia">30</field>
+        <field name="icono">iconos/info-capacidad.svg</field><field name="titulo">400 frutos/minuto</field>
     </record>
 
     <!-- ================= SECADO Y CEPILLADO ================= -->

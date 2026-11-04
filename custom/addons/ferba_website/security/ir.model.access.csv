@@ -25,3 +25,5 @@ access_ferba_maquina_bloque_item_user,ferba.maquina.bloque.item lectura interna,
 access_ferba_maquina_bloque_item_designer,ferba.maquina.bloque.item diseñador,model_ferba_maquina_bloque_item,website.group_website_designer,1,1,1,1
 access_ferba_maquina_media_user,ferba.maquina.media lectura interna,model_ferba_maquina_media,base.group_user,1,0,0,0
 access_ferba_maquina_media_designer,ferba.maquina.media diseñador,model_ferba_maquina_media,website.group_website_designer,1,1,1,1
+access_ferba_maquina_punto_user,ferba.maquina.punto lectura interna,model_ferba_maquina_punto,base.group_user,1,0,0,0
+access_ferba_maquina_punto_designer,ferba.maquina.punto diseñador,model_ferba_maquina_punto,website.group_website_designer,1,1,1,1
