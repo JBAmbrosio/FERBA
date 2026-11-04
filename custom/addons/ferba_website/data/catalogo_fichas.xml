@@ -1593,291 +1593,674 @@
 
     <!-- ================= TRANSPORTADORES Y BANDAS ================= -->
 
-    <!-- Transportador de banda -->
+    <!-- Transportador de banda  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_banda" model="ferba.maquina">
         <field name="lema">Movimiento continuo y adaptable entre las diferentes etapas de tu proceso</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/transportador-de-banda/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/transportador-de-banda/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Transportador de Banda Plana FERBA es una solución versátil para trasladar producto a través de las diferentes etapas de una línea postcosecha.</p>
             <p class="o_ferba_hero__lead">Disponible en múltiples dimensiones y configuraciones, puede complementarse con diferentes accesorios según la función requerida, permitiendo adaptar el transporte a las necesidades específicas de cada proyecto.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/transportador-de-banda/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Una plataforma adaptable para diferentes procesos</field>
+
         <field name="cierre_titulo">¿Necesitas conectar las diferentes etapas de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Transportador de banda plana | FERBA</field>
-        <field name="meta_descripcion">El Transportador de Banda Plana FERBA traslada producto entre etapas de la línea postcosecha, en múltiples anchos y largos y con accesorios según cada proyecto.</field>
+        <field name="meta_descripcion">El Transportador de Banda Plana FERBA traslada producto entre las etapas de la línea postcosecha: anchos de 6" a 72", largos de 5' a 100', acero inoxidable o negro y accesorios según el proyecto.</field>
     </record>
-    <record id="dest_trab_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">10</field><field name="valor">6″–72″</field><field name="etiqueta">anchos disponibles</field></record>
-    <record id="dest_trab_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">20</field><field name="valor">5′–100′</field><field name="etiqueta">largos disponibles</field></record>
-    <record id="dest_trab_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">30</field><field name="valor">Acero</field><field name="etiqueta">inox y negro</field></record>
-    <record id="blo_trab_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Una plataforma adaptable para diferentes procesos</field>
-    </record>
-    <record id="it_trab_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trab_benef"/><field name="secuencia">10</field><field name="titulo">Transporte continuo</field><field name="texto">Permite trasladar producto entre distintas etapas de la línea.</field></record>
-    <record id="it_trab_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trab_benef"/><field name="secuencia">20</field><field name="titulo">Configuración adaptable</field><field name="texto">Disponible en diferentes dimensiones según las necesidades del proyecto.</field></record>
-    <record id="it_trab_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trab_benef"/><field name="secuencia">30</field><field name="titulo">Integración de accesorios</field><field name="texto">Puede complementarse con sistemas específicos según la operación requerida.</field></record>
-    <record id="spec_trab_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">10</field><field name="etiqueta">Anchos disponibles</field><field name="valor">6″ a 72″</field></record>
-    <record id="spec_trab_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">20</field><field name="etiqueta">Largos disponibles</field><field name="valor">5′ a 100′</field></record>
-    <record id="spec_trab_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">30</field><field name="etiqueta">Variantes de rodillos</field><field name="valor">Ø3″, Ø4″, Ø6″</field></record>
-    <record id="spec_trab_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">40</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
-    <record id="spec_trab_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">50</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 480 / 600 VAC · 3PH · 60 Hz</field></record>
 
-    <!-- Transportador de banda modular -->
+    <record id="spec_trab_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">10</field>
+        <field name="etiqueta">Anchos disponibles</field><field name="valor">6" a 72"</field>
+    </record>
+    <record id="spec_trab_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">20</field>
+        <field name="etiqueta">Largos disponibles</field><field name="valor">5' a 100'</field>
+    </record>
+    <record id="spec_trab_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trab_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">40</field>
+        <field name="etiqueta">Variantes de rodillos</field><field name="valor">Ø 3", Ø 4", Ø 6"</field>
+    </record>
+    <record id="spec_trab_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">50</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_trab_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación 2</field><field name="valor">480 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_trab_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación 3</field><field name="valor">600 VAC / 3 PH / 60 Hz</field>
+    </record>
+
+    <record id="pt_trab_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda/ben-1.webp</field>
+        <field name="titulo">Transporte continuo</field>
+        <field name="texto">Permite trasladar producto entre distintas etapas de la línea.</field>
+    </record>
+    <record id="pt_trab_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda/ben-2.webp</field>
+        <field name="titulo">Configuración adaptable</field>
+        <field name="texto">Disponible en diferentes dimensiones según las necesidades del proyecto.</field>
+    </record>
+    <record id="pt_trab_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda/ben-3.webp</field>
+        <field name="titulo">Integración de accesorios</field>
+        <field name="texto">Puede complementarse con sistemas específicos según la operación requerida.</field>
+    </record>
+
+    <!-- Transportador de banda modular  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_banda_modular" model="ferba.maquina">
         <field name="lema">Transporte adaptable para trayectos rectos, curvas y cambios de nivel</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/transportador-de-banda-modular/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/transportador-de-banda-modular/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Transportador de Banda Modular FERBA utiliza módulos plásticos resistentes que permiten configurar soluciones de transporte adaptadas a la distribución de cada línea.</p>
             <p class="o_ferba_hero__lead">Su diseño ofrece la flexibilidad necesaria para realizar recorridos rectos, curvas e inclinaciones, facilitando el movimiento estable del producto y aprovechando eficientemente el espacio disponible dentro de la planta.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/transportador-de-banda-modular/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Flexibilidad y resistencia para diferentes recorridos</field>
+
         <field name="cierre_titulo">¿Necesitas un transportador que se adapte al recorrido de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Transportador de banda modular | FERBA</field>
-        <field name="meta_descripcion">El Transportador de Banda Modular FERBA usa módulos plásticos aprobados FDA para recorridos rectos, curvas e inclinaciones, con movimiento estable y limpieza sencilla.</field>
+        <field name="meta_descripcion">El Transportador de Banda Modular FERBA usa módulos plásticos aprobados por FDA para recorridos rectos, curvas e inclinaciones: anchos de 6" a 84", largos de 5' a 100', limpieza sencilla.</field>
     </record>
-    <record id="dest_tram_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">10</field><field name="valor">FDA</field><field name="etiqueta">módulos aprobados</field></record>
-    <record id="dest_tram_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">20</field><field name="valor">6″–84″</field><field name="etiqueta">anchos disponibles</field></record>
-    <record id="dest_tram_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">30</field><field name="valor">Recto·curva·nivel</field><field name="etiqueta">recorridos</field></record>
-    <record id="blo_tram_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Flexibilidad y resistencia para diferentes recorridos</field>
-    </record>
-    <record id="it_tram_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_tram_benef"/><field name="secuencia">10</field><field name="titulo">Movimiento estable del producto</field><field name="texto">La banda proporciona una superficie continua que permite trasladar el producto de forma controlada durante el recorrido.</field></record>
-    <record id="it_tram_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_tram_benef"/><field name="secuencia">20</field><field name="titulo">Trayectos configurables</field><field name="texto">Puede diseñarse para trabajar en línea recta, curvas o cambios de nivel, adaptándose al layout disponible.</field></record>
-    <record id="it_tram_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_tram_benef"/><field name="secuencia">30</field><field name="titulo">Limpieza sencilla</field><field name="texto">La configuración modular facilita las tareas de limpieza y mantenimiento de la superficie de transporte.</field></record>
-    <record id="spec_tram_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">10</field><field name="etiqueta">Material de banda</field><field name="valor">Módulos plásticos aprobados por FDA</field></record>
-    <record id="spec_tram_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">20</field><field name="etiqueta">Anchos disponibles</field><field name="valor">6″ a 84″</field></record>
-    <record id="spec_tram_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">30</field><field name="etiqueta">Largos disponibles</field><field name="valor">5′ a 100′</field></record>
-    <record id="spec_tram_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">40</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
-    <record id="spec_tram_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">50</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 480 / 600 VAC · 3PH · 60 Hz</field></record>
 
-    <!-- Transportador de banda reforzada -->
+    <record id="spec_tram_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">10</field>
+        <field name="etiqueta">Anchos disponibles</field><field name="valor">6" a 84"</field>
+    </record>
+    <record id="spec_tram_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">20</field>
+        <field name="etiqueta">Largos disponibles</field><field name="valor">5' a 100'</field>
+    </record>
+    <record id="spec_tram_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_tram_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">40</field>
+        <field name="etiqueta">Material banda</field><field name="valor">Aprobados por FDA</field>
+    </record>
+    <record id="spec_tram_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">50</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_tram_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación 2</field><field name="valor">480 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_tram_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación 3</field><field name="valor">600 VAC / 3 PH / 60 Hz</field>
+    </record>
+
+    <record id="pt_tram_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-modular/ben-1.webp</field>
+        <field name="titulo">Movimiento estable del producto</field>
+        <field name="texto">La banda proporciona una superficie continua que permite trasladar el producto de forma controlada durante el recorrido.</field>
+    </record>
+    <record id="pt_tram_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-modular/ben-2.webp</field>
+        <field name="titulo">Trayectos configurables</field>
+        <field name="texto">Puede diseñarse para trabajar en línea recta, curvas o cambios de nivel, adaptándose al layout disponible.</field>
+    </record>
+    <record id="pt_tram_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_modular"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-modular/ben-3.webp</field>
+        <field name="titulo">Limpieza sencilla</field>
+        <field name="texto">La configuración modular facilita las tareas de limpieza y mantenimiento de la superficie de transporte.</field>
+    </record>
+
+    <!-- Transportador de banda reforzada  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_banda_reforzada" model="ferba.maquina">
         <field name="lema">Transporte resistente para cajas, bultos y cargas de mayor peso</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/transportador-de-banda-reforzada/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/transportador-de-banda-reforzada/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Transportador de Banda Reforzada FERBA está diseñado para el manejo continuo de cajas y bultos con producto, especialmente en áreas donde se requiere transportar cargas de mayor peso de forma segura y estable.</p>
             <p class="o_ferba_hero__lead">Puede configurarse para trabajar en trayectos planos o inclinados, así como para realizar transferencias entre diferentes transportadores dentro de una línea de empaque.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/transportador-de-banda-reforzada/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Construido para soportar operaciones de mayor exigencia</field>
+
         <field name="cierre_titulo">¿Necesitas mover cajas o cargas pesadas dentro de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Transportador de banda reforzada | FERBA</field>
-        <field name="meta_descripcion">El Transportador de Banda Reforzada FERBA maneja cajas y bultos de mayor peso con cama de rodillos de soporte, en trayectos planos o inclinados.</field>
+        <field name="meta_descripcion">El Transportador de Banda Reforzada FERBA mueve cajas, bultos y cargas de mayor peso en trayectos planos o inclinados: anchos de 18" a 24", motorreductor y variador opcional.</field>
     </record>
-    <record id="dest_trar_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">10</field><field name="valor">18″–24″</field><field name="etiqueta">anchos disponibles</field></record>
-    <record id="dest_trar_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">20</field><field name="valor">Reforzada</field><field name="etiqueta">estructura</field></record>
-    <record id="dest_trar_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">30</field><field name="valor">Motorreductor</field><field name="etiqueta">accionamiento</field></record>
-    <record id="blo_trar_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Construido para soportar operaciones de mayor exigencia</field>
-    </record>
-    <record id="it_trar_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trar_benef"/><field name="secuencia">10</field><field name="titulo">Transporte estable</field><field name="texto">La cama superior incorpora rodillos de soporte con menor separación entre ellos, ayudando a mantener estabilidad durante el movimiento de las cargas.</field></record>
-    <record id="it_trar_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trar_benef"/><field name="secuencia">20</field><field name="titulo">Mantenimiento mínimo</field><field name="texto">Su concepto mecánico permite mantener una operación sencilla comparada con sistemas de transporte más complejos.</field></record>
-    <record id="it_trar_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trar_benef"/><field name="secuencia">30</field><field name="titulo">Estructura reforzada</field><field name="texto">Su construcción permite manejar cajas y bultos con producto, además de ampliarse o adaptarse según las necesidades del proyecto.</field></record>
-    <record id="spec_trar_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">10</field><field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field></record>
-    <record id="spec_trar_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">20</field><field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field></record>
-    <record id="spec_trar_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">30</field><field name="etiqueta">Anchos disponibles</field><field name="valor">18″, 20″ y 24″</field></record>
-    <record id="spec_trar_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">40</field><field name="etiqueta">Largos disponibles</field><field name="valor">5′ a 100′</field></record>
-    <record id="spec_trar_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">50</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
-    <record id="spec_trar_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">60</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 440 VAC · 3PH · 60 Hz</field></record>
 
-    <!-- Transportador de rodillos por gravedad -->
+    <record id="spec_trar_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">10</field>
+        <field name="etiqueta">Anchos disponibles</field><field name="valor">18", 20" y 24"</field>
+    </record>
+    <record id="spec_trar_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">20</field>
+        <field name="etiqueta">Largos disponibles</field><field name="valor">5' a 100'</field>
+    </record>
+    <record id="spec_trar_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trar_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">40</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field>
+    </record>
+    <record id="spec_trar_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">50</field>
+        <field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field>
+    </record>
+    <record id="spec_trar_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_trar_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">440 VAC / 3 PH / 60 Hz</field>
+    </record>
+
+    <record id="pt_trar_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-reforzada/ben-1.webp</field>
+        <field name="titulo">Transporte estable</field>
+        <field name="texto">La cama superior incorpora rodillos de soporte con menor separación entre ellos, ayudando a mantener estabilidad durante el movimiento de las cargas.</field>
+    </record>
+    <record id="pt_trar_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-reforzada/ben-2.webp</field>
+        <field name="titulo">Mantenimiento mínimo</field>
+        <field name="texto">Su concepto mecánico permite mantener una operación sencilla comparada con sistemas de transporte más complejos.</field>
+    </record>
+    <record id="pt_trar_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_banda_reforzada"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/transportador-de-banda-reforzada/ben-3.webp</field>
+        <field name="titulo">Estructura reforzada</field>
+        <field name="texto">Su construcción permite manejar cajas y bultos con producto, además de ampliarse o adaptarse según las necesidades del proyecto.</field>
+    </record>
+
+    <!-- Transportador de rodillos por gravedad  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_rodillos_grav" model="ferba.maquina">
         <field name="lema">Movimiento de cajas y cargas sin accionamiento eléctrico</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/transportador-rodillos-gravedad/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/transportador-rodillos-gravedad/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Transportador de Rodillos por Gravedad FERBA utiliza la propia fuerza de gravedad para facilitar el desplazamiento de cajas, bins, pallets y otras cargas con una superficie inferior adecuada para apoyarse sobre los rodillos.</p>
             <p class="o_ferba_hero__lead">Su construcción modular permite adaptar dimensiones, tipo de rodillo y configuración de acuerdo con el peso, tamaño y características del producto transportado.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/transportador-rodillos-gravedad/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Transporte sencillo, adaptable y de bajo mantenimiento</field>
+
         <field name="cierre_titulo">¿Necesitas mover cajas o bins sin utilizar un transportador motorizado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Transportador de rodillos por gravedad | FERBA</field>
-        <field name="meta_descripcion">El Transportador de Rodillos por Gravedad FERBA mueve cajas, bins y pallets sin accionamiento eléctrico, con rodillos de PVC, galvanizado o inoxidable y chasis modular.</field>
+        <field name="meta_descripcion">El Transportador de Rodillos por Gravedad FERBA desplaza cajas, bins y pallets sin accionamiento eléctrico, con rodillos de PVC, galvanizados o inoxidables y chasis modular.</field>
     </record>
-    <record id="dest_trrg_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">10</field><field name="valor">Sin motor</field><field name="etiqueta">por gravedad</field></record>
-    <record id="dest_trrg_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">20</field><field name="valor">Modular</field><field name="etiqueta">chasis</field></record>
-    <record id="dest_trrg_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">30</field><field name="valor">PVC·galv·inox</field><field name="etiqueta">tipos de rodillo</field></record>
-    <record id="blo_trrg_benef" model="ferba.maquina.bloque">
+
+    <record id="spec_trrg_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">10</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">No motorizado</field>
+    </record>
+    <record id="spec_trrg_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Transporte sencillo, adaptable y de bajo mantenimiento</field>
+        <field name="etiqueta">Configuración</field><field name="valor">Según tamaño y peso de la carga</field>
     </record>
-    <record id="it_trrg_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trrg_benef"/><field name="secuencia">10</field><field name="titulo">Sin consumo eléctrico</field><field name="texto">El desplazamiento se realiza aprovechando la fuerza de gravedad, por lo que el transportador no requiere accionamiento eléctrico.</field></record>
-    <record id="it_trrg_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trrg_benef"/><field name="secuencia">20</field><field name="titulo">Diferentes tipos de rodillo</field><field name="texto">Puede fabricarse con rodillos de PVC, acero galvanizado o acero inoxidable, dependiendo de la aplicación.</field></record>
-    <record id="it_trrg_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trrg_benef"/><field name="secuencia">30</field><field name="titulo">Adaptable a diferentes cargas</field><field name="texto">Las dimensiones del equipo y la configuración de los rodillos pueden definirse según el tamaño y peso de las cajas, bultos o bins que serán transportados.</field></record>
-    <record id="spec_trrg_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">10</field><field name="etiqueta">Accionamiento</field><field name="valor">No motorizado</field></record>
-    <record id="spec_trrg_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">20</field><field name="etiqueta">Construcción</field><field name="valor">Chasis modular</field></record>
-    <record id="spec_trrg_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">30</field><field name="etiqueta">Configuración</field><field name="valor">Según tamaño y peso de la carga</field></record>
-    <record id="spec_trrg_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">40</field><field name="etiqueta">Rodillos</field><field name="valor">PVC Ø1½″ · galvanizado Ø1¼″/Ø1⅞″ · inoxidable Ø1½″</field></record>
-    <record id="spec_trrg_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">50</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
+    <record id="spec_trrg_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trrg_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">40</field>
+        <field name="etiqueta">Rodillo PVC</field><field name="valor">Ø 1 ½"</field>
+    </record>
+    <record id="spec_trrg_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">50</field>
+        <field name="etiqueta">Rodillo galvanizado</field><field name="valor">Ø 1 ¼" / Ø 1 7/8"</field>
+    </record>
+    <record id="spec_trrg_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">60</field>
+        <field name="etiqueta">Rodillo inoxidable</field><field name="valor">Ø 1 ½"</field>
+    </record>
+    <record id="spec_trrg_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="secuencia">70</field>
+        <field name="etiqueta">Construcción</field><field name="valor">Chasis modular</field>
+    </record>
+
+    <record id="pt_trrg_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/transportador-rodillos-gravedad/ben-1.webp</field>
+        <field name="titulo">Sin consumo eléctrico</field>
+        <field name="texto">El desplazamiento se realiza aprovechando la fuerza de gravedad, por lo que el transportador no requiere accionamiento eléctrico.</field>
+    </record>
+    <record id="pt_trrg_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/transportador-rodillos-gravedad/ben-2.webp</field>
+        <field name="titulo">Diferentes tipos de rodillo</field>
+        <field name="texto">Puede fabricarse con rodillos de PVC, acero galvanizado o acero inoxidable, dependiendo de la aplicación.</field>
+    </record>
+    <record id="pt_trrg_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_rodillos_grav"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/transportador-rodillos-gravedad/ben-3.webp</field>
+        <field name="titulo">Adaptable a diferentes cargas</field>
+        <field name="texto">Las dimensiones del equipo y la configuración de los rodillos pueden definirse según el tamaño y peso de las cajas, bultos o bins que serán transportados.</field>
+    </record>
 
     <!-- Transportador para manejo de caja (su PDF reutiliza el texto de la banda
          reforzada; el intro se ajusta al nombre correcto del equipo) -->
+    <!-- Transportador para manejo de caja  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_manejo_caja" model="ferba.maquina">
         <field name="lema">Transporte resistente para cajas, bultos y cargas de mayor peso</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/transportador-manejo-caja/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/transportador-manejo-caja/hero.webp</field>
         <field name="intro"><![CDATA[
-            <p class="o_ferba_hero__lead">El Transportador para Manejo de Caja FERBA está diseñado para el manejo continuo de cajas y bultos con producto, especialmente en áreas donde se requiere transportar cargas de mayor peso de forma segura y estable.</p>
+            <p class="o_ferba_hero__lead">El Transportador de Banda Reforzada FERBA está diseñado para el manejo continuo de cajas y bultos con producto, especialmente en áreas donde se requiere transportar cargas de mayor peso de forma segura y estable.</p>
             <p class="o_ferba_hero__lead">Puede configurarse para trabajar en trayectos planos o inclinados, así como para realizar transferencias entre diferentes transportadores dentro de una línea de empaque.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/transportador-manejo-caja/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Transporte continuo con mayor control del flujo</field>
+
         <field name="cierre_titulo">¿Necesitas mover cajas o cargas pesadas dentro de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Transportador para manejo de caja | FERBA</field>
-        <field name="meta_descripcion">El Transportador para Manejo de Caja FERBA traslada cajas y bultos con mayor control del flujo, en trayectos planos o inclinados y con transferencias entre transportadores.</field>
+        <field name="meta_descripcion">El Transportador para Manejo de Caja FERBA mueve cajas y bultos con producto de forma segura y estable, en trayectos planos o inclinados y con transferencias entre transportadores.</field>
     </record>
-    <record id="dest_trmc_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">10</field><field name="valor">18″–24″</field><field name="etiqueta">anchos disponibles</field></record>
-    <record id="dest_trmc_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">20</field><field name="valor">Control</field><field name="etiqueta">del flujo</field></record>
-    <record id="dest_trmc_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">30</field><field name="valor">Motorreductor</field><field name="etiqueta">accionamiento</field></record>
-    <record id="blo_trmc_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Transporte continuo con mayor control del flujo</field>
-    </record>
-    <record id="it_trmc_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trmc_benef"/><field name="secuencia">10</field><field name="titulo">Transporte estable</field><field name="texto">La cama superior incorpora rodillos de soporte con menor separación entre ellos, ayudando a mantener estabilidad durante el movimiento de las cargas.</field></record>
-    <record id="it_trmc_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trmc_benef"/><field name="secuencia">20</field><field name="titulo">Mantenimiento mínimo</field><field name="texto">Su concepto mecánico permite mantener una operación sencilla comparada con sistemas de transporte más complejos.</field></record>
-    <record id="it_trmc_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trmc_benef"/><field name="secuencia">30</field><field name="titulo">Estructura reforzada</field><field name="texto">Su construcción permite manejar cajas y bultos con producto, además de ampliarse o adaptarse según las necesidades del proyecto.</field></record>
-    <record id="spec_trmc_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">10</field><field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field></record>
-    <record id="spec_trmc_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">20</field><field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field></record>
-    <record id="spec_trmc_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">30</field><field name="etiqueta">Anchos disponibles</field><field name="valor">18″, 20″ y 24″</field></record>
-    <record id="spec_trmc_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">40</field><field name="etiqueta">Largos disponibles</field><field name="valor">5′ a 100′</field></record>
-    <record id="spec_trmc_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">50</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
-    <record id="spec_trmc_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">60</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">220 / 440 VAC · 3PH · 60 Hz</field></record>
 
-    <!-- Curva de rodillos por gravedad -->
+    <record id="spec_trmc_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">10</field>
+        <field name="etiqueta">Anchos disponibles</field><field name="valor">18", 20" y 24"</field>
+    </record>
+    <record id="spec_trmc_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">20</field>
+        <field name="etiqueta">Largos disponibles</field><field name="valor">5' a 100'</field>
+    </record>
+    <record id="spec_trmc_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trmc_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">40</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field>
+    </record>
+    <record id="spec_trmc_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">50</field>
+        <field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field>
+    </record>
+    <record id="spec_trmc_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">60</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">220 VAC / 3 PH / 60 Hz</field>
+    </record>
+    <record id="spec_trmc_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación</field><field name="valor">440 VAC / 3 PH / 60 Hz</field>
+    </record>
+
+    <record id="pt_trmc_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/transportador-manejo-caja/ben-1.webp</field>
+        <field name="titulo">Transporte estable</field>
+        <field name="texto">La cama superior incorpora rodillos de soporte con menor separación entre ellos, ayudando a mantener estabilidad durante el movimiento de las cargas.</field>
+    </record>
+    <record id="pt_trmc_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/transportador-manejo-caja/ben-2.webp</field>
+        <field name="titulo">Mantenimiento mínimo</field>
+        <field name="texto">Su concepto mecánico permite mantener una operación sencilla comparada con sistemas de transporte más complejos.</field>
+    </record>
+    <record id="pt_trmc_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_manejo_caja"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/transportador-manejo-caja/ben-3.webp</field>
+        <field name="titulo">Estructura reforzada</field>
+        <field name="texto">Su construcción permite manejar cajas y bultos con producto, además de ampliarse o adaptarse según las necesidades del proyecto.</field>
+    </record>
+
+    <!-- Curva de rodillos por gravedad  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_curva_grav" model="ferba.maquina">
         <field name="lema">Cambia la dirección del flujo sin utilizar accionamiento eléctrico</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/curva-rodillos-gravedad/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/curva-rodillos-gravedad/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Curva de Rodillos por Gravedad FERBA permite modificar la dirección de cajas, bins, pallets y otras cargas durante su traslado dentro de una línea.</p>
             <p class="o_ferba_hero__lead">Su funcionamiento aprovecha la fuerza de gravedad o el impulso con el que llega el producto, permitiendo incorporar cambios de dirección de forma sencilla y con mantenimiento mínimo.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/curva-rodillos-gravedad/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Cambios de dirección con una solución simple y modular</field>
+
         <field name="cierre_titulo">¿Necesitas cambiar la dirección de tus cajas o contenedores dentro de la línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Curva de rodillos por gravedad | FERBA</field>
-        <field name="meta_descripcion">La Curva de Rodillos por Gravedad FERBA cambia la dirección de cajas y contenedores sin accionamiento eléctrico, en configuraciones de 45° o 90°.</field>
+        <field name="meta_descripcion">La Curva de Rodillos por Gravedad FERBA cambia la dirección de cajas, bins y pallets a 45° o 90° sin accionamiento eléctrico, con estructura modular y mantenimiento mínimo.</field>
     </record>
-    <record id="dest_trcg_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">10</field><field name="valor">45° / 90°</field><field name="etiqueta">ángulos disponibles</field></record>
-    <record id="dest_trcg_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">20</field><field name="valor">Sin motor</field><field name="etiqueta">por gravedad</field></record>
-    <record id="dest_trcg_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">30</field><field name="valor">Modular</field><field name="etiqueta">estructura</field></record>
-    <record id="blo_trcg_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Cambios de dirección con una solución simple y modular</field>
-    </record>
-    <record id="it_trcg_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcg_benef"/><field name="secuencia">10</field><field name="titulo">Sin consumo eléctrico</field><field name="texto">El movimiento del producto se realiza mediante gravedad o aprovechando el impulso de llegada desde el transportador anterior.</field></record>
-    <record id="it_trcg_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcg_benef"/><field name="secuencia">20</field><field name="titulo">Cambios de dirección</field><field name="texto">Permite redirigir el flujo dentro de la línea mediante configuraciones de 45° o 90°.</field></record>
-    <record id="it_trcg_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcg_benef"/><field name="secuencia">30</field><field name="titulo">Estructura modular</field><field name="texto">Su construcción permite adaptar el equipo según las necesidades específicas de cada proyecto.</field></record>
-    <record id="spec_trcg_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">10</field><field name="etiqueta">Funcionamiento</field><field name="valor">Gravedad o impulso</field></record>
-    <record id="spec_trcg_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">20</field><field name="etiqueta">Accionamiento</field><field name="valor">No motorizado</field></record>
-    <record id="spec_trcg_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">30</field><field name="etiqueta">Alimentación eléctrica</field><field name="valor">No requerida</field></record>
-    <record id="spec_trcg_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">40</field><field name="etiqueta">Ángulos disponibles</field><field name="valor">45° / 90°</field></record>
-    <record id="spec_trcg_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">50</field><field name="etiqueta">Anchos disponibles</field><field name="valor">12″, 18″, 20″ y 24″</field></record>
-    <record id="spec_trcg_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">60</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
 
-    <!-- Curva de rodillos vivos -->
+    <record id="spec_trcg_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">10</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">No motorizado</field>
+    </record>
+    <record id="spec_trcg_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">20</field>
+        <field name="etiqueta">Ángulos disponibles</field><field name="valor">45° / 90°</field>
+    </record>
+    <record id="spec_trcg_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trcg_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">40</field>
+        <field name="etiqueta">Anchos disponibles</field><field name="valor">12", 18", 20" y 24"</field>
+    </record>
+    <record id="spec_trcg_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">50</field>
+        <field name="etiqueta">Rodillos</field><field name="valor">Según dimensiones y peso de la carga</field>
+    </record>
+    <record id="spec_trcg_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">60</field>
+        <field name="etiqueta">Funcionamiento</field><field name="valor">Gravedad o impulso</field>
+    </record>
+    <record id="spec_trcg_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="secuencia">70</field>
+        <field name="etiqueta">Alimentación elec.</field><field name="valor">No requerida</field>
+    </record>
+
+    <record id="pt_trcg_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-gravedad/ben-1.webp</field>
+        <field name="titulo">Sin consumo eléctrico</field>
+        <field name="texto">El movimiento del producto se realiza mediante gravedad o aprovechando el impulso de llegada desde el transportador anterior.</field>
+    </record>
+    <record id="pt_trcg_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-gravedad/ben-2.webp</field>
+        <field name="titulo">Cambios de dirección</field>
+        <field name="texto">Permite redirigir el flujo dentro de la línea mediante configuraciones de 45° o 90°.</field>
+    </record>
+    <record id="pt_trcg_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_grav"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-gravedad/ben-3.webp</field>
+        <field name="titulo">Estructura modular</field>
+        <field name="texto">Su construcción permite adaptar el equipo según las necesidades específicas de cada proyecto.</field>
+    </record>
+
+    <!-- Curva de rodillos vivos  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_curva_vivos" model="ferba.maquina">
         <field name="lema">Cambio de dirección con movimiento motorizado y controlado</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/curva-rodillos-vivos/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/curva-rodillos-vivos/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">La Curva de Rodillos Vivos FERBA permite cambiar la dirección de cajas dentro de una línea mediante el movimiento giratorio de sus rodillos, manteniendo un transporte continuo y controlado durante el recorrido.</p>
             <p class="o_ferba_hero__lead">Su configuración puede adaptarse a diferentes grados de curvatura, facilitando la distribución de la línea, evitando obstáculos y optimizando procesos de transporte, almacenamiento, distribución y paletizado.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/curva-rodillos-vivos/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Cambios de dirección con una solución simple y modular</field>
+
         <field name="cierre_titulo">¿Necesitas cambiar la dirección de tus cajas manteniendo un flujo motorizado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Curva de rodillos vivos | FERBA</field>
-        <field name="meta_descripcion">La Curva de Rodillos Vivos FERBA cambia la dirección de cajas con rodillos motorizados, velocidad regulable por variador y operación silenciosa.</field>
+        <field name="meta_descripcion">La Curva de Rodillos Vivos FERBA cambia la dirección de las cajas con rodillos motorizados, ángulos configurables, variador de velocidad y operación silenciosa.</field>
     </record>
-    <record id="dest_trcv_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">10</field><field name="valor">Motorizado</field><field name="etiqueta">rodillos vivos</field></record>
-    <record id="dest_trcv_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">20</field><field name="valor">Regulable</field><field name="etiqueta">velocidad</field></record>
-    <record id="dest_trcv_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">30</field><field name="valor">Silenciosa</field><field name="etiqueta">operación</field></record>
-    <record id="blo_trcv_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Cambios de dirección con flujo motorizado y controlado</field>
-    </record>
-    <record id="it_trcv_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcv_benef"/><field name="secuencia">10</field><field name="titulo">Velocidad regulable</field><field name="texto">La velocidad y capacidad del equipo pueden ajustarse mediante variador de velocidad.</field></record>
-    <record id="it_trcv_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcv_benef"/><field name="secuencia">20</field><field name="titulo">Cambios de dirección</field><field name="texto">El equipo puede fabricarse con distintos ángulos para adaptarse a la distribución de cada línea.</field></record>
-    <record id="it_trcv_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trcv_benef"/><field name="secuencia">30</field><field name="titulo">Operación silenciosa</field><field name="texto">Su configuración está orientada a mantener un movimiento continuo con bajo nivel de ruido.</field></record>
-    <record id="spec_trcv_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">10</field><field name="etiqueta">Accionamiento</field><field name="valor">Motorizado</field></record>
-    <record id="spec_trcv_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">20</field><field name="etiqueta">Control de velocidad</field><field name="valor">Variador de velocidad</field></record>
-    <record id="spec_trcv_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">30</field><field name="etiqueta">Rodillos</field><field name="valor">Galvanizados Ø1⅞″</field></record>
-    <record id="spec_trcv_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">40</field><field name="etiqueta">Separación de rodillos</field><field name="valor">3″</field></record>
-    <record id="spec_trcv_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">50</field><field name="etiqueta">Varilla</field><field name="valor">Hexagonal de 7/16″</field></record>
-    <record id="spec_trcv_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">60</field><field name="etiqueta">Ángulos disponibles</field><field name="valor">Configurables según proyecto</field></record>
-    <record id="spec_trcv_7" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">70</field><field name="etiqueta">Materiales</field><field name="valor">Acero inoxidable y acero negro</field></record>
 
-    <!-- Elevador de banda -->
+    <record id="spec_trcv_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">10</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Motorizado</field>
+    </record>
+    <record id="spec_trcv_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">20</field>
+        <field name="etiqueta">Ángulos disponibles</field><field name="valor">Configurables según proyecto</field>
+    </record>
+    <record id="spec_trcv_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">30</field>
+        <field name="etiqueta">Materiales</field><field name="valor">Acero inox. Acero negro</field>
+    </record>
+    <record id="spec_trcv_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">40</field>
+        <field name="etiqueta">Separación rodillos</field><field name="valor">3"</field>
+    </record>
+    <record id="spec_trcv_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">50</field>
+        <field name="etiqueta">Rodillos</field><field name="valor">Galvanizados Ø 1-7/8"</field>
+    </record>
+    <record id="spec_trcv_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">60</field>
+        <field name="etiqueta">Control vel.</field><field name="valor">Variador de velocidad</field>
+    </record>
+    <record id="spec_trcv_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="secuencia">70</field>
+        <field name="etiqueta">Varilla</field><field name="valor">Hexagonal de 7/16"</field>
+    </record>
+
+    <record id="pt_trcv_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-vivos/ben-1.webp</field>
+        <field name="titulo">Velocidad regulable</field>
+        <field name="texto">La velocidad y capacidad del equipo pueden ajustarse mediante variador de velocidad.</field>
+    </record>
+    <record id="pt_trcv_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-vivos/ben-2.webp</field>
+        <field name="titulo">Cambios de dirección</field>
+        <field name="texto">El equipo puede fabricarse con distintos ángulos para adaptarse a la distribución de cada línea.</field>
+    </record>
+    <record id="pt_trcv_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_curva_vivos"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/curva-rodillos-vivos/ben-3.webp</field>
+        <field name="titulo">Operación silenciosa</field>
+        <field name="texto">Su configuración está orientada a mantener un movimiento continuo con bajo nivel de ruido.</field>
+    </record>
+
+    <!-- Elevador de banda  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_elevador_banda" model="ferba.maquina">
         <field name="lema">Eleva producto entre diferentes niveles de forma continua y controlada</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/elevador-de-banda/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/elevador-de-banda/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Elevador de Banda FERBA está diseñado para trasladar producto desde un nivel inferior hacia uno superior, permitiendo conectar diferentes etapas de una línea y aprovechar mejor el espacio disponible dentro de la planta.</p>
             <p class="o_ferba_hero__lead">Su configuración inclinada puede adaptarse a diferentes procesos mediante bandas sanitarias de PVC o bandas plásticas modulares con empujadores, manteniendo un transporte continuo y estable del producto.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/elevador-de-banda/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Aprovecha el espacio vertical de tu línea</field>
+
         <field name="cierre_titulo">¿Necesitas elevar producto entre diferentes etapas de tu línea?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Elevador de banda: transporte entre niveles | FERBA</field>
-        <field name="meta_descripcion">El Elevador de Banda FERBA eleva producto entre niveles con banda sanitaria de PVC o banda plástica modular con empujadores, aprovechando el espacio vertical de la línea.</field>
+        <field name="meta_titulo">Elevador de banda | FERBA</field>
+        <field name="meta_descripcion">El Elevador de Banda FERBA eleva producto entre niveles con banda sanitaria de PVC o banda plástica modular con empujadores, en acero inoxidable y con variador opcional.</field>
     </record>
-    <record id="dest_treb_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">10</field><field name="valor">Entre niveles</field><field name="etiqueta">transporte vertical</field></record>
-    <record id="dest_treb_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">20</field><field name="valor">Empujadores</field><field name="etiqueta">integrados</field></record>
-    <record id="dest_treb_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">30</field><field name="valor">PVC · modular</field><field name="etiqueta">bandas</field></record>
-    <record id="blo_treb_benef" model="ferba.maquina.bloque">
-        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Aprovecha el espacio vertical de tu línea</field>
-    </record>
-    <record id="it_treb_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_treb_benef"/><field name="secuencia">10</field><field name="titulo">Transporte entre niveles</field><field name="texto">Permite elevar producto desde una etapa inferior hacia otra ubicada a mayor altura.</field></record>
-    <record id="it_treb_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_treb_benef"/><field name="secuencia">20</field><field name="titulo">Diferentes tipos de banda</field><field name="texto">Puede configurarse con banda sanitaria de PVC o banda plástica modular, dependiendo de las necesidades del producto y del proceso.</field></record>
-    <record id="it_treb_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_treb_benef"/><field name="secuencia">30</field><field name="titulo">Empujadores integrados</field><field name="texto">Las bandas pueden incorporar empujadores para mantener el producto controlado durante el ascenso.</field></record>
-    <record id="spec_treb_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">10</field><field name="etiqueta">Tipo de banda</field><field name="valor">Banda sanitaria de PVC</field></record>
-    <record id="spec_treb_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">20</field><field name="etiqueta">Tipo de banda alterno</field><field name="valor">Banda plástica modular</field></record>
-    <record id="spec_treb_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">30</field><field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field></record>
-    <record id="spec_treb_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">40</field><field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field></record>
-    <record id="spec_treb_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">50</field><field name="etiqueta">Empujadores</field><field name="valor">Integrados en módulos según configuración</field></record>
-    <record id="spec_treb_6" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">60</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field></record>
 
-    <!-- Elevador de rodillos -->
+    <record id="spec_treb_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">10</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field>
+    </record>
+    <record id="spec_treb_2" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">20</field>
+        <field name="etiqueta">Empujadores</field><field name="valor">Integrados en módulos según configuración</field>
+    </record>
+    <record id="spec_treb_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">30</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
+    </record>
+    <record id="spec_treb_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">40</field>
+        <field name="etiqueta">Tipo de banda 1</field><field name="valor">Banda sanitaria de PVC</field>
+    </record>
+    <record id="spec_treb_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">50</field>
+        <field name="etiqueta">Tipo de banda 2</field><field name="valor">Banda plástica modular</field>
+    </record>
+    <record id="spec_treb_6" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">60</field>
+        <field name="etiqueta">Control opcional</field><field name="valor">Variador de velocidad</field>
+    </record>
+    <record id="spec_treb_7" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="secuencia">70</field>
+        <field name="etiqueta">Aplicaciones</field><field name="valor">Recepción y transporte</field>
+    </record>
+
+    <record id="pt_treb_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/elevador-de-banda/ben-1.webp</field>
+        <field name="titulo">Transporte entre niveles</field>
+        <field name="texto">Permite elevar producto desde una etapa inferior hacia otra ubicada a mayor altura.</field>
+    </record>
+    <record id="pt_treb_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/elevador-de-banda/ben-2.webp</field>
+        <field name="titulo">Diferentes tipos de banda</field>
+        <field name="texto">Puede configurarse con banda sanitaria de PVC o banda plástica modular, dependiendo de las necesidades del producto y del proceso.</field>
+    </record>
+    <record id="pt_treb_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_banda"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/elevador-de-banda/ben-3.webp</field>
+        <field name="titulo">Empujadores integrados</field>
+        <field name="texto">Las bandas pueden incorporar empujadores para mantener el producto controlado durante el ascenso.</field>
+    </record>
+
+    <!-- Elevador de rodillos  (fiel al PDF: hero CLARO con render 3D, datos técnicos oscuros
+         con 3 beneficios a la derecha, cierre rojo; sin otras secciones) -->
     <record id="maq_tra_elevador_rodillos" model="ferba.maquina">
         <field name="lema">Transporte inclinado para conectar diferentes niveles de la línea</field>
-        <field name="hero_imagen">catalogo/transportadores/fichas/elevador-de-rodillos/hero.webp</field>
+        <field name="hero_tema">claro</field>
+        <field name="hero_imagen">catalogo/transportadores/elevador-de-rodillos/hero.webp</field>
         <field name="intro"><![CDATA[
             <p class="o_ferba_hero__lead">El Elevador de Rodillos FERBA está diseñado para trasladar hortalizas entre diferentes alturas dentro de líneas de selección y empaque, permitiendo conectar etapas ubicadas en distintos niveles.</p>
             <p class="o_ferba_hero__lead">Su configuración inclinada también puede aprovecharse en procesos de lavado o secado, ya que favorece el drenado del agua mientras el producto continúa avanzando dentro de la línea.</p>
         ]]></field>
-        <field name="specs_foto">catalogo/transportadores/fichas/elevador-de-rodillos/specs.webp</field>
+        <field name="destacados_estilo">badge</field>
+        <field name="hero_badge_valor" eval="False"/>
+        <field name="specs_foto" eval="False"/>
+
+        <field name="datos_tema">oscuro</field>
+        <field name="datos_antetitulo">Datos técnicos</field>
+        <field name="specs_titulo">Especificaciones principales</field>
+        <field name="beneficios_pos">datos</field>
+        <field name="beneficios_antetitulo">Beneficios principales</field>
+        <field name="beneficios_titulo">Más que un cambio de nivel</field>
+
         <field name="cierre_titulo">¿Necesitas elevar producto y aprovechar el recorrido para mejorar el drenado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Elevador de rodillos: transporte inclinado | FERBA</field>
-        <field name="meta_descripcion">El Elevador de Rodillos FERBA conecta diferentes niveles de la línea con recorrido inclinado y favorece el drenado del agua en procesos de lavado o secado.</field>
+        <field name="meta_titulo">Elevador de rodillos | FERBA</field>
+        <field name="meta_descripcion">El Elevador de Rodillos FERBA conecta niveles de la línea de selección y empaque con un recorrido inclinado en acero inoxidable que además favorece el drenado en lavado y secado.</field>
     </record>
-    <record id="dest_trer_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">10</field><field name="valor">Entre niveles</field><field name="etiqueta">transporte inclinado</field></record>
-    <record id="dest_trer_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">20</field><field name="valor">Drenado</field><field name="etiqueta">favorece la salida de agua</field></record>
-    <record id="dest_trer_3" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">30</field><field name="valor">Inoxidable</field><field name="etiqueta">acero</field></record>
-    <record id="blo_trer_benef" model="ferba.maquina.bloque">
+
+    <record id="spec_trer_1" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">10</field>
+        <field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field>
+    </record>
+    <record id="spec_trer_2" model="ferba.maquina.spec">
         <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">20</field>
-        <field name="tipo">tarjetas</field><field name="tema">claro</field>
-        <field name="titulo">Más que un cambio de nivel</field>
+        <field name="etiqueta">Sistema</field><field name="valor">Rodillos</field>
     </record>
-    <record id="it_trer_b1" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trer_benef"/><field name="secuencia">10</field><field name="titulo">Transporte entre niveles</field><field name="texto">Permite elevar producto desde una etapa inferior hacia otra ubicada a mayor altura.</field></record>
-    <record id="it_trer_b2" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trer_benef"/><field name="secuencia">20</field><field name="titulo">Aprovechamiento del espacio</field><field name="texto">Su recorrido inclinado ayuda a resolver cambios de elevación sin extender excesivamente la línea en sentido horizontal.</field></record>
-    <record id="it_trer_b3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_trer_benef"/><field name="secuencia">30</field><field name="titulo">Favorece el drenado</field><field name="texto">La inclinación del transportador facilita la salida del agua durante el desplazamiento del producto.</field></record>
-    <record id="spec_trer_1" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">10</field><field name="etiqueta">Sistema</field><field name="valor">Rodillos</field></record>
-    <record id="spec_trer_2" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">20</field><field name="etiqueta">Accionamiento</field><field name="valor">Motorreductor</field></record>
-    <record id="spec_trer_3" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">30</field><field name="etiqueta">Aplicaciones</field><field name="valor">Recepción y transporte</field></record>
-    <record id="spec_trer_4" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">40</field><field name="etiqueta">Aplicaciones secundarias</field><field name="valor">Lavado / secado</field></record>
-    <record id="spec_trer_5" model="ferba.maquina.spec"><field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">50</field><field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field></record>
+    <record id="spec_trer_3" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">30</field>
+        <field name="etiqueta">Material</field><field name="valor">Acero inoxidable</field>
+    </record>
+    <record id="spec_trer_4" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">40</field>
+        <field name="etiqueta">Aplicaciones</field><field name="valor">Recepción y transporte</field>
+    </record>
+    <record id="spec_trer_5" model="ferba.maquina.spec">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="secuencia">50</field>
+        <field name="etiqueta">Aplicaciones secun.</field><field name="valor">Lavado / secado</field>
+    </record>
+
+    <record id="pt_trer_ben1" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="seccion">beneficio</field><field name="secuencia">10</field>
+        <field name="icono">catalogo/transportadores/elevador-de-rodillos/ben-1.webp</field>
+        <field name="titulo">Transporte entre niveles</field>
+        <field name="texto">Permite elevar producto desde una etapa inferior hacia otra ubicada a mayor altura.</field>
+    </record>
+    <record id="pt_trer_ben2" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="seccion">beneficio</field><field name="secuencia">20</field>
+        <field name="icono">catalogo/transportadores/elevador-de-rodillos/ben-2.webp</field>
+        <field name="titulo">Aprovechamiento del espacio</field>
+        <field name="texto">Su recorrido inclinado ayuda a resolver cambios de elevación sin extender excesivamente la línea en sentido horizontal.</field>
+    </record>
+    <record id="pt_trer_ben3" model="ferba.maquina.punto">
+        <field name="maquina_id" ref="maq_tra_elevador_rodillos"/><field name="seccion">beneficio</field><field name="secuencia">30</field>
+        <field name="icono">catalogo/transportadores/elevador-de-rodillos/ben-3.webp</field>
+        <field name="titulo">Favorece el drenado</field>
+        <field name="texto">La inclinación del transportador facilita la salida del agua durante el desplazamiento del producto.</field>
+    </record>
 
     <!-- ================= SELECCIÓN Y CALIBRADO ================= -->
 

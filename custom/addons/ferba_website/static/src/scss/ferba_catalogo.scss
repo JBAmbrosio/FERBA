@@ -848,3 +848,52 @@
     &__tit { margin: 1rem 1rem 0.4rem; font-size: 1.1rem; font-weight: $ferba-fw-bold; }
     &__txt { margin: 0 1rem 1.3rem; color: lighten($ferba-ink, 28%); font-size: 0.88rem; line-height: 1.5; }
 }
+
+// --- Hero de la ficha, como lo dibujan los PDF ---------------------------
+// Miga "MAQUINARIA ——— LAVADO Y TRATAMIENTO": la raíz en negrita, una raya roja y la
+// categoría en regular.
+.o_ferba_hero--ficha .o_ferba_eyebrow {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.9rem;
+    color: $ferba-white; letter-spacing: 0.1em;
+    .o_ferba_miga__sep { display: inline-block; width: 44px; height: 2px; background: $ferba-red; }
+    .o_ferba_miga__b { font-weight: $ferba-fw-regular; letter-spacing: 0.06em; opacity: .92; }
+}
+// Orden del PDF: miga → título → regla roja → lema → intro → destacados → botones.
+// (pagina_base pinta el lema ANTES de la regla; aquí se reordena sin tocar el andamio.)
+.o_ferba_hero--ficha .o_ferba_hero__text {
+    display: flex; flex-direction: column; align-items: flex-start;
+    > * { order: 3; }
+    > .o_ferba_eyebrow, > .o_ferba_hero__title { order: 0; }
+    > .o_ferba_rule { order: 1; margin-top: 0; margin-bottom: 1.3rem; }
+    > .o_ferba_hero__subtitulo { order: 2; }
+    > .o_ferba_hero__actions { align-self: stretch; }
+}
+
+// Hero CLARO (transportadores): fondo blanco, texto en tinta y el render 3D flotando a
+// la derecha, entero (contain), sin velo ni empuje de cámara.
+.o_ferba_hero--claro {
+    background: $ferba-white;
+    color: $ferba-ink;
+
+    .o_ferba_hero__media {
+        inset: 2rem clamp(1rem, 4vw, 4rem) 2rem 54%;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        animation: ferba-banda-entra $ferba-dur-focal 120ms $ferba-ease-arrive both;
+        &::after { display: none; }
+    }
+    .o_ferba_eyebrow { color: $ferba-ink; .o_ferba_miga__b { color: lighten($ferba-ink, 32%); opacity: 1; } }
+    .o_ferba_hero__title { color: $ferba-ink; text-shadow: none; }
+    .o_ferba_hero__subtitulo { color: $ferba-ink; }
+    .o_ferba_hero__lead { color: lighten($ferba-ink, 16%); }
+    .o_ferba_btn--ghost {
+        border-color: $ferba-ink; color: $ferba-ink;
+        &::before { background: $ferba-ink; }
+        &:hover, &:focus-visible { color: $ferba-white; }
+    }
+
+    @media (max-width: 991px) {
+        .o_ferba_hero__media { inset: auto; width: auto; height: 56vw; margin: 1.6rem $ferba-gutter 0; }
+    }
+}

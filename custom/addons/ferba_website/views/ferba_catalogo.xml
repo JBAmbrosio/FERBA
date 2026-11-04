@@ -215,11 +215,13 @@
          ================================================================ -->
     <template id="pagina_maquina" name="Ferba — ficha de máquina">
         <t t-call="ferba_website.pagina_base">
-            <t t-set="antetitulo" t-value="'Maquinaria — %s' % categoria.nombre"/>
+            <!-- miga del PDF: "MAQUINARIA ——— LAVADO Y TRATAMIENTO" (negrita · raya roja · categoría) -->
+            <t t-set="antetitulo"><span class="o_ferba_miga__a">Maquinaria</span><span class="o_ferba_miga__sep"/><span class="o_ferba_miga__b" t-out="categoria.nombre"/></t>
             <t t-set="titulo" t-value="maquina.hero_titulo or maquina.nombre"/>
             <t t-set="subtitulo" t-value="maquina.lema"/>
             <t t-set="fondo" t-value="maquina.hero_imagen"/>
-            <t t-set="clase_hero">o_ferba_hero--catalogo o_ferba_hero--ficha</t>
+            <!-- hero claro (transportadores): fondo blanco y el render 3D a la derecha -->
+            <t t-set="clase_hero" t-value="'o_ferba_hero--catalogo o_ferba_hero--ficha' + (' o_ferba_hero--claro' if maquina.hero_tema == 'claro' else '')"/>
             <t t-set="intro">
                 <t t-out="maquina.intro"/>
                 <!-- badge flotante sobre la foto del hero ("HASTA 1,440 CAJAS/HORA") -->
@@ -257,7 +259,8 @@
             </t>
             <t t-set="cierre_titulo" t-value="maquina.cierre_titulo"/>
             <t t-set="cierre_texto" t-value="maquina.cierre_texto"/>
-            <t t-set="cierre_foto" t-value="maquina.hero_imagen"/>
+            <!-- la banda roja de TODOS los PDF de máquina lleva la misma foto (línea con tomates) -->
+            <t t-set="cierre_foto" t-value="maquina.cierre_imagen or 'catalogo/_comunes/cta-bg.webp'"/>
             <t t-set="cierre_acciones">
                 <a href="/contactenos" class="o_ferba_btn o_ferba_btn--solid-white"
                    t-attf-data-ferba-senal="contacto_directo:#{maquina.slug}">

@@ -183,6 +183,11 @@ class FerbaMaquina(models.Model):
     lema = fields.Char(translate=True, help="Lema bajo el nombre en el hero.")
     intro = fields.Html(translate=True, sanitize=False)
     hero_imagen = fields.Char()
+    hero_tema = fields.Selection([
+        ('oscuro', 'Oscuro: foto a sangre a la derecha'),
+        ('claro', 'Claro: fondo blanco con el render 3D a la derecha (transportadores)'),
+    ], default='oscuro')
+    cierre_imagen = fields.Char(help="Foto de la banda roja de cierre; vacío = la foto común de los PDF.")
     destacado_ids = fields.One2many('ferba.maquina.destacado', 'maquina_id',
                                     help="Los 3 destacados del hero (valor + etiqueta).")
     destacados_estilo = fields.Selection([
