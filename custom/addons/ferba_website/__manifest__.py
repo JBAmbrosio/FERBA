@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Ferba — Sitio web',
-    'version': '19.0.1.19.0',
+    'version': '19.0.1.19.1',
     'author': 'Simdata Group',
     'category': 'Website/Website',
     'summary': 'Tema y páginas del sitio público de Ferba Postharvest Technology',

@@ -974,6 +974,12 @@
     &__texto { display: block; font-size: 0.86rem; line-height: 1.5; color: lighten($ferba-ink, 18%); margin-bottom: 0.9rem; white-space: pre-line; }
     &--desc { grid-template-columns: 1fr 38%; }
     &--desc &__media img { max-height: 150px; }
+    // Ícono editable del menú (campo menu_icono). Su alto lo fija el admin con
+    // "Tamaño del ícono (px)" vía la variable --icono-tam; manda sobre el alto del
+    // render normal, también en las tarjetas con descripción.
+    &__icono { display: inline-flex; place-items: center; min-width: 0; }
+    &__icono img,
+    &--desc &__icono img { max-width: 100%; max-height: var(--icono-tam, 110px); object-fit: contain; }
 }
 
 // Narrativa: texto | visual
