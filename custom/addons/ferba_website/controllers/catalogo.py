@@ -12,10 +12,55 @@ URL, así no hay contenido duplicado.
 
 Todo lo que se publica está `active=True`; un slug que no existe cae en el 404 de
 Ferba (http_routing.404, heredado en ferba_paginas.xml).
+
+SEO: cada página pasa `title` y `website_meta_description` al contexto (los lee
+`website.layout` para el `<title>` y el `<meta name="description">`), tomados del
+`meta_titulo`/`meta_descripcion` del registro. El `meta_titulo` ya trae el sufijo
+" | FERBA", así que se usa tal cual sin añadir el nombre del sitio.
+
+Sitemap: las rutas llevan parámetros, así que Odoo no puede enumerarlas solo;
+cada una declara una función `sitemap_*` que genera sus URLs reales.
 """
 from odoo import http
 from odoo.http import request
 from werkzeug.exceptions import NotFound
+
+
+# ---------------------------------------------------------------------------
+#  Generadores de sitemap (una entrada por registro publicado)
+# ---------------------------------------------------------------------------
+def sitemap_categoria(env, rule, qs):
+    for cat in env['ferba.categoria'].sudo().search([('active', '=', True)]):
+        loc = '/maquinaria/%s' % cat.slug
+        if not qs or qs.lower() in loc.lower():
+            yield {'loc': loc}
+
+
+def sitemap_maquina(env, rule, qs):
+    maquinas = env['ferba.maquina'].sudo().search([('active', '=', True)])
+    for maq in maquinas:
+        if not maq.categoria_id or not maq.categoria_id.active:
+            continue
+        loc = '/maquinaria/%s/%s' % (maq.categoria_id.slug, maq.slug)
+        if not qs or qs.lower() in loc.lower():
+            yield {'loc': loc}
+
+
+def sitemap_fruto(env, rule, qs):
+    for fr in env['ferba.fruto'].sudo().search([('active', '=', True)]):
+        loc = '/frutos/%s' % fr.slug
+        if not qs or qs.lower() in loc.lower():
+            yield {'loc': loc}
+
+
+def _seo(record):
+    """Contexto SEO para `website.layout`: `title` (tal cual, ya trae '| FERBA')
+    y `website_meta_description`. Si faltan, se devuelven vacíos y la plantilla
+    cae en su título por defecto."""
+    return {
+        'title': record.meta_titulo or '',
+        'website_meta_description': record.meta_descripcion or '',
+    }
 
 
 class CatalogoFerba(http.Controller):
@@ -24,7 +69,7 @@ class CatalogoFerba(http.Controller):
     #  Maquinaria: categoría y ficha
     # ------------------------------------------------------------------
     @http.route(['/maquinaria/<string:categoria>'], type='http', auth='public',
-                website=True, sitemap=True)
+                website=True, sitemap=sitemap_categoria)
     def categoria(self, categoria, **kw):
         cat = request.env['ferba.categoria'].sudo().search(
             [('slug', '=', categoria), ('active', '=', True)], limit=1)
@@ -46,13 +91,12 @@ class CatalogoFerba(http.Controller):
                 grupos.append((request.env['ferba.categoria.subgrupo'], sueltas))
         else:
             grupos = [(request.env['ferba.categoria.subgrupo'], maquinas)]
-        return request.render('ferba_website.pagina_categoria', {
-            'categoria': cat,
-            'grupos': grupos,
-        })
+        vals = {'categoria': cat, 'grupos': grupos}
+        vals.update(_seo(cat))
+        return request.render('ferba_website.pagina_categoria', vals)
 
     @http.route(['/maquinaria/<string:categoria>/<string:maquina>'], type='http',
-                auth='public', website=True, sitemap=True)
+                auth='public', website=True, sitemap=sitemap_maquina)
     def maquina(self, categoria, maquina, **kw):
         maq = request.env['ferba.maquina'].sudo().search(
             [('slug', '=', maquina), ('active', '=', True)], limit=1)
@@ -64,19 +108,21 @@ class CatalogoFerba(http.Controller):
         # render es fijo y coincide con los PDFs: splits -> beneficios (tarjetas
         # oscuras) -> pasos -> specs -> características (tarjetas claras) -> galería.
         bloques = maq.bloque_ids
-        return request.render('ferba_website.pagina_maquina', {
+        vals = {
             'maquina': maq,
             'categoria': maq.categoria_id,
             'splits': bloques.filtered(lambda b: b.tipo == 'split'),
             'beneficios': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'oscuro'),
             'caracteristicas': bloques.filtered(lambda b: b.tipo == 'tarjetas' and b.tema == 'claro'),
-        })
+        }
+        vals.update(_seo(maq))
+        return request.render('ferba_website.pagina_maquina', vals)
 
     # ------------------------------------------------------------------
     #  Frutos
     # ------------------------------------------------------------------
     @http.route(['/frutos/<string:fruto>'], type='http', auth='public',
-                website=True, sitemap=True)
+                website=True, sitemap=sitemap_fruto)
     def fruto(self, fruto, **kw):
         fr = request.env['ferba.fruto'].sudo().search(
             [('slug', '=', fruto), ('active', '=', True)], limit=1)
@@ -90,7 +136,6 @@ class CatalogoFerba(http.Controller):
             delcat = maquinas.filtered(lambda m: m.categoria_id == cat) \
                              .sorted(lambda m: (m.secuencia, m.id))
             grupos.append((cat, delcat))
-        return request.render('ferba_website.pagina_fruto', {
-            'fruto': fr,
-            'grupos': grupos,
-        })
+        vals = {'fruto': fr, 'grupos': grupos}
+        vals.update(_seo(fr))
+        return request.render('ferba_website.pagina_fruto', vals)
