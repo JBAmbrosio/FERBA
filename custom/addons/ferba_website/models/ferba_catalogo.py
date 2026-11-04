@@ -43,19 +43,49 @@ class FerbaCategoria(models.Model):
     hero_intro = fields.Html(translate=True, sanitize=False)
     hero_imagen = fields.Char(help="Ruta bajo static/src/img/, p.ej. catalogo/empaque/hero.webp")
 
-    # Bloque narrativo de la etapa (diagrama de flujo con iconos)
+    # Bloque narrativo de la etapa (texto a la izquierda, visual a la derecha)
     narrativa_antetitulo = fields.Char(translate=True)
     narrativa_titulo = fields.Char(translate=True)
     narrativa_intro = fields.Html(translate=True, sanitize=False)
     flujo_ids = fields.One2many('ferba.categoria.flujo', 'categoria_id')
+    flujo_estilo = fields.Selection([
+        ('circulos', 'Círculos numerados en hilera'),
+        ('zigzag', 'Ilustraciones numeradas en zigzag (recepción)'),
+        ('fila', 'Fotos en fila con flechas (lavado)'),
+        ('rejilla', 'Rejilla 2x2 numerada con icono (secado)'),
+        ('serpentina', 'Serpentina de 6 iconos con chevrones (transportadores, empaque)'),
+        ('tarjetas', 'Tarjetas grises con foto (selección)'),
+    ], default='circulos', help="Cómo se dibuja el visual de la narrativa, como lo hace cada PDF.")
 
     # Estructura de equipos
     subgrupo_ids = fields.One2many('ferba.categoria.subgrupo', 'categoria_id')
     maquina_ids = fields.One2many('ferba.maquina', 'categoria_id')
+    equipos_antetitulo = fields.Char(translate=True, default="Nuestros equipos")
+    equipos_titulo = fields.Char(translate=True, help="'Equipos para recepción y alimentación'.")
+    equipos_columnas = fields.Selection([('2', '2 columnas'), ('3', '3 columnas')], default='3')
+    equipos_numerados = fields.Boolean(help="Badge rojo 01, 02… en cada tarjeta (selección).")
+
+    # Sección extra oscura entre equipos y factores (lavado: "Soluciones para producto";
+    # secado: "Dos procesos que preparan el producto"). Sus puntos son factores con seccion='extra'.
+    extra_antetitulo = fields.Char(translate=True)
+    extra_titulo = fields.Char(translate=True)
 
     # "Factores que definen tu solución"
+    factor_antetitulo = fields.Char(translate=True)
     factor_titulo = fields.Char(translate=True)
+    factor_tema = fields.Selection([('oscuro', 'Oscuro'), ('claro', 'Claro')], default='oscuro')
     factor_ids = fields.One2many('ferba.categoria.factor', 'categoria_id')
+
+    # Selección: sección "Calibrado + FlexQuality" y botón "Ver FlexQuality" en el hero.
+    flexquality = fields.Boolean()
+
+    def factores(self):
+        self.ensure_one()
+        return self.factor_ids.filtered(lambda f: f.seccion == 'factor')
+
+    def extras(self):
+        self.ensure_one()
+        return self.factor_ids.filtered(lambda f: f.seccion == 'extra')
 
     # Banda de cierre
     cierre_titulo = fields.Char(translate=True)
@@ -91,10 +121,24 @@ class FerbaCategoriaFactor(models.Model):
     _rec_name = 'titulo'
 
     categoria_id = fields.Many2one('ferba.categoria', required=True, ondelete='cascade')
+    seccion = fields.Selection([('factor', 'Factor'), ('extra', 'Sección extra')], default='factor', required=True)
     icono = fields.Char(help="Ruta del icono SVG bajo static/src/img/.")
     titulo = fields.Char(required=True, translate=True)
+    subtitulo = fields.Char(translate=True, help="Línea chica bajo el título ('Bins o cajas').")
     texto = fields.Text(translate=True)
+    enlaces = fields.Char(help="Enlaces de la sección extra: 'Texto>/url|Texto>/url'.")
     secuencia = fields.Integer(default=10)
+
+    @property
+    def enlace_lista(self):
+        self.ensure_one()
+        out = []
+        for e in (self.enlaces or '').split('|'):
+            if not e.strip():
+                continue
+            txt, _, href = e.partition('>')
+            out.append((txt.strip(), href.strip() or '#'))
+        return out
 
 
 class FerbaCategoriaFlujo(models.Model):
@@ -106,7 +150,9 @@ class FerbaCategoriaFlujo(models.Model):
 
     categoria_id = fields.Many2one('ferba.categoria', required=True, ondelete='cascade')
     icono = fields.Char()
+    imagen = fields.Char(help="Ilustración o foto del paso (recepción, lavado, selección).")
     etiqueta = fields.Char(required=True, translate=True)
+    subetiqueta = fields.Char(translate=True, help="Línea chica bajo la etiqueta ('Bins o Cajas').")
     secuencia = fields.Integer(default=10)
 
 
@@ -172,6 +218,7 @@ class FerbaMaquina(models.Model):
 
     # Tarjeta (reutilizada en la categoría y en los frutos)
     tarjeta_imagen = fields.Char(help="Miniatura de la tarjeta.")
+    tarjeta_texto = fields.Text(translate=True, help="Descripción corta en la tarjeta de la categoría (recepción, lavado, selección…).")
     chips = fields.Char(help="Hasta 3 etiquetas separadas por coma: 'Bolsa, Integración, Empaque continuo'.")
 
     # Hero de la ficha

@@ -90,8 +90,17 @@ class CatalogoFerba(http.Controller):
             if sueltas:
                 grupos.append((request.env['ferba.categoria.subgrupo'], sueltas))
         else:
-            grupos = [(request.env['ferba.categoria.subgrupo'], maquinas)]
-        vals = {'categoria': cat, 'grupos': grupos}
+            grupos = [(request.env['ferba.categoria.subgrupo'], maquinas.sorted(lambda m: (m.secuencia, m.id)))]
+        # Número de cada tarjeta (01, 02…) cuando la categoría las numera (selección).
+        numeros, n = {}, 0
+        for _sg, items in grupos:
+            for m in items:
+                n += 1
+                numeros[m.id] = n
+        modulo = request.env['ir.module.module'].sudo().search(
+            [('name', '=', 'ferba_website')], limit=1)
+        vals = {'categoria': cat, 'grupos': grupos, 'numeros': numeros,
+                'ver': (modulo.installed_version or '0').replace('.', '')}
         vals.update(_seo(cat))
         return request.render('ferba_website.pagina_categoria', vals)
 
