@@ -35,6 +35,7 @@ from . import foco_pausa
 from . import foco_daily_report
 from . import foco_tab_review
 from . import hr_employee
+from . import res_company
 from . import res_config_settings
 from . import res_users
 from . import foco_menu_visibility

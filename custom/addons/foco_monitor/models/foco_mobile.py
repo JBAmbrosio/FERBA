@@ -31,10 +31,64 @@ from odoo import api, fields, models, tools
 from odoo.exceptions import UserError
 
 from .foco_mobile_login import VIGENCIA_S
+from .foco_estados_mx import estado_de
 
 # En linea si su ultima señal es de hace menos de esto. Mismo criterio que el
 # resto de Foco (3 envios perdidos del movil ~ 15 min).
 MOBILE_ONLINE_SECS = 15 * 60
+
+# Frontera Mexico-EE. UU. simplificada: latitud de la linea por longitud, de
+# oeste a este (Tijuana -> Mexicali/San Luis -> Nogales -> bota de Nuevo Mexico ->
+# El Paso -> Rio Bravo -> Matamoros). Se usa para decidir de que lado cae un punto
+# que esta FUERA de los poligonos de Mexico pero cerca de ellos: los grandes
+# puntos de entrada de producto de EE. UU. (Nogales AZ, McAllen TX, Yuma AZ) estan
+# pegados a la frontera, igual que la costa/golfo del norte de Mexico; una caja
+# no los separa, la linea si.
+_FRONTERA_US = [
+    (-124.60, 32.53), (-117.13, 32.53), (-115.50, 32.66), (-114.78, 32.49),
+    (-113.00, 31.90), (-111.07, 31.33), (-108.21, 31.33), (-106.46, 31.75),
+    (-104.42, 29.56), (-102.30, 29.88), (-100.50, 28.70), (-99.50, 27.60),
+    (-98.60, 26.30), (-97.40, 25.95), (-97.14, 25.90),
+]
+
+
+def _frontera_lat(lon):
+    """Latitud de la frontera MX-EE. UU. en esa longitud (al este del ultimo
+    punto, la costa del Golfo ~25 N)."""
+    pts = _FRONTERA_US
+    if lon <= pts[0][0]:
+        return pts[0][1]
+    if lon >= pts[-1][0]:
+        return 25.0
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        if x0 <= lon <= x1:
+            t = (lon - x0) / (x1 - x0) if x1 != x0 else 0.0
+            return y0 + t * (y1 - y0)
+    return 25.0
+
+
+def _pais_de_punto(lat, lon):
+    """'MX' / 'US' / None segun donde cae el punto.
+
+      1) Mexico si el punto cae ESTRICTAMENTE dentro de un estado (km == 0).
+      2) Si no, es de EE. UU. si queda dentro del rango continental y al NORTE de
+         la frontera (asi los pueblos fronterizos del lado gringo salen bien).
+      3) Si sigue pegado a Mexico (estado_de devolvio codigo) pero al sur de la
+         frontera -costa del noroeste, Golfo-, es de Mexico.
+    Un cliente real de Mexico esta en tierra, dentro de su estado (paso 1)."""
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (TypeError, ValueError):
+        return None
+    code, km = estado_de(lat, lon)
+    if code and not km:
+        return 'MX'
+    if -124.6 <= lon <= -66.5 and lat <= 49.5 and lat > _frontera_lat(lon):
+        return 'US'
+    if code:
+        return 'MX'
+    return None
 
 
 class FocoMobileDevice(models.Model):
@@ -1097,6 +1151,22 @@ class FocoMobileDevice(models.Model):
                          'foco_tipo_ubicacion': tipo})
         else:
             vals.update({'company_type': 'company', 'foco_estatus': 'prospecto'})
+        # Empresa del registro. Los clientes de Mexico quedan COMPARTIDOS
+        # (company_id vacio, como hasta hoy: todos los vendedores los ven). Solo
+        # cuando el pin cae en EE. UU. el cliente nace en la empresa estadounidense
+        # correspondiente (res.company.foco_us_company_id de la empresa del
+        # vendedor), y solo si el vendedor la tiene entre sus empresas permitidas
+        # -si no, no podria ni crearla ni verla-; en ese caso se queda compartido.
+        # Una UBICACION hija hereda la empresa de su razon social.
+        empresa = False
+        if razon:
+            empresa = razon.company_id
+        elif _pais_de_punto(lat, lon) == 'US':
+            us = user.company_id.sudo().foco_us_company_id
+            if us and us.id in user.company_ids.ids:
+                empresa = us
+        if empresa:
+            vals['company_id'] = empresa.id
         tel = (telefono or '').strip()
         if tel:
             vals['phone'] = tel[:32]
