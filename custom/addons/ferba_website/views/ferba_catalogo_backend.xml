@@ -149,6 +149,10 @@
                             <field name="tarjeta_imagen"/>
                             <field name="chips" placeholder="Bolsa, Integración, Empaque continuo"/>
                             <field name="fruto_ids" widget="many2many_tags"/>
+                            <separator string="Ícono del menú de máquinas (manual)"/>
+                            <field name="menu_icono" widget="image" options="{'size': [120, 120]}"
+                                   help="Súbelo si el render automático salió mal. Reemplaza la imagen SOLO en la tarjeta del menú."/>
+                            <field name="menu_icono_tam"/>
                         </group>
                     </group>
                     <notebook>
