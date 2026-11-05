@@ -34,7 +34,7 @@
         <field name="specs_foto">catalogo/recepcion/volcador-bins/datos-foto.webp</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de bins?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -185,7 +185,7 @@
     <record id="media_vbr_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/recepcion/volcador-bins/galeria-video.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_vbr_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_volcador_bins_rot"/><field name="secuencia">20</field>
@@ -335,7 +335,7 @@
         <field name="specs_foto">catalogo/recepcion/volcador-cajas-rotativo/datos-foto.webp</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -458,7 +458,7 @@
     <record id="media_vcr_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/recepcion/volcador-cajas-rotativo/galeria-video.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_vcr_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_volcador_cajas_rot"/><field name="secuencia">20</field>
@@ -624,7 +624,7 @@
         <field name="specs_foto">catalogo/recepcion/lavadora-cajas/datos-foto.webp</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas automatizar el lavado de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -779,7 +779,7 @@
     <record id="media_lvc_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/recepcion/lavadora-cajas/galeria-video.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_lvc_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_lavadora_cajas"/><field name="secuencia">20</field>
@@ -824,7 +824,7 @@
         <field name="caracteristicas_titulo">Características destacadas</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas automatizar el lavado de bins?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -988,7 +988,7 @@
     <record id="media_lvb_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/recepcion/lavadora-bins/galeria-video.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_lvb_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_lavadora_bins"/><field name="secuencia">20</field>
@@ -2315,7 +2315,7 @@
         <field name="fq_calibre_icono">catalogo/seleccion/calibrador-92/fq-calibre.webp</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Cómo necesitas clasificar tu producto?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -2440,7 +2440,7 @@
     <record id="media_c92_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_cal_92"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/seleccion/calibrador-92/galeria-1.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_c92_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_cal_92"/><field name="secuencia">20</field>
@@ -2473,6 +2473,7 @@
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Calibrador electrónico paso 114 mm | FERBA</field>
         <field name="meta_descripcion">El Calibrador Electrónico FERBA Paso 114 mm clasifica mango, pimiento y aguacate por peso, tamaño, volumen y color: hasta 480 frutos/min/línea, 2 a 40 salidas.</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
     </record>
     <record id="dest_cal114_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_cal_114"/><field name="secuencia">10</field><field name="valor">480</field><field name="etiqueta">frutos/min/línea</field></record>
     <record id="dest_cal114_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_cal_114"/><field name="secuencia">20</field><field name="valor">40</field><field name="etiqueta">salidas</field></record>
@@ -2513,6 +2514,20 @@
     <record id="it_cal114_f4" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_cal114_fq"/><field name="secuencia">40</field><field name="titulo">Calidad visual</field></record>
     <record id="it_cal114_f5" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_cal114_fq"/><field name="secuencia">50</field><field name="titulo">Defectos externos</field></record>
 
+    <!-- galería (3 fotos: mango, pimiento, aguacate) -->
+    <record id="media_c114_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_cal_114"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/seleccion/fichas/calibrador-114/galeria-1.webp</field>
+    </record>
+    <record id="media_c114_2" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_cal_114"/><field name="secuencia">20</field>
+        <field name="imagen">catalogo/seleccion/fichas/calibrador-114/galeria-2.webp</field>
+    </record>
+    <record id="media_c114_3" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_cal_114"/><field name="secuencia">30</field>
+        <field name="imagen">catalogo/seleccion/fichas/calibrador-114/galeria-3.webp</field>
+    </record>
+
     <!-- Calibrador electrónico paso 152 mm  (fiel al PDF: hero con foto, split con render, beneficios en
          sección oscura, 5 pasos con foto, datos en blanco con 3 tarjetas de cifra,
          CALIBRADO + FLEXQUALITY (2 secciones fijas), galería con video, cierre) -->
@@ -2544,7 +2559,7 @@
         <field name="fq_calibre_icono">catalogo/seleccion/calibrador-152/fq-calibre.webp</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Cómo necesitas clasificar tu producto?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -2669,7 +2684,7 @@
     <record id="media_c152_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_cal_152"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/seleccion/calibrador-152/galeria-1.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_c152_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_cal_152"/><field name="secuencia">20</field>
@@ -2702,6 +2717,7 @@
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
         <field name="meta_titulo">Calibrador electrónico para cítricos | FERBA</field>
         <field name="meta_descripcion">El Calibrador Electrónico FERBA para Cítricos clasifica el producto por peso, tamaño, volumen y color y se integra con FlexQuality: hasta 720 frutos/min/línea.</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
     </record>
     <record id="dest_calc_1" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_cal_citricos"/><field name="secuencia">10</field><field name="valor">720</field><field name="etiqueta">frutos/min/línea</field></record>
     <record id="dest_calc_2" model="ferba.maquina.destacado"><field name="maquina_id" ref="maq_cal_citricos"/><field name="secuencia">20</field><field name="valor">40</field><field name="etiqueta">salidas</field></record>
@@ -2742,6 +2758,12 @@
     <record id="it_calc_f3" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_calc_fq"/><field name="secuencia">30</field><field name="titulo">Forma</field></record>
     <record id="it_calc_f4" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_calc_fq"/><field name="secuencia">40</field><field name="titulo">Calidad visual</field></record>
     <record id="it_calc_f5" model="ferba.maquina.bloque.item"><field name="bloque_id" ref="blo_calc_fq"/><field name="secuencia">50</field><field name="titulo">Defectos externos</field></record>
+
+    <!-- galería (1 foto: cítricos) -->
+    <record id="media_calc_1" model="ferba.maquina.media">
+        <field name="maquina_id" ref="maq_cal_citricos"/><field name="secuencia">10</field>
+        <field name="imagen">catalogo/seleccion/fichas/calibrador-citricos/galeria-1.webp</field>
+    </record>
 
     <!-- ================= EMPAQUE ================= -->
 
@@ -3110,7 +3132,7 @@
         <field name="specs_titulo">Especificaciones principales</field>
         <field name="specs_foto">catalogo/empaque/multipesadora/datos-foto.webp</field>
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -3182,7 +3204,7 @@
     <record id="media_multi_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/empaque/multipesadora/galeria-1.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_multi_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_multipesadora"/><field name="secuencia">20</field>
@@ -4020,7 +4042,7 @@
         <field name="specs_titulo">Especificaciones principales</field>
         <field name="specs_foto">catalogo/empaque/flowpack/datos-foto.webp</field>
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Necesitas organizar mejor tu proceso de empacado?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -4107,7 +4129,7 @@
     <record id="media_flowpack_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/empaque/flowpack/galeria-1.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_flowpack_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_flowpack"/><field name="secuencia">20</field>
@@ -4162,7 +4184,7 @@
         <field name="construccion_titulo">Construida para operación productiva</field>
 
         <field name="galeria_antetitulo">Conoce la línea de siembra en detalle</field>
-        <field name="galeria_titulo">Galería de imágenes y video</field>
+        <field name="galeria_titulo">Galería de imágenes</field>
 
         <field name="cierre_titulo">¿Quieres integrar una línea de siembra en tu operación?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
@@ -4297,7 +4319,7 @@
     <record id="media_siembra_1" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">10</field>
         <field name="imagen">catalogo/sembradoras/linea-de-siembra/galeria-1.webp</field>
-        <field name="es_video" eval="True"/>
+        <field name="es_video" eval="False"/>
     </record>
     <record id="media_siembra_2" model="ferba.maquina.media">
         <field name="maquina_id" ref="maq_linea_siembra"/><field name="secuencia">20</field>
