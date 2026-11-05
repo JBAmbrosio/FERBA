@@ -829,7 +829,7 @@
                     <!-- cabecera a la izquierda con antetítulo, como en el PDF ("CONOCE … EN DETALLE") -->
                     <div class="o_ferba_cabsec o_ferba_reveal">
                         <span t-if="maquina.galeria_antetitulo" class="o_ferba_eyebrow o_ferba_eyebrow--rojo" t-out="maquina.galeria_antetitulo"/>
-                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.galeria_titulo or 'Galería de imágenes y video'"/></h2>
+                        <h2 class="o_ferba_title"><span class="o_ferba_title__in" t-out="maquina.galeria_titulo or 'Galería de imágenes'"/></h2>
                     </div>
                     <div class="o_ferba_galeria">
                         <t t-foreach="maquina.media_ids" t-as="m">
