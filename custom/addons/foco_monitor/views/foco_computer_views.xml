@@ -36,6 +36,9 @@
                        decoration-warning="block_attention in ('pendiente','equipo_ausente','nunca')"
                        decoration-muted="block_attention == 'ok'"/>
                 <field name="pending_command_count" string="Ordenes pend."/>
+                <field name="retire_state" string="Retiro" optional="hide"
+                       decoration-danger="retire_state == 'requested'"
+                       decoration-muted="retire_state == 'retired'"/>
             </list>
         </field>
     </record>
@@ -49,6 +52,18 @@
                     <button name="action_reset_key" type="object"
                             string="Regenerar API key" class="btn-secondary"
                             confirm="El agente actual dejara de conectar hasta actualizar la key. Continuar?"/>
+                    <!-- Retiro del equipo: el servicio libera TODOS los bloqueos y
+                         desinstala Foco. Manual y auditable; solo visible si el
+                         equipo esta activo. -->
+                    <button name="action_retirar" type="object"
+                            string="Retirar Foco (desinstalar)" class="btn-danger"
+                            invisible="retire_state != 'none'"
+                            confirm="Esto hara que el equipo LIBERE todos los bloqueos de navegacion y DESINSTALE Foco en su proxima consulta (hasta 5 minutos). Se usa cuando el empleado deja la empresa. Es irreversible una vez que el equipo se desinstala. Continuar?"/>
+                    <button name="action_cancelar_retiro" type="object"
+                            string="Cancelar retiro" class="btn-secondary"
+                            invisible="retire_state != 'requested'"/>
+                    <field name="retire_state" widget="statusbar"
+                           statusbar_visible="none,requested,retired"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -115,6 +130,14 @@
                             <field name="service_at"/>
                             <field name="service_same_folder"/>
                             <field name="service_reported_at"/>
+                        </group>
+                        <!-- Retiro del equipo (empleado que dejo la empresa): quien
+                             lo pidio y cuando, y la confirmacion del equipo. -->
+                        <group string="Retiro del equipo" invisible="retire_state == 'none'">
+                            <field name="retire_requested_at"/>
+                            <field name="retire_requested_uid"/>
+                            <field name="retired_at" invisible="retire_state != 'retired'"/>
+                            <field name="retire_detail" invisible="not retire_detail"/>
                         </group>
                     </group>
                     <notebook>
