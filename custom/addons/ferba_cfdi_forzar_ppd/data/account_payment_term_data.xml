@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Termino "7 Dias (PPD)": 100% a 7 dias, con la Politica CFDI forzada a PPD.
+             noupdate="1": se crea al instalar, pero si luego lo editan a mano no se
+             sobreescribe en las actualizaciones del modulo. -->
+        <record id="payment_term_7dias_ppd" model="account.payment.term">
+            <field name="name">7 Días (PPD)</field>
+            <field name="note" type="html">
+                <p>Plazo de pago: 7 días. Política CFDI: PPD.</p>
+            </field>
+            <field name="l10n_mx_edi_force_ppd" eval="True"/>
+            <field name="line_ids" eval="[(5, 0, 0), (0, 0, {
+                'value': 'percent',
+                'value_amount': 100.0,
+                'nb_days': 7,
+                'delay_type': 'days_after',
+            })]"/>
+        </record>
+    </data>
+</odoo>
