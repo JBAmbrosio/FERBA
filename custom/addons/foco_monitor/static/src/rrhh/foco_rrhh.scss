@@ -1,0 +1,8 @@
+// Tablero de Recursos Humanos. Todo lo visual viene de .foco_dash (el
+// tablero): aqui solo la rejilla de dos tarjetas, que alla son tres.
+.foco_dash.fd_rrhh {
+    .fd_rrhh_grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 860px) { .fd_rrhh_grid { grid-template-columns: 1fr; } }
+    .fd_rrhh_grid > * { min-width: 0; }
+    .fd_card_head .btn-link { margin-left: auto; font-size: 12.5px; }
+}

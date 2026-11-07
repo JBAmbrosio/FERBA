@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- M3 — Frutos: 10 páginas por fruto. El hero y el cierre salen del
+         PDF del fruto; los equipos son el M2M a las fichas que ya existen,
+         derivado de FRUTOS/SUBPAGINAS/<FRUTO>/SUBPAGINAS/*.pdf. Sin noupdate
+         durante el desarrollo (se recarga con -u). -->
+
+    <record id="fruto_tomate" model="ferba.fruto">
+        <field name="nombre">Tomate</field>
+        <field name="slug">tomate</field>
+        <field name="secuencia">10</field>
+        <field name="hero_titulo">Soluciones postcosecha para tomate</field>
+        <field name="hero_subtitulo">Procesos diseñados para cuidar la calidad desde la recepción hasta el empaque</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA integra maquinaria y soluciones para el manejo postcosecha de tomate, cubriendo diferentes etapas de recepción, transporte, lavado, selección, calibrado y empaque.</p>
+            <p class="o_ferba_hero__lead">Cada proyecto puede configurarse de acuerdo con la variedad de tomate, capacidad requerida, criterios de clasificación y presentación final del producto.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/tomate/hero.webp</field>
+        <field name="cierre_titulo">¿Procesas tomate y necesitas optimizar tu línea?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para tomate | FERBA</field>
+        <field name="meta_descripcion">Recepción, lavado, calibrado y empaque de tomate: línea postcosecha configurable según variedad, capacidad y presentación.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_cal_92'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_criba_malla'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_multipesadora'),
+                ref('ferba_website.maq_pesadora_cajas'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_pepino" model="ferba.fruto">
+        <field name="nombre">Pepino</field>
+        <field name="slug">pepino</field>
+        <field name="secuencia">20</field>
+        <field name="hero_titulo">Soluciones postcosecha para pepino</field>
+        <field name="hero_subtitulo">Manejo, clasificación y empaque para mantener un flujo continuo y uniforme</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA desarrolla soluciones para el procesamiento postcosecha de pepino, desde su recepción y transporte hasta etapas de selección, calibrado, empaque y acondicionamiento final.</p>
+            <p class="o_ferba_hero__lead">La línea puede configurarse según dimensiones del producto, capacidad requerida, criterios de clasificación y tipo de presentación comercial.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/pepino/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas una línea para procesamiento de pepino?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para pepino | FERBA</field>
+        <field name="meta_descripcion">Línea postcosecha para pepino: transporte, selección, calibrado, horneado térmico y empaque en una sola solución.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_empaquetadora_automatica'),
+                ref('ferba_website.maq_envasadora_automatica'),
+                ref('ferba_website.maq_flowpack'),
+                ref('ferba_website.maq_horno_fp560'),
+                ref('ferba_website.maq_horno_fp560a'),
+                ref('ferba_website.maq_horno_fp6000'),
+                ref('ferba_website.maq_horno_s560'),
+                ref('ferba_website.maq_horno_sk1'),
+                ref('ferba_website.maq_horno_sk2'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_selladora_bolsa'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_pimiento" model="ferba.fruto">
+        <field name="nombre">Pimiento</field>
+        <field name="slug">pimiento</field>
+        <field name="secuencia">30</field>
+        <field name="hero_titulo">Soluciones postcosecha para pimiento</field>
+        <field name="hero_subtitulo">Clasificación, manejo y empaque adaptados a diferentes variedades y presentaciones</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA integra equipos para el procesamiento postcosecha de pimiento, permitiendo conectar diferentes etapas de transporte, selección, calibrado y empaque dentro de una misma solución.</p>
+            <p class="o_ferba_hero__lead">Cada línea puede adaptarse al tamaño del producto, capacidad de producción, criterios de calidad y presentación requerida.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/pimiento/hero.webp</field>
+        <field name="cierre_titulo">¿Buscas optimizar tu proceso de pimiento?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para pimiento | FERBA</field>
+        <field name="meta_descripcion">Clasificación, manejo y empaque de pimiento adaptados a diferentes variedades, calibres y presentaciones comerciales.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_empaquetadora_automatica'),
+                ref('ferba_website.maq_envasadora_automatica'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_selladora_bolsa'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos'),
+                ref('ferba_website.maq_cal_114')
+        ])]"/>
+    </record>
+
+    <record id="fruto_calabaza" model="ferba.fruto">
+        <field name="nombre">Calabaza</field>
+        <field name="slug">calabaza</field>
+        <field name="secuencia">40</field>
+        <field name="hero_titulo">Soluciones postcosecha para calabaza</field>
+        <field name="hero_subtitulo">Transporte, clasificación y manejo adaptados a productos de diferentes dimensiones</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA desarrolla soluciones para el procesamiento de calabaza, integrando sistemas capaces de transportar, clasificar y preparar el producto para las etapas posteriores de empaque.</p>
+            <p class="o_ferba_hero__lead">La configuración puede definirse según longitud, diámetro, forma, capacidad de producción y necesidades específicas de cada proyecto.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/calabaza/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas procesar calabaza de manera más eficiente?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para calabaza | FERBA</field>
+        <field name="meta_descripcion">Transporte, clasificación y empaque de calabaza para productos de distintas dimensiones dentro de una línea continua.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_empaquetadora_automatica'),
+                ref('ferba_website.maq_flowpack'),
+                ref('ferba_website.maq_horno_fp560'),
+                ref('ferba_website.maq_horno_fp560a'),
+                ref('ferba_website.maq_horno_fp6000'),
+                ref('ferba_website.maq_horno_s560'),
+                ref('ferba_website.maq_horno_sk1'),
+                ref('ferba_website.maq_horno_sk2'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_selladora_bolsa'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_mango" model="ferba.fruto">
+        <field name="nombre">Mango</field>
+        <field name="slug">mango</field>
+        <field name="secuencia">50</field>
+        <field name="hero_titulo">Soluciones postcosecha para mango</field>
+        <field name="hero_subtitulo">Tecnología para manejar, seleccionar y clasificar el producto manteniendo su calidad</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA integra maquinaria para diferentes etapas del procesamiento postcosecha de mango, desde el transporte y acondicionamiento hasta la selección, calibrado y preparación para empaque.</p>
+            <p class="o_ferba_hero__lead">Cada proyecto puede configurarse considerando variedad, tamaño, peso, calidad y capacidad de producción.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/mango/hero.webp</field>
+        <field name="cierre_titulo">¿Procesas mango y necesitas una solución adaptada a tu operación?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para mango | FERBA</field>
+        <field name="meta_descripcion">Maquinaria postcosecha para mango: transporte, selección, calibrado y preparación para empaque cuidando la calidad.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_cal_114'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_pesadora_cajas'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_aguacate" model="ferba.fruto">
+        <field name="nombre">Aguacate</field>
+        <field name="slug">aguacate</field>
+        <field name="secuencia">60</field>
+        <field name="hero_titulo">Soluciones postcosecha para aguacate</field>
+        <field name="hero_subtitulo">Clasificación precisa y manejo cuidadoso para diferentes calibres y categorías de calidad</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA integra soluciones para el procesamiento postcosecha de aguacate, desde su recepción y transporte hasta la selección, calibrado y preparación para empaque.</p>
+            <p class="o_ferba_hero__lead">La línea puede configurarse de acuerdo con tamaño, peso, color, calidad externa, capacidad de procesamiento y requisitos comerciales del producto.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/aguacate/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas clasificar y manejar aguacate con mayor precisión?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para aguacate | FERBA</field>
+        <field name="meta_descripcion">Clasificación precisa y manejo cuidadoso de aguacate por calibre, peso, color y calidad externa.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_cal_114'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_pesadora_cajas'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_citricos" model="ferba.fruto">
+        <field name="nombre">Cítricos</field>
+        <field name="slug">citricos</field>
+        <field name="secuencia">70</field>
+        <field name="hero_titulo">Soluciones postcosecha para cítricos</field>
+        <field name="hero_subtitulo">Procesos integrados para recepción, acondicionamiento, selección y empaque</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA desarrolla soluciones para diferentes cítricos, integrando maquinaria para transportar, lavar, secar, acondicionar, seleccionar y preparar el producto para su empaque.</p>
+            <p class="o_ferba_hero__lead">Cada línea puede adaptarse a la variedad, diámetro, capacidad de producción y tratamiento requerido durante el proceso postcosecha.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/citricos/hero.webp</field>
+        <field name="cierre_titulo">¿Procesas cítricos y necesitas optimizar tu línea?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para cítricos | FERBA</field>
+        <field name="meta_descripcion">Transporte, lavado, secado, selección y empaque de cítricos en procesos integrados y continuos.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_cal_citricos'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_criba_malla'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_lavadora_cajas'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_pesadora_cajas'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_volcador_cajas_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_melon" model="ferba.fruto">
+        <field name="nombre">Melón</field>
+        <field name="slug">melon</field>
+        <field name="secuencia">80</field>
+        <field name="hero_titulo">Soluciones postcosecha para melón</field>
+        <field name="hero_subtitulo">Equipos para transportar, seleccionar y preparar el producto dentro de una línea continua</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA desarrolla soluciones para el manejo postcosecha de melón, integrando diferentes sistemas de transporte, selección y acondicionamiento según las necesidades de cada operación.</p>
+            <p class="o_ferba_hero__lead">La configuración de la línea puede adaptarse al tamaño, peso, capacidad requerida y presentación comercial del producto.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/melon/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas mejorar el manejo postcosecha de melón?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para melón | FERBA</field>
+        <field name="meta_descripcion">Transporte, selección y acondicionamiento de melón adaptados al tamaño, peso y presentación del producto.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_criba_rodillos'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_sandia" model="ferba.fruto">
+        <field name="nombre">Sandía</field>
+        <field name="slug">sandia</field>
+        <field name="secuencia">90</field>
+        <field name="hero_titulo">Soluciones postcosecha para sandía</field>
+        <field name="hero_subtitulo">Transporte y manejo diseñados para productos de mayor tamaño y peso</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA integra soluciones para el manejo postcosecha de sandía, considerando las dimensiones y peso del producto para mantener un traslado estable entre las diferentes etapas del proceso.</p>
+            <p class="o_ferba_hero__lead">Cada proyecto puede configurarse según capacidad, recorrido, distribución de planta y necesidades específicas de manejo y empaque.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/sandia/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas una solución para transportar y manejar sandía?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para sandía | FERBA</field>
+        <field name="meta_descripcion">Transporte y manejo de sandía diseñados para productos de mayor tamaño y peso, con recorrido estable.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_volcador_bins_rot'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+    <record id="fruto_esparrago" model="ferba.fruto">
+        <field name="nombre">Espárrago</field>
+        <field name="slug">esparrago</field>
+        <field name="secuencia">100</field>
+        <field name="hero_titulo">Soluciones postcosecha para espárrago</field>
+        <field name="hero_subtitulo">Manejo y transporte adaptados a un producto que requiere precisión y cuidado</field>
+        <field name="hero_intro"><![CDATA[
+            <p class="o_ferba_hero__lead">FERBA desarrolla soluciones para integrar el espárrago dentro de procesos postcosecha, facilitando su transporte, manejo y conexión entre diferentes etapas de selección y empaque.</p>
+            <p class="o_ferba_hero__lead">Cada configuración puede adaptarse a la capacidad de operación, presentación requerida y distribución específica de la línea.</p>
+        ]]></field>
+        <field name="hero_imagen">catalogo/frutos/esparrago/hero.webp</field>
+        <field name="cierre_titulo">¿Necesitas una solución para el manejo de espárrago?</field>
+        <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
+        <field name="meta_titulo">Soluciones postcosecha para espárrago | FERBA</field>
+        <field name="meta_descripcion">Manejo y transporte de espárrago con precisión y cuidado, integrando selección y empaque.</field>
+        <field name="maquina_ids" eval="[(6, 0, [
+                ref('ferba_website.maq_bancos_empaque'),
+                ref('ferba_website.maq_tra_elevador_banda'),
+                ref('ferba_website.maq_tra_elevador_rodillos'),
+                ref('ferba_website.maq_empaquetadora_automatica'),
+                ref('ferba_website.maq_envasadora_automatica'),
+                ref('ferba_website.maq_flowpack'),
+                ref('ferba_website.maq_lavadora_bins'),
+                ref('ferba_website.maq_mesa_giratoria'),
+                ref('ferba_website.maq_modulo_empacado'),
+                ref('ferba_website.maq_pesadora_cajas'),
+                ref('ferba_website.maq_selladora_bolsa'),
+                ref('ferba_website.maq_tanque_recepcion'),
+                ref('ferba_website.maq_tra_banda_modular'),
+                ref('ferba_website.maq_tra_banda_reforzada'),
+                ref('ferba_website.maq_tra_banda'),
+                ref('ferba_website.maq_tra_rodillos_grav'),
+                ref('ferba_website.maq_tra_manejo_caja'),
+                ref('ferba_website.maq_cepillos_lavado'),
+                ref('ferba_website.maq_cepillos_secado'),
+                ref('ferba_website.maq_volcador_cajas_tor'),
+                ref('ferba_website.maq_tra_curva_grav'),
+                ref('ferba_website.maq_tra_curva_vivos')
+        ])]"/>
+    </record>
+
+</odoo>

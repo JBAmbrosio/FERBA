@@ -143,7 +143,7 @@
                                                       t-attf-style="top:{{ fr.top }}%;height:{{ fr.alto }}%"/>
                                             </t>
                                             <t t-foreach="f.tramos" t-as="s" t-key="s_index">
-                                                <span t-attf-class="fj_bloque {{ s.k }} {{ s.estado === 'pendiente' ? 'pendiente' : '' }}"
+                                                <span t-attf-class="fj_bloque {{ s.k }} {{ (s.estado === 'pendiente' or s.estado === 'no_justificado') ? 'pendiente' : '' }}"
                                                       t-attf-style="top:{{ s.top }}%;height:{{ s.alto }}%"
                                                       t-att-title="s.titulo"/>
                                             </t>
@@ -217,7 +217,7 @@
                                                 <i class="fj_franja" t-attf-style="top:{{ fr.top }}%;height:{{ fr.alto }}%"/>
                                             </t>
                                             <t t-foreach="f.tramos" t-as="s" t-key="s_index">
-                                                <i t-attf-class="fj_bloque {{ s.k }} {{ s.estado === 'pendiente' ? 'pendiente' : '' }}"
+                                                <i t-attf-class="fj_bloque {{ s.k }} {{ (s.estado === 'pendiente' or s.estado === 'no_justificado') ? 'pendiente' : '' }}"
                                                    t-attf-style="top:{{ s.top }}%;height:{{ s.alto }}%"/>
                                             </t>
                                         </span>

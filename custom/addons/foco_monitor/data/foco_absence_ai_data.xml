@@ -13,5 +13,20 @@
             <field name="interval_type">minutes</field>
             <field name="active" eval="True"/>
         </record>
+
+        <!-- Regla del mismo dia (13-oct-2026): lo que se quedo por justificar de
+             un dia que ya termino se cierra como "No justificado". Cada hora y
+             no a medianoche: "el dia" es el de cada persona, en su zona, y si el
+             servidor estuvo caido la hora siguiente lo alcanza. La ventana y la
+             pagina ya filtran por su cuenta; esto deja el estado al dia. -->
+        <record id="cron_foco_absence_vencer" model="ir.cron">
+            <field name="name">Foco: cerrar lo no justificado del dia</field>
+            <field name="model_id" ref="model_foco_absence"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_vencer()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>

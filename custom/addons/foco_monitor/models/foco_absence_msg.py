@@ -84,3 +84,39 @@ class FocoAbsenceDevolver(models.TransientModel):
             return False
         self.absence_id.devolver_con_mensaje(texto)
         return {'type': 'ir.actions.act_window_closed'}
+
+
+class FocoAbsenceDecision(models.TransientModel):
+    """Aprobar o rechazar, con una nota, lo que alguien SIN ventana no pudo
+    justificar (14-oct-2026). Sirve para uno o para varios periodos a la vez:
+    se elige en la lista y se decide de una vez."""
+    _name = 'foco.absence.decision'
+    _description = 'Aprobar o rechazar periodos de quien no tiene ventana'
+
+    absence_ids = fields.Many2many(
+        'foco.absence', string='Periodos', required=True, readonly=True)
+    decision = fields.Selection(
+        [('aprobar', 'Aprobar'), ('rechazar', 'Rechazar')],
+        string='Decision', required=True, readonly=True)
+    nota = fields.Text(
+        string='Nota',
+        help='Por que lo apruebas o lo rechazas. Queda en el periodo y en su '
+             'conversacion, para quien lo revise despues.')
+    resumen = fields.Char(string='Periodos', compute='_compute_resumen')
+
+    def _compute_resumen(self):
+        for w in self:
+            # Con sudo: solo son nombres y minutos que quien decide ya ve en su
+            # lista; sin el, a un usuario que no es de RR.HH. en Odoo leer el
+            # empleado le truena por los campos privados de hr.employee.
+            recs = w.absence_ids.sudo()
+            n = len(recs)
+            minutos = int(round(sum(recs.mapped('expected_seconds')) / 60.0))
+            gente = ', '.join(sorted(set(recs.mapped('employee_id.name'))))
+            w.resumen = '%d %s · %d min de jornada · %s' % (
+                n, 'periodo' if n == 1 else 'periodos', minutos, gente)
+
+    def action_confirmar(self):
+        self.ensure_one()
+        self.absence_ids.decidir_sin_ventana(self.decision, self.nota)
+        return {'type': 'ir.actions.act_window_close'}

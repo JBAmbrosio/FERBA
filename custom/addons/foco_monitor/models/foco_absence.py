@@ -5,6 +5,7 @@ from datetime import datetime, time, timedelta
 import pytz
 
 from odoo import api, fields, models
+from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -183,13 +184,25 @@ class FocoAbsence(models.Model):
     # Rechazar. Solo lo justificado consume la bolsa: las apps neutras o de
     # distraccion no la tocan. Lo justificado antes de la regla sigue contando
     # tal cual (cubierta_por vacio).
+    # Regla del MISMO DIA (13-oct-2026, decision del dueno): un periodo se
+    # justifica el dia en que paso o ya no se justifica. Al dia siguiente la
+    # gente no recuerda, reconstruye ("st", "Permiso") y lo unico que gana es
+    # que le devuelvan la computadora. Lo que no se contesto ese dia se cierra
+    # como 'no_justificado': un estado FINAL, que se queda a la vista y que el
+    # admin todavia puede aceptar o devolver.
     state = fields.Selection(
         [('auto', 'Explicado por vacaciones'),
          ('pendiente', 'Por justificar'),
          ('justificada', 'Justificada'),
          ('por_decidir', 'Por decidir (admin)'),
-         ('rechazada', 'Rechazada por el admin')],
+         ('rechazada', 'Rechazada por el admin'),
+         ('no_justificado', 'No justificado (se le paso el dia)')],
         string='Estado', default='pendiente', index=True, required=True)
+    devuelta_admin_at = fields.Datetime(
+        string='Devuelta por el admin el', readonly=True,
+        help='Cuando el administrador la devolvio con su mensaje. Le abre a la '
+             'persona un nuevo "mismo dia": puede contestarla hasta que termine '
+             'ese dia, aunque el periodo sea de antes.')
     cubierta_por = fields.Selection(
         [('gracia', 'De sus 90 min'),
          ('admin', 'Aceptada por el admin')],
@@ -210,6 +223,18 @@ class FocoAbsence(models.Model):
     decidido_por = fields.Many2one('res.users', string='Decidio', readonly=True)
     decidido_at = fields.Datetime(string='Decidido el', readonly=True)
     decision_nota = fields.Char(string='Nota de la decision')
+    # Quien NO tiene la ventana no puede justificar nada (14-oct-2026: Laura va
+    # al almacen, Christian entrega material; 6 de 16 equipos). Sus periodos
+    # se quedaban en rojo sin salida: para ellos decide el administrador o
+    # Recursos Humanos, con Aprobar o Rechazar y una nota.
+    ventana = fields.Boolean(
+        related='computer_id.foco_ventana_inactividad', string='Tiene ventana',
+        help='Si a su equipo le sale la ventana de justificacion. Sin ella, la '
+             'persona no puede contestar sus periodos.')
+    decidido_sin_ventana = fields.Boolean(
+        string='Decidido sin ventana', readonly=True,
+        help='Lo aprobo o rechazo el administrador o Recursos Humanos porque la '
+             'persona no tenia ventana para justificarlo.')
     notified = fields.Boolean(
         string='Avisado por correo', default=False, readonly=True,
         help='Se avisa UNA vez. Si el empleado no contesta, el periodo queda '
@@ -457,25 +482,93 @@ class FocoAbsence(models.Model):
                     stored += 1         # fuera de la jornada: ni se registra
                     continue
             expected = settings.expected_seconds(employee, start, fin, con_asistencia=True)
+            # Regla del mismo dia: un hueco que empezo un dia que YA TERMINO
+            # -se fue a las 16:26, dejo la PC prendida y el hueco se cierra al
+            # tocarla a la manana siguiente- ya no se le pregunta. Entra cerrado.
+            if de_vacaciones:
+                estado = 'auto'
+            elif employee and self._dia_local(employee, start) < \
+                    self._dia_local(employee, fields.Datetime.now()):
+                estado = 'no_justificado'
+            else:
+                estado = 'pendiente'
             self.sudo().create({
                 'computer_id': computer.id,
                 'start': start,
                 'stop': fin,
                 'kind': gap.get('kind') if gap.get('kind') in kinds else 'idle',
                 'expected_seconds': expected,
-                'state': 'auto' if de_vacaciones else 'pendiente',
+                'state': estado,
             })
             stored += 1
         return stored
 
+    # ------------------------------------------------- la regla del mismo dia
+    @api.model
+    def _dia_local(self, employee, dt_utc):
+        """La fecha LOCAL de la persona en ese momento UTC."""
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(employee)
+        return pytz.UTC.localize(dt_utc).astimezone(tz).date()
+
+    def _es_de_hoy(self):
+        """El periodo empezo HOY, en el dia de la persona."""
+        self.ensure_one()
+        if not self.start:
+            return False
+        hoy = self._dia_local(self.employee_id, fields.Datetime.now())
+        return self._dia_local(self.employee_id, self.start) == hoy
+
+    def _abierta_hoy(self):
+        """Su "mismo dia" es hoy: empezo hoy, o el admin la devolvio hoy (su
+        mensaje le abre a la persona un nuevo mismo dia, que vence solo)."""
+        self.ensure_one()
+        if self._es_de_hoy():
+            return True
+        if self.devuelta_admin_at:
+            hoy = self._dia_local(self.employee_id, fields.Datetime.now())
+            return self._dia_local(self.employee_id, self.devuelta_admin_at) == hoy
+        return False
+
+    def _vigente(self):
+        """Todavia se le puede preguntar: esta por justificar y su dia es hoy."""
+        self.ensure_one()
+        return self.state == 'pendiente' and self._abierta_hoy()
+
+    def _vencer(self):
+        """Cierra como 'no_justificado' lo que ya no se puede contestar."""
+        vencidos = self.filtered(lambda r: r.state == 'pendiente' and not r._vigente())
+        if vencidos:
+            vencidos.sudo().write({'state': 'no_justificado', 'rebote_pendiente': False})
+        return vencidos
+
+    @api.model
+    def _cron_vencer(self):
+        """Cada hora: lo que se quedo por justificar de un dia que ya termino.
+
+        Cada hora y no a medianoche, porque "el dia" es el de cada persona, en
+        su zona: un solo corte a una hora fija se lo aplicaria tarde o temprano
+        a alguien. Y porque si el servidor estuvo caido a medianoche, la hora
+        siguiente lo alcanza. La ventana y la pagina ya filtran por su cuenta;
+        esto deja el ESTADO al dia para el tablero y los reportes.
+        """
+        vencidos = self.sudo().search([('state', '=', 'pendiente')])._vencer()
+        if vencidos:
+            _logger.info("Foco: %s periodos cerrados como no justificados", len(vencidos))
+        return len(vencidos)
+
     # ------------------------------------------------------------- consulta
     @api.model
     def pending_for_employee(self, employee, limit=20):
+        """Lo que la ventana y la pagina le preguntan a la persona: SOLO lo de
+        hoy (regla del mismo dia). Lo de dias pasados ya no se le pide: se
+        cierra como no justificado en el camino, sin esperar al cron."""
         if not employee:
             return self.browse()
-        return self.sudo().search(
+        pendientes = self.sudo().search(
             [('employee_id', '=', employee.id), ('state', '=', 'pendiente')],
-            order='start desc', limit=limit)
+            order='start desc')
+        pendientes._vencer()
+        return pendientes.filtered(lambda r: r.state == 'pendiente')[:limit]
 
     def _suggested_reason(self):
         """Si el periodo traslapa la comida del calendario, se presugiere.
@@ -501,6 +594,42 @@ class FocoAbsence(models.Model):
                 if min(b, h_to) > max(a, h_from):
                     return 'comida'
         return False
+
+    def _horas_en_comida(self, employee):
+        """Horas de estos periodos que caen en la comida del horario, y cuantas
+        de ellas estan justificadas.
+
+        La comida no es jornada: un hueco que cae entero ahi vale 0 en todo lo
+        demas (no gasta los 90 min, no suma a lo justificado). Sin este numero
+        el tablero no tendria con que ensenar que la persona SI contesto: medido
+        el 13-oct-2026, Edgar justifico 31 min a las 13:28 y su barra quedaba
+        vacia, igual que la de quien no contesta nada.
+        """
+        settings = self.env['foco.settings'].sudo()
+        comida = settings.break_intervals(employee.resource_calendar_id) if employee else {}
+        if not comida:
+            return 0.0, 0.0
+        tz = settings._tzinfo_for(employee)
+        total = justificada = 0.0
+        for rec in self:
+            if not rec.start or not rec.stop:
+                continue
+            a = pytz.UTC.localize(rec.start).astimezone(tz)
+            b = pytz.UTC.localize(rec.stop).astimezone(tz)
+            horas = 0.0
+            dia = a.date()
+            while dia <= b.date():
+                base = tz.localize(datetime.combine(dia, time(0, 0)))
+                for h_from, h_to in comida.get(dia.isoweekday()) or []:
+                    ini = max(a, base + timedelta(hours=h_from))
+                    fin = min(b, base + timedelta(hours=h_to))
+                    if fin > ini:
+                        horas += (fin - ini).total_seconds() / 3600.0
+                dia += timedelta(days=1)
+            total += horas
+            if rec.state == 'justificada':
+                justificada += horas
+        return total, justificada
 
     def payload(self):
         """Forma que consumen la ventana del agente y la pagina publica.
@@ -594,6 +723,29 @@ class FocoAbsence(models.Model):
         # configurado dice cuanto fue EXTRA. El indice NO cambia (sigue contra
         # la guia). Un dia sin cerrar salida no cuenta como extra.
         chk = Settings._checador_jornada(empleados, d_ini, d_fin)
+        # Lo ACTIVO DENTRO de la jornada, para el desglose completo (13-oct-2026,
+        # pedido del dueno: "Como viene cada quien" debe contar todos los
+        # tiempos de la jornada). Sale de los renglones que el agente etiqueta
+        # 'in' con la misma regla que el resto (checador o calendario). Una sola
+        # lectura para todos.
+        activo_jornada = {}
+        for emp_x, horas in self.env['foco.usage'].sudo()._read_group(
+                [('employee_id', 'in', empleados.ids),
+                 ('date', '>=', d_ini), ('date', '<=', d_fin),
+                 ('shift', '!=', 'off')],
+                ['employee_id'], ['fg_active:sum']):
+            if emp_x:
+                activo_jornada[emp_x.id] = horas or 0.0
+        ahora = fields.Datetime.now()
+        # Cuanto del gris "sin actividad" tiene PRUEBA (14-oct-2026): lo que cae
+        # fuera de lo checado, la sesion bloqueada, el equipo apagado, una
+        # distraccion sonando. Con la MISMA lectura que la pagina "Sin
+        # actividad". Si falla, el tablero sigue con el gris entero sin partir.
+        try:
+            probado = self.env['foco.pausa']._cajas_rango(empleados, d_ini, d_fin)
+        except Exception:
+            _logger.exception('Foco: no se pudo leer la prueba del gris')
+            probado = {}
         out = {}
         for employee in empleados:
             tz = Settings._tzinfo_for(employee)
@@ -620,8 +772,49 @@ class FocoAbsence(models.Model):
             aprob = justi.filtered(lambda a: a.cubierta_por == 'admin')
             cubre_bolsa = justi - aprob
             pend = recs.filtered(lambda a: a.state == 'pendiente')
+            # Regla del mismo dia: lo que se le paso el dia sin contestar. Junto
+            # con lo pendiente es "sin justificar"; aparte, para decir cuanto de
+            # eso ya no tiene remedio.
+            vencido = recs.filtered(lambda a: a.state == 'no_justificado')
             decidir = recs.filtered(lambda a: a.state == 'por_decidir')
+            rechazada = recs.filtered(lambda a: a.state == 'rechazada')
+            vacaciones = recs.filtered(lambda a: a.state == 'auto')
+            # ---- El desglose completo de la jornada ------------------------
+            # La jornada que YA PASO: en un dia en curso, medir contra el dia
+            # entero pintaria a las 10 de la manana seis horas "sin actividad"
+            # que todavia no ocurren.
+            jornada_h = (settings.expected_seconds(employee, ini, min(fin, ahora)) / 3600.0
+                         if ahora > ini else 0.0)
+            activo_h = activo_jornada.get(employee.id, 0.0)
+            huecos_h = sum(recs.mapped('expected_seconds')) / 3600.0
+            comida_h, comida_just_h = (recs - vacaciones)._horas_en_comida(employee)
+            sin_act = max(0.0, jornada_h - activo_h - huecos_h)
+            prueba = probado.get(employee.id) or {}
+            # Acotado al gris: la barra no puede tener mas prueba que gris.
+            fuera_h = min(sin_act, prueba.get('fuera', 0.0))
+            presente_h = min(sin_act - fuera_h, prueba.get('presente', 0.0))
             out[str(employee.id)] = {
+                # Jornada transcurrida = activo en jornada + huecos de 15 min o
+                # mas (por estado) + sin actividad. Cuadra por construccion: la
+                # ultima pieza es lo que queda. La comida va APARTE: no es
+                # jornada, pero si la persona se fue y contesto, se tiene que ver.
+                'jornada_h': round(jornada_h, 4),
+                'activo_jornada_h': round(activo_h, 4),
+                'rechazado_h': sum(rechazada.mapped('expected_seconds')) / 3600.0,
+                'vacaciones_h': sum(vacaciones.mapped('expected_seconds')) / 3600.0,
+                # Lo que no alcanza el umbral de 15 min y por eso nunca abre una
+                # ventana: pausas cortas, llegar tarde, irse antes, el equipo
+                # apagado. Medido el 13-oct: hasta 3.9 h en una persona y no se
+                # veia en ningun lado. Si el activo se etiqueto 'in' en horas que
+                # no son jornada (quien trabaja en la comida con checador), la
+                # resta puede dar negativa por minutos: se acota a cero.
+                'sin_actividad_h': round(sin_act, 4),
+                # De ese gris, lo PROBADO (fuera del equipo / en el equipo). El
+                # resto es "sin prueba". Ver foco.pausa._dia.
+                'sinact_fuera_h': round(fuera_h, 4),
+                'sinact_presente_h': round(presente_h, 4),
+                'comida_h': round(comida_h, 4),
+                'comida_just_h': round(comida_just_h, 4),
                 'expected': settings.expected_seconds(employee, ini, fin) / 3600.0,
                 'justified': sum(cubre_bolsa.mapped('expected_seconds')) / 3600.0,
                 'aprobado_h': sum(aprob.mapped('expected_seconds')) / 3600.0,
@@ -634,7 +827,12 @@ class FocoAbsence(models.Model):
                 # huecos SIN justificar. Antes el tablero lo derivaba restando
                 # (esperado - activo - justificado), que a media jornada daba un
                 # numero enorme porque el esperado es el dia completo.
-                'unexplained_h': sum(pend.mapped('expected_seconds')) / 3600.0,
+                # Desde la regla del mismo dia: lo pendiente de hoy MAS lo que
+                # se cerro sin justificar. `vencido_h` dice cuanto de eso ya no
+                # se puede contestar, y `no_justificados` cuantos periodos son.
+                'unexplained_h': sum((pend | vencido).mapped('expected_seconds')) / 3600.0,
+                'vencido_h': sum(vencido.mapped('expected_seconds')) / 3600.0,
+                'no_justificados': len(vencido),
                 # Minutos del checador a la PC: promedio de los dias checados.
                 # None cuando no hay ningun dia con checada: el tablero no lo
                 # dibuja, en vez de pintar un 0 que afirmaria "llego al instante".
@@ -779,6 +977,16 @@ class FocoAbsence(models.Model):
             return {'ok': False, 'error': 'ya_justificada',
                     'reason': self.reason,
                     'reason_label': dict(REASONS).get(self.reason, '')}
+        # Regla del mismo dia: si se le paso el dia, ya no se recibe. Se contesta
+        # con 'ya_justificada' A PROPOSITO: es el codigo con el que la ventana
+        # que ya esta instalada en los equipos (2026.10.09.1) pasa al siguiente
+        # periodo. Cualquier codigo nuevo lo pintaria como "No se pudo guardar"
+        # y dejaria a la persona atorada en un periodo que ya no puede cerrar.
+        if self.state == 'pendiente':
+            self._vencer()
+        if self.state == 'no_justificado':
+            return {'ok': False, 'error': 'ya_justificada', 'vencida': True,
+                    'reason': False, 'reason_label': ''}
         self.sudo().write({
             'reason': reason,
             'note': note or False,
@@ -962,7 +1170,12 @@ class FocoAbsence(models.Model):
         # decidir" del admin (antes seguia contando como justificada: asi
         # contaron 5h17 de "." y "Trabajo" de Teodolo el 9-oct).
         settings = self.env['foco.settings'].sudo().get_settings()
-        if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX:
+        # Regla del mismo dia: devolverle a la persona un periodo de un dia que
+        # ya termino no sirve -ya no lo puede contestar-. Pasa directo al admin,
+        # como cuando se agotan los rebotes. Pasa si la IA se atraso, o si
+        # contesto a ultima hora y la IA juzgo despues de medianoche.
+        if requiere and settings.justify_rebote_activo and self.rebotes < REBOTES_MAX \
+                and self._abierta_hoy():
             vals.update({
                 'state': 'pendiente',
                 'rebote_pendiente': True,
@@ -1084,10 +1297,27 @@ class FocoAbsence(models.Model):
                            'cubierta_por': 'gracia', 'gracia_min': libre, 'gracia_restante_min': 0})
 
     # ------------------------------------------------- decision del admin
+    def _exigir_decisor(self):
+        """Decidir sobre un periodo es del administrador o de Recursos Humanos.
+
+        Los metodos escriben con sudo (el periodo es del agente), asi que sin
+        esta revision cualquiera con permiso de LECTURA -el grupo de consulta-
+        podia aceptar o rechazar llamandolos directo."""
+        u = self.env.user
+        if not (self.env.su or u.has_group('foco_monitor.group_foco_manager')
+                or u.has_group('foco_monitor.group_foco_rrhh')):
+            raise AccessError('Solo el administrador de Foco o Recursos Humanos pueden '
+                              'decidir sobre un periodo.')
+
     def action_aceptar(self):
-        """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta."""
+        """Paso de sus 90 min y el admin la da por buena: cuenta como cubierta.
+
+        Tambien sobre lo NO JUSTIFICADO (regla del mismo dia): es la salida para
+        quien si tuvo una razon que el admin ya conoce -andaba en junta, en
+        campo con el- y no la contesto a tiempo."""
+        self._exigir_decisor()
         ahora = fields.Datetime.now()
-        for rec in self.filtered(lambda r: r.state == 'por_decidir'):
+        for rec in self.filtered(lambda r: r.state in ('por_decidir', 'no_justificado')):
             rec._registrar_msg('admin', 'Aceptada por el administrador.',
                                user_id=self.env.user.id)
             rec.sudo().write({'state': 'justificada', 'cubierta_por': 'admin', 'gracia_min': 0,
@@ -1098,6 +1328,7 @@ class FocoAbsence(models.Model):
 
     def action_rechazar(self):
         """Paso de sus 90 min y el admin no la acepta: no cuenta."""
+        self._exigir_decisor()
         ahora = fields.Datetime.now()
         for rec in self.filtered(lambda r: r.state == 'por_decidir'):
             rec._registrar_msg('admin', 'Rechazada por el administrador: no cuenta como cubierta.',
@@ -1118,6 +1349,7 @@ class FocoAbsence(models.Model):
         lo pinta sin que haya que tocar el .exe. No gasta rebotes: los cinco son
         de la IA; los del administrador son suyos y los da cuando quiera."""
         self.ensure_one()
+        self._exigir_decisor()
         mensaje = (mensaje or '').strip()[:200]
         if not mensaje:
             return False
@@ -1126,6 +1358,9 @@ class FocoAbsence(models.Model):
             'state': 'pendiente',
             'rebote_pendiente': True,
             'ai_pregunta': mensaje,
+            # Le abre un nuevo "mismo dia": la puede contestar hasta que termine
+            # HOY, aunque el periodo sea de antes (regla del mismo dia).
+            'devuelta_admin_at': fields.Datetime.now(),
             'nota_rechazada': (self.note or '').strip()[:200] or False,
             # Que lo pida la VENTANA, no el correo (igual que el rebote de la IA).
             'notified': True,
@@ -1138,6 +1373,7 @@ class FocoAbsence(models.Model):
     def action_devolver_mensaje(self):
         """Abre el cuadro para escribirle al empleado."""
         self.ensure_one()
+        self._exigir_decisor()
         return {
             'type': 'ir.actions.act_window',
             'name': 'Devolver con mi mensaje',
@@ -1148,21 +1384,86 @@ class FocoAbsence(models.Model):
         }
 
     def action_reconsiderar(self):
-        """Vuelve a "Por decidir" una aceptada o rechazada por el admin."""
+        """Vuelve a "Por decidir" una aceptada o rechazada por el admin.
+
+        Lo que se decidio SIN ventana no tenia un "Por decidir" del que venir:
+        regresa a como estaba antes (pendiente si es de hoy, no justificado si
+        ya paso el dia), para que se pueda volver a decidir."""
+        self._exigir_decisor()
         for rec in self.filtered(lambda r: r.state == 'rechazada'
                                  or (r.state == 'justificada' and r.cubierta_por == 'admin')):
-            rec.sudo().write({'state': 'por_decidir', 'cubierta_por': False,
-                              'decidido_por': False, 'decidido_at': False})
+            destino = 'por_decidir'
+            if rec.decidido_sin_ventana:
+                destino = 'pendiente' if rec._es_de_hoy() else 'no_justificado'
+            rec.sudo().write({'state': destino, 'cubierta_por': False,
+                              'decidido_por': False, 'decidido_at': False,
+                              'decidido_sin_ventana': False})
         return True
+
+    # ------------------------------------- decidir lo de quien NO tiene ventana
+    def _sin_ventana_pendientes(self):
+        """Lo que se puede decidir por alguien que no tiene ventana: lo que
+        sigue sin justificar, de hoy o de dias pasados."""
+        return self.filtered(lambda r: not r.ventana and r.state in ('pendiente', 'no_justificado'))
+
+    def _abrir_decision(self, decision):
+        self._exigir_decisor()
+        recs = self._sin_ventana_pendientes()
+        if not recs:
+            raise UserError('Ninguno de los periodos elegidos se puede decidir aqui: solo los '
+                            'que siguen sin justificar de personas sin ventana de justificacion.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Aprobar el periodo' if decision == 'aprobar' else 'Rechazar el periodo',
+            'res_model': 'foco.absence.decision',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_absence_ids': [(6, 0, recs.ids)], 'default_decision': decision},
+        }
+
+    def action_aprobar_sin_ventana(self):
+        return self._abrir_decision('aprobar')
+
+    def action_rechazar_sin_ventana(self):
+        return self._abrir_decision('rechazar')
+
+    def decidir_sin_ventana(self, decision, nota=''):
+        """Aprobar o rechazar lo que una persona SIN ventana no pudo justificar.
+
+        Aprobar = queda justificado por quien decidio y cuenta como trabajo
+        (el verde de "Aprobado por ti"), igual que Aceptar lo que paso de los
+        90 min. Rechazar = queda "Rechazada" y no cuenta. La nota se guarda en
+        el periodo y en su conversacion."""
+        self._exigir_decisor()
+        if decision not in ('aprobar', 'rechazar'):
+            raise UserError('Decision desconocida.')
+        nota = (nota or '').strip()
+        ahora = fields.Datetime.now()
+        recs = self._sin_ventana_pendientes()
+        for rec in recs:
+            texto = ('Aprobado' if decision == 'aprobar' else 'Rechazado') + \
+                ' sin ventana de justificacion' + (': %s' % nota if nota else '.')
+            rec._registrar_msg('admin', texto, user_id=self.env.user.id)
+            vals = {'decidido_por': self.env.user.id, 'decidido_at': ahora,
+                    'decidido_sin_ventana': True, 'decision_nota': nota[:250] or False,
+                    'gracia_min': 0, 'ai_requiere_revision': False}
+            if decision == 'aprobar':
+                vals.update(state='justificada', cubierta_por='admin')
+            else:
+                vals.update(state='rechazada', cubierta_por=False)
+            rec.sudo().write(vals)
+        return len(recs)
 
     # ------------------------------------------------- revision humana
     def action_marcar_revisado(self):
-        self.write({'review_visto': True, 'review_por': self.env.user.id,
-                    'review_at': fields.Datetime.now()})
+        self._exigir_decisor()
+        self.sudo().write({'review_visto': True, 'review_por': self.env.user.id,
+                           'review_at': fields.Datetime.now()})
         return True
 
     def action_reabrir_revision(self):
-        self.write({'review_visto': False, 'review_por': False, 'review_at': False})
+        self._exigir_decisor()
+        self.sudo().write({'review_visto': False, 'review_por': False, 'review_at': False})
         return True
 
     @api.model
@@ -1196,7 +1497,196 @@ class FocoAbsence(models.Model):
             decidir.append({'id': emp.id if emp else 0,
                             'nombre': emp.name if emp else 'Sin empleado', 'n': n})
         decidir.sort(key=lambda r: -r['n'])
+        # Quien NO tiene ventana no puede justificar: lo suyo espera a que el
+        # administrador o Recursos Humanos lo apruebe o lo rechace.
+        sin_ventana = []
+        for emp, n, seg in self._read_group(
+                [('ventana', '=', False), ('state', 'in', ('pendiente', 'no_justificado'))],
+                ['employee_id'], ['__count', 'expected_seconds:sum']):
+            sin_ventana.append({'id': emp.id if emp else 0,
+                                'nombre': emp.name if emp else 'Sin empleado', 'n': n,
+                                'min': int(round((seg or 0) / 60.0))})
+        sin_ventana.sort(key=lambda r: -r['min'])
         return {'revisar': sum(r['n'] for r in revisar), 'revisar_por': revisar[:8],
                 'devueltas': self.search_count([('rebote_pendiente', '=', True)]),
                 'devueltas_lista': devueltas,
-                'por_decidir': sum(r['n'] for r in decidir), 'por_decidir_por': decidir[:8]}
+                'por_decidir': sum(r['n'] for r in decidir), 'por_decidir_por': decidir[:8],
+                'sin_ventana': sum(r['n'] for r in sin_ventana), 'sin_ventana_por': sin_ventana[:8]}
+
+    # ------------------------------------------ tablero de Recursos Humanos
+    @api.model
+    def tablero_rrhh(self, fecha=False):
+        """El tablero del perfil de Recursos Humanos: la asistencia del dia y lo
+        que pide atencion en asistencia y justificaciones. NADA mas.
+
+        La asistencia se calcula con sudo (sale de equipos y checadas que este
+        perfil no lee) y se acota a mano al alcance de quien pregunta. Cada
+        renglon trae ya la accion que abre, armada aqui, para que el tablero no
+        pueda llevar a una pantalla que no le toca."""
+        self._exigir_decisor()
+        user = self.env.user
+        hoy = fields.Date.context_today(self)
+        d = fields.Date.to_date(fecha) or hoy
+        if d > hoy:
+            d = hoy
+        adh = self.env['foco.workday'].sudo().adherencia(d, d)
+        personas = adh.get('personas') or {}
+        emps = self.env['hr.employee'].sudo().browse([int(k) for k in personas]).exists()
+        # La asistencia sale con sudo: se acota a mano a las EMPRESAS activas del
+        # selector, igual que la regla por empresa acota todo lo demas.
+        emps = emps.filtered(lambda e: e.company_id in self.env.companies)
+        if user.foco_department_ids and not user.has_group('foco_monitor.group_foco_manager'):
+            emps = emps.filtered(lambda e: e.department_id in user.foco_department_ids)
+
+        def hhmm(h):
+            m = int(round((h or 0) * 60))
+            return '%02d:%02d' % (m // 60, m % 60)
+
+        vrrhh = self.env.ref('foco_monitor.foco_workday_view_list_rrhh').id
+        srrhh = self.env.ref('foco_monitor.foco_workday_view_search_rrhh').id
+
+        def asistencia(nombre, dominio, ctx=None):
+            return {'type': 'ir.actions.act_window', 'name': nombre, 'res_model': 'foco.workday',
+                    'views': [[vrrhh, 'list']], 'search_view_id': [srrhh, 'search'],
+                    'domain': dominio, 'context': ctx or {}, 'target': 'current'}
+
+        del_dia = [('date', '=', str(d)), ('adherence', 'not in', ('no_laborable', 'sin_jornada', False))]
+        ORDEN = ['tarde', 'sin_entrada', 'falto', 'sin_senal', 'sin_checada', 'sin_dato',
+                 'permiso', 'festivo', 'no_iniciado']
+        ETQ = {'tarde': 'Tarde', 'sin_entrada': 'Sin entrada aún', 'no_iniciado': 'Aún no empieza',
+               'falto': 'Faltó', 'sin_senal': 'Sin señal', 'sin_dato': 'Equipo sin reportar',
+               'sin_checada': 'Checada abierta', 'permiso': 'Permiso', 'festivo': 'Festivo'}
+        lista, cuenta = [], {}
+        for e in emps:
+            a = personas.get(str(e.id)) or {}
+            est = a.get('estado') or ''
+            if est:
+                cuenta[est] = cuenta.get(est, 0) + 1
+            if a.get('salio_antes'):
+                cuenta['salio_antes'] = cuenta.get('salio_antes', 0) + 1
+            raro = est in ORDEN or a.get('salio_antes') or a.get('no_checo')
+            if not raro:
+                continue
+            chip, chip_txt, ev = est, ETQ.get(est, est), ''
+            if est == 'tarde':
+                ev = 'entró %s · su hora %s · +%d min%s' % (
+                    a.get('entrada') or '', hhmm(a.get('hora_entrada')), a.get('tarde_min') or 0,
+                    ' (según su equipo)' if a.get('fuente') == 'equipo' else '')
+            elif est == 'sin_entrada':
+                ev = 'su hora era %s · %d min sin rastro' % (hhmm(a.get('hora_entrada')), a.get('tarde_min') or 0)
+            elif est == 'no_iniciado':
+                ev = 'su hora es %s' % hhmm(a.get('hora_entrada'))
+            elif est == 'falto':
+                ev = 'ni checada ni señal de su equipo en todo el día'
+            elif est == 'sin_senal':
+                ev = 'no usa checador · su equipo no dio señal de persona'
+            elif est == 'sin_dato':
+                ev = 'su equipo no reportó (dato incompleto, no falta)'
+            elif est == 'sin_checada':
+                ev = 'una checada de otro día sigue abierta'
+            elif est in ('permiso', 'festivo'):
+                ev = '%s validado en RRHH' % (a.get('permiso') or '')
+            elif a.get('salio_antes'):
+                ev = 'checó salida %s · su hora %s · %d min antes' % (
+                    a.get('salida') or '', hhmm(a.get('hora_salida')), a.get('antes_min') or 0)
+                chip, chip_txt = 'salio_antes', 'salió antes'
+            elif a.get('no_checo'):
+                ev = 'estuvo (señal %s) pero no checó entrada' % (a.get('entrada') or '')
+                chip, chip_txt = 'no_checo', 'no checó'
+            lista.append({
+                'id': e.id, 'name': e.name, 'ev': ev, 'chip': chip, 'chipTxt': chip_txt,
+                'orden': ORDEN.index(est) if est in ORDEN else 20,
+                'accion': asistencia('Asistencia · %s' % e.name,
+                                     [('employee_id', '=', e.id),
+                                      ('adherence', 'not in', ('no_laborable', 'sin_jornada', False))],
+                                     {'search_default_f_semana': 1}),
+            })
+        lista.sort(key=lambda x: (x['orden'], x['name']))
+
+        # Lo que pide atencion: asistencia del dia + justificaciones.
+        items = []
+
+        def agrega(clave, titulo, filas, fmt, accion):
+            if filas:
+                items.append({'clave': clave, 'titulo': titulo, 'n': len(filas),
+                              'detalle': [fmt(x) for x in filas[:5]],
+                              'mas': max(len(filas) - 5, 0), 'accion': accion})
+
+        def con(pred):
+            return [(e, personas.get(str(e.id)) or {}) for e in emps if pred(personas.get(str(e.id)) or {})]
+
+        agrega('tarde', 'Llegaron tarde', con(lambda a: a.get('estado') == 'tarde'),
+               lambda x: '%s %s (+%d min, su hora %s)' % (x[0].name, x[1].get('entrada') or '',
+                                                         x[1].get('tarde_min') or 0, hhmm(x[1].get('hora_entrada'))),
+               asistencia('Llegaron tarde', del_dia, {'search_default_f_tarde': 1}))
+        agrega('falto', 'Sin registro en todo el día', con(lambda a: a.get('estado') in ('falto', 'sin_senal')),
+               lambda x: '%s (%s)' % (x[0].name, 'ni checada ni señal de su equipo' if x[1].get('estado') == 'falto'
+                                       else 'su equipo no dio señal de persona'),
+               asistencia('Sin registro', del_dia, {'search_default_f_falto': 1}))
+        agrega('salio_antes', 'Salieron antes de su horario', con(lambda a: a.get('salio_antes')),
+               lambda x: '%s checó salida %s (%d min antes de las %s)' % (
+                   x[0].name, x[1].get('salida') or '', x[1].get('antes_min') or 0, hhmm(x[1].get('hora_salida'))),
+               asistencia('Salieron antes', del_dia, {'search_default_f_salio_antes': 1}))
+        agrega('no_checo', 'Estuvieron pero no checaron entrada', con(lambda a: a.get('no_checo')),
+               lambda x: '%s (primera señal en su equipo %s)' % (x[0].name, x[1].get('entrada') or ''),
+               asistencia('No checaron entrada', del_dia, {'search_default_f_no_checo': 1}))
+        desde7 = d - timedelta(days=7)
+        sin_salida = self.env['foco.workday'].sudo().search(
+            [('check_out_missing', '=', True), ('employee_id', 'in', emps.ids),
+             ('date', '>=', desde7), ('date', '<=', d)], order='date desc')
+        por_emp = {}
+        for w in sin_salida:
+            por_emp.setdefault(w.employee_id, []).append(w)
+        agrega('sin_salida', 'No cerraron salida en el checador (últimos 7 días)', list(por_emp.items()),
+               lambda x: '%s%s' % (x[0].name, ' (%d días)' % len(x[1]) if len(x[1]) > 1 else ''),
+               asistencia('Salidas sin cerrar', [('check_out_missing', '=', True)], {'search_default_g_emp': 1}))
+
+        srv = self.pendientes_atencion()
+        accion_periodos = self.env['ir.actions.actions']._for_xml_id('foco_monitor.foco_rrhh_periodos_action')
+        accion_revisar = self.env['ir.actions.actions']._for_xml_id('foco_monitor.foco_rrhh_revisar_action')
+
+        def con_ctx(accion, ctx):
+            a = dict(accion)
+            a['context'] = ctx
+            return a
+
+        if srv.get('sin_ventana'):
+            items.append({'clave': 'sin_ventana', 'n': srv['sin_ventana'],
+                          'titulo': 'Sin ventana de justificación: decide tú (Aprobar o Rechazar)',
+                          'detalle': ['%s (%d, %d min)' % (r['nombre'], r['n'], r['min'])
+                                      for r in srv['sin_ventana_por'][:5]],
+                          'mas': max(len(srv['sin_ventana_por']) - 5, 0),
+                          'accion': con_ctx(accion_periodos, {'search_default_sin_ventana_decidir': 1,
+                                                              'search_default_g_emp': 1})})
+        if srv.get('por_decidir'):
+            items.append({'clave': 'decidir', 'n': srv['por_decidir'],
+                          'titulo': 'Justificaciones por decidir: pasaron de sus 90 min del día',
+                          'detalle': ['%s (%d)' % (r['nombre'], r['n']) for r in srv['por_decidir_por'][:5]],
+                          'mas': max(len(srv['por_decidir_por']) - 5, 0),
+                          'accion': con_ctx(accion_periodos, {'search_default_por_decidir': 1,
+                                                              'search_default_g_emp': 1})})
+        if srv.get('devueltas'):
+            items.append({'clave': 'devueltas', 'n': srv['devueltas'],
+                          'titulo': 'Justificaciones devueltas, esperando respuesta',
+                          'detalle': ['%s: "%s" (%d %s)' % (r['nombre'], r['texto'], r['veces'],
+                                                           'vez' if r['veces'] == 1 else 'veces')
+                                      for r in srv['devueltas_lista'][:5]],
+                          'mas': max(srv['devueltas'] - 5, 0),
+                          'accion': con_ctx(accion_revisar, {'search_default_devueltas': 1})})
+        if srv.get('revisar'):
+            items.append({'clave': 'revisar', 'n': srv['revisar'],
+                          'titulo': 'Justificaciones vagas por revisar (acumulado)',
+                          'detalle': ['%s (%d)' % (r['nombre'], r['n']) for r in srv['revisar_por'][:5]],
+                          'mas': max(len(srv['revisar_por']) - 5, 0),
+                          'accion': con_ctx(accion_revisar, {'search_default_sin_revisar': 1,
+                                                             'search_default_g_emp': 1})})
+        return {
+            'fecha': str(d), 'hoy': str(hoy),
+            'equipo': {
+                'a_tiempo': cuenta.get('a_tiempo', 0), 'tarde': cuenta.get('tarde', 0),
+                'sin_registro': cuenta.get('falto', 0) + cuenta.get('sin_senal', 0),
+            },
+            'asistencia': lista,
+            'atencion': items,
+            'accion_asistencia': asistencia('Asistencia', del_dia, {'search_default_g_adh': 1}),
+        }

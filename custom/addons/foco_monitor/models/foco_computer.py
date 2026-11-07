@@ -2,6 +2,8 @@ import logging
 import secrets
 from datetime import timedelta
 
+from markupsafe import Markup, escape
+
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
@@ -138,11 +140,53 @@ class FocoComputer(models.Model):
     command_count = fields.Integer(compute='_compute_counts')
     pending_command_count = fields.Integer(compute='_compute_counts')
 
+    # ------------------------------------------------- retiro del equipo
+    # Cuando un empleado deja la empresa se RETIRA Foco de su equipo: el servicio
+    # (SYSTEM) libera TODOS los bloqueos de navegacion y desinstala Foco (quita
+    # las tareas, borra Program Files\Foco y los datos locales). Se dispara con el
+    # boton "Retirar Foco" -manual y auditable-; la orden viaja en la respuesta de
+    # /foco/policy (campo `retire`), no en la del agente, porque solo el servicio
+    # -que corre como SYSTEM- puede quitar la politica de HKLM y correr el
+    # desinstalador. El agente, en la sesion del usuario, no podria, y ademas el
+    # watchdog lo reviviria.
+    retire_state = fields.Selection(
+        [('none', 'Activo'),
+         ('requested', 'Retiro solicitado'),
+         ('retired', 'Retirado')],
+        string='Retiro', default='none', required=True, readonly=True, copy=False,
+        tracking=True,
+        help='Activo: opera normal. Retiro solicitado: en su proxima consulta '
+             '(<=5 min) el equipo liberara los bloqueos y se desinstalara solo. '
+             'Retirado: el equipo confirmo que se libero y se desinstala.')
+    retire_requested_at = fields.Datetime(
+        string='Retiro solicitado el', readonly=True, copy=False)
+    retire_requested_uid = fields.Many2one(
+        'res.users', string='Retiro solicitado por', readonly=True, copy=False)
+    retired_at = fields.Datetime(string='Retirado el', readonly=True, copy=False)
+    retire_detail = fields.Char(
+        string='Retiro: detalle', readonly=True, copy=False,
+        help='Lo que el equipo reporto al liberar los bloqueos antes de desinstalarse.')
+
     # ------------------------------------------------------- navegacion
     policy_id = fields.Many2one(
         'foco.policy', string='Perfil de navegacion', ondelete='set null',
         help='Que sitios puede abrir este equipo. Si se deja vacio toma el '
              'perfil por omision de la configuracion.')
+    # Ambito del bloqueo. 'machine' (de fabrica) = como siempre: politica de
+    # EQUIPO (HKLM), cae sobre TODA sesion del equipo. 'user' = por USUARIO: el
+    # bloqueo va a la rama de cada sesion monitoreada y las cuentas de la lista de
+    # exentas (TI/Carmelo por RDP) quedan libres. 'user' SOLO debe encenderse en
+    # el equipo del PILOTO; al activarlo, el servicio vacia el bloqueo de HKLM de
+    # ese equipo (si no, enmascararia al per-usuario) y escribe por rama. Es
+    # reversible: volver a 'machine' limpia las ramas y restituye HKLM.
+    enforcement_scope = fields.Selection(
+        [('machine', 'Maquina (HKLM) — de fabrica'),
+         ('user', 'Por usuario (HKU) — piloto')],
+        string='Ambito del bloqueo', default='machine', required=True,
+        help='De fabrica "Maquina": el bloqueo es del equipo entero (hoy). '
+             '"Por usuario" aplica el bloqueo solo a las sesiones monitoreadas y '
+             'deja libres las cuentas exentas (TI). Encender solo en el equipo de '
+             'prueba; usa la lista de "Cuentas exentas" de la configuracion.')
     policy_version = fields.Char(
         string='Politica aplicada', readonly=True,
         help='La version que el equipo dice tener PUESTA, no la que se le '
@@ -213,9 +257,31 @@ class FocoComputer(models.Model):
         help='El codigo de version que reporta es menor que el publicado en '
              'Configuracion. Se actualiza solo en su siguiente ciclo.')
 
+    # ------------------------------------------------- envio de datos
+    # Lo reporta el agente en el SONDEO DE ORDENES (cada ~25 s, unos cientos de
+    # bytes), no en el envio de datos: cuando el que falla es el envio, ese
+    # mismo envio no puede contar por que. Nace del 15-oct-2026: dos equipos
+    # sondeaban sin problema y ningun envio de datos llegaba a Odoo, y la
+    # razon solo se podia leer entrando a la computadora.
+    push_fails = fields.Integer(
+        string='Envios de datos fallidos seguidos', readonly=True,
+        help='Cuantos envios de datos seguidos no pudo hacer el equipo. 0 = el '
+             'ultimo envio entro.')
+    push_error = fields.Char(
+        string='Motivo del ultimo envio fallido', readonly=True,
+        help='Lo que vio el equipo al intentar mandar sus datos: la respuesta '
+             'de Odoo, un corte de red o un error al armar el envio.')
+    push_error_since = fields.Datetime(
+        string='Envios fallando desde', readonly=True,
+        help='Primer envio fallido de la racha actual, segun el equipo.')
+    push_ok_at = fields.Datetime(
+        string='Ultimo envio de datos que entro', readonly=True,
+        help='Segun el equipo. Si es viejo y el equipo sigue sondeando, el '
+             'motivo de arriba dice por que no entran sus datos.')
+
     @api.depends('agent_version_code')
     def _compute_agent_outdated(self):
-        objetivo = self.env['foco.settings'].sudo().get_settings().agent_version_code or 0
+        objetivo = self.env['foco.settings'].sudo().get_settings_global().agent_version_code or 0
         for c in self:
             c.agent_outdated = bool(objetivo and (c.agent_version_code or 0) < objetivo)
 
@@ -229,10 +295,16 @@ class FocoComputer(models.Model):
     @api.depends('policy_id', 'policy_id.version', 'policy_id.active',
                  'policy_version', 'policy_verified_at', 'policy_drift')
     def _compute_policy_sync(self):
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        Settings = self.env['foco.settings'].sudo()
         Policy = self.env['foco.policy'].sudo()
         ahora = fields.Datetime.now()
+        por_empresa = {}
         for c in self:
+            # El interruptor de bloqueo es el de la EMPRESA del empleado.
+            empresa = c.sudo().employee_id.company_id
+            if empresa.id not in por_empresa:
+                por_empresa[empresa.id] = Settings.de_empresa(empresa, crear=False)
+            ajustes = por_empresa[empresa.id]
             # La MISMA decision que publica la lista al equipo, no una copia:
             # un perfil archivado ya no se aplica, y aqui tiene que verse igual.
             perfil = Policy._perfil_vigente(c)
@@ -297,6 +369,23 @@ class FocoComputer(models.Model):
     def action_clear_integrity_alert(self):
         self.write({'integrity_alert': False, 'integrity_alert_at': False})
 
+    @api.model
+    def _destinatarios_avisos(self, destinatarios):
+        """Quita de un aviso OPERATIVO por equipo (bloqueo aplicado/alterado,
+        watchdog, equipo sin senal) a quien pidio no recibirlos con la casilla
+        `res.users.foco_sin_avisos_operativos`.
+
+        Mismo criterio para el toast del bus y para el correo, y para las tres
+        alertas por equipo: un administrador de Foco que no atiende la operacion
+        -el dueno, un desarrollador- no tiene por que recibir el aviso de cada
+        maquina. El reporte diario y el resto de Foco NO pasan por aqui.
+        """
+        if not destinatarios:
+            return destinatarios
+        excluidos = self.env['res.users'].sudo().search(
+            [('foco_sin_avisos_operativos', '=', True)]).partner_id
+        return destinatarios - excluidos
+
     def notificar_politica(self, aplicada, detalle):
         """Avisa, con la campanita de Odoo, que un equipo aplico -o no pudo
         aplicar- el bloqueo de navegacion.
@@ -329,6 +418,7 @@ class FocoComputer(models.Model):
                                  raise_if_not_found=False)
             # `user_ids`: en Odoo 19 el campo se llama asi (antes `users`).
             destinatarios = grupo.user_ids.partner_id if grupo else destinatarios
+        destinatarios = self._destinatarios_avisos(destinatarios)
         if not destinatarios:
             return
 
@@ -379,6 +469,14 @@ class FocoComputer(models.Model):
              'aviso en cada ciclo; se limpia al recuperarse.')
     block_alert_at = fields.Datetime(string='Bloqueo avisado el', readonly=True, copy=False)
 
+    # Aviso de SALUD del agente (dejo de reportar en horario). Mismo patron que el
+    # aviso de bloqueo: de-duplica para no repetir cada ciclo y se limpia al volver.
+    health_alert_state = fields.Char(
+        string='Ultimo aviso de salud', readonly=True, copy=False,
+        help='Estado por el que se aviso que el agente dejo de reportar. Evita '
+             'repetir el aviso en cada ciclo; se limpia cuando el equipo vuelve.')
+    health_alert_at = fields.Datetime(string='Salud avisada el', readonly=True, copy=False)
+
     @api.depends('policy_sync', 'health', 'minutes_since_seen', 'service_state')
     def _compute_block_attention(self):
         for c in self:
@@ -417,6 +515,7 @@ class FocoComputer(models.Model):
         destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
         if perfil and perfil.write_uid.partner_id:
             destinatarios |= perfil.write_uid.partner_id
+        destinatarios = self._destinatarios_avisos(destinatarios)
         if not destinatarios:
             return
         nombre = perfil.name if perfil else 'sin perfil'
@@ -459,14 +558,20 @@ class FocoComputer(models.Model):
         paginar por un error transitorio). Avisa al aparecer y reavisa cada
         REALERT_HOURS; limpia el marcador al recuperarse. La ausencia (equipo sin
         reportar) la cubre la vigilancia de salud del agente."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
-        if not ajustes.block_enabled:
+        # El bloqueo se enciende POR EMPRESA: se revisan los equipos de las
+        # empresas que lo tienen encendido.
+        Settings = self.env['foco.settings'].sudo()
+        encendidas = Settings.search([('block_enabled', '=', True)])
+        if not encendidas:
             return
         ahora = fields.Datetime.now()
         umbral = ahora - timedelta(minutes=POLICY_STALE_MINUTES)
         # Prefiltro barato con campos ALMACENADOS; la clasificacion fina va en
         # Python porque block_attention depende de la hora y no se almacena.
-        candidatos = self.sudo().search([
+        de_empresas = [('employee_id.company_id', 'in', encendidas.mapped('company_id').ids)]
+        if any(s.foco_es_principal for s in encendidas):
+            de_empresas = ['|', ('employee_id', '=', False)] + de_empresas
+        candidatos = self.sudo().search(de_empresas + [
             ('active', '=', True),
             ('policy_id', '!=', False),
             '|', ('policy_drift', '=', True),
@@ -658,18 +763,71 @@ class FocoComputer(models.Model):
                 out[eid]['integrity'] = rec.integrity_alert
         return out
 
+    def _alerta_salud(self):
+        """Avisa (campanita + nota en el chatter, y correo a la lista del reporte)
+        que un equipo dejo de reportar EN HORARIO: el agente podria estar detenido,
+        sin internet, o la PC apagada. A los administradores de Foco."""
+        self.ensure_one()
+        grupo = self.env.ref('foco_monitor.group_foco_manager', raise_if_not_found=False)
+        destinatarios = grupo.user_ids.partner_id if grupo else self.env['res.partner']
+        destinatarios = self._destinatarios_avisos(destinatarios)
+        persona = self.employee_id.name or '-'
+        desde = (fields.Datetime.context_timestamp(self, self.last_seen).strftime('%d/%m %H:%M')
+                 if self.last_seen else 'nunca')
+        titulo = 'Foco · equipo SIN SEÑAL en horario'
+        cuerpo = ('%s (%s) dejo de reportar: ultima senal %s, hace %d min. El agente '
+                  'podria estar detenido, sin internet, o la PC apagada. Revisar el '
+                  'equipo: reiniciarlo relanza el agente.'
+                  % (self.name, persona, desde, self.minutes_since_seen or 0))
+        for p in destinatarios:
+            p._bus_send('simple_notification', {
+                'type': 'warning', 'title': titulo, 'message': cuerpo, 'sticky': False})
+        self.message_post(body=cuerpo, subject=titulo,
+                          message_type='comment', subtype_xmlid='mail.mt_note')
+        # Correo SOLO a los ADMINISTRADORES de Foco (usuarios del grupo), NO a la
+        # lista del reporte diario: este aviso por equipo es de operacion/TI y no
+        # debe llenar de correo al dueno (francisco@ferba.net), que recibe el
+        # reporte diario resumido y no cada incidencia de un equipo.
+        try:
+            correos = [p.email for p in destinatarios if p.email]
+            if correos:
+                self.env['mail.mail'].sudo().create({
+                    'subject': '%s · %s' % (titulo, self.name),
+                    'body_html': Markup('<p style="font-family:Arial,sans-serif">%s</p>') % escape(cuerpo),
+                    'email_to': ', '.join(correos),
+                    'auto_delete': True,
+                }).send(raise_exception=False)
+        except Exception:
+            _logger.exception('Foco: no se pudo mandar el correo de salud de %s', self.id)
+
     @api.model
     def _cron_check_health(self):
-        """Avisa de agentes callados EN HORARIO. Sin esto, un agente caido pasa
-        por empleado improductivo."""
-        caidos = self.sudo().search([('employee_id', '!=', False)]).filtered(
-            lambda c: c.health in ('stale', 'never'))
+        """Avisa de agentes callados EN HORARIO (campanita + nota + correo), no solo
+        lo registra: sin esto un agente caido pasa por empleado improductivo y nadie
+        se entera hasta el tablero o el reporte de la noche (caso FbT3316DNC, 19-oct).
+        De-duplica por equipo y re-avisa una vez al dia; limpia el marcador cuando el
+        equipo vuelve a reportar. Solo 'stale' (deberia estar trabajando y esta mudo);
+        'never' es alta sin agente, no una caida."""
+        ahora = fields.Datetime.now()
+        equipos = self.sudo().search([('employee_id', '!=', False), ('active', '=', True)])
+        caidos = equipos.filtered(lambda c: c.health == 'stale')
+        for c in caidos:
+            reavisar = bool(c.health_alert_at) and (
+                ahora - c.health_alert_at) >= timedelta(hours=REALERT_HOURS)
+            if not c.health_alert_at or c.health_alert_state != 'stale' or reavisar:
+                try:
+                    c._alerta_salud()
+                except Exception:
+                    _logger.exception('Foco: no se pudo avisar de la salud de %s', c.id)
+                c.sudo().write({'health_alert_state': 'stale', 'health_alert_at': ahora})
+        # Los que ya volvieron (o salieron de horario): limpiar el marcador para que
+        # la proxima caida vuelva a avisar desde cero.
+        for c in equipos.filtered(lambda c: c.health_alert_state and c.health != 'stale'):
+            c.sudo().write({'health_alert_state': False, 'health_alert_at': False})
         if caidos:
             _logger.warning(
                 "Foco: %s equipo(s) sin señal en horario: %s", len(caidos),
-                ", ".join("%s (%s, %s min)" % (c.name, c.employee_id.name,
-                                               c.minutes_since_seen)
-                          for c in caidos))
+                ", ".join("%s (%s)" % (c.name, c.employee_id.name) for c in caidos))
         return len(caidos)
 
     def _compute_counts(self):
@@ -681,6 +839,66 @@ class FocoComputer(models.Model):
     def action_reset_key(self):
         for rec in self:
             rec.api_key = secrets.token_urlsafe(24)
+
+    # ------------------------------------------------- retiro del equipo
+    def action_retirar(self):
+        """Marca el equipo para RETIRO: en su proxima consulta de politica el
+        servicio liberara TODOS los bloqueos y desinstalara Foco. Accion manual y
+        auditable (queda quien y cuando). No se hace nada irreversible aqui: solo
+        se pide; el equipo actua en su proximo ciclo (<=5 min) y lo confirma."""
+        for rec in self:
+            if rec.retire_state == 'retired':
+                continue
+            rec.sudo().write({
+                'retire_state': 'requested',
+                'retire_requested_at': fields.Datetime.now(),
+                'retire_requested_uid': self.env.user.id,
+            })
+            try:
+                rec.message_post(
+                    body=('Retiro de Foco SOLICITADO por %s. En su proxima consulta '
+                          '(hasta 5 min) el equipo liberara los bloqueos de '
+                          'navegacion y se desinstalara solo.' % self.env.user.name),
+                    subject='Foco · retiro solicitado',
+                    message_type='comment', subtype_xmlid='mail.mt_note')
+            except Exception:
+                _logger.exception('Foco: no se pudo anotar el retiro de %s', rec.id)
+        return True
+
+    def action_cancelar_retiro(self):
+        """Cancela un retiro AUN NO EJECUTADO. Si el equipo ya confirmo el retiro
+        (ya se desinstalo) no se puede deshacer desde aqui: habria que reinstalar."""
+        for rec in self:
+            if rec.retire_state == 'requested':
+                rec.sudo().write({'retire_state': 'none',
+                                  'retire_requested_at': False,
+                                  'retire_requested_uid': False})
+                try:
+                    rec.message_post(
+                        body='Retiro de Foco CANCELADO por %s (el equipo aun no se '
+                             'habia desinstalado).' % self.env.user.name,
+                        message_type='comment', subtype_xmlid='mail.mt_note')
+                except Exception:
+                    pass
+        return True
+
+    def marcar_retirado(self, detalle=''):
+        """Lo llama /foco/policy cuando el servicio CONFIRMA que libero los
+        bloqueos y va a desinstalarse. Es la unica via que pone 'retirado':
+        asi el estado refleja lo que el equipo hizo, no solo lo que se pidio."""
+        self.ensure_one()
+        vals = {'retire_state': 'retired', 'retired_at': fields.Datetime.now()}
+        if detalle:
+            vals['retire_detail'] = detalle[:250]
+        self.sudo().write(vals)
+        try:
+            self.message_post(
+                body=('El equipo CONFIRMO el retiro: libero los bloqueos de '
+                      'navegacion y se desinstala. %s' % (detalle or '')),
+                subject='Foco · equipo retirado',
+                message_type='comment', subtype_xmlid='mail.mt_note')
+        except Exception:
+            _logger.exception('Foco: no se pudo anotar el retiro confirmado de %s', self.id)
 
     @api.model
     def _authenticate(self, key):

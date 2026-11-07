@@ -12,9 +12,10 @@ import pytz
 from markupsafe import escape
 from psycopg2 import errorcodes
 
-from odoo import fields, http
-from odoo.exceptions import UserError
+from odoo import SUPERUSER_ID, api, fields, http
+from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
+from odoo.modules.registry import Registry
 
 _logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ _logger = logging.getLogger(__name__)
 # a la misma hora exacta que su /foco/policy; el tercero paso.
 _PG_REINTENTAR = (errorcodes.LOCK_NOT_AVAILABLE, errorcodes.SERIALIZATION_FAILURE,
                   errorcodes.DEADLOCK_DETECTED)
+# Ademas de los que se reintentan: la transaccion ya abortada por uno de ellos.
+_PG_NO_SE_TRAGA = _PG_REINTENTAR + (errorcodes.IN_FAILED_SQL_TRANSACTION,)
 
 
 def _reintentando(fn, intentos=3):
@@ -44,6 +47,24 @@ def _reintentando(fn, intentos=3):
                 request.env.reset()
             _logger.info('Foco: reintento %d por concurrencia (%s)', intento + 1, e.pgcode)
             time.sleep(0.2 * (intento + 1))
+
+
+def _no_se_traga(e):
+    """True si `e` NO se puede atrapar dentro del envio y seguir como si nada.
+
+    Un choque de concurrencia salta al vaciar lo pendiente ANTES del SAVEPOINT
+    (el envio del agente y el reporte del servicio escriben la misma fila del
+    equipo en el mismo segundo) y aborta la transaccion ENTERA. Tragarselo
+    dejaba la transaccion muerta: todo lo que seguia fallaba con «current
+    transaction is aborted» y el envio acababa en 500 sin reintento, porque el
+    error que llegaba a `_reintentando` ya no era el de concurrencia
+    (FbT218LIM, 15-oct-2026: 4 de 10 envios). Hay que dejarlo subir para que
+    `_reintentando` deshaga todo y repita desde cero."""
+    while e is not None:
+        if isinstance(e, psycopg2.Error) and e.pgcode in _PG_NO_SE_TRAGA:
+            return True
+        e = e.__cause__ or e.__context__
+    return False
 
 
 def _tomy_texto_a_html(texto):
@@ -128,9 +149,25 @@ def _sin_nul(v):
 
 class FocoController(http.Controller):
 
+    def _con_empresa(self, rec, empleado=None):
+        """Foco es por empresa (15-oct-2026): lo que pida un equipo o un
+        telefono se atiende con la configuracion de la EMPRESA DE SU EMPLEADO.
+        Se fija en el entorno de toda la peticion (contexto `foco_company_id`),
+        asi cualquier `get_settings()` que corra despues -aunque viva lejos de
+        aqui- lee la de esa empresa y no la del usuario publico."""
+        try:
+            emp = empleado if empleado is not None else (rec.sudo().employee_id if rec else False)
+            cid = emp.sudo().company_id.id if emp else False
+        except Exception:
+            cid = False
+        if not cid:
+            return rec
+        request.update_env(context=dict(request.env.context, foco_company_id=cid))
+        return rec.with_context(foco_company_id=cid) if rec else rec
+
     def _auth(self):
         key = request.httprequest.headers.get('X-Foco-Key')
-        return request.env['foco.computer']._authenticate(key)
+        return self._con_empresa(request.env['foco.computer']._authenticate(key))
 
     def _body(self):
         try:
@@ -190,7 +227,11 @@ class FocoController(http.Controller):
         Usage = request.env['foco.usage'].sudo()
 
         info = data.get('computer') or {}
-        vals = {'last_seen': fields.Datetime.now()}
+        # Este envio ENTRO: se acaba la racha de fallos que el equipo venia
+        # contando en el sondeo (ver `_estado_envio`).
+        vals = {'last_seen': fields.Datetime.now(), 'push_ok_at': fields.Datetime.now()}
+        if computer.push_fails or computer.push_error:
+            vals.update({'push_fails': 0, 'push_error': False, 'push_error_since': False})
         Comp = request.env['foco.computer'].sudo()
         Review = request.env['foco.call.review'].sudo()
 
@@ -406,6 +447,28 @@ class FocoController(http.Controller):
         Absence = request.env['foco.absence'].sudo()
         gaps_stored = Absence.record_gaps(computer, data.get('gaps') or [])
 
+        # --- pausas cortas y actividad del dia (agente 2026.10.14) -----------
+        # Lo que el tablero llamaba "sin actividad" sin poder decir cuando. Cada
+        # uno en su savepoint: un renglon raro no puede tumbar el envio del uso.
+        # Sin `pausas_stored` el agente las reintenta, que es lo correcto.
+        pausas_stored = actividad_stored = None
+        try:
+            with request.env.cr.savepoint():
+                pausas_stored = request.env['foco.pausa'].sudo().record_pausas(
+                    computer, data.get('pausas') or [])
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
+            _logger.exception('Foco: pausas de %s', computer.id)
+        try:
+            with request.env.cr.savepoint():
+                actividad_stored = request.env['foco.actividad'].sudo().record_actividad(
+                    computer, data.get('actividad') or [])
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
+            _logger.exception('Foco: actividad de %s', computer.id)
+
         # --- que le paso al EQUIPO ------------------------------------------
         # Es lo que le pone causa a los huecos: sin esto, "apago y se fue" y
         # "el agente murio a media tarde" son el mismo renglon vacio.
@@ -416,7 +479,9 @@ class FocoController(http.Controller):
         try:
             with request.env.cr.savepoint():
                 events_stored = Event.record_events(computer, data.get('events') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: eventos de %s', computer.id)
             events_stored = None
 
@@ -428,7 +493,9 @@ class FocoController(http.Controller):
             with request.env.cr.savepoint():
                 tabs_stored = request.env['foco.tab.review'].sudo().ingest_tabs(
                     computer, data.get('tabs') or [], data.get('tab_hosts') or {})
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: pestañas de %s', computer.id)
             tabs_stored = 0
 
@@ -441,7 +508,9 @@ class FocoController(http.Controller):
         try:
             with request.env.cr.savepoint():
                 wa_header_names = WaGroup.resolver_headers(data.get('wa_headers') or [])
-        except Exception:
+        except Exception as e:
+            if _no_se_traga(e):
+                raise
             _logger.exception('Foco: encabezados de WhatsApp de %s', computer.id)
             wa_header_names = {}
 
@@ -483,7 +552,9 @@ class FocoController(http.Controller):
                 with request.env.cr.savepoint():
                     request.env['foco.workday'].sudo().rebuild(
                         computer.employee_id, sorted(d for d in dias if d))
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: jornada de %s', computer.id)
             # Y los hechos de integridad de esos mismos dias: barato (una
             # persona, uno o dos dias) y asi se ven al momento, no de noche.
@@ -491,7 +562,9 @@ class FocoController(http.Controller):
                 with request.env.cr.savepoint():
                     request.env['foco.integrity.fact'].sudo().rebuild(
                         computer.employee_id, sorted(d for d in dias if d))
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: hechos de integridad de %s', computer.id)
 
         Command = request.env['foco.command'].sudo()
@@ -509,6 +582,8 @@ class FocoController(http.Controller):
             'ok': True,
             'stored': stored,
             'gaps_stored': gaps_stored,
+            'pausas_stored': pausas_stored,
+            'actividad_stored': actividad_stored,
             'events_stored': events_stored,
             'tabs_stored': tabs_stored,
             # {huella: nombre} de los encabezados de WhatsApp ya resueltos por
@@ -735,6 +810,135 @@ class FocoController(http.Controller):
              ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '', cuerpo)
         return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
 
+    # --------------------------------------------------------- Tommy GPT
+    def _gpt_mensaje(self, message_id):
+        """El mensaje del asistente, si el usuario puede verlo (las reglas de
+        registro de foco.gpt.message deciden: suyo o administrador)."""
+        msg = request.env['foco.gpt.message'].browse(message_id).exists()
+        if not msg or msg.role != 'assistant':
+            return None
+        return msg
+
+    @http.route('/foco/gpt/imprimir/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def gpt_imprimir(self, message_id, **kw):
+        """La respuesta de Tommy GPT como pagina limpia para imprimir o guardar
+        en PDF (con sus graficas dibujadas y sus tablas)."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        cuerpo = msg._cuerpo_html()
+        graficas = json.dumps(msg._graficas(), ensure_ascii=False)
+        pregunta = request.env['foco.gpt.message'].search(
+            [('thread_id', '=', msg.thread_id.id), ('role', '=', 'user'), ('id', '<', msg.id)],
+            order='id desc', limit=1)
+        cuando = (fields.Datetime.context_timestamp(msg, msg.create_date).strftime('%d/%m/%Y %H:%M')
+                  if msg.create_date else '')
+        html = (
+            '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Tommy GPT</title>'
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>'
+            '<style>body{font:14px/1.55 "Segoe UI",system-ui,Arial,sans-serif;color:#1a1a1a;margin:40px auto;max-width:820px;padding:0 24px}'
+            'h1{font-size:19px;margin:0 0 4px}h3{font-size:15px;margin:16px 0 6px}h4.tt{font-size:13px;margin:14px 0 4px;color:#333}'
+            '.meta{color:#5a6577;font-size:12px;margin-bottom:16px}p{margin:0 0 9px}ul{padding-left:22px}li{margin:3px 0}'
+            'code{font-family:Consolas,monospace;background:#f0f0f0;padding:1px 4px;border-radius:4px}'
+            '.pregunta{background:#f3f5f9;border-left:3px solid #2f6fed;padding:10px 14px;margin:0 0 16px;border-radius:6px}'
+            'table{border-collapse:collapse;width:100%%;font-size:12.5px;margin:8px 0}th,td{border:1px solid #c8c8c8;padding:5px 8px;text-align:left}'
+            'th{background:#2b2b2b;color:#fff}.gwrap{max-width:620px;height:300px;margin:6px 0 16px}'
+            '.btn{position:fixed;top:14px;right:14px;padding:8px 14px;border:1px solid #cfd6e2;border-radius:8px;background:#fff;cursor:pointer;font:inherit}'
+            '@media print{.btn{display:none}body{margin:0}}</style></head><body>'
+            '<button class="btn" onclick="window.print()">Imprimir / guardar PDF</button>'
+            '<h1>Tommy GPT &middot; FERBA</h1><div class="meta">%s &middot; %s</div>%s'
+            '<div class="cuerpo">%s</div><div id="gs"></div>'
+            '<script>const G=%s,P=["#2f6fed","#10b981","#f59e0b","#ef4444","#8b5cf6","#0ea5e9"],c=document.getElementById("gs");'
+            'G.forEach(function(g){var h=document.createElement("h4");h.className="tt";h.textContent=g.titulo||"";c.appendChild(h);'
+            'var w=document.createElement("div");w.className="gwrap";var cv=document.createElement("canvas");w.appendChild(cv);c.appendChild(w);'
+            'var tp=g.grafica==="lineas"?"line":g.grafica==="dona"?"doughnut":"bar";'
+            'var ds=(g.series||[]).map(function(s,j){return{label:s.nombre,data:s.valores,'
+            'backgroundColor:tp==="doughnut"?(g.etiquetas||[]).map(function(_,k){return P[k%%P.length]}):P[j%%P.length],'
+            'borderColor:P[j%%P.length],borderWidth:2,tension:0.3,borderRadius:4}});'
+            'new Chart(cv,{type:tp,data:{labels:g.etiquetas||[],datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,'
+            'plugins:{legend:{display:(g.series||[]).length>1||tp==="doughnut"},title:{display:false}},'
+            'scales:tp==="doughnut"?{}:{y:{beginAtZero:true,ticks:{callback:function(v){return v+(g.unidad||"")}}}}}})});</script>'
+            '</body></html>'
+        ) % (escape(request.env.user.name), escape(cuando),
+             ('<div class="pregunta">%s</div>' % escape(pregunta.content or '')) if pregunta else '',
+             cuerpo, graficas)
+        return request.make_response(html, headers=[('Content-Type', 'text/html; charset=utf-8')])
+
+    @http.route('/foco/gpt/word/<int:message_id>', type='http', auth='user', methods=['GET'])
+    def gpt_word(self, message_id, **kw):
+        """La respuesta como documento de Word (.doc). Lleva el texto y las
+        tablas; las graficas van en el PDF."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        nota = ('<p style="color:#888;font-size:11px">[Las graficas se pueden guardar desde la '
+                'version PDF.]</p>') if msg._graficas() else ''
+        html = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                'body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;line-height:1.5}'
+                'h3,h4{margin:12px 0 5px}table{border-collapse:collapse;width:100%%}'
+                'th,td{border:1px solid #c8c8c8;padding:5px 8px;text-align:left}th{background:#2b2b2b;color:#fff}'
+                '</style></head><body>%s%s</body></html>') % (msg._cuerpo_html(), nota)
+        nombre = ((msg.thread_id.name or 'respuesta')[:40].strip() or 'respuesta') + '.doc'
+        return request.make_response(html.encode('utf-8'), headers=[
+            ('Content-Type', 'application/msword'),
+            ('Content-Disposition', content_disposition(nombre))])
+
+    @http.route('/foco/gpt/excel/<int:message_id>/<int:idx>', type='http', auth='user', methods=['GET'])
+    def gpt_excel(self, message_id, idx, **kw):
+        """Una tabla de la respuesta como archivo .xlsx."""
+        msg = self._gpt_mensaje(message_id)
+        if not msg:
+            return request.not_found()
+        try:
+            data, titulo = msg._excel_de_tabla(int(idx))
+        except UserError as e:
+            return request.make_response(str(e), status=400,
+                                         headers=[('Content-Type', 'text/plain; charset=utf-8')])
+        nombre = ((titulo or 'tabla')[:40].strip() or 'tabla') + '.xlsx'
+        return request.make_response(data, headers=[
+            ('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+            ('Content-Disposition', content_disposition(nombre))])
+
+    @http.route('/foco/gpt/imagen/<int:att_id>', type='http', auth='user', methods=['GET'])
+    def gpt_imagen(self, att_id, dl=None, **kw):
+        """Una imagen que Tommy GPT genero. Se sirve inline para pintarla en el
+        panel; con ?dl=1 se descarga. El permiso es el del mensaje que la lleva:
+        la imagen esta ligada a un foco.gpt.message y sus reglas deciden quien lo ve."""
+        att = request.env['ir.attachment'].sudo().browse(att_id).exists()
+        if not att or att.res_model != 'foco.gpt.message' or not att.res_id:
+            return request.not_found()
+        # browse con los permisos del usuario: si no puede ver el mensaje, exists() es vacio.
+        msg = request.env['foco.gpt.message'].browse(att.res_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        headers = [('Content-Type', att.mimetype or 'image/png')]
+        if dl:
+            headers.append(('Content-Disposition', content_disposition(att.name or 'imagen.png')))
+        else:
+            headers.append(('Content-Disposition', 'inline'))
+        return request.make_response(att.raw, headers=headers)
+
+    @http.route('/foco/gpt/archivo/<int:att_id>', type='http', auth='user', methods=['GET'])
+    def gpt_archivo(self, att_id, **kw):
+        """Un archivo que Tommy GPT genero (HTML, md, csv, svg...). SIEMPRE se sirve
+        como DESCARGA (nunca inline): un HTML generado podria traer scripts y
+        abrirlo en nuestra misma origin seria un riesgo. El permiso es el del
+        mensaje que lo lleva."""
+        att = request.env['ir.attachment'].sudo().browse(att_id).exists()
+        if not att or att.res_model != 'foco.gpt.message' or not att.res_id:
+            return request.not_found()
+        msg = request.env['foco.gpt.message'].browse(att.res_id).exists()
+        if not msg or msg.role != 'assistant':
+            return request.not_found()
+        # text/html -> octet-stream para que el navegador NO lo ejecute, solo lo baje.
+        ct = att.mimetype or 'application/octet-stream'
+        if ct.startswith('text/html') or ct == 'image/svg+xml':
+            ct = 'application/octet-stream'
+        return request.make_response(att.raw, headers=[
+            ('Content-Type', ct),
+            ('Content-Disposition', content_disposition(att.name or 'archivo.txt')),
+            ('X-Content-Type-Options', 'nosniff')])
+
     @http.route('/foco/enroll', type='http', auth='public',
                 methods=['POST'], csrf=False)
     def enroll(self, **kw):
@@ -773,7 +977,7 @@ class FocoController(http.Controller):
     # servidor: apagado, no se guarda NADA aunque el telefono lo mande.
     def _auth_mobile(self):
         key = request.httprequest.headers.get('X-Foco-Key')
-        return request.env['foco.mobile.device']._authenticate(key)
+        return self._con_empresa(request.env['foco.mobile.device']._authenticate(key))
 
     @http.route('/foco/mobile/avatar', type='http', auth='public',
                 methods=['GET', 'POST'], csrf=False)
@@ -811,6 +1015,8 @@ class FocoController(http.Controller):
         inv = request.env['foco.invitation']._resolve(data.get('token'))
         if not inv:
             return request.make_json_response({'error': 'invalid_or_expired'}, status=403)
+        # La configuracion que se le entrega es la de la empresa del empleado.
+        self._con_empresa(None, empleado=inv.sudo().employee_id)
         info = data.get('device') or {}
         Dev = request.env['foco.mobile.device'].sudo()
         dev = inv.mobile_id
@@ -847,6 +1053,279 @@ class FocoController(http.Controller):
             return request.make_json_response({'error': 'unauthorized'}, status=401)
         return request.make_json_response(
             {'ok': True, 'clientes': dev.sudo().clientes_para()})
+
+    # ---- ventas en el celular: buscar y enviar cotizaciones (15-oct-2026) ----
+    # Todo corre con el usuario de Odoo del vendedor (ver foco.mobile.device):
+    # sus permisos y la aprobacion de cotizaciones aplican tal cual. Un error de
+    # Odoo (sin aprobar, sin correo, sin permiso) vuelve como 422 con su mensaje.
+    #
+    # En una transaccion PROPIA abierta como el vendedor, no en la del request:
+    # estas rutas son auth='public' y Odoo revisa los contactos que se agregan a
+    # un mensaje (la actividad del aprobador, el correo al cliente) con el usuario
+    # que ABRIO la transaccion (`_check_sudo_commands`), que ahi es el publico;
+    # con `with_user` no basta. Si la accion falla, esa transaccion se deshace.
+    def _ventas(self, accion):
+        dev = self._auth_mobile()
+        if not dev:
+            return None, request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body() or {}
+        uid = dev.sudo()._vendedor().id or request.env.uid
+        ctx = {k: v for k, v in dev.env.context.items() if k != 'guest'}
+        # Y el request tambien queda como el vendedor: las plantillas del PDF de
+        # FERBA (reportes_custom) leen el membrete con `request.env['x_reporte']`,
+        # que aqui era el usuario publico -> "You are not allowed to access
+        # 'Reporte'" al mandar una cotizacion desde el telefono (16-oct-2026).
+        if uid != request.env.uid:
+            request.update_env(user=uid)
+        try:
+            with Registry(request.db).cursor() as cr:
+                env = api.Environment(cr, uid, ctx)
+                return accion(env['foco.mobile.device'].sudo().browse(dev.id), data), None
+        except (UserError, AccessError) as e:
+            _logger.info('foco ventas movil (%s): %s', dev.name, e,
+                         exc_info=isinstance(e, AccessError))
+            return None, request.make_json_response(
+                {'ok': False, 'error': 'odoo', 'mensaje': str(e)}, status=422)
+
+    @http.route('/foco/mobile/cotizaciones', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizaciones(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizaciones_para(
+            partner_id=data.get('partner_id'), q=data.get('q') or ''))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cotizacion_pdf', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_pdf(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_pdf(data.get('id')))
+        if error:
+            return error
+        nombre, pdf = res
+        return request.make_response(pdf, headers=[
+            ('Content-Type', 'application/pdf'),
+            ('Content-Disposition', content_disposition(nombre)),
+        ])
+
+    @http.route('/foco/mobile/cotizacion_correo', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_correo(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_correo(
+            data.get('id'), correo=data.get('correo'), guardar=data.get('guardar', True)))
+        if error:
+            return error
+        motivo = self._correo_fallido(res.pop('verificar', None))
+        if motivo:
+            return request.make_json_response({'ok': False, 'error': 'correo', 'mensaje': motivo}, status=422)
+        return request.make_json_response(res)
+
+    @staticmethod
+    def _correo_fallido(verificar):
+        """El motivo si el correo que acaba de mandar `cotizacion_correo` quedo en
+        "excepcion"; None si salio o sigue en cola. Se lee en una transaccion
+        NUEVA: Odoo lo intenta al confirmar la de la accion (postcommit), y la
+        del request ya tiene su foto de antes."""
+        if not verificar:
+            return None
+        with Registry(request.db).cursor() as cr:
+            env = api.Environment(cr, SUPERUSER_ID, {})
+            orden = env['sale.order'].browse(verificar['orden'])
+            # Solo el correo AL CLIENTE (o al contacto al que se mando esta vez): un
+            # aviso a un seguidor interno que falle por su lado no quiere decir que
+            # la cotizacion no llego.
+            cliente = env['res.partner'].browse(verificar.get('partner') or orden.partner_id.id)
+            fallido = env['mail.mail'].search([
+                ('model', '=', 'sale.order'), ('res_id', '=', orden.id),
+                ('id', 'not in', verificar.get('antes') or []), ('state', '=', 'exception'),
+                ('recipient_ids', 'in', cliente.ids)], limit=1)
+            if fallido:
+                return 'El correo de %s no salió: %s' % (
+                    orden.name, (fallido.failure_reason or 'Odoo no pudo enviarlo').strip()[:200])
+        return None
+
+    @http.route('/foco/mobile/cotizacion_revision', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cotizacion_revision(self, **kw):
+        res, error = self._ventas(lambda dev, data: dev.cotizacion_revision(data.get('id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cliente_telefono', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cliente_telefono(self, **kw):
+        """El numero que el vendedor escribio para mandar por WhatsApp, guardado en
+        el cliente (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.cliente_telefono(
+            data.get('partner_id'), data.get('numero')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/cliente_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_cliente_ubicacion(self, **kw):
+        """Corrige el pin de un cliente con el GPS actual del vendedor (cuando la
+        direccion esta mal). Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.cliente_ubicacion(
+            data.get('partner_id'), data.get('lat'), data.get('lon'),
+            data.get('accuracy') or 0.0))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/crear_cliente', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_crear_cliente(self, **kw):
+        """Registra un cliente NUEVO con su pin (ubicacion compartida por
+        WhatsApp/Maps, un toque en el mapa, o el GPS), sin que el vendedor este en
+        el sitio. Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.crear_cliente(
+            data.get('nombre'), data.get('lat'), data.get('lon'),
+            data.get('telefono') or '', data.get('accuracy') or 0.0,
+            parent_id=data.get('parent_id') or None,
+            tipo_ubicacion=data.get('tipo_ubicacion') or None,
+            nota=data.get('nota'), foto=data.get('foto')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/editar_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_editar_ubicacion(self, **kw):
+        """Reemplaza/edita una ubicacion existente (tipo, pin y/o nombre). Corre como
+        el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.editar_ubicacion(
+            data.get('partner_id'), tipo_ubicacion=data.get('tipo_ubicacion') or None,
+            lat=data.get('lat'), lon=data.get('lon'),
+            nombre=data.get('nombre') or None, precision=data.get('accuracy') or 0.0,
+            nota=data.get('nota'), foto=data.get('foto')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/ubicacion_foto', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_ubicacion_foto(self, **kw):
+        """Baja la foto de una ubicacion/cliente para mostrarla en la ficha del
+        telefono. Corre como el vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.foto_ubicacion(
+            data.get('partner_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/borrar_ubicacion', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_borrar_ubicacion(self, **kw):
+        """Borra (archiva) una ubicacion hija de una razon social. Corre como el
+        vendedor, con sus permisos."""
+        res, error = self._ventas(lambda dev, data: dev.borrar_ubicacion(
+            data.get('partner_id')))
+        return error or request.make_json_response(res)
+
+    # ----------------------------------------------- viaticos / gastos (campo)
+    @http.route('/foco/mobile/viatico_ocr', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viatico_ocr(self, **kw):
+        """Lee la(s) foto(s) de un ticket con la IA y devuelve los datos para que
+        el vendedor los confirme. No crea nada."""
+        res, error = self._ventas(lambda dev, data: dev.ocr_ticket(
+            data.get('fotos'), data.get('tipo') or 'gasolina'))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/viatico', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viatico(self, **kw):
+        """Registra un gasto (viatico) con su foto, desde el apartado Gastos."""
+        res, error = self._ventas(lambda dev, data: dev.crear_viatico(data))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/viaticos', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_viaticos(self, **kw):
+        """Los gastos recientes del vendedor + su presupuesto de la semana."""
+        res, error = self._ventas(lambda dev, data: dev.mis_viaticos())
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/mi_dia', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_mi_dia(self, **kw):
+        """El dia de trabajo del vendedor: seguimientos pendientes, visitas de hoy,
+        presupuesto y coaching nuevo (tarjeta "Mi dia" del Inicio)."""
+        res, error = self._ventas(lambda dev, data: dev.mi_dia())
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculos', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculos(self, **kw):
+        """Los vehiculos de la empresa del vendedor (para elegir en una carga)."""
+        res, error = self._ventas(lambda dev, data: dev.mis_vehiculos())
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculo_detalle', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_detalle(self, **kw):
+        """Ficha del vehiculo del vendedor: odometro, rendimiento vs esperado,
+        proximo cambio de aceite y ultima carga (pantalla Mi vehiculo)."""
+        res, error = self._ventas(lambda dev, data: dev.vehiculo_detalle(data.get('vehiculo_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculo_devolver', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_devolver(self, **kw):
+        """El vendedor devuelve su vehiculo desde el telefono (cierra su asignacion)."""
+        res, error = self._ventas(lambda dev, data: dev.devolver_vehiculo(data.get('vehiculo_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculo_revision', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_revision(self, **kw):
+        """Registra la revision (del lunes) de un vehiculo con su foto."""
+        res, error = self._ventas(lambda dev, data: dev.crear_revision(data))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/vehiculo_revisiones', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_vehiculo_revisiones(self, **kw):
+        """Registra varias sub-revisiones a la vez (lo marcado en el esquema del coche)."""
+        res, error = self._ventas(lambda dev, data: dev.crear_revisiones(data))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/responsiva_firmar', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_responsiva_firmar(self, **kw):
+        """Firma la carta responsiva de recepcion del vehiculo (desde el telefono)."""
+        res, error = self._ventas(lambda dev, data: dev.firmar_responsiva(
+            data.get('firma'), data.get('asignacion_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/odoo_acceso', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_odoo_acceso(self, **kw):
+        """Servidor, usuario y codigo de un solo uso para que el robot de Foco
+        entre a la app oficial de Odoo como el vendedor (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.odoo_acceso())
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/odoo_ir_a', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_odoo_ir_a(self, **kw):
+        """El vendedor quiere ver esta cotizacion en la app de Odoo: se deja el
+        aviso para que la pantalla de Odoo salte ahi al abrir (16-oct-2026)."""
+        res, error = self._ventas(lambda dev, data: dev.odoo_ir_a(
+            data.get('res_model'), data.get('res_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/ir_a/listo', type='jsonrpc', auth='user')
+    def foco_ir_a_listo(self, **kw):
+        """La pantalla de Odoo ya uso el aviso de "ir a": se borra para que un
+        recargar no vuelva a saltar."""
+        request.env.user.sudo().write({'foco_ir_a': False, 'foco_ir_a_at': False})
+        return True
+
+    @http.route('/foco/ir_a/tomar', type='jsonrpc', auth='user')
+    def foco_ir_a_tomar(self, **kw):
+        """La app de Odoo volvio al frente sin recargar (estaba viva en segundo
+        plano): si hay un aviso fresco de "ir a", se entrega y se borra en el acto.
+        Solo dentro de la app (su navegador dice "OdooMobile/")."""
+        from ..models.foco_ir_http import UA_APP_ODOO, VIGENCIA_IR_A_S
+        if UA_APP_ODOO not in (request.httprequest.user_agent.string or ''):
+            return False
+        u = request.env.user.sudo()
+        if not (u.foco_ir_a and u.foco_ir_a_at
+                and u.foco_ir_a_at >= fields.Datetime.now() - timedelta(seconds=VIGENCIA_IR_A_S)):
+            return False
+        url = u.foco_ir_a
+        u.write({'foco_ir_a': False, 'foco_ir_a_at': False})
+        return url
 
     @http.route('/foco/mobile/visita', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -886,6 +1365,65 @@ class FocoController(http.Controller):
             return request.make_json_response({'error': 'bad_request'}, status=400)
         res = dev.sudo().guardar_audio_visita(uuid, data, dur, name)
         return request.make_json_response(res)
+
+    @http.route('/foco/mobile/llamada_audio', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_llamada_audio(self, **kw):
+        """Sube el WAV de una llamada de WhatsApp (cuerpo binario crudo). La
+        llamada se identifica por su uuid en la cabecera. Queda pendiente para el
+        coaching de la IA (misma rubrica que las visitas)."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        h = request.httprequest.headers
+        uuid = h.get('X-Llamada-Uuid') or ''
+        name = h.get('X-Audio-Name') or 'llamada.wav'
+        try:
+            dur = int(h.get('X-Duracion') or '0')
+        except (TypeError, ValueError):
+            dur = 0
+        # El telefono manda el inicio en milisegundos (System.currentTimeMillis).
+        started = None
+        try:
+            ms = int(h.get('X-Started') or '0')
+            if ms > 0:
+                started = fields.Datetime.to_string(
+                    datetime.utcfromtimestamp(ms / 1000.0))
+        except (TypeError, ValueError):
+            started = None
+        consent = (h.get('X-Consent') or '').strip() in ('1', 'true', 'si', 'yes')
+        origen = (h.get('X-Origen') or 'whatsapp').strip().lower()
+        # Con quien fue la llamada (nombre/numero) segun el telefono. Viaja en
+        # Base64 porque las cabeceras HTTP solo aceptan ASCII y el nombre puede
+        # traer acentos/ñ.
+        contacto = ''
+        try:
+            raw = h.get('X-Contacto') or ''
+            if raw:
+                contacto = base64.b64decode(raw).decode('utf-8', 'ignore')[:120]
+        except Exception:
+            contacto = ''
+        data = request.httprequest.get_data(cache=False, as_text=False) or b''
+        if not uuid or not data:
+            return request.make_json_response({'error': 'bad_request'}, status=400)
+        res = dev.sudo().guardar_audio_llamada(uuid, data, dur, name, started, consent, origen, contacto)
+        return request.make_json_response(res)
+
+    @http.route('/foco/mobile/llamada_coaching', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_llamada_coaching(self, **kw):
+        """Le regresa al telefono el coaching de sus llamadas ya analizadas, para
+        que el vendedor lo lea en la app."""
+        dev = self._auth_mobile()
+        if not dev:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body() or {}
+        try:
+            limite = int(data.get('limite') or 20)
+        except (TypeError, ValueError):
+            limite = 20
+        return request.make_json_response(
+            {'ok': True, 'llamadas': dev.sudo().mis_llamadas_coaching(limite)})
 
     @http.route('/foco/mobile/beacon', type='http', auth='public',
                 methods=['POST'], csrf=False)
@@ -1175,7 +1713,7 @@ class FocoController(http.Controller):
     def amapi_callback(self, enterpriseToken=None, **kw):
         if not request.env.user.has_group('foco_monitor.group_foco_manager'):
             return request.not_found()
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         destino = '/odoo/action-foco_monitor.foco_settings_movil_action'
         if not enterpriseToken or not s.amapi_signup_name:
             return request.redirect(destino)
@@ -1190,7 +1728,7 @@ class FocoController(http.Controller):
 
     @http.route('/foco/download', type='http', auth='public', methods=['GET'])
     def download(self, **kw):
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not s.installer:
             return request.not_found()
         content = base64.b64decode(s.installer)
@@ -1211,7 +1749,7 @@ class FocoController(http.Controller):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         return request.make_json_response(s.agent_latest())
 
     @http.route('/foco/agent/binario', type='http', auth='public', methods=['GET'])
@@ -1219,7 +1757,7 @@ class FocoController(http.Controller):
         computer = self._auth()
         if not computer:
             return request.make_json_response({'error': 'unauthorized'}, status=401)
-        s = request.env['foco.settings'].sudo().get_settings()
+        s = request.env['foco.settings'].sudo().get_settings_global()
         if not (s.installer and s.agent_autoupdate and s.installer_sha256):
             return request.not_found()
         content = base64.b64decode(s.installer)
@@ -1277,6 +1815,8 @@ class FocoController(http.Controller):
         employee = request.env['hr.employee']._foco_by_token(token)
         if not employee:
             return request.render('foco_monitor.justify_invalid', {})
+        # Las reglas de justificacion son las de la empresa de esa persona.
+        self._con_empresa(None, empleado=employee)
 
         Absence = request.env['foco.absence'].sudo()
         if request.httprequest.method == 'POST':
@@ -1388,7 +1928,9 @@ class FocoController(http.Controller):
             cmds.write({'state': 'sent', 'sent_at': fields.Datetime.now()})
         # El latido va aqui tambien: si el agente pregunta cada 25 s, el equipo
         # deja de verse «sin senal» por esperar al envio pesado.
-        computer.write({'last_seen': fields.Datetime.now()})
+        vals = {'last_seen': fields.Datetime.now()}
+        vals.update(self._estado_envio(computer, self._body() or {}))
+        computer.write(vals)
 
         # LO QUE HACE FALTA PARA OBEDECER VIAJA CON LA ORDEN.
         #
@@ -1426,6 +1968,47 @@ class FocoController(http.Controller):
                                   .monitor_sitios_para(computer.employee_id),
             },
         })
+
+    @staticmethod
+    def _estado_envio(computer, data):
+        """Lo que el agente (desde 2026.10.15.1) cuenta en el sondeo sobre su
+        envio de datos y su version. Solo lo que CAMBIO: este sondeo llega cada
+        25 s y no debe reescribir la fila del equipo de mas.
+
+        La version va aqui tambien porque la del envio de datos solo se
+        actualiza cuando un envio ENTRA: un equipo cuyos envios fallan se veia
+        en Odoo con la version vieja aunque ya tuviera la nueva (15-oct-2026)."""
+        vals = {}
+        version = str(data.get('version') or '')[:32]
+        if version and version != (computer.agent_version or ''):
+            vals['agent_version'] = version
+            try:
+                vals['agent_version_code'] = int(data.get('version_code') or 0)
+            except (TypeError, ValueError):
+                pass
+        envio = data.get('envio')
+        if not isinstance(envio, dict):
+            return vals
+        Event = request.env['foco.event']
+        try:
+            fallos = max(0, int(envio.get('fallos') or 0))
+        except (TypeError, ValueError):
+            fallos = 0
+        nuevo = {
+            'push_fails': fallos,
+            'push_error': (str(envio.get('error') or '')[:240] or False) if fallos else False,
+            'push_error_since': (Event._parse_utc(envio.get('desde')) or False) if fallos else False,
+        }
+        # El ultimo envio que entro lo pone el SERVIDOR al recibirlo (_ingest);
+        # la hora del equipo solo llena el hueco de un equipo que no ha logrado
+        # entrar desde que existe este campo.
+        ok_at = Event._parse_utc(envio.get('ultimo_ok'))
+        if ok_at and not computer.push_ok_at:
+            nuevo['push_ok_at'] = ok_at
+        for campo, valor in nuevo.items():
+            if computer[campo] != valor:
+                vals[campo] = valor
+        return vals
 
     # ------------------------------------------------------------- capturas
     @http.route('/foco/capture', type='http', auth='public',
@@ -1575,9 +2158,12 @@ class FocoController(http.Controller):
         if data is None:
             return request.make_json_response({'error': 'bad_json'}, status=400)
 
-        # Version del servicio, si la reporta (desde 2026.09.25).
-        if data.get('version_agente'):
-            computer.sudo().write({'service_version': str(data['version_agente'])[:32]})
+        # Version del servicio, si la reporta (desde 2026.09.25). Solo cuando
+        # cambia: este reporte llega cada ciclo y cada escritura de mas a la
+        # fila del equipo es otra oportunidad de chocar con el envio del agente.
+        version_servicio = str(data.get('version_agente') or '')[:32]
+        if version_servicio and version_servicio != (computer.service_version or ''):
+            computer.sudo().write({'service_version': version_servicio})
 
         # Navegadores no permitidos que el servicio cerro desde su ultimo
         # reporte (desde 2026.09.26). Van a Actividad como eventos con la hora
@@ -1603,7 +2189,9 @@ class FocoController(http.Controller):
                 try:
                     with request.env.cr.savepoint():
                         request.env['foco.event'].sudo().record_events(computer.sudo(), eventos)
-                except Exception:
+                except Exception as e:
+                    if _no_se_traga(e):
+                        raise
                     _logger.exception('Foco: no se pudieron guardar los cierres de %s', computer.id)
 
         aplicada = (data.get('applied') or '').strip()[:64]
@@ -1615,7 +2203,9 @@ class FocoController(http.Controller):
             # tumbar el reporte del equipo, asi que va en su propio try.
             try:
                 computer.sudo().notificar_politica(aplicada, detalle)
-            except Exception:
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
                 _logger.exception('Foco: no se pudo notificar la politica de %s',
                                   computer.id)
             vals = {'policy_version': aplicada}
@@ -1642,6 +2232,18 @@ class FocoController(http.Controller):
                                        'policy_drift': False})
             else:
                 computer.sudo().write({'policy_drift': True})
+
+        # Retiro: el servicio confirma que libero TODOS los bloqueos y se va a
+        # desinstalar (lo pidio Odoo con el boton "Retirar Foco"). Se marca aqui,
+        # cuando el equipo lo confirma, no cuando se pidio: asi el estado refleja
+        # lo que paso en la maquina. No puede tumbar la respuesta del endpoint.
+        if data.get('retired'):
+            try:
+                computer.sudo().marcar_retirado((data.get('detail') or '').strip())
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
+                _logger.exception('Foco: no se pudo marcar retirado %s', computer.id)
 
         return request.make_json_response(
             request.env['foco.policy'].sudo().payload_for(computer.sudo()))

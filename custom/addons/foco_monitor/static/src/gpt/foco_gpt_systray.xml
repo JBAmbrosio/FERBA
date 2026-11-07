@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="foco_monitor.FocoGptSystrayItem">
+        <div class="fgpt-systray">
+            <button class="fgpt-systray__btn" title="Tommy GPT" t-on-click="() => this.abrir()">
+                <img src="/foco_monitor/static/src/gpt/img/app_icon.png" alt="Tommy GPT"/>
+            </button>
+        </div>
+    </t>
+
+</templates>

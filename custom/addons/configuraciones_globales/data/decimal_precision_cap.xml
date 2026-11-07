@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        "Maximo 2 decimales en todo Odoo" (Ing. Francisco, junta 27-oct-2026).
+        Sin noupdate a proposito: la funcion se ejecuta al instalar Y en cada
+        actualizacion del modulo, para que tambien aplique a precisiones que
+        agreguen modulos nuevos mas adelante. Es idempotente.
+    -->
+    <function model="decimal.precision" name="_ferba_cap_dos_decimales"/>
+</odoo>

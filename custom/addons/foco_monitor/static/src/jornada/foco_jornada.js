@@ -153,7 +153,8 @@ export class FocoJornada extends Component {
                 top: y(s.a), alto: Math.max(0.5, y(s.b) - y(s.a)),
                 titulo: `${this.hhmm(s.a)} – ${this.hhmm(s.b)} · ${SEG[s.k] || s.k}` +
                     ` · ${this.dur(s.b - s.a)}` + (s.motivo ? ` · ${s.motivo}` : "") +
-                    (s.estado === "pendiente" ? " · por justificar" : ""),
+                    (s.estado === "pendiente" ? " · por justificar"
+                        : s.estado === "no_justificado" ? " · no justificado (se le pasó el día)" : ""),
             })),
             marcas: (f.pins || []).map((p) => ({
                 ...p, top: y(p.h), fuerte: PIN_FUERTE.includes(p.k), titulo: p.texto,

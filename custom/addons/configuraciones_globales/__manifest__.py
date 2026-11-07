@@ -1,9 +1,9 @@
 {
 'name': 'x_reporte',
-'version': '1.0',
+'version': '1.1',
 'author': 'company',
-'category':'Tools', 
-'summary': 'Gestiona configuraciones globales para los reportes qweb',
+'category':'Tools',
+'summary': 'Gestiona configuraciones globales para los reportes qweb (incluye politica de 2 decimales)',
 'depends':[
 
     'web',
@@ -16,6 +16,7 @@
     'security/ir.model.access.csv',
     'views/view_form_reports_config_custom.xml',
     'views/view_list_reports_config_custom.xml',
+    'data/decimal_precision_cap.xml',
 ],
 
 'installable': True,

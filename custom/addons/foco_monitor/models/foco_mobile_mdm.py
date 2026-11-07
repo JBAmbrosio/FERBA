@@ -71,6 +71,23 @@ REQ_MODES = [
 # Cuantas veces se reintenta una instalacion por Play que FALLA (transitorio)
 # antes de dejar de reenviarla y marcarla para que el admin la vea.
 PLAY_MAX_INTENTOS = 6
+# Tras un intento fallido, cuanto se espera antes de mandar el siguiente. Antes
+# se reenviaba en el envio inmediato: la solicitud 33 (15-oct-2026) gasto los 6
+# intentos en 46 minutos, tapandole la pantalla al vendedor en cada uno.
+PLAY_ESPERA_MIN = 20
+
+# Por que no se instalo, segun lo que el robot vio (detalle del telefono, 1.61+).
+PLAY_MOTIVOS = {
+    'sin_play': 'la Play no llegó a abrirse',
+    'ciega': 'Foco no pudo leer la pantalla de la Play (así se esconde la Play cuando pide '
+             'iniciar sesión: revisa que el teléfono tenga una cuenta de Google)',
+    'sin_boton': 'la Play no mostró el botón «Instalar»',
+    'sin_terminar': 'la descarga arrancó pero no terminó',
+    'sesion': 'la Play pide iniciar sesión con una cuenta de Google',
+    'sin_servicio': 'el servicio de accesibilidad de Foco no estaba corriendo',
+    'excepcion': 'error del agente en el teléfono',
+}
+PLAY_REDES = {'wifi': 'con Wi-Fi', 'datos': 'con datos móviles', 'sin_red': 'sin red'}
 
 # Lo que aplica a un celular SIN perfil. Son los mismos valores de fabrica de
 # los campos del perfil: un telefono sin perfil no queda abierto, queda como
@@ -289,10 +306,18 @@ class FocoPolicyMovil(models.Model):
         """Los celulares que se rigen por estos perfiles, incluidos los que no
         tienen perfil propio si alguno de estos es el perfil por omision."""
         Dev = self.env['foco.mobile.device'].sudo()
+        Settings = self.env['foco.settings'].sudo()
         equipos = Dev.search([('policy_id', 'in', self.ids)])
-        omision = self.env['foco.settings'].sudo().get_settings().default_policy_id
-        if omision and omision in self:
-            equipos |= Dev.search([('policy_id', '=', False)])
+        for p in self:
+            # Los celulares sin perfil se rigen por el de omision DE SU EMPRESA.
+            ajustes = Settings.de_empresa(p.company_id, crear=False)
+            if ajustes.default_policy_id != p:
+                continue
+            dom = [('policy_id', '=', False)]
+            de_empresa = ajustes._dom_equipos_empresa() if len(ajustes) == 1 else []
+            if de_empresa:
+                dom = ['&'] + de_empresa + dom
+            equipos |= Dev.search(dom)
         return equipos
 
     def write(self, vals):
@@ -672,6 +697,27 @@ class FocoMobileAppRequest(models.Model):
     play_attempts = fields.Integer(string='Intentos de instalación', default=0,
                                    readonly=True, copy=False)
     play_error = fields.Char(string='Último problema al instalar', readonly=True, copy=False)
+    play_detalle = fields.Text(string='Lo que vio el teléfono', readonly=True, copy=False,
+                               help='Detalle del último intento sin instalar: en qué punto se atoró, '
+                                    'la red, el texto de la Play y sus botones.')
+    play_last_at = fields.Datetime(string='Último intento', readonly=True, copy=False)
+
+    @api.model
+    def _play_resumen(self, det):
+        """Una frase con el motivo, para el aviso de la solicitud y su historial."""
+        motivo = PLAY_MOTIVOS.get(det.get('motivo')) or det.get('motivo') or 'sin detalle'
+        partes = [motivo]
+        if det.get('segundos') not in (None, ''):
+            partes.append('tras %s s' % det['segundos'])
+        if det.get('red') in PLAY_REDES:
+            partes.append(PLAY_REDES[det['red']])
+        if det.get('bajando_al_final'):
+            partes.append('la tienda seguía descargando')
+        texto = ' '.join((det.get('texto') or '').split())
+        frase = 'No se pudo instalar: %s.' % ', '.join(partes)
+        if texto:
+            frase += ' La tienda mostraba: «%s»' % (texto[:180] + ('…' if len(texto) > 180 else ''))
+        return frase
 
     @api.model
     def desde_telefono(self, device, datos):
@@ -761,13 +807,25 @@ class FocoMobileAppRequest(models.Model):
                 continue
             if r.state != 'aprobada':
                 continue
+            # Lo que vio el robot (telefonos 1.61+); los anteriores no lo mandan.
+            det = h.get('detalle') if isinstance(h.get('detalle'), dict) else {}
+            resumen = self._play_resumen(det) if det else ''
+            vals = {'play_last_at': fields.Datetime.now()}
+            if det:
+                vals['play_detalle'] = json.dumps(det, ensure_ascii=False, indent=1)[:6000]
             if estado in ('sin_cuenta', 'sin_accesibilidad'):
                 # Estructural: no tiene caso reintentar. Se detiene y se avisa.
-                r.write({'play_attempts': PLAY_MAX_INTENTOS, 'play_error': MENSAJE[estado]})
-                r.message_post(body='Instalación por Play detenida: %s' % MENSAJE[estado])
+                vals.update({'play_attempts': PLAY_MAX_INTENTOS, 'play_error': MENSAJE[estado]})
+                r.write(vals)
+                r.message_post(body='Instalación por Play detenida: %s%s'
+                               % (MENSAJE[estado], (' ' + resumen) if resumen else ''))
             elif estado == 'fallo':
                 nuevo = (r.play_attempts or 0) + 1
-                r.write({'play_attempts': nuevo, 'play_error': MENSAJE['fallo']})
+                vals.update({'play_attempts': nuevo, 'play_error': (resumen or MENSAJE['fallo'])[:250]})
+                r.write(vals)
+                if resumen:
+                    r.message_post(body='Intento %d de %d sin instalar. %s'
+                                   % (nuevo, PLAY_MAX_INTENTOS, resumen))
                 if nuevo >= PLAY_MAX_INTENTOS:
                     r.message_post(body='No se pudo instalar «%s» desde la Play tras %d intentos.'
                                    % (r.name, nuevo))
@@ -854,7 +912,8 @@ class FocoMobileAppRequest(models.Model):
                     'decided_by': self.env.uid, 'decided_at': fields.Datetime.now()}
             if modo == 'play':
                 # Arranca limpio el contador de intentos de la instalacion por Play.
-                vals.update({'play_attempts': 0, 'play_error': False})
+                vals.update({'play_attempts': 0, 'play_error': False,
+                             'play_detalle': False, 'play_last_at': False})
                 # El icono y el nombre oficial, de una vez (la Play publica la ficha);
                 # si no se puede, el telefono pinta la inicial. Nunca detiene la aprobacion.
                 try:
@@ -872,7 +931,7 @@ class FocoMobileAppRequest(models.Model):
         Google que faltaba)."""
         exigir_admin(self.env)
         self.filtered(lambda r: r.state == 'aprobada' and r.install_type == 'play').write(
-            {'play_attempts': 0, 'play_error': False})
+            {'play_attempts': 0, 'play_error': False, 'play_last_at': False})
         return True
 
     def action_rechazar(self):
@@ -934,7 +993,9 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_perfil(self):
         self.ensure_one()
         propio = self.policy_id.filtered('active')
-        return propio or self.env['foco.settings'].sudo().get_settings().default_policy_id.filtered('active')
+        # Sin perfil propio: el de omision de la empresa de su empleado.
+        return propio or self.env['foco.settings'].sudo().de_equipo(self, crear=False)\
+            .default_policy_id.filtered('active')
 
     def _mdm_codigo(self):
         """El codigo de invitacion que Foco usa para conectarse sola. Estable:
@@ -960,7 +1021,8 @@ class FocoMobileDeviceMdm(models.Model):
         recalcularlo dos veces."""
         self.ensure_one()
         perfil = self._mdm_perfil() if perfil is None else perfil
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        # El interruptor de bloqueo de la empresa del empleado del telefono.
+        ajustes = self.env['foco.settings'].sudo().de_equipo(self)
         if perfil:
             r = {
                 'modo': perfil.mobile_play_mode or 'lista',
@@ -1086,10 +1148,15 @@ class FocoMobileDeviceMdm(models.Model):
         Req = self.env['foco.mobile.app.request'].sudo()
         Apps = self.env['foco.mobile.app'].sudo()
         out = []
+        # Tras un intento fallido se deja respirar al telefono (y a la persona,
+        # que tiene el aviso tapandole la pantalla) antes del siguiente.
+        espera = fields.Datetime.now() - timedelta(minutes=PLAY_ESPERA_MIN)
         for r in Req.search([('device_id', '=', self.id), ('state', '=', 'aprobada'),
                              ('install_type', '=', 'play'),
                              ('play_attempts', '<', PLAY_MAX_INTENTOS)]):
             if not r.package:
+                continue
+            if r.play_attempts and r.play_last_at and r.play_last_at > espera:
                 continue
             item = {'id': str(r.id), 'package': r.package, 'timeout_s': 240,
                     'name': (r.name or '').strip()[:60]}
@@ -1187,7 +1254,7 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_enviar(self, forzar=False, lanzar=False):
         """Manda la politica de cada telefono a Google si cambio. Devuelve
         cuantas se enviaron. Sin empresa registrada no hace nada."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             if lanzar:
                 self.env['foco.amapi'].empresa()      # levanta el mensaje claro
@@ -1216,7 +1283,7 @@ class FocoMobileDeviceMdm(models.Model):
         (un solo envio por telefono aunque cambien diez cosas)."""
         if not self:
             return
-        if not self.env['foco.settings'].sudo().get_settings().amapi_enterprise:
+        if not self.env['foco.settings'].sudo().get_settings_global().amapi_enterprise:
             return
         datos = self.env.cr.precommit.data
         pendientes = datos.setdefault('foco.mdm.pendientes', set())
@@ -1243,7 +1310,7 @@ class FocoMobileDeviceMdm(models.Model):
     def _mdm_sync(self, lanzar=False):
         """Lee de Google todos los telefonos de la empresa: estado, si cumplen,
         y que tienen instalado."""
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             if lanzar:
                 self.env['foco.amapi'].empresa()
@@ -1336,7 +1403,7 @@ class FocoMobileDeviceMdm(models.Model):
 
     @api.model
     def _mdm_cron(self):
-        ajustes = self.env['foco.settings'].sudo().get_settings()
+        ajustes = self.env['foco.settings'].sudo().get_settings_global()
         if not ajustes.amapi_enterprise:
             return
         self._mdm_sync()

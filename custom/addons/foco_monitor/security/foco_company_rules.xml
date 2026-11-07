@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        FOCO POR EMPRESA (15-oct-2026).
+
+        Cada registro de Foco es de la EMPRESA DE SU EMPLEADO, y se ve solo con
+        esa empresa activa en el selector: me pongo en Peru y veo a los de Peru.
+        Por eso la regla va sobre `employee_id.company_id` y no sobre un campo
+        propio: cuando una persona cambia de empresa (Claudia, de Industrias a
+        Peru) su historia se va con ella, sin mover un solo registro.
+
+        Son reglas GLOBALES (sin grupo): Odoo las combina con AND con las de
+        alcance por departamento (foco_record_rules.xml), asi que el alcance por
+        departamento sigue funcionando dentro de cada empresa. Lo que corre con
+        sudo -los agentes, los telefonos, los procesos automaticos- no las ve;
+        lo que ve una persona en pantalla, si.
+
+        Un registro sin empleado (un equipo aun sin asignar) se ve en todas.
+    -->
+    <record id="rule_empresa_foco_usage" model="ir.rule">
+        <field name="name">Foco por empresa: uso</field>
+        <field name="model_id" ref="model_foco_usage"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_computer" model="ir.rule">
+        <field name="name">Foco por empresa: equipos</field>
+        <field name="model_id" ref="model_foco_computer"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_absence" model="ir.rule">
+        <field name="name">Foco por empresa: periodos sin actividad</field>
+        <field name="model_id" ref="model_foco_absence"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_absence_msg" model="ir.rule">
+        <field name="name">Foco por empresa: conversacion de los periodos</field>
+        <field name="model_id" ref="model_foco_absence_msg"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_workday" model="ir.rule">
+        <field name="name">Foco por empresa: jornadas</field>
+        <field name="model_id" ref="model_foco_workday"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_event" model="ir.rule">
+        <field name="name">Foco por empresa: eventos</field>
+        <field name="model_id" ref="model_foco_event"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_pausa" model="ir.rule">
+        <field name="name">Foco por empresa: pausas</field>
+        <field name="model_id" ref="model_foco_pausa"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_actividad" model="ir.rule">
+        <field name="name">Foco por empresa: actividad</field>
+        <field name="model_id" ref="model_foco_actividad"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_capture" model="ir.rule">
+        <field name="name">Foco por empresa: capturas</field>
+        <field name="model_id" ref="model_foco_capture"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_command" model="ir.rule">
+        <field name="name">Foco por empresa: ordenes a equipos</field>
+        <field name="model_id" ref="model_foco_command"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_call_review" model="ir.rule">
+        <field name="name">Foco por empresa: llamadas analizadas</field>
+        <field name="model_id" ref="model_foco_call_review"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_integrity_fact" model="ir.rule">
+        <field name="name">Foco por empresa: hechos de integridad</field>
+        <field name="model_id" ref="model_foco_integrity_fact"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_integrity_verdict" model="ir.rule">
+        <field name="name">Foco por empresa: veredictos de la IA</field>
+        <field name="model_id" ref="model_foco_integrity_verdict"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_tab_review" model="ir.rule">
+        <field name="name">Foco por empresa: pestanas revisadas</field>
+        <field name="model_id" ref="model_foco_tab_review"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_watch" model="ir.rule">
+        <field name="name">Foco por empresa: monitoreos de pantalla</field>
+        <field name="model_id" ref="model_foco_watch"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_invitation" model="ir.rule">
+        <field name="name">Foco por empresa: invitaciones</field>
+        <field name="model_id" ref="model_foco_invitation"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- Lado movil -->
+    <record id="rule_empresa_foco_mobile_device" model="ir.rule">
+        <field name="name">Foco por empresa: telefonos</field>
+        <field name="model_id" ref="model_foco_mobile_device"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_location" model="ir.rule">
+        <field name="name">Foco por empresa: ubicaciones</field>
+        <field name="model_id" ref="model_foco_location"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_mobile_usage" model="ir.rule">
+        <field name="name">Foco por empresa: uso movil</field>
+        <field name="model_id" ref="model_foco_mobile_usage"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_call" model="ir.rule">
+        <field name="name">Foco por empresa: llamadas</field>
+        <field name="model_id" ref="model_foco_call"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_mobile_capture" model="ir.rule">
+        <field name="name">Foco por empresa: capturas del telefono</field>
+        <field name="model_id" ref="model_foco_mobile_capture"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_mobile_installed" model="ir.rule">
+        <field name="name">Foco por empresa: apps instaladas</field>
+        <field name="model_id" ref="model_foco_mobile_installed"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_mobile_app_request" model="ir.rule">
+        <field name="name">Foco por empresa: solicitudes de apps</field>
+        <field name="model_id" ref="model_foco_mobile_app_request"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_empresa_foco_visita" model="ir.rule">
+        <field name="name">Foco por empresa: visitas</field>
+        <field name="model_id" ref="model_foco_visita"/>
+        <field name="domain_force">['|', ('employee_id', '=', False), ('employee_id.company_id', 'in', company_ids)]</field>
+    </record>
+
+    <!-- Los perfiles son de cada empresa (bloqueo, conducta, clasificacion). -->
+    <record id="rule_empresa_foco_policy" model="ir.rule">
+        <field name="name">Foco por empresa: perfiles</field>
+        <field name="model_id" ref="model_foco_policy"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

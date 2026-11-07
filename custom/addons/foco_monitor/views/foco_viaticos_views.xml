@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ======================================================= GASTOS (viaticos) -->
+    <!-- Busqueda: la cola abre en "Por revisar"; la alerta DOBLE (rendimiento Y GPS)
+         es la que se escala en serio, la de una sola señal es solo "revisar". -->
+    <record id="foco_viatico_view_search" model="ir.ui.view">
+        <field name="name">foco.viatico.search</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="vehiculo_id"/>
+                <field name="lugar"/>
+                <filter name="pendientes" string="Por revisar" domain="[('estado', '=', 'pendiente')]"/>
+                <filter name="con_alerta" string="Con alerta" domain="[('alerta', '!=', 'ok')]"/>
+                <filter name="alerta_doble" string="Alerta doble (robo probable)"
+                        domain="[('alerta', '=', 'ambas')]"/>
+                <filter name="odo_incompleto" string="Odómetro sin foto"
+                        domain="[('odometro_incompleto', '=', True)]"/>
+                <separator/>
+                <filter name="gasolina" string="Gasolina" domain="[('tipo', '=', 'gasolina')]"/>
+                <filter name="esta_semana" string="Esta semana"
+                        domain="[('fecha', '&gt;=', (context_today() + relativedelta(days=-7)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="g_empleado" string="Vendedor" context="{'group_by': 'employee_id'}"/>
+                <filter name="g_vehiculo" string="Vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                <filter name="g_alerta" string="Alerta" context="{'group_by': 'alerta'}"/>
+                <filter name="g_estado" string="Estado" context="{'group_by': 'estado'}"/>
+                <filter name="g_tipo" string="Tipo" context="{'group_by': 'tipo'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_viatico_view_kanban" model="ir.ui.view">
+        <field name="name">foco.viatico.kanban</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <kanban default_order="fecha desc, id desc" class="o_kanban_mobile">
+                <field name="foto"/>
+                <field name="employee_id"/>
+                <field name="tipo"/>
+                <field name="monto"/>
+                <field name="currency_id"/>
+                <field name="fecha"/>
+                <field name="lugar"/>
+                <field name="estado"/>
+                <field name="alerta"/>
+                <field name="rendimiento"/>
+                <field name="vehiculo_id"/>
+                <field name="odometro_incompleto"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex" style="gap: 10px;">
+                            <field name="foto" widget="image" options="{'size': [64, 64]}"/>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong><field name="employee_id"/></strong>
+                                    <strong><field name="monto"/></strong>
+                                </div>
+                                <div class="text-muted small">
+                                    <field name="tipo"/> · <field name="fecha"/>
+                                    <t t-if="record.lugar.raw_value"> · <field name="lugar"/></t>
+                                </div>
+                                <div class="small" t-if="record.rendimiento.raw_value">
+                                    Rendimiento: <field name="rendimiento"/> km/L
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge text-bg-danger" t-if="record.alerta.raw_value == 'ambas'">Rendimiento y GPS</span>
+                                    <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'rendimiento'">Rendimiento bajo</span>
+                                    <span class="badge text-bg-warning" t-if="record.alerta.raw_value == 'gps'">No cuadra con GPS</span>
+                                    <span class="badge text-bg-danger" t-if="record.odometro_incompleto.raw_value">Odómetro sin foto</span>
+                                    <span class="badge text-bg-success" t-if="record.estado.raw_value == 'validado'">Validado</span>
+                                    <span class="badge text-bg-secondary" t-if="record.estado.raw_value == 'rechazado'">Rechazado</span>
+                                </div>
+                                <div class="mt-2" t-if="record.estado.raw_value == 'pendiente'">
+                                    <button name="action_validar" type="object" class="btn btn-sm btn-primary me-1">Validar</button>
+                                    <button name="action_rechazar" type="object" class="btn btn-sm btn-secondary">Rechazar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="foco_viatico_view_list" model="ir.ui.view">
+        <field name="name">foco.viatico.list</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <list string="Gastos" default_order="fecha desc, id desc"
+                  decoration-danger="alerta == 'ambas'" decoration-muted="estado == 'rechazado'">
+                <field name="fecha"/>
+                <field name="employee_id"/>
+                <field name="tipo"/>
+                <field name="monto" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="vehiculo_id" optional="show"/>
+                <field name="litros" optional="hide"/>
+                <field name="rendimiento" optional="show"/>
+                <field name="km_gps" optional="hide"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'validado'" decoration-warning="estado == 'pendiente'"/>
+                <field name="alerta" widget="badge"
+                       decoration-danger="alerta == 'ambas'"
+                       decoration-warning="alerta in ('rendimiento', 'gps')"
+                       decoration-success="alerta == 'ok'"/>
+                <field name="odometro_incompleto" string="Odóm. sin foto" widget="boolean_toggle"
+                       optional="show"/>
+                <button name="action_validar" type="object" string="Validar" icon="fa-check"
+                        invisible="estado == 'validado'"/>
+                <button name="action_rechazar" type="object" string="Rechazar" icon="fa-times"
+                        invisible="estado == 'rechazado'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_viatico_view_form" model="ir.ui.view">
+        <field name="name">foco.viatico.form</field>
+        <field name="model">foco.viatico</field>
+        <field name="arch" type="xml">
+            <form string="Gasto">
+                <header>
+                    <button name="action_validar" type="object" string="Validar"
+                            class="btn-primary" invisible="estado == 'validado'"/>
+                    <button name="action_rechazar" type="object" string="Rechazar"
+                            invisible="estado == 'rechazado'"/>
+                    <button name="action_reabrir" type="object" string="Reabrir"
+                            invisible="estado == 'pendiente'"/>
+                    <field name="estado" widget="statusbar" statusbar_visible="pendiente,validado,rechazado"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="tipo"/>
+                            <field name="fecha"/>
+                            <field name="employee_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="monto"/>
+                            <field name="currency_id"/>
+                            <field name="tipo_cambio"/>
+                            <field name="lugar"/>
+                        </group>
+                    </group>
+                    <group string="Gasolina" invisible="tipo != 'gasolina'">
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="litros"/>
+                            <field name="precio_litro"/>
+                            <field name="odometro"/>
+                        </group>
+                        <group>
+                            <field name="km_recorridos"/>
+                            <field name="rendimiento"/>
+                            <field name="km_gps"/>
+                            <field name="alerta" widget="badge"
+                                   decoration-danger="alerta == 'ambas'"
+                                   decoration-warning="alerta in ('rendimiento', 'gps')"/>
+                        </group>
+                    </group>
+                    <group string="Evidencia">
+                        <field name="foto" widget="image" class="oe_avatar"/>
+                        <field name="foto_odometro" widget="image" class="oe_avatar"
+                               invisible="tipo != 'gasolina'"/>
+                    </group>
+                    <field name="ocr_json" groups="base.group_no_one"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_viatico_action" model="ir.actions.act_window">
+        <field name="name">Gastos</field>
+        <field name="res_model">foco.viatico</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="foco_viatico_view_search"/>
+        <field name="context">{'search_default_pendientes': 1}</field>
+    </record>
+
+    <!-- ======================================================= VEHICULOS (flota) -->
+    <!-- El tablero de flota: donde esta cada coche y quien lo trae AHORA.
+         El coche no tiene dueno; se entrega con "Entregar vehiculo" (asignacion). -->
+    <record id="foco_vehiculo_view_search" model="ir.ui.view">
+        <field name="name">foco.vehiculo.search</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="matricula"/>
+                <field name="tenedor_actual"/>
+                <filter name="sin_asignar" string="Sin asignar"
+                        domain="[('tenedor_actual', '=', 'Sin asignar')]"/>
+                <filter name="responsiva" string="Responsiva sin firmar"
+                        domain="[('responsiva_pendiente', '=', True)]"/>
+                <separator/>
+                <!-- Documentos: se filtra por FECHA (no por el estado calculado) para
+                     que "hoy" sea siempre el real sin depender de un recalculo. -->
+                <filter name="seguro_vencido" string="Seguro vencido"
+                        domain="[('seguro_vencimiento', '!=', False),
+                                 ('seguro_vencimiento', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="seguro_por_vencer" string="Seguro por vencer (30 d)"
+                        domain="[('seguro_vencimiento', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('seguro_vencimiento', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <filter name="tenencia_vencida" string="Tenencia/placas vencida"
+                        domain="[('tenencia_vencimiento', '!=', False),
+                                 ('tenencia_vencimiento', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="tenencia_por_vencer" string="Tenencia/placas por vencer (30 d)"
+                        domain="[('tenencia_vencimiento', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                                 ('tenencia_vencimiento', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="financiados" string="Financiados" domain="[('financiado', '=', True)]"/>
+                <separator/>
+                <filter name="g_tenedor" string="Quien lo trae" context="{'group_by': 'tenedor_actual'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.list</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <list string="Flota" decoration-warning="doc_alerta == 'por_vencer'"
+                  decoration-danger="doc_alerta == 'vencido'">
+                <field name="name"/>
+                <field name="matricula"/>
+                <field name="tenedor_actual"/>
+                <field name="asignado_desde" optional="show"/>
+                <field name="responsiva_pendiente" string="Responsiva pendiente" optional="hide"/>
+                <field name="seguro_vencimiento" optional="show"/>
+                <field name="tenencia_vencimiento" optional="hide"/>
+                <field name="doc_alerta" string="Documentos" widget="badge"
+                       decoration-success="doc_alerta == 'ok'"
+                       decoration-warning="doc_alerta == 'por_vencer'"
+                       decoration-danger="doc_alerta == 'vencido'"/>
+                <field name="odometro_actual"/>
+                <field name="costo_taller_total" optional="hide"/>
+                <field name="rendimiento_esperado" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.form</field>
+        <field name="model">foco.vehiculo</field>
+        <field name="arch" type="xml">
+            <form string="Vehiculo">
+                <header>
+                    <field name="asignacion_activa_id" invisible="1"/>
+                    <!-- Libre -> Entregar. Ya asignado -> Devolver (+ reasignar).
+                         Sin foto no se puede entregar (no entra al expediente). -->
+                    <button name="action_asignar" type="object" string="Entregar vehiculo"
+                            class="btn-primary" invisible="asignacion_activa_id or not foto"/>
+                    <button name="action_devolver" type="object" string="Devolver vehiculo"
+                            class="btn-primary" invisible="not asignacion_activa_id"
+                            confirm="¿Devolver el vehiculo? El tenedor actual deja de traerlo."/>
+                    <button name="action_asignar" type="object" string="Entregar a otra persona"
+                            class="btn-secondary" invisible="not asignacion_activa_id or not foto"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_mantenimiento" type="object"
+                                class="oe_stat_button" icon="fa-wrench">
+                            <field name="mantenimiento_count" widget="statinfo" string="Ordenes de taller"/>
+                        </button>
+                        <button name="action_ver_mantenimiento" type="object"
+                                class="oe_stat_button" icon="fa-money">
+                            <div class="o_stat_info">
+                                <field name="costo_taller_total" widget="monetary" class="o_stat_value"/>
+                                <span class="o_stat_text">Costo de taller</span>
+                            </div>
+                        </button>
+                    </div>
+                    <field name="foto" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Nombre del vehiculo"/></h1>
+                        <h3><field name="matricula" placeholder="Matricula"/></h3>
+                    </div>
+                    <field name="responsiva_pendiente" invisible="1"/>
+                    <field name="seguro_estado" invisible="1"/>
+                    <field name="tenencia_estado" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="foto">
+                        <i class="fa fa-camera me-2"/>
+                        Falta la <b>foto del vehículo</b>. Es obligatoria para su expediente
+                        y para poder entregarlo.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not responsiva_pendiente">
+                        La carta responsiva de recepcion todavia no se firma.
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="seguro_estado != 'vencido'">
+                        El SEGURO esta VENCIDO. No debe salir el coche sin seguro.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="seguro_estado != 'por_vencer'">
+                        El seguro vence pronto (<field name="seguro_dias"/> dias).
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="tenencia_estado != 'vencido'">
+                        La tenencia / placas / impuesto esta VENCIDA.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="tenencia_estado != 'por_vencer'">
+                        La tenencia / placas / impuesto vence pronto (<field name="tenencia_dias"/> dias).
+                    </div>
+                    <group>
+                        <group>
+                            <field name="tenedor_actual"/>
+                            <field name="asignado_desde"/>
+                            <field name="odometro_actual"/>
+                            <field name="rendimiento_esperado"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Cambio de aceite">
+                            <field name="aceite_cada_km"/>
+                            <field name="odometro_ultimo_aceite"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Documentos (seguro, tenencia)">
+                            <field name="seguro_aseguradora"/>
+                            <field name="seguro_poliza"/>
+                            <field name="seguro_vencimiento"/>
+                            <field name="tenencia_vencimiento"/>
+                        </group>
+                        <group string="Financiamiento (letra)">
+                            <field name="financiado"/>
+                            <field name="letra_monto" invisible="not financiado"/>
+                            <field name="letra_dia_pago" invisible="not financiado"/>
+                            <field name="letra_pagos_total" invisible="not financiado"/>
+                            <field name="letra_pagos_hechos" invisible="not financiado"/>
+                            <field name="letra_pagos_restantes" invisible="not financiado"/>
+                            <field name="letra_proximo_pago" invisible="not financiado"/>
+                            <field name="letra_saldo" invisible="not financiado"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Asignaciones">
+                            <field name="asignacion_ids" readonly="1">
+                                <list default_order="desde desc">
+                                    <field name="tenedor"/><field name="tipo"/>
+                                    <field name="desde"/><field name="hasta"/>
+                                    <field name="firmada" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cargas y gastos">
+                            <field name="viatico_ids" readonly="1">
+                                <list>
+                                    <field name="fecha"/><field name="tipo"/><field name="monto"/>
+                                    <field name="litros"/><field name="rendimiento"/><field name="alerta"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Revisiones">
+                            <field name="revision_ids" readonly="1">
+                                <list>
+                                    <field name="fecha"/><field name="tipo"/>
+                                    <field name="parte" optional="show"/>
+                                    <field name="resultado"/><field name="employee_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Mantenimiento (taller)">
+                            <field name="mantenimiento_ids" context="{'default_odometro': odometro_actual}">
+                                <list editable="bottom" default_order="fecha desc">
+                                    <field name="fecha"/>
+                                    <field name="tipo"/>
+                                    <field name="concepto"/>
+                                    <field name="taller"/>
+                                    <field name="odometro"/>
+                                    <field name="costo" sum="Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_action" model="ir.actions.act_window">
+        <field name="name">Flota</field>
+        <field name="res_model">foco.vehiculo</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_vehiculo_view_search"/>
+    </record>
+
+    <!-- ======================================================= ASIGNACIONES (flota) -->
+    <record id="foco_vehiculo_asignacion_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.asignacion.list</field>
+        <field name="model">foco.vehiculo.asignacion</field>
+        <field name="arch" type="xml">
+            <list string="Asignaciones" default_order="desde desc">
+                <field name="vehiculo_id"/>
+                <field name="tenedor"/>
+                <field name="tipo"/>
+                <field name="desde"/>
+                <field name="hasta"/>
+                <field name="activa" widget="boolean_toggle"/>
+                <field name="firmada" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_asignacion_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.asignacion.form</field>
+        <field name="model">foco.vehiculo.asignacion</field>
+        <field name="arch" type="xml">
+            <form string="Entregar vehiculo">
+                <header>
+                    <button name="action_cerrar" type="object" string="Devolver el vehiculo"
+                            class="btn-secondary" invisible="hasta != False or not id"
+                            help="Cierra esta asignacion: la persona deja de traer el vehiculo."/>
+                </header>
+                <sheet>
+                    <!-- Indicadores: que no se entregue a ciegas. -->
+                    <div class="alert alert-warning d-flex align-items-center" role="alert"
+                         invisible="not flota_aviso_persona">
+                        <i class="fa fa-exclamation-triangle me-2"/>
+                        <field name="flota_aviso_persona" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-info d-flex align-items-center" role="alert"
+                         invisible="not flota_estado_actual">
+                        <i class="fa fa-car me-2"/>
+                        <field name="flota_estado_actual" nolabel="1" readonly="1"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="tipo" widget="radio"/>
+                            <field name="employee_id" invisible="tipo != 'empleado'"
+                                   required="tipo == 'empleado'"/>
+                            <field name="ubicacion" invisible="tipo != 'ubicacion'"
+                                   required="tipo == 'ubicacion'"
+                                   placeholder="Almacen, Hermosillo, ..."/>
+                        </group>
+                        <group>
+                            <field name="desde"/>
+                            <field name="hasta"/>
+                            <field name="odometro_entrega"/>
+                            <field name="nota"/>
+                        </group>
+                    </group>
+                    <group string="Carta responsiva" invisible="tipo != 'empleado'">
+                        <field name="firmada"/>
+                        <field name="firma_fecha"/>
+                        <field name="firma" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_asignacion_action" model="ir.actions.act_window">
+        <field name="name">Asignaciones de vehiculos</field>
+        <field name="res_model">foco.vehiculo.asignacion</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= REVISIONES -->
+    <record id="foco_vehiculo_revision_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.revision.list</field>
+        <field name="model">foco.vehiculo.revision</field>
+        <field name="arch" type="xml">
+            <list string="Revisiones">
+                <field name="fecha"/>
+                <field name="vehiculo_id"/>
+                <field name="tipo"/>
+                <field name="parte" optional="show"/>
+                <field name="resultado" widget="badge"
+                       decoration-success="resultado == 'ok'" decoration-danger="resultado == 'alerta'"/>
+                <field name="employee_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_revision_action" model="ir.actions.act_window">
+        <field name="name">Revisiones de vehiculos</field>
+        <field name="res_model">foco.vehiculo.revision</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================================================= MANTENIMIENTO (taller) -->
+    <record id="foco_vehiculo_mantenimiento_view_search" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.search</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="vehiculo_id"/>
+                <field name="taller"/>
+                <field name="concepto"/>
+                <filter name="preventivo" string="Preventivo" domain="[('tipo', '=', 'preventivo')]"/>
+                <filter name="correctivo" string="Correctivo" domain="[('tipo', '=', 'correctivo')]"/>
+                <separator/>
+                <filter name="g_vehiculo" string="Vehiculo" context="{'group_by': 'vehiculo_id'}"/>
+                <filter name="g_tipo" string="Tipo" context="{'group_by': 'tipo'}"/>
+                <filter name="g_fecha" string="Mes" context="{'group_by': 'fecha:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_view_list" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.list</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <list string="Mantenimiento" default_order="fecha desc, id desc">
+                <field name="fecha"/>
+                <field name="vehiculo_id"/>
+                <field name="tipo"/>
+                <field name="concepto"/>
+                <field name="taller"/>
+                <field name="odometro"/>
+                <field name="costo" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_view_form" model="ir.ui.view">
+        <field name="name">foco.vehiculo.mantenimiento.form</field>
+        <field name="model">foco.vehiculo.mantenimiento</field>
+        <field name="arch" type="xml">
+            <form string="Orden de mantenimiento">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="vehiculo_id"/>
+                            <field name="fecha"/>
+                            <field name="tipo"/>
+                            <field name="taller"/>
+                            <field name="odometro"/>
+                        </group>
+                        <group>
+                            <field name="concepto"/>
+                            <field name="costo"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="proximo_servicio_km"/>
+                        </group>
+                    </group>
+                    <group string="Detalle">
+                        <field name="descripcion" nolabel="1" placeholder="Que se hizo, refacciones, observaciones..."/>
+                    </group>
+                    <group string="Hoja de servicio">
+                        <field name="foto" widget="image" class="oe_avatar"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_vehiculo_mantenimiento_action" model="ir.actions.act_window">
+        <field name="name">Mantenimiento de flota</field>
+        <field name="res_model">foco.vehiculo.mantenimiento</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_vehiculo_mantenimiento_view_search"/>
+    </record>
+
+    <!-- ======================================================= PRESUPUESTOS -->
+    <record id="foco_viatico_presupuesto_view_list" model="ir.ui.view">
+        <field name="name">foco.viatico.presupuesto.list</field>
+        <field name="model">foco.viatico.presupuesto</field>
+        <field name="arch" type="xml">
+            <list string="Presupuestos" default_order="desde desc">
+                <field name="employee_id"/>
+                <field name="desde"/>
+                <field name="hasta"/>
+                <field name="monto"/>
+                <field name="consumido"/>
+                <field name="restante" decoration-danger="restante &lt; 0"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_viatico_presupuesto_action" model="ir.actions.act_window">
+        <field name="name">Presupuestos de viaticos</field>
+        <field name="res_model">foco.viatico.presupuesto</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Tablero de Flota: pantalla OWL para el administrador de la flota. -->
+    <record id="foco_flota_action" model="ir.actions.client">
+        <field name="name">Tablero de Flota</field>
+        <field name="tag">foco_flota</field>
+    </record>
+
+    <!-- ======================================================= MENUS (Ventas en campo) -->
+    <menuitem id="menu_foco_viaticos" name="Gastos / Viaticos"
+              parent="menu_foco_sec_ventas" action="foco_viatico_action" sequence="40"/>
+    <menuitem id="menu_foco_flota_tablero" name="Tablero de Flota"
+              parent="menu_foco_sec_ventas" action="foco_flota_action" sequence="41"/>
+    <menuitem id="menu_foco_vehiculos" name="Flota (lista)"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_action" sequence="42"/>
+    <menuitem id="menu_foco_vehiculo_asignaciones" name="Asignaciones de flota"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_asignacion_action" sequence="43"/>
+    <menuitem id="menu_foco_vehiculo_revisiones" name="Revisiones"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_revision_action" sequence="44"/>
+    <menuitem id="menu_foco_vehiculo_mantenimiento" name="Mantenimiento (taller)"
+              parent="menu_foco_sec_ventas" action="foco_vehiculo_mantenimiento_action" sequence="45"/>
+    <menuitem id="menu_foco_viatico_presupuestos" name="Presupuestos"
+              parent="menu_foco_sec_ventas" action="foco_viatico_presupuesto_action" sequence="46"/>
+
+</odoo>

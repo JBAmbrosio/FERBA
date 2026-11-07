@@ -157,16 +157,14 @@
                 </div>
             </section>
 
-            <!-- ============ Videos ============
-                 Las miniaturas van SIN enlace a propósito: todavía no hay URL
-                 del canal ni de cada video. Un botón de reproducir que no
-                 reproduce es peor que una foto. En cuanto Víctor pase los
-                 enlaces de YouTube, cada <span> se vuelve <a href="..."> y
-                 el bloque queda completo sin tocar el CSS. -->
+            <!-- ============ Maquinaria en operación ============
+                 Fotos de maquinaria en operación, SIN reproductor de video: el
+                 Ing. Francisco pidió quitar del sitio toda imagen que mande a
+                 video (5-nov-2026). Quedan como galería de fotos. -->
             <section class="o_ferba_section o_ferba_section--white">
                 <div class="o_ferba_container">
                     <t t-call="ferba_website.titulo_seccion">
-                        <t t-set="titulo">Videos de maquinaria en operación</t>
+                        <t t-set="titulo">Maquinaria en operación</t>
                     </t>
                     <t t-set="videos" t-value="[
                         'proyectos-12-384x216.webp', 'proyectos-13-335x189.webp', 'proyectos-14-335x189.webp',
@@ -177,16 +175,8 @@
                             <span class="o_ferba_video o_ferba_reveal">
                                 <img t-attf-src="/ferba_website/static/src/img/#{v}" alt="Maquinaria FERBA en operación"
                                      class="o_ferba_video__foto" loading="lazy"/>
-                                <img src="/ferba_website/static/src/img/iconos/play.svg" alt=""
-                                     class="o_ferba_video__play"/>
                             </span>
                         </t>
-                    </div>
-                    <div class="o_ferba_centrado o_ferba_reveal">
-                        <a href="/contactenos" class="o_ferba_btn o_ferba_btn--outline-red">
-                            <span class="o_ferba_btn__label">Ver más videos</span>
-                            <t t-call="ferba_website.flecha"/>
-                        </a>
                     </div>
                 </div>
             </section>

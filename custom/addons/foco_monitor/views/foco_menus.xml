@@ -17,16 +17,70 @@
          quien mira, asi que un usuario de solo consulta ve Equipos con
          Computadoras dentro pero sin las acciones de administrador, y no ve
          Configuracion en absoluto. -->
+    <!-- La raiz la ven la consulta (y la administracion, que la implica) y el
+         perfil de Recursos Humanos. Por eso TODO lo de primer nivel lleva su
+         grupo explicito: un menu sin grupo heredaria el de la raiz y Recursos
+         Humanos lo veria. -->
     <menuitem id="menu_foco_root" name="Foco" sequence="90"
-              groups="foco_monitor.group_foco_user"/>
+              groups="foco_monitor.group_foco_user,foco_monitor.group_foco_rrhh"/>
+
+    <!-- ================================== PERFIL DE RECURSOS HUMANOS (14-oct)
+         Asistencia, periodos sin actividad y justificaciones, y nada mas. Van
+         primero: al abrir la aplicacion, Odoo entra al primer menu visible. -->
+    <menuitem id="menu_foco_rrhh_tablero" name="Tablero"
+              parent="menu_foco_root" action="foco_rrhh_action" sequence="1"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_asistencia" name="Asistencia"
+              parent="menu_foco_root" action="foco_rrhh_asistencia_action" sequence="2"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_periodos" name="Periodos sin actividad"
+              parent="menu_foco_root" action="foco_rrhh_periodos_action" sequence="3"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_revisar" name="Justificaciones a revisar"
+              parent="menu_foco_root" action="foco_rrhh_revisar_action" sequence="4"
+              groups="foco_monitor.group_foco_rrhh"/>
+
+    <!-- Flota, documentos de vehiculos y gastos, DELEGADOS a Recursos Humanos
+         (28-oct-2026): RRHH los ADMINISTRA (ver, editar y crear; el borrado
+         queda solo en el administrador). Son las MISMAS acciones que el manager
+         ve en "Ventas en campo"; aqui solo se le da a RRHH su propia entrada.
+         El acceso a los modelos va en ir.model.access.csv (group_foco_rrhh).
+         Las acciones se definen en foco_viaticos_views.xml, que se carga antes
+         que este archivo. -->
+    <menuitem id="menu_foco_rrhh_flota" name="Flota y gastos"
+              parent="menu_foco_root" sequence="5"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_flota_tablero" name="Tablero de Flota"
+              parent="menu_foco_rrhh_flota" action="foco_flota_action" sequence="10"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_vehiculos" name="Flota (lista)"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_action" sequence="20"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_asignaciones" name="Asignaciones de flota"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_asignacion_action" sequence="30"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_revisiones" name="Revisiones"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_revision_action" sequence="40"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_mantenimiento" name="Mantenimiento (taller)"
+              parent="menu_foco_rrhh_flota" action="foco_vehiculo_mantenimiento_action" sequence="50"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_gastos" name="Gastos / Viaticos"
+              parent="menu_foco_rrhh_flota" action="foco_viatico_action" sequence="60"
+              groups="foco_monitor.group_foco_rrhh"/>
+    <menuitem id="menu_foco_rrhh_presupuestos" name="Presupuestos"
+              parent="menu_foco_rrhh_flota" action="foco_viatico_presupuesto_action" sequence="70"
+              groups="foco_monitor.group_foco_rrhh"/>
 
     <!-- Portada -->
     <menuitem id="menu_foco_dashboard" name="Tablero"
-              parent="menu_foco_root" action="foco_dashboard_action" sequence="10"/>
+              parent="menu_foco_root" action="foco_dashboard_action" sequence="10"
+              groups="foco_monitor.group_foco_user"/>
 
     <!-- ============================================ ACTIVIDAD (de la persona) -->
     <menuitem id="menu_foco_sec_actividad" name="Actividad"
-              parent="menu_foco_root" sequence="20"/>
+              parent="menu_foco_root" sequence="20"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_jornada" name="Jornada"
               parent="menu_foco_sec_actividad" action="foco_jornada_client" sequence="10"/>
@@ -72,7 +126,8 @@
 
     <!-- =================================================== EQUIPOS (acciones) -->
     <menuitem id="menu_foco_sec_equipos" name="Equipos"
-              parent="menu_foco_root" sequence="30"/>
+              parent="menu_foco_root" sequence="30"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_computers" name="Computadoras"
               parent="menu_foco_sec_equipos" action="foco_computer_action" sequence="10"/>
@@ -152,13 +207,18 @@
               parent="menu_foco_sec_ventas" action="foco_visita_action" sequence="20"
               groups="foco_monitor.group_foco_manager"/>
 
+    <menuitem id="menu_foco_vendedores_llamadas" name="Coaching de llamadas"
+              parent="menu_foco_sec_ventas" action="foco_llamada_action" sequence="25"
+              groups="foco_monitor.group_foco_manager"/>
+
     <menuitem id="menu_foco_vendedores_import" name="Importar Hoja Maestra"
               parent="menu_foco_sec_ventas" action="foco_vendedor_import_action" sequence="30"
               groups="foco_monitor.group_foco_manager"/>
 
     <!-- ================================================= CATALOGO (clasificar) -->
     <menuitem id="menu_foco_sec_catalogo" name="Catalogo"
-              parent="menu_foco_root" sequence="40"/>
+              parent="menu_foco_root" sequence="40"
+              groups="foco_monitor.group_foco_user"/>
 
     <menuitem id="menu_foco_apps" name="Aplicaciones"
               parent="menu_foco_sec_catalogo" action="foco_app_action" sequence="10"/>
@@ -222,6 +282,15 @@
               parent="menu_foco_config" action="foco_tomy_thread_action" sequence="12"
               groups="foco_monitor.group_foco_manager"/>
 
+    <!-- Tommy GPT (asistente de IA de uso general): quien puede usarlo y el
+         registro de sus conversaciones ya clasificadas. -->
+    <menuitem id="menu_foco_gpt_acceso" name="Acceso a Tommy GPT"
+              parent="menu_foco_config" action="foco_gpt_access_action" sequence="13"
+              groups="foco_monitor.group_foco_manager"/>
+    <menuitem id="menu_foco_gpt_conversaciones" name="Conversaciones (Tommy GPT)"
+              parent="menu_foco_config" action="foco_gpt_thread_action" sequence="14"
+              groups="foco_monitor.group_foco_manager"/>
+
     <!-- La tabla generica sigue accesible, pero deja de ser la puerta: abrir
          una pestana en tabla dinamica es pedirle al usuario que construya la
          pregunta antes de poder verla. Vive en Configuracion, como herramienta
@@ -241,4 +310,9 @@
     <record id="menu_foco_root" model="ir.ui.menu">
         <field name="web_icon">foco_monitor,static/description/icon.png</field>
     </record>
+
+    <!-- Tommy GPT NO es una aplicacion del lanzador: se abre desde el boton de
+         la barra de arriba (systray, static/src/gpt/foco_gpt_systray.js), que
+         solo le aparece a quien tiene acceso. La accion cliente foco_gpt_action
+         (views/foco_gpt_views.xml) es la que abre ese boton. -->
 </odoo>

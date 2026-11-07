@@ -23,14 +23,72 @@ import base64
 import secrets
 import math
 from datetime import datetime, timedelta, time
+from urllib.parse import urlparse
 
 import pytz
 
-from odoo import api, fields, models
+from odoo import api, fields, models, tools
+from odoo.exceptions import UserError
+
+from .foco_mobile_login import VIGENCIA_S
+from .foco_estados_mx import estado_de
 
 # En linea si su ultima señal es de hace menos de esto. Mismo criterio que el
 # resto de Foco (3 envios perdidos del movil ~ 15 min).
 MOBILE_ONLINE_SECS = 15 * 60
+
+# Frontera Mexico-EE. UU. simplificada: latitud de la linea por longitud, de
+# oeste a este (Tijuana -> Mexicali/San Luis -> Nogales -> bota de Nuevo Mexico ->
+# El Paso -> Rio Bravo -> Matamoros). Se usa para decidir de que lado cae un punto
+# que esta FUERA de los poligonos de Mexico pero cerca de ellos: los grandes
+# puntos de entrada de producto de EE. UU. (Nogales AZ, McAllen TX, Yuma AZ) estan
+# pegados a la frontera, igual que la costa/golfo del norte de Mexico; una caja
+# no los separa, la linea si.
+_FRONTERA_US = [
+    (-124.60, 32.53), (-117.13, 32.53), (-115.50, 32.66), (-114.78, 32.49),
+    (-113.00, 31.90), (-111.07, 31.33), (-108.21, 31.33), (-106.46, 31.75),
+    (-104.42, 29.56), (-102.30, 29.88), (-100.50, 28.70), (-99.50, 27.60),
+    (-98.60, 26.30), (-97.40, 25.95), (-97.14, 25.90),
+]
+
+
+def _frontera_lat(lon):
+    """Latitud de la frontera MX-EE. UU. en esa longitud (al este del ultimo
+    punto, la costa del Golfo ~25 N)."""
+    pts = _FRONTERA_US
+    if lon <= pts[0][0]:
+        return pts[0][1]
+    if lon >= pts[-1][0]:
+        return 25.0
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        if x0 <= lon <= x1:
+            t = (lon - x0) / (x1 - x0) if x1 != x0 else 0.0
+            return y0 + t * (y1 - y0)
+    return 25.0
+
+
+def _pais_de_punto(lat, lon):
+    """'MX' / 'US' / None segun donde cae el punto.
+
+      1) Mexico si el punto cae ESTRICTAMENTE dentro de un estado (km == 0).
+      2) Si no, es de EE. UU. si queda dentro del rango continental y al NORTE de
+         la frontera (asi los pueblos fronterizos del lado gringo salen bien).
+      3) Si sigue pegado a Mexico (estado_de devolvio codigo) pero al sur de la
+         frontera -costa del noroeste, Golfo-, es de Mexico.
+    Un cliente real de Mexico esta en tierra, dentro de su estado (paso 1)."""
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (TypeError, ValueError):
+        return None
+    code, km = estado_de(lat, lon)
+    if code and not km:
+        return 'MX'
+    if -124.6 <= lon <= -66.5 and lat <= 49.5 and lat > _frontera_lat(lon):
+        return 'US'
+    if code:
+        return 'MX'
+    return None
 
 
 class FocoMobileDevice(models.Model):
@@ -731,27 +789,899 @@ class FocoMobileDevice(models.Model):
 
     # ------------------------------------------------------- visitas de campo
     def clientes_para(self):
-        """Cartera de clientes de ventas para la pantalla de Visita del telefono.
-        Si el vendedor (usuario del empleado del equipo) tiene cartera asignada,
-        devuelve la suya; si no (aun no se asignan), devuelve todos. Campos
-        minimos para ubicar y elegir en el telefono."""
+        """Cartera de clientes de ventas para las pestanas Visita y Mapa del
+        telefono: TODOS los clientes de ventas, para todos los vendedores
+        (decision del 14-oct-2026). Antes, si el usuario del telefono tenia
+        aunque fuera un cliente asignado, solo veia los suyos; como registrar un
+        prospecto desde el telefono se lo asigna, al primer prospecto el
+        vendedor perdia el resto de la cartera. Campos minimos para ubicar y
+        elegir en el telefono."""
         self.ensure_one()
         Partner = self.env['res.partner'].sudo()
-        base = [('foco_cliente_ventas', '=', True)]
-        emp = self.employee_id
-        user = emp.user_id if emp else Partner.env['res.users']
-        dom = base
-        if user and Partner.search_count(base + [('user_id', '=', user.id)]):
-            dom = base + [('user_id', '=', user.id)]
         filas = []
-        for c in Partner.search(dom, limit=3000):
+        # Quienes tienen foto, en UNA busqueda: leer image_1920 fila por fila
+        # cargaria el blob de cada cliente. Asi solo marcamos un booleano.
+        con_foto = set(Partner.search(
+            [('foco_cliente_ventas', '=', True), ('image_1920', '!=', False)]).ids)
+        for c in Partner.search([('foco_cliente_ventas', '=', True)], limit=3000):
             filas.append({
                 'id': c.id, 'name': c.display_name,
                 'lat': c.partner_latitude, 'lon': c.partner_longitude,
+                # Ubicacion de una razon social (oficina/almacen/campo) vs cliente
+                # principal: la app ofrece "ubicacion de un cliente existente".
+                'es_ubicacion': bool(c.parent_id and c.foco_tipo_ubicacion),
+                'tipo_ubicacion': c.foco_tipo_ubicacion or '',
+                # Nota libre + si tiene foto (la foto se baja aparte, no en la lista).
+                'nota': c.foco_ubicacion_nota or '',
+                'tiene_foto': c.id in con_foto,
+                'parent_id': c.parent_id.id if c.parent_id else 0,
                 'zona': c.foco_zona or '', 'cultivo': c.foco_cultivo or '',
                 'phone': c.phone or '', 'estatus': c.foco_estatus or 'prospecto',
+                # Zona por ESTADO (pestana Mapa): el codigo empata con el de los
+                # poligonos que viajan en el APK (assets/mx_estados.json).
+                'estado': c.foco_estado_id.name or '',
+                'estado_code': c.foco_estado_id.code or '',
+                'contacto': c.foco_contacto or '',
+                # todos ven a todos: la ficha dice de quien es el cliente
+                'vendedor': c.user_id.name or '',
+                'ultima_visita': (fields.Datetime.to_string(c.foco_ultima_visita)
+                                  if c.foco_ultima_visita else ''),
+                # Todos sus telefonos (el del cliente y los de sus contactos):
+                # el vendedor elige a cual llamar o escribir (15-oct-2026).
+                'telefonos': self._telefonos_de(c),
             })
         return filas
+
+    @api.model
+    def _telefonos_de(self, partner):
+        """[{nombre, numero}] del cliente y de sus contactos, sin repetir numero."""
+        salida, vistos = [], set()
+        for p in partner | partner.child_ids.filtered('active'):
+            numero = (p.phone or '').strip()
+            digitos = ''.join(ch for ch in numero if ch.isdigit())
+            if len(digitos) < 7 or digitos[-10:] in vistos:
+                continue
+            vistos.add(digitos[-10:])
+            salida.append({'nombre': p.name if p != partner else (partner.foco_contacto or ''),
+                           'numero': numero})
+        return salida
+
+    # ------------------------------------------------- ventas en el celular
+    #
+    # Acordado con el Ing. Francisco el 14-oct-2026: en el telefono el vendedor
+    # BUSCA sus cotizaciones y las MANDA por WhatsApp o por correo (crearlas
+    # desde el telefono no). Todo corre CON EL USUARIO DE ODOO DEL VENDEDOR
+    # (`with_user`), asi que valen sus permisos -"solo sus documentos"- y la
+    # aprobacion de cotizaciones de FERBA tal cual: sin aprobar no se genera el
+    # PDF ni se envia, porque el candado vive en el motor de reportes y en
+    # action_quotation_send, no en esta pantalla.
+
+    def _vendedor(self):
+        self.ensure_one()
+        return self.sudo().employee_id.user_id
+
+    @api.model
+    def _requiere_aprobacion(self, orden):
+        return ('aprobacion_state' in orden._fields and orden.requiere_aprobacion
+                and orden.aprobacion_state != 'aprobada')
+
+    @api.model
+    def _es_aprobador(self, user):
+        grupo = self.env.ref('ferba_aprobacion_cotizaciones.group_aprobador_cotizaciones',
+                             raise_if_not_found=False)
+        return bool(grupo) and grupo in user.all_group_ids
+
+    def cotizaciones_para(self, partner_id=None, q='', limite=60):
+        """Las cotizaciones que el vendedor de este telefono ve en Odoo."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            return {'ok': False, 'error': 'sin_usuario',
+                    'mensaje': 'Tu teléfono no está ligado a un usuario de Odoo. Pídele al '
+                               'administrador que lo ligue en tu ficha de empleado.'}
+        if 'sale.order' not in self.env:
+            return {'ok': False, 'error': 'sin_ventas', 'mensaje': 'Ventas no está instalado en Odoo.'}
+        # las etiquetas (Cotizacion, Pedido de venta...) en el idioma del vendedor
+        SO = self.env['sale.order'].with_user(user).with_context(lang=user.lang or 'es_MX')
+        dom = [('state', '!=', 'cancel')]
+        if partner_id:
+            cliente = self.env['res.partner'].sudo().browse(int(partner_id)).exists()
+            if not cliente:
+                return {'ok': True, 'cotizaciones': []}
+            dom.append(('partner_id', 'child_of', cliente.commercial_partner_id.id))
+        q = (q or '').strip()
+        if q:
+            dom += ['|', '|', ('name', 'ilike', q), ('partner_id', 'ilike', q),
+                    ('client_order_ref', 'ilike', q)]
+        try:
+            etq_estado = dict(SO._fields['state']._description_selection(SO.env))
+        except Exception:
+            etq_estado = dict(SO._fields['state'].selection)
+        etq_aprob = (dict(SO._fields['aprobacion_state'].selection)
+                     if 'aprobacion_state' in SO._fields else {})
+        filas = []
+        for o in SO.search(dom, order='date_order desc, id desc', limit=int(limite or 60)):
+            bloqueada = self._requiere_aprobacion(o)
+            aprob = o.aprobacion_state if 'aprobacion_state' in o._fields else ''
+            productos = o.order_line.filtered(lambda l: not l.display_type and l.product_id)
+            filas.append({
+                'id': o.id, 'name': o.name,
+                'fecha': fields.Datetime.to_string(o.date_order) if o.date_order else '',
+                'vigencia': fields.Date.to_string(o.validity_date) if o.validity_date else '',
+                'monto': o.amount_total, 'moneda': o.currency_id.name or '',
+                'simbolo': o.currency_id.symbol or '$',
+                'estado': o.state, 'estado_txt': etq_estado.get(o.state, o.state),
+                'aprobacion': aprob,
+                'aprobacion_txt': etq_aprob.get(aprob, '') if bloqueada or aprob == 'aprobada' else '',
+                'motivo_rechazo': (o.aprobacion_motivo or '') if aprob == 'rechazada' else '',
+                'puede_enviar': not bloqueada,
+                # el mismo boton «Enviar a revision» de Odoo: sin revisar o rechazada
+                'puede_revision': bloqueada and aprob in ('sin', 'rechazada'),
+                'cliente': o.partner_id.display_name or '',
+                'cliente_id': o.partner_id.commercial_partner_id.id,
+                'correo': o.partner_id.email or '',
+                # a cual de sus numeros mandarla por WhatsApp
+                'telefonos': self._telefonos_de(o.partner_id.commercial_partner_id.sudo()),
+                'vendedor': o.user_id.name or '',
+                'productos': [l.product_id.display_name for l in productos[:3]],
+                'n_lineas': len(productos),
+                'url': '%s/odoo/sales/%d' % (o.get_base_url(), o.id),
+            })
+        return {'ok': True, 'cotizaciones': filas, 'vendedor': user.name}
+
+    def _orden_del_vendedor(self, order_id):
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        orden = self.env['sale.order'].with_user(user).browse(int(order_id or 0)).exists()
+        if not orden:
+            raise UserError('Esa cotización ya no existe.')
+        if not orden.has_access('read'):
+            raise UserError('La cotización %s no es tuya: con tus permisos de Odoo no la '
+                            'puedes ver ni enviar.' % orden.sudo().name)
+        return orden, user
+
+    def cotizacion_pdf(self, order_id):
+        """(nombre de archivo, bytes del PDF) de la cotizacion, generado CON EL
+        USUARIO del vendedor: si no esta aprobada, el candado de FERBA lo detiene
+        y aqui se devuelve su mensaje tal cual."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        if self._requiere_aprobacion(orden):
+            raise UserError('La cotización %s todavía no está aprobada: en cuanto la aprueben '
+                            'la podrás enviar.' % orden.name)
+        pdf, _tipo = self.env['ir.actions.report'].with_user(user)._render_qweb_pdf(
+            'sale.report_saleorder', [orden.id])
+        nombre = 'Cotizacion %s.pdf' % (orden.name or orden.id)
+        orden.sudo().message_post(
+            body='%s descargó la cotización desde su teléfono para enviarla por WhatsApp.' % user.name,
+            message_type='notification', subtype_xmlid='mail.mt_note')
+        return nombre, pdf
+
+    def cotizacion_correo(self, order_id, correo=None, guardar=True):
+        """Manda la cotizacion por correo al cliente con la plantilla de Odoo, como
+        el boton «Enviar por correo», con el usuario del vendedor.
+
+        `correo` (16-oct-2026): el vendedor puede corregirlo en el telefono -el
+        de Odoo ya no es, o el cliente lo quiere en otro-. Con `guardar` queda en
+        el contacto de la cotizacion; sin el, va solo esta vez, a un contacto del
+        cliente con ese correo (el existente o uno nuevo), como en Odoo."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        actual = (orden.partner_id.email or '').strip()
+        nuevo = (correo or '').strip() or actual
+        if not nuevo:
+            raise UserError('%s no tiene correo en Odoo. Escríbelo o mándala por WhatsApp.'
+                            % orden.partner_id.display_name)
+        normal = tools.email_normalize(nuevo)
+        if not normal:
+            raise UserError('«%s» no es un correo válido.' % nuevo)
+        # Un aprobador pasa: action_quotation_send la aprueba en el acto, como en Odoo.
+        if self._requiere_aprobacion(orden) and not self._es_aprobador(user):
+            raise UserError('La cotización %s todavía no está aprobada: en cuanto la aprueben '
+                            'la podrás enviar.' % orden.name)
+        destino = orden.partner_id
+        if normal != tools.email_normalize(actual):
+            if guardar:
+                # con SUS permisos: si no puede editar contactos, Odoo lo dice
+                orden.partner_id.with_user(user).write({'email': nuevo})
+            else:
+                Partner = self.env['res.partner'].with_user(user)
+                cliente = orden.partner_id.commercial_partner_id
+                destino = (Partner.search([('email_normalized', '=', normal),
+                                           ('commercial_partner_id', '=', cliente.id)], limit=1)
+                           or Partner.create({'name': nuevo, 'email': nuevo,
+                                              'parent_id': cliente.id, 'type': 'contact'}))
+        accion = orden.action_quotation_send()
+        ctx = dict((accion or {}).get('context') or {})
+        Mail = self.env['mail.mail'].sudo()
+        antes = set(Mail.search([('model', '=', 'sale.order'), ('res_id', '=', orden.id)]).ids)
+        composer = self.env['mail.compose.message'].with_user(user).with_context(ctx).create({})
+        if destino != orden.partner_id:
+            composer.partner_ids = [(6, 0, destino.ids)]
+        composer.action_send_mail()
+        # Odoo manda el correo DESPUES del commit (postcommit), asi que aqui
+        # todavia no se sabe si salio. `verificar` le dice al controlador que
+        # correos revisar ya confirmada la transaccion: antes el telefono decia
+        # "Se envio" con el correo atorado (16-oct-2026, la plantilla tenia un
+        # servidor de correo archivado).
+        return {'ok': True, 'mensaje': 'Se envió %s a %s.' % (orden.name, nuevo),
+                'verificar': {'orden': orden.id, 'antes': sorted(antes), 'partner': destino.id}}
+
+    def odoo_acceso(self):
+        """Lo que necesita el robot de Foco para entrar a la app oficial de Odoo
+        como el vendedor de este telefono: servidor, usuario y un codigo de un
+        solo uso en lugar de la contraseña (ver foco_mobile_login, 16-oct-2026)."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user or not user.active or user.share:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo. Pídele al '
+                            'administrador que lo ligue en tu ficha de empleado.')
+        ICP = self.env['ir.config_parameter'].sudo()
+        if (user.has_group('base.group_system')
+                and (ICP.get_param('foco.acceso_movil_admins') or '').lower() not in ('1', 'true', 'si', 'sí')):
+            raise UserError('Entrar a Odoo desde el celular no está disponible para usuarios '
+                            'administradores. Entra con tu contraseña.')
+        codigo = self.env['foco.mobile.login'].emitir(self, user)
+        base = (ICP.get_param('web.base.url') or '').rstrip('/')
+        return {'ok': True, 'servidor': urlparse(base).netloc or base, 'url': base,
+                'login': user.login, 'codigo': codigo, 'vence_s': VIGENCIA_S}
+
+    def odoo_ir_a(self, res_model, res_id):
+        """El vendedor quiere ver esta cotizacion en la app oficial de Odoo: se
+        deja el aviso en su usuario y la pantalla de Odoo salta ahi al arrancar
+        dentro de la app (foco_ir_http, 16-oct-2026). Solo lo que el ve."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        if res_model != 'sale.order':
+            raise UserError('Eso no se puede abrir desde el teléfono.')
+        orden = self.env['sale.order'].with_user(user).browse(int(res_id or 0)).exists()
+        if not orden or not orden.has_access('read'):
+            raise UserError('Esa cotización ya no existe o no la puedes ver con tus permisos.')
+        user.sudo().write({'foco_ir_a': '/odoo/sales/%d' % orden.id,
+                           'foco_ir_a_at': fields.Datetime.now()})
+        return {'ok': True}
+
+    def cliente_telefono(self, partner_id, numero):
+        """Guarda en el cliente el numero que el vendedor escribio en el telefono
+        para mandarle una cotizacion por WhatsApp (16-oct-2026). Con SUS permisos."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        numero = (numero or '').strip()
+        if len([c for c in numero if c.isdigit()]) < 7:
+            raise UserError('«%s» no parece un número de teléfono.' % numero)
+        cliente = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not cliente:
+            raise UserError('Ese cliente ya no existe en Odoo.')
+        cliente = cliente.commercial_partner_id
+        cliente.write({'phone': numero})
+        return {'ok': True, 'mensaje': 'Guardé %s en %s.' % (numero, cliente.display_name)}
+
+    def cliente_ubicacion(self, partner_id, lat, lon, precision=0.0):
+        """Corrige el PIN (ubicacion) de un cliente con el GPS actual del
+        vendedor, cuando la direccion que trae esta mal. Con SUS permisos. Mueve
+        el mismo registro que ve la cartera (no el comercial), porque es el que
+        usa la verificacion 'en sitio' de las visitas."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (TypeError, ValueError):
+            raise UserError('No tengo una ubicación válida para fijar.')
+        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+            raise UserError('No tengo una ubicación válida para fijar.')
+        cliente = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not cliente:
+            raise UserError('Ese cliente ya no existe en Odoo.')
+        cliente.write({'partner_latitude': lat, 'partner_longitude': lon})
+        try:
+            cliente.message_post(body='Ubicación corregida desde el teléfono (%.6f, %.6f%s).'
+                                      % (lat, lon, ', ±%dm' % int(precision) if precision else ''))
+        except Exception:
+            pass
+        return {'ok': True, 'lat': lat, 'lon': lon,
+                'mensaje': 'Actualicé la ubicación de %s.' % cliente.display_name}
+
+    # Etiquetas de ubicacion validas (empatan con res.partner.foco_tipo_ubicacion,
+    # con res_partner.TIPO_UBICACION y con los chips de la app). El 'almacen'
+    # anterior se migro a 'empaque' (migrations/19.0.29.55.0).
+    TIPOS_UBICACION = {'entrada': 'Entrada', 'oficina': 'Oficina',
+                       'empaque': 'Empaque', 'campo': 'Campo',
+                       'otro': 'Otra ubicación'}
+
+    def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0,
+                      parent_id=None, tipo_ubicacion=None, nota=None, foto=None):
+        """Registra un cliente NUEVO (prospecto) con su pin, o una UBICACION nueva
+        (oficina/almacen/campo) que cuelga de una razon social EXISTENTE, sin estar
+        en el sitio. La ubicacion llega de lo que el cliente compartio por
+        WhatsApp/Maps, de un toque en el mapa, o del GPS.
+
+        Si llega `parent_id`, el registro se crea como HIJO de esa razon social con
+        la etiqueta `tipo_ubicacion`, en vez de como una empresa aparte: asi la
+        oficina, el almacen y los campos de 'Agricola Uromex' no son tres clientes
+        distintos sino ubicaciones de la misma razon social (caso Cori, 27-oct-2026).
+        Nombre obligatorio para una razon social nueva (para una ubicacion se usa la
+        etiqueta si no lo ponen); ubicacion obligatoria. Corre con los permisos del
+        vendedor y queda asignado a el, como un prospecto (igual que el alta por
+        check-in)."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        # Razon social padre (opcional): la UBICACION cuelga de ella. Nunca se
+        # anida mas de un nivel (se cuelga del comercial de la razon social).
+        razon = None
+        if parent_id:
+            razon = self.env['res.partner'].with_user(user).browse(int(parent_id)).exists()
+            if not razon or not razon.foco_cliente_ventas:
+                raise UserError('Esa razón social ya no existe en Odoo.')
+            razon = razon.commercial_partner_id
+        nombre = (nombre or '').strip()
+        tipo = (tipo_ubicacion or '').strip().lower()
+        if razon:
+            if tipo not in self.TIPOS_UBICACION:
+                tipo = 'otro'
+            if not nombre:
+                nombre = self.TIPOS_UBICACION[tipo]
+        elif not nombre:
+            raise UserError('Ponle un nombre al cliente.')
+        que = 'la ubicación' if razon else 'el cliente'
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (TypeError, ValueError):
+            raise UserError('No tengo una ubicación válida para %s.' % que)
+        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+            raise UserError('No tengo una ubicación válida para %s.' % que)
+        vals = {
+            'name': nombre[:120],
+            'foco_cliente_ventas': True,
+            'user_id': (razon.user_id.id if razon and razon.user_id else user.id),
+            'partner_latitude': lat, 'partner_longitude': lon,
+        }
+        if razon:
+            vals.update({'parent_id': razon.id, 'type': 'other',
+                         'foco_tipo_ubicacion': tipo})
+        else:
+            vals.update({'company_type': 'company', 'foco_estatus': 'prospecto'})
+        # Empresa del registro. Los clientes de Mexico quedan COMPARTIDOS
+        # (company_id vacio, como hasta hoy: todos los vendedores los ven). Solo
+        # cuando el pin cae en EE. UU. el cliente nace en la empresa estadounidense
+        # correspondiente (res.company.foco_us_company_id de la empresa del
+        # vendedor), y solo si el vendedor la tiene entre sus empresas permitidas
+        # -si no, no podria ni crearla ni verla-; en ese caso se queda compartido.
+        # Una UBICACION hija hereda la empresa de su razon social.
+        empresa = False
+        if razon:
+            empresa = razon.company_id
+        elif _pais_de_punto(lat, lon) == 'US':
+            us = user.company_id.sudo().foco_us_company_id
+            if us and us.id in user.company_ids.ids:
+                empresa = us
+        if empresa:
+            vals['company_id'] = empresa.id
+        tel = (telefono or '').strip()
+        if tel:
+            vals['phone'] = tel[:32]
+        # Nota libre y foto de la ubicacion (opcionales), lo que pidio el Ing: una
+        # descripcion de lo que el quiera y una foto del lugar.
+        nota_txt = (nota or '').strip()
+        if nota_txt:
+            vals['foco_ubicacion_nota'] = nota_txt[:1000]
+        foto_b64 = self._foto_limpia(foto)
+        if foto_b64:
+            vals['image_1920'] = foto_b64
+        cliente = self.env['res.partner'].with_user(user).create(vals)
+        marca = ', ±%dm' % int(precision) if precision else ''
+        try:
+            if razon:
+                cuerpo = ('Ubicación «%s» (%s) registrada desde el teléfono para %s '
+                          '(%.6f, %.6f%s).' % (cliente.name, self.TIPOS_UBICACION[tipo],
+                                               razon.display_name, lat, lon, marca))
+            else:
+                cuerpo = ('Cliente registrado desde el teléfono con la ubicación '
+                          'compartida (%.6f, %.6f%s).' % (lat, lon, marca))
+            cliente.message_post(body=cuerpo)
+        except Exception:  # noqa: BLE001
+            pass
+        mensaje = ('Registré la ubicación %s de %s.'
+                   % (self.TIPOS_UBICACION[tipo], razon.display_name)) if razon \
+            else 'Registré a %s.' % cliente.display_name
+        return {'ok': True, 'id': cliente.id, 'lat': lat, 'lon': lon,
+                'name': cliente.display_name, 'es_ubicacion': bool(razon),
+                'mensaje': mensaje}
+
+    def _ubicacion_hija(self, partner_id, que):
+        """Localiza y valida una UBICACION hija (oficina/empaque/campo...) de una
+        razon social, con los permisos del vendedor. Nunca deja tocar la razon
+        social (tiene historial): solo sus ubicaciones."""
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        ubic = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not ubic:
+            raise UserError('Esa ubicación ya no existe en Odoo.')
+        if not (ubic.parent_id and ubic.foco_tipo_ubicacion):
+            raise UserError('Eso es un cliente, no una ubicación: no se puede %s desde aquí.' % que)
+        return ubic
+
+    def borrar_ubicacion(self, partner_id):
+        """Borra (ARCHIVA, reversible) una ubicacion hija de una razon social. Solo
+        ubicaciones, no la razon social. Con los permisos del vendedor. Peticion del
+        Ing (30-oct-2026): el mapa junta mucha 'basura' de pines viejos."""
+        self.ensure_one()
+        ubic = self._ubicacion_hija(partner_id, 'borrar')
+        nombre = ubic.display_name
+        razon = ubic.commercial_partner_id
+        try:
+            ubic.message_post(body='Ubicación «%s» borrada (archivada) desde el teléfono.' % ubic.name)
+        except Exception:  # noqa: BLE001
+            pass
+        ubic.write({'active': False})
+        return {'ok': True, 'id': ubic.id,
+                'mensaje': 'Borré la ubicación %s de %s.' % (nombre, razon.display_name)}
+
+    def editar_ubicacion(self, partner_id, tipo_ubicacion=None, lat=None, lon=None,
+                         nombre=None, precision=0.0, nota=None, foto=None):
+        """Reemplaza/edita una ubicacion existente: cambia su tipo, mueve su pin y/o
+        cambia su nombre (lo que llegue). Con los permisos del vendedor. Peticion del
+        Ing (30-oct-2026): opcion 'reemplazar' en las ubicaciones del mapa."""
+        self.ensure_one()
+        ubic = self._ubicacion_hija(partner_id, 'reemplazar')
+        vals = {}
+        tipo = (tipo_ubicacion or '').strip().lower()
+        if tipo:
+            if tipo not in self.TIPOS_UBICACION:
+                tipo = 'otro'
+            vals['foco_tipo_ubicacion'] = tipo
+        nom = (nombre or '').strip()
+        if nom:
+            vals['name'] = nom[:120]
+        # Nota libre: se puede fijar o limpiar (llega None cuando no se toca).
+        if nota is not None:
+            vals['foco_ubicacion_nota'] = (nota or '').strip()[:1000]
+        # Foto: solo si mandan una nueva (vacio = se conserva la que ya tiene).
+        foto_b64 = self._foto_limpia(foto)
+        if foto_b64:
+            vals['image_1920'] = foto_b64
+        if lat is not None and lon is not None and lat != '' and lon != '':
+            try:
+                lat = float(lat)
+                lon = float(lon)
+            except (TypeError, ValueError):
+                raise UserError('No tengo una ubicación válida para fijar.')
+            if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+                raise UserError('No tengo una ubicación válida para fijar.')
+            vals['partner_latitude'] = lat
+            vals['partner_longitude'] = lon
+        if not vals:
+            raise UserError('No hay cambios que guardar.')
+        ubic.write(vals)
+        marca = ', ±%dm' % int(precision) if precision else ''
+        try:
+            partes = []
+            if 'foco_tipo_ubicacion' in vals:
+                partes.append('tipo → %s' % self.TIPOS_UBICACION.get(tipo, tipo))
+            if 'partner_latitude' in vals:
+                partes.append('ubicación (%.6f, %.6f%s)' % (vals['partner_latitude'], vals['partner_longitude'], marca))
+            if 'name' in vals:
+                partes.append('nombre → %s' % vals['name'])
+            if 'foco_ubicacion_nota' in vals:
+                partes.append('nota')
+            if 'image_1920' in vals:
+                partes.append('foto')
+            ubic.message_post(body='Ubicación reemplazada desde el teléfono: %s.' % ', '.join(partes))
+        except Exception:  # noqa: BLE001
+            pass
+        return {'ok': True, 'id': ubic.id,
+                'lat': ubic.partner_latitude, 'lon': ubic.partner_longitude,
+                'tipo_ubicacion': ubic.foco_tipo_ubicacion or '',
+                'name': ubic.display_name,
+                'mensaje': 'Actualicé la ubicación %s.' % ubic.display_name}
+
+    @staticmethod
+    def _foto_limpia(foto):
+        """Base64 de una imagen que llega del telefono, lista para image_1920.
+        Acepta 'data:image/...;base64,XXX' o el base64 pelon; devuelve str o None."""
+        if not foto or not isinstance(foto, str):
+            return None
+        s = foto.strip()
+        if s[:5].lower() == 'data:' and ',' in s:
+            s = s.split(',', 1)[1]
+        s = ''.join(s.split())  # sin espacios ni saltos de linea
+        return s if len(s) >= 32 else None
+
+    def foto_ubicacion(self, partner_id):
+        """Devuelve la foto de una ubicacion (o cliente) para la ficha del telefono:
+        {ok, id, foto(b64)} o {ok:false}. Con los permisos del vendedor."""
+        self.ensure_one()
+        user = self._vendedor()
+        if not user:
+            raise UserError('Tu teléfono no está ligado a un usuario de Odoo.')
+        p = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
+        if not p:
+            raise UserError('Ese registro ya no existe en Odoo.')
+        img = p.image_1920
+        if not img:
+            return {'ok': False}
+        return {'ok': True, 'id': p.id,
+                'foto': img.decode() if isinstance(img, bytes) else img}
+
+    # ----------------------------------------------------- viaticos (gastos)
+    @staticmethod
+    def _b64(d):
+        """Quita el prefijo data: de una imagen en base64 del telefono."""
+        d = d or ''
+        return d.split(',', 1)[1] if (isinstance(d, str) and d.strip().startswith('data:') and ',' in d) else d
+
+    def ocr_ticket(self, fotos, tipo='gasolina'):
+        """Lee la(s) foto(s) del ticket con la IA de vision y devuelve los datos
+        para que el vendedor los CONFIRME antes de guardar. `fotos`: lista de
+        {mime, data(b64)}. No crea nada."""
+        self.ensure_one()
+        pares = []
+        for f in (fotos or []):
+            d = self._b64((f or {}).get('data'))
+            if d:
+                pares.append(((f or {}).get('mime') or 'image/jpeg', d))
+        if not pares:
+            raise UserError('Toma la foto del ticket primero.')
+        return self.env['foco.openai'].leer_ticket(pares, tipo=tipo)
+
+    def crear_viatico(self, datos):
+        """Registra un gasto desde el telefono (apartado Gastos). La foto SIEMPRE
+        se conserva como evidencia. En gasolina lleva vehiculo/litros/odometro, que
+        alimentan el rendimiento y el cruce con el GPS."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu teléfono no está ligado a un empleado.')
+        datos = datos or {}
+        # Dedup de la cola movil: si ya existe un gasto con este uuid, no se crea
+        # otro (el telefono reenvia sin internet). Devuelve el que ya estaba.
+        cuid = (datos.get('uuid') or '').strip()
+        if cuid:
+            ya = self.env['foco.viatico'].sudo().search([('uuid', '=', cuid)], limit=1)
+            if ya:
+                return {'ok': True, 'id': ya.id, 'mensaje': 'Gasto registrado.', 'dup': True}
+        tipos = dict(self.env['foco.viatico'].TIPOS)
+        tipo = datos.get('tipo') if datos.get('tipo') in tipos else 'otro'
+        foto = self._b64(datos.get('foto'))
+        if not foto:
+            raise UserError('Falta la foto del ticket.')
+        try:
+            monto = float(datos.get('monto') or 0)
+        except (TypeError, ValueError):
+            monto = 0.0
+        if monto <= 0:
+            raise UserError('Pon el monto del gasto.')
+        moneda = (emp.company_id or self.env.company).currency_id
+        cod = (datos.get('moneda') or '').strip().upper()
+        if cod:
+            m = self.env['res.currency'].sudo().search([('name', '=', cod)], limit=1)
+            if m:
+                moneda = m
+        vals = {
+            'tipo': tipo, 'employee_id': emp.id,
+            'company_id': (emp.company_id or self.env.company).id,
+            'fecha': datos.get('fecha') or fields.Date.context_today(self),
+            'monto': monto, 'currency_id': moneda.id, 'foto': foto,
+            'lugar': (datos.get('lugar') or '')[:120],
+            'lat': float(datos.get('lat') or 0.0), 'lon': float(datos.get('lon') or 0.0),
+            'ocr_json': datos.get('ocr_json') or False,
+            'uuid': cuid or False,
+        }
+        try:
+            if datos.get('tipo_cambio'):
+                vals['tipo_cambio'] = float(datos['tipo_cambio'])
+        except (TypeError, ValueError):
+            pass
+        if tipo == 'gasolina':
+            fo = self._b64(datos.get('foto_odometro'))
+            if fo:
+                vals['foto_odometro'] = fo
+            if datos.get('vehiculo_id'):
+                veh = self.env['foco.vehiculo'].sudo().browse(int(datos['vehiculo_id'])).exists()
+                if veh:
+                    vals['vehiculo_id'] = veh.id
+            for k, caster in (('litros', float), ('precio_litro', float), ('odometro', int)):
+                if datos.get(k) not in (None, ''):
+                    try:
+                        vals[k] = caster(datos[k])
+                    except (TypeError, ValueError):
+                        pass
+        viatico = self.env['foco.viatico'].sudo().create(vals)
+        return {'ok': True, 'id': viatico.id, 'mensaje': 'Gasto registrado.'}
+
+    def mis_viaticos(self, limite=30):
+        """Los gastos recientes del vendedor + su presupuesto de la semana."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            return {'gastos': [], 'presupuesto': None, 'moneda': '', 'simbolo': ''}
+        Viatico = self.env['foco.viatico'].sudo()
+        gastos = Viatico.search([('employee_id', '=', emp.id)], limit=int(limite))
+        hoy = fields.Date.context_today(self)
+        pres = self.env['foco.viatico.presupuesto'].sudo().search(
+            [('employee_id', '=', emp.id), ('desde', '<=', hoy), ('hasta', '>=', hoy)], limit=1)
+        moneda = (emp.company_id or self.env.company).currency_id
+        return {
+            'moneda': moneda.name, 'simbolo': moneda.symbol or '',
+            'presupuesto': ({'monto': pres.monto, 'consumido': pres.consumido,
+                             'restante': pres.restante, 'desde': str(pres.desde),
+                             'hasta': str(pres.hasta)} if pres else None),
+            'gastos': [{'id': g.id, 'tipo': g.tipo, 'fecha': str(g.fecha), 'monto': g.monto,
+                        'lugar': g.lugar or '', 'estado': g.estado,
+                        'vehiculo': g.vehiculo_id.name or ''} for g in gastos],
+        }
+
+    def mi_dia(self):
+        """El dia de trabajo del vendedor en un vistazo, armado con lo que la app
+        YA captura: seguimientos pendientes (visitas con proximo seguimiento
+        vencido o de hoy, una por cliente), visitas hechas hoy, el presupuesto de
+        la semana y cuanto coaching de llamadas hay nuevo. Alimenta la tarjeta
+        "Mi dia" del Inicio: datos que ya existian pero no se volvian a mostrar."""
+        from datetime import datetime, time, timedelta
+        import pytz
+        self.ensure_one()
+        hoy = fields.Date.context_today(self)
+        emp = self.employee_id
+        if not emp:
+            return {'ok': True, 'fecha': str(hoy), 'seguimientos': [],
+                    'visitas_hoy': 0, 'presupuesto': None, 'coaching_nuevo': 0}
+        Visita = self.env['foco.visita'].sudo()
+        # SEGUIMIENTOS: proximo seguimiento vencido o de hoy, UNA por cliente (la
+        # mas urgente). `vencido` se marca para pintarlo distinto (rojo).
+        segs = Visita.search(
+            [('employee_id', '=', emp.id), ('proxima_fecha', '!=', False),
+             ('proxima_fecha', '<=', hoy)],
+            order='proxima_fecha asc, check_in desc')
+        seguimientos, vistos = [], set()
+        for v in segs:
+            if v.partner_id.id in vistos:
+                continue
+            vistos.add(v.partner_id.id)
+            seguimientos.append({
+                'partner_id': v.partner_id.id,
+                'cliente': v.partner_id.display_name or '',
+                'fecha': str(v.proxima_fecha),
+                'vencido': v.proxima_fecha < hoy,
+                'resultado': v.resultado or '',
+                'nota': (v.nota or '')[:140],
+            })
+        # VISITAS DE HOY: por el dia LOCAL del vendedor (check_in se guarda en UTC).
+        tz = self.env['foco.settings'].sudo()._tzinfo_for(emp) or pytz.UTC
+        ini = tz.localize(datetime.combine(hoy, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        fin = tz.localize(datetime.combine(hoy, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+        visitas_hoy = Visita.search_count(
+            [('employee_id', '=', emp.id), ('check_in', '>=', ini), ('check_in', '<=', fin)])
+        # PRESUPUESTO de la semana (mismo calculo que mis_viaticos).
+        pres = self.env['foco.viatico.presupuesto'].sudo().search(
+            [('employee_id', '=', emp.id), ('desde', '<=', hoy), ('hasta', '>=', hoy)], limit=1)
+        moneda = (emp.company_id or self.env.company).currency_id
+        # COACHING NUEVO: llamadas analizadas en las ultimas 48 h.
+        desde = fields.Datetime.now() - timedelta(days=2)
+        coaching_nuevo = self.env['foco.llamada'].sudo().search_count(
+            [('employee_id', '=', emp.id), ('audio_estado', '=', 'listo'),
+             ('es_ejemplo', '=', False),
+             ('analizado_el', '>=', fields.Datetime.to_string(desde))])
+        return {
+            'ok': True, 'fecha': str(hoy),
+            'seguimientos': seguimientos,
+            'visitas_hoy': visitas_hoy,
+            'presupuesto': ({'simbolo': moneda.symbol or '', 'restante': pres.restante,
+                             'monto': pres.monto, 'consumido': pres.consumido} if pres else None),
+            'coaching_nuevo': coaching_nuevo,
+        }
+
+    def mis_vehiculos(self):
+        """Los vehiculos de la empresa del vendedor (para elegir en una carga)."""
+        self.ensure_one()
+        emp = self.employee_id
+        comp = (emp.company_id if emp else False) or self.env.company
+        vehs = self.env['foco.vehiculo'].sudo().search(
+            [('company_id', '=', comp.id), ('active', '=', True)], order='name')
+        return [{'id': v.id, 'name': v.name, 'matricula': v.matricula,
+                 'odometro': v.odometro_actual} for v in vehs]
+
+    def _vehiculo_del_vendedor(self, vehiculo_id=None):
+        """El vehiculo a mostrar: el que se pide por id, si no el que el vendedor
+        trae esta semana (conductor), y si no el de su ultima carga de gasolina."""
+        self.ensure_one()
+        emp = self.employee_id
+        comp = (emp.company_id if emp else False) or self.env.company
+        Veh = self.env['foco.vehiculo'].sudo()
+        if vehiculo_id:
+            veh = Veh.browse(int(vehiculo_id))
+            if veh.exists():
+                return veh
+        veh = Veh.search([('company_id', '=', comp.id), ('conductor_id', '=', emp.id),
+                          ('active', '=', True)], limit=1) if emp else Veh.browse()
+        if not veh and emp:
+            ult = self.env['foco.viatico'].sudo().search(
+                [('employee_id', '=', emp.id), ('tipo', '=', 'gasolina'),
+                 ('vehiculo_id', '!=', False)], order='fecha desc, id desc', limit=1)
+            veh = ult.vehiculo_id
+        return veh
+
+    def vehiculo_detalle(self, vehiculo_id=None):
+        """Ficha del vehiculo para la pantalla movil: odometro, rendimiento vs
+        esperado (el medidor), proximo cambio de aceite y la ultima carga. Todo de
+        lo que Foco ya guarda; no captura nada nuevo."""
+        self.ensure_one()
+        veh = self._vehiculo_del_vendedor(vehiculo_id)
+        if not veh:
+            return {'vehiculo': None}
+        comp = veh.company_id or self.env.company
+        Via = self.env['foco.viatico'].sudo()
+        ultima = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
+                             ('odometro', '>', 0)], order='fecha desc, id desc', limit=1)
+        historial = Via.search([('vehiculo_id', '=', veh.id), ('tipo', '=', 'gasolina'),
+                                ('rendimiento', '>', 0)], order='fecha desc, id desc', limit=6)
+        km_desde = max(0, (veh.odometro_actual or 0) - (veh.odometro_ultimo_aceite or 0))
+        # Estado de la revision de ESTA semana por zona del esquema (cofre: agua/
+        # aceite; cada llanta por su parte). "alerta" manda sobre "ok". Lo usa el
+        # telefono para pintar verde/rojo/gris cada zona del plano del coche.
+        hoy = fields.Date.context_today(self)
+        ini_semana = hoy - timedelta(days=hoy.weekday())
+        rev_estado = {}
+        for rv in self.env['foco.vehiculo.revision'].sudo().search(
+                [('vehiculo_id', '=', veh.id), ('fecha', '>=', ini_semana)]):
+            if rv.tipo in ('agua', 'aceite'):
+                zona = rv.tipo
+            elif rv.tipo in ('presion_llantas', 'estado_llantas') and rv.parte:
+                zona = rv.parte
+            else:
+                continue
+            if rv.resultado == 'alerta' or zona not in rev_estado:
+                rev_estado[zona] = rv.resultado
+        # Carta responsiva pendiente: la asignacion ACTIVA de este coche es para este
+        # empleado y aun no la firma -> el telefono le pide firmar la recepcion.
+        emp = self.employee_id
+        act = veh.asignacion_activa_id
+        resp = None
+        if act and act.tipo == 'empleado' and emp and act.employee_id.id == emp.id \
+           and not act.firmada:
+            resp = {'asignacion_id': act.id, 'desde': str(act.desde),
+                    'odometro_entrega': act.odometro_entrega or 0}
+        return {
+            'vehiculo': {
+                'id': veh.id, 'name': veh.name, 'matricula': veh.matricula,
+                'conductor': veh.conductor_id.name or '',
+                'odometro': veh.odometro_actual or 0,
+                'rendimiento_esperado': round(veh.rendimiento_esperado or 0.0, 2),
+                'rendimiento_ultimo': round(ultima.rendimiento or 0.0, 2),
+                'aceite_cada_km': veh.aceite_cada_km or 0,
+                'km_desde_aceite': km_desde,
+                'km_para_aceite': max(0, (veh.aceite_cada_km or 0) - km_desde),
+                'toca_aceite': veh._toca_aceite(),
+                'tiene_foto': bool(veh.foto),
+                # El vendedor trae ESTE coche ahora -> puede devolverlo desde el telefono.
+                'puede_devolver': bool(act and act.tipo == 'empleado' and emp
+                                       and act.employee_id.id == emp.id),
+            },
+            'responsiva': resp,
+            'revision': rev_estado,
+            'simbolo': comp.currency_id.symbol or '',
+            'ultima_carga': ({'fecha': str(ultima.fecha), 'litros': ultima.litros,
+                              'precio_litro': ultima.precio_litro, 'monto': ultima.monto,
+                              'odometro': ultima.odometro, 'rendimiento': ultima.rendimiento,
+                              'alerta': ultima.alerta} if ultima else None),
+            'historial': [{'fecha': str(h.fecha), 'rendimiento': h.rendimiento}
+                          for h in reversed(historial)],
+        }
+
+    def devolver_vehiculo(self, vehiculo_id=None):
+        """El vendedor devuelve el coche desde el telefono: cierra su asignacion
+        activa (deja de traerlo). Solo puede devolver el que esta A SU NOMBRE."""
+        self.ensure_one()
+        emp = self.employee_id
+        veh = self._vehiculo_del_vendedor(vehiculo_id)
+        if not (veh and emp):
+            return {'ok': False, 'mensaje': 'No tienes un vehiculo asignado.'}
+        act = veh.asignacion_activa_id
+        if not (act and act.tipo == 'empleado' and act.employee_id.id == emp.id):
+            return {'ok': False, 'mensaje': 'Este vehiculo no esta a tu nombre.'}
+        act.sudo().action_cerrar()
+        return {'ok': True, 'mensaje': 'Vehiculo devuelto. Gracias.'}
+
+    def crear_revision(self, datos):
+        """Registra la revision (del lunes) de un vehiculo con su foto: aceite,
+        llantas o general, con resultado ok/necesita atencion."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        datos = datos or {}
+        veh = self.env['foco.vehiculo'].sudo().browse(int(datos.get('vehiculo_id') or 0))
+        if not veh.exists():
+            raise UserError('No encuentro el vehiculo.')
+        foto = self._b64(datos.get('foto'))
+        if not foto:
+            raise UserError('La revision necesita una foto de evidencia.')
+        rev = self.env['foco.vehiculo.revision'].sudo().create({
+            'vehiculo_id': veh.id, 'employee_id': emp.id,
+            'tipo': datos.get('tipo') or 'general',
+            'resultado': datos.get('resultado') or 'ok',
+            'foto': foto, 'nota': datos.get('nota') or '',
+            'fecha': fields.Date.context_today(self),
+        })
+        return {'ok': True, 'id': rev.id, 'mensaje': 'Revisión registrada.'}
+
+    def crear_revisiones(self, datos):
+        """Registra VARIAS sub-revisiones de un vehiculo en una sola llamada: lo que
+        el vendedor marco en el esquema del coche (p.ej. agua+aceite del cofre, o
+        presion+estado de una llanta). La foto es OPCIONAL. `datos`:
+        {vehiculo_id, items:[{tipo, parte?, resultado, foto?, nota?}]}."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        datos = datos or {}
+        veh = self.env['foco.vehiculo'].sudo().browse(int(datos.get('vehiculo_id') or 0))
+        if not veh.exists():
+            raise UserError('No encuentro el vehiculo.')
+        Rev = self.env['foco.vehiculo.revision'].sudo()
+        validos = dict(Rev._fields['tipo'].selection)
+        partes = dict(Rev._fields['parte'].selection)
+        hoy = fields.Date.context_today(self)
+        creadas = Rev
+        for it in (datos.get('items') or []):
+            it = it or {}
+            if it.get('tipo') not in validos:
+                continue
+            parte = it.get('parte') if it.get('parte') in partes else False
+            creadas |= Rev.create({
+                'vehiculo_id': veh.id, 'employee_id': emp.id, 'tipo': it['tipo'],
+                'parte': parte, 'resultado': it.get('resultado') or 'ok',
+                'foto': self._b64(it.get('foto')) or False,
+                'nota': (it.get('nota') or '')[:200], 'fecha': hoy,
+            })
+        if not creadas:
+            raise UserError('No llegó ninguna revisión para guardar.')
+        return {'ok': True, 'ids': creadas.ids, 'mensaje': 'Revisión registrada.'}
+
+    def firmar_responsiva(self, firma, asignacion_id=None):
+        """Firma la carta responsiva de recepcion del vehiculo desde el telefono.
+        `firma` es la imagen de la firma en base64. Sin `asignacion_id` toma la
+        asignacion ACTIVA de este empleado."""
+        self.ensure_one()
+        emp = self.employee_id
+        if not emp:
+            raise UserError('Tu usuario no tiene un empleado ligado.')
+        Asig = self.env['foco.vehiculo.asignacion'].sudo()
+        if asignacion_id:
+            a = Asig.browse(int(asignacion_id)).exists()
+        else:
+            a = Asig.search([('employee_id', '=', emp.id), ('tipo', '=', 'empleado'),
+                             ('hasta', '=', False)], order='desde desc', limit=1)
+        if not a:
+            raise UserError('No encuentro un vehiculo pendiente de firmar.')
+        if a.employee_id.id != emp.id:
+            raise UserError('Esa carta no es tuya.')
+        firma_b64 = self._b64(firma)
+        if not firma_b64:
+            raise UserError('Falta la firma.')
+        a.firmar(firma_b64)
+        return {'ok': True, 'id': a.id, 'mensaje': 'Recepción firmada. Gracias.'}
+
+    def cotizacion_revision(self, order_id):
+        """El boton «Enviar a revision» de Odoo, con el usuario del vendedor: le
+        llega el chat y la actividad a los aprobadores, y al vendedor la respuesta."""
+        self.ensure_one()
+        orden, user = self._orden_del_vendedor(order_id)
+        if not hasattr(orden, 'action_enviar_revision'):
+            raise UserError('La aprobación de cotizaciones no está instalada en Odoo.')
+        orden.action_enviar_revision()
+        return {'ok': True, 'mensaje': 'Mandaste %s a revisión. Cuando la aprueben te llega '
+                                      'un chat y ya la puedes enviar.' % orden.name}
 
     def registrar_visitas(self, visitas):
         """Crea foco.visita desde el telefono (check-in del boton 'Llegue').
@@ -798,7 +1728,10 @@ class FocoMobileDevice(models.Model):
                 if uuid not in guardados:
                     guardados.append(uuid)
                 continue
-            # LLEGADA: crear la visita (idempotente si ya estaba).
+            # LLEGADA (check-in con GPS) o MANUAL (registrada sin estar en sitio):
+            # crear la visita (idempotente si ya estaba). La manual se captura
+            # completa de una vez (resultado incluido) y no lleva coordenadas.
+            manual = (fase == 'manual')
             if existing:
                 if uuid not in guardados:
                     guardados.append(uuid)
@@ -810,7 +1743,9 @@ class FocoMobileDevice(models.Model):
                 partner = Partner.browse(int(v['partner_id']))
                 if not partner.exists():
                     partner = None
-            if partner is None and (v.get('nuevo_nombre') or '').strip():
+            # Un prospecto nuevo se crea con su pin SOLO desde el GPS, no a mano
+            # (una manual no tiene coordenadas que darle de pin).
+            if partner is None and not manual and (v.get('nuevo_nombre') or '').strip():
                 partner = Partner.create({
                     'name': v['nuevo_nombre'].strip()[:120],
                     'company_type': 'company',
@@ -828,10 +1763,12 @@ class FocoMobileDevice(models.Model):
                 'check_in': v.get('at') or fields.Datetime.now(),
                 'latitude': lat, 'longitude': lon,
                 'precision_m': v.get('accuracy') or 0.0,
-                'origen': 'gps',
+                'origen': 'manual' if manual else 'gps',
                 'nota': (v.get('nota') or '').strip() or False,
                 'grabacion_consentida': bool(v.get('grabacion_consentida')),
             }
+            if manual:
+                vals['check_out'] = v.get('at') or fields.Datetime.now()
             res = (v.get('resultado') or '').strip()
             if res in dict(Visita._fields['resultado'].selection):
                 vals['resultado'] = res
@@ -869,6 +1806,57 @@ class FocoMobileDevice(models.Model):
             'audio_duracion_s': int(duracion or 0), 'audio_estado': 'pendiente',
         })
         return {'ok': True}
+
+    def guardar_audio_llamada(self, uuid, data, duracion=0, name='llamada.wav',
+                              started=None, consent=False, origen='whatsapp', contacto=''):
+        """Recibe el WAV de una llamada (WhatsApp o celular) que el telefono sube
+        al colgar y lo deja PENDIENTE para el coaching. Dedup por (telefono, uuid).
+        `contacto` es con quien fue la llamada (nombre/numero) segun lo capto el
+        telefono; sirve para identificar de cual llamada es el coaching. Solo si el
+        interruptor del servidor esta encendido."""
+        self.ensure_one()
+        if not self.env['foco.settings'].sudo().get_settings().coaching_llamadas:
+            return {'ok': False, 'error': 'off'}
+        # Modo del vendedor (hr.employee.foco_coaching_modo): 'no' no guarda nada;
+        # 'experto' guarda pero solo para transcribir (ejemplo, sin coaching);
+        # 'completo' (o sin empleado) recibe el coaching completo.
+        modo = self.employee_id.foco_coaching_modo or 'completo'
+        if modo == 'no':
+            return {'ok': False, 'error': 'off'}
+        if origen not in ('whatsapp', 'celular', 'otro'):
+            origen = 'whatsapp'
+        Llamada = self.env['foco.llamada'].sudo()
+        rec = Llamada.search([('uuid', '=', uuid), ('device_id', '=', self.id)], limit=1)
+        if rec and rec.audio:
+            return {'ok': True}          # ya estaba: reenvio
+        vals = {
+            'device_id': self.id, 'uuid': uuid,
+            'audio': base64.b64encode(data or b''),
+            'audio_name': name or 'llamada.wav',
+            'audio_estado': 'pendiente',
+            'duration_s': int(duracion or 0),
+            'grabacion_consentida': bool(consent),
+            'origen': origen,
+            'es_ejemplo': modo == 'experto',
+            'contacto': (contacto or '')[:120],
+        }
+        if started:
+            vals['started_at'] = started
+        if rec:
+            rec.write(vals)
+        else:
+            Llamada.create(vals)
+        return {'ok': True}
+
+    def mis_llamadas_coaching(self, limite=20):
+        """Las llamadas YA analizadas de este telefono, para que el vendedor lea
+        su coaching en la app."""
+        self.ensure_one()
+        recs = self.env['foco.llamada'].sudo().search(
+            [('device_id', '=', self.id), ('audio_estado', '=', 'listo'),
+             ('es_ejemplo', '=', False)],
+            limit=int(limite or 20))
+        return [r.coaching_para_telefono() for r in recs]
 
 
 class FocoLocation(models.Model):

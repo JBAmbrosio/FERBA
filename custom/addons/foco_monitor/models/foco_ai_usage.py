@@ -30,6 +30,10 @@ SERVICIOS = [
     ('movil', 'Movil (apps)'),
     ('transcripcion', 'Transcripcion de audio (OpenAI)'),
     ('chat', 'Chat sin herramientas'),
+    ('gpt', 'Tommy GPT (chat libre)'),
+    ('busqueda', 'Buscar en internet'),
+    ('imagen', 'Generar imagenes (OpenAI)'),
+    ('codigo', 'Ejecutar codigo (sandbox)'),
     ('otro', 'Otro'),
 ]
 
@@ -127,7 +131,8 @@ class FocoAiUsage(models.Model):
     # ------------------------------------------------------------ tablero
     @api.model
     def umbral(self):
-        return int(self.env['foco.settings'].sudo().get_settings().ia_tokens_umbral_dia or 0)
+        # El tope de tokens es de la plataforma: la IA se paga una vez para todas.
+        return int(self.env['foco.settings'].sudo().get_settings_global().ia_tokens_umbral_dia or 0)
 
     @api.model
     def resumen(self, dias=7):

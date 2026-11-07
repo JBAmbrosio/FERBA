@@ -50,6 +50,20 @@
                                     Vacio = ese equipo no bloquea nada.
                                 </div>
                             </div>
+                            <div class="content-group mt8" invisible="not foco_block_enabled">
+                                <label for="foco_enforcement_exempt"
+                                       string="Cuentas exentas (bloqueo por usuario)"
+                                       class="o_light_label"/>
+                                <field name="foco_enforcement_exempt"
+                                       class="o_light_label"
+                                       placeholder="Una por linea: S-1-5-21-...  o  DOMINIO\usuario"/>
+                                <div class="text-muted mt4">
+                                    Solo aplica en los equipos con ambito
+                                    «Por usuario». Estas sesiones (TI) NO reciben
+                                    el bloqueo; las demas si. El SID manda sobre el
+                                    nombre; ser administrador no exenta.
+                                </div>
+                            </div>
                         </setting>
                     </block>
                     <block title="Capturas de pantalla"

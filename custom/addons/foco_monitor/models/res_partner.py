@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 
 from odoo import api, fields, models
 
+from .foco_estados_mx import estado_de
+
 
 ESTATUS_VENTAS = [
     ('prospecto', 'Prospecto'),
@@ -28,6 +30,20 @@ ESTATUS_COLOR = {
     'postergado': '#f59e0b',
     'cerrado': '#10b981',
 }
+
+# Una razon social (cliente) puede tener varias UBICACIONES fisicas: entrada,
+# oficina, empaque, campos. Cada ubicacion es un res.partner HIJO (parent_id = la
+# razon social) con su propio pin y esta etiqueta. El cliente principal lo deja
+# vacio. Las claves deben empatar con foco.mobile.device.TIPOS_UBICACION y con los
+# chips de la app (entrada/oficina/empaque/campo/otra, como los pidio el Ing). El
+# 'almacen' anterior se migra a 'empaque' (migrations/19.0.29.55.0).
+TIPO_UBICACION = [
+    ('entrada', 'Entrada'),
+    ('oficina', 'Oficina'),
+    ('empaque', 'Empaque'),
+    ('campo', 'Campo'),
+    ('otro', 'Otra ubicacion'),
+]
 
 
 class ResPartner(models.Model):
@@ -52,12 +68,82 @@ class ResPartner(models.Model):
         help='El enlace de Google Maps no traia coordenadas (p.ej. uno acortado): '
              'hay que geolocalizarlo o capturarlo en la primera visita.')
 
+    # UBICACIONES bajo una misma razon social (oficina, almacen, campos): cada una
+    # es un partner HIJO con esta etiqueta y su propio pin. Asi la oficina y los
+    # campos de "Agricola Uromex" no son tres clientes distintos, sino ubicaciones
+    # de la misma razon social. Vacio = es la razon social (cliente principal).
+    foco_tipo_ubicacion = fields.Selection(
+        TIPO_UBICACION, string='Tipo de ubicacion', index=True,
+        help='Para las ubicaciones que cuelgan de una razon social. El cliente '
+             'principal (razon social) lo deja vacio.')
+    foco_es_ubicacion = fields.Boolean(
+        string='Es una ubicacion', compute='_compute_foco_es_ubicacion', store=True,
+        help='Verdadero cuando es una ubicacion (oficina/almacen/campo) de otra '
+             'razon social, no un cliente por si mismo.')
+    # Descripcion libre de la ubicacion + su foto, que captura el vendedor desde el
+    # telefono (peticion del Ing, 30-oct-2026: ademas del tipo, "otra que pueda
+    # describir lo que el quiera" y "tome la foto y la ponga"). La foto va en el
+    # image_1920 estandar del partner.
+    foco_ubicacion_nota = fields.Char(
+        string='Nota de la ubicacion',
+        help='Referencia libre que escribe el vendedor desde el telefono '
+             '(p.ej. "porton azul", "el pozo", "junto a la gasolinera").')
+
+    # La ZONA es el estado. Sale del pin (punto en el mapa de estados) y, si el
+    # cliente no tiene pin, del estado de su direccion. NO del texto de la zona
+    # del Excel: es un municipio y su nombre engana ("San Ignacio R.M." es San
+    # Ignacio Rio Muerto, Sonora, no San Ignacio de BCS).
+    foco_estado_id = fields.Many2one(
+        'res.country.state', string='Zona (estado)', index=True,
+        compute='_compute_foco_estado', store=True,
+        help='El estado en el que esta el cliente: por su ubicacion en el mapa y, '
+             'si no tiene ubicacion, por el estado de su direccion. Es la zona del '
+             'mapa de Vendedores y del telefono.')
+    foco_estado_origen = fields.Selection(
+        [('pin', 'Por su ubicacion'), ('direccion', 'Por su direccion')],
+        string='Zona tomada', compute='_compute_foco_estado', store=True)
+
     foco_visita_ids = fields.One2many('foco.visita', 'partner_id',
                                       string='Visitas')
     foco_visita_count = fields.Integer(string='Numero de visitas',
                                        compute='_compute_foco_visita')
     foco_ultima_visita = fields.Datetime(string='Ultima visita',
                                          compute='_compute_foco_visita')
+
+    @api.depends('foco_cliente_ventas', 'partner_latitude', 'partner_longitude',
+                 'state_id')
+    def _compute_foco_estado(self):
+        State = self.env['res.country.state'].sudo()
+        oficiales = {}
+
+        def oficial(code):
+            if code not in oficiales:
+                oficiales[code] = State.search(
+                    [('country_id.code', '=', 'MX'), ('code', '=', code)], limit=1)
+            return oficiales[code]
+
+        for p in self:
+            est, origen = State.browse(), False
+            if p.foco_cliente_ventas:
+                code, _km = estado_de(p.partner_latitude, p.partner_longitude)
+                if code:
+                    est, origen = oficial(code), 'pin'
+                if not est and p.state_id:
+                    est, origen = self._foco_estado_canonico(p.state_id), 'direccion'
+            p.foco_estado_id = est
+            p.foco_estado_origen = origen if est else False
+
+    @api.model
+    def _foco_estado_canonico(self, state):
+        """El estado OFICIAL con el mismo nombre. En produccion hay copias
+        capturadas a mano ('Baja California Sur' con codigo '23703', 'Baja
+        California' con '22920'): sin esto partirian una zona en dos."""
+        if not state or (state.code or '').isalpha():
+            return state
+        gemelos = self.env['res.country.state'].sudo().search(
+            [('country_id', '=', state.country_id.id), ('name', '=ilike', state.name),
+             ('id', '!=', state.id)])
+        return next((s for s in gemelos if (s.code or '').isalpha()), state)
 
     def _compute_foco_visita(self):
         # sudo A PROPOSITO: este contador se calcula al abrir/guardar CUALQUIER
@@ -75,6 +161,12 @@ class ResPartner(models.Model):
             n, ult = data.get(p.id, (0, False))
             p.foco_visita_count = n
             p.foco_ultima_visita = ult
+
+    @api.depends('parent_id', 'foco_tipo_ubicacion', 'foco_cliente_ventas')
+    def _compute_foco_es_ubicacion(self):
+        for p in self:
+            p.foco_es_ubicacion = bool(
+                p.foco_cliente_ventas and p.parent_id and p.foco_tipo_ubicacion)
 
     def action_foco_ver_visitas(self):
         self.ensure_one()
@@ -99,6 +191,8 @@ class ResPartner(models.Model):
         dom = [('foco_cliente_ventas', '=', True)]
         if filtros.get('vendedor'):
             dom.append(('user_id', '=', int(filtros['vendedor'])))
+        if filtros.get('estado'):
+            dom.append(('foco_estado_id', '=', int(filtros['estado'])))
         if filtros.get('zona'):
             dom.append(('foco_zona', '=', filtros['zona']))
         if filtros.get('cultivo'):
@@ -141,18 +235,33 @@ class ResPartner(models.Model):
                     ['partner_id'], ['check_in:max', '__count']):
                 ult_visita[g[0].id] = (g[1], g[2])
 
-        filas, por_estatus, sin_geo = [], {}, 0
+        tipo_label = dict(TIPO_UBICACION)
+        filas, por_estatus, sin_geo, n_razones = [], {}, 0, 0
         for c in clientes:
             if not (c.partner_latitude or c.partner_longitude):
                 sin_geo += 1
             ult, nvis = ult_visita.get(c.id, (False, 0))
-            est = c.foco_estatus or 'prospecto'
-            por_estatus[est] = por_estatus.get(est, 0) + 1
+            # Una UBICACION hereda el estatus (y el color) de su razon social: un
+            # almacen no es un "prospecto" aparte. Solo las razones sociales cuentan
+            # para el total y el desglose por estatus.
+            es_ubic = bool(c.parent_id and c.foco_tipo_ubicacion)
+            razon = c.commercial_partner_id if es_ubic else c
+            est = (razon.foco_estatus if es_ubic else c.foco_estatus) or 'prospecto'
+            if not es_ubic:
+                n_razones += 1
+                por_estatus[est] = por_estatus.get(est, 0) + 1
             filas.append({
                 'id': c.id, 'name': c.display_name,
                 'lat': c.partner_latitude, 'lng': c.partner_longitude,
                 'estatus': est, 'color': ESTATUS_COLOR.get(est, '#94a3b8'),
+                'es_ubicacion': es_ubic,
+                'tipo_ubicacion': c.foco_tipo_ubicacion or '',
+                'tipo_ubicacion_label': tipo_label.get(c.foco_tipo_ubicacion, ''),
+                'razon_social': razon.display_name if es_ubic else '',
+                'parent_id': c.parent_id.id if c.parent_id else False,
                 'empaque': c.foco_empaque or '', 'zona': c.foco_zona or '',
+                'estado': c.foco_estado_id.name or '',
+                'estado_id': c.foco_estado_id.id or False,
                 'cultivo': c.foco_cultivo or '', 'contacto': c.foco_contacto or '',
                 'phone': c.phone or '',
                 'expediente': c.foco_expediente_url or '',
@@ -166,6 +275,12 @@ class ResPartner(models.Model):
 
         # --- catalogos para los filtros ---
         zonas = sorted({c.foco_zona for c in clientes if c.foco_zona})
+        n_estado = {}
+        for c in clientes:
+            if c.foco_estado_id:
+                n_estado[c.foco_estado_id] = n_estado.get(c.foco_estado_id, 0) + 1
+        estados = [{'id': s.id, 'name': s.name, 'n': n}
+                   for s, n in sorted(n_estado.items(), key=lambda x: (-x[1], x[0].name))]
         cultivos = sorted({c.foco_cultivo for c in clientes if c.foco_cultivo})
         vendedores, vistos = [], set()
         for c in clientes:
@@ -192,11 +307,13 @@ class ResPartner(models.Model):
             'estatus_labels': dict(ESTATUS_VENTAS),
             'estatus_color': ESTATUS_COLOR,
             'kpis': {
-                'total': len(clientes), 'por_estatus': por_estatus,
+                'total': n_razones, 'por_estatus': por_estatus,
+                'ubicaciones': len(clientes) - n_razones,
                 'oportunidades': total_oport, 'sin_geo': sin_geo,
                 'visitas_mes': visitas_mes, 'sin_visita_30': sin_visita_30,
             },
             'filtros': {
+                'estados': estados,
                 'zonas': zonas, 'cultivos': cultivos, 'vendedores': vendedores,
                 'estatus': [{'k': k, 'v': v} for k, v in ESTATUS_VENTAS],
             },

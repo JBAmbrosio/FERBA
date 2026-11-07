@@ -42,6 +42,20 @@ class FocoSettings(models.Model):
         help='El que toma un equipo que no tenga uno propio. Vacio = ese equipo '
              'no bloquea nada.')
 
+    # ---- bloqueo POR USUARIO: lista de cuentas EXENTAS (TI) --------------
+    # Solo tiene efecto en los equipos con "Ambito del bloqueo = Por usuario".
+    # Una cuenta por linea: su SID (S-1-5-21-...) o su nombre (DOMINIO\\usuario).
+    # El SID MANDA sobre el nombre (el nombre es falsificable); ante duda, la
+    # sesion se MONITOREA (fail-closed). Ser administrador NO exenta: solo estar
+    # en esta lista. Las lineas que empiezan con # son comentarios.
+    enforcement_exempt = fields.Text(
+        string='Cuentas exentas del bloqueo por usuario',
+        help='Una cuenta por linea: su SID (recomendado, infalsificable) o su '
+             'nombre (DOMINIO\\usuario). Estas sesiones NO reciben el bloqueo en '
+             'los equipos con ambito "Por usuario"; todas las demas si. Ser '
+             'administrador local no exenta: solo estar aqui. Lineas con # son '
+             'comentarios.')
+
     # ---- ventana de inactividad (justificacion bloqueante) --------------
     # El umbral (estos minutos) es GLOBAL para todos; a QUE EQUIPO le sale la
     # ventana es POR EQUIPO (foco.computer.foco_ventana_inactividad), APAGADO
@@ -69,18 +83,35 @@ class FocoSettings(models.Model):
             if r.gap_min_minutes and not (1 <= r.gap_min_minutes <= 60):
                 raise ValidationError('Los minutos de inactividad van de 1 a 60.')
 
+    def _dom_equipos_empresa(self):
+        """Los equipos de ESTA configuracion: los de los empleados de su empresa
+        (la principal se queda ademas con los que aun no tienen empleado)."""
+        self.ensure_one()
+        cid = self.company_id.id
+        if not cid:
+            return []
+        if self.foco_es_principal:
+            return ['|', ('employee_id', '=', False), ('employee_id.company_id', '=', cid)]
+        return [('employee_id.company_id', '=', cid)]
+
     @api.depends_context('uid')
     def _compute_ventana_equipos(self):
-        eqs = self.env['foco.computer'].sudo().search([('foco_ventana_inactividad', '=', True)])
-        for rec in self:
-            rec.ventana_computer_ids = eqs
-
-    def _inverse_ventana_equipos(self):
         Comp = self.env['foco.computer'].sudo()
         for rec in self:
-            actuales = Comp.search([('foco_ventana_inactividad', '=', True)])
-            (actuales - rec.ventana_computer_ids).write({'foco_ventana_inactividad': False})
-            rec.ventana_computer_ids.sudo().write({'foco_ventana_inactividad': True})
+            rec.ventana_computer_ids = Comp.search(
+                [('foco_ventana_inactividad', '=', True)] + rec._dom_equipos_empresa())
+
+    def _inverse_ventana_equipos(self):
+        # Solo toca los equipos de SU empresa: guardar la lista de Peru no puede
+        # apagar la ventana de los equipos de Industrias.
+        Comp = self.env['foco.computer'].sudo()
+        for rec in self:
+            dom = rec._dom_equipos_empresa()
+            actuales = Comp.search([('foco_ventana_inactividad', '=', True)] + dom)
+            propios = rec.ventana_computer_ids.sudo().filtered_domain(dom) if dom \
+                else rec.ventana_computer_ids.sudo()
+            (actuales - propios).write({'foco_ventana_inactividad': False})
+            propios.write({'foco_ventana_inactividad': True})
 
     @api.model
     def action_ventana(self):
@@ -158,6 +189,46 @@ class FocoSettings(models.Model):
     mobile_collect_apps = fields.Boolean(
         string='Registrar uso de apps', default=True,
         help='Segundos en primer plano por aplicacion y dia.')
+
+    # ---- Alarma de bateria baja (en el telefono) -------------------------
+    #
+    # ENCENDIDA de fabrica, al reves que todo lo demas del bloque movil: esto
+    # no mide a nadie, cuida la herramienta. Un telefono sin pila deja a la
+    # persona incomunicada en la calle y, de paso, deja de reportar.
+    #
+    # Son DOS escalones a proposito. El AVISO es una notificacion normal, que
+    # se puede ignorar sin drama. La ALARMA es lo que de verdad interrumpe:
+    # suena como llamada -aunque el telefono este en silencio-, toma la
+    # pantalla completa y se repite hasta que lo conecten. Si los dos sonaran
+    # igual, el primero ensenaria a ignorar al segundo.
+    #
+    # Los dos umbrales y la repeticion se configuran aqui porque el numero
+    # bueno depende del equipo: un telefono gastado cae de 15 a 0 en minutos.
+    bateria_alarma_enabled = fields.Boolean(
+        string='Avisar cuando se quede sin pila', default=True,
+        help='Interruptor general de los dos escalones. Apagado, el telefono '
+             'no avisa ni suena por bateria baja. No depende del monitoreo: '
+             'avisar de la pila no es medir a la persona.')
+    bateria_aviso_pct = fields.Integer(
+        string='Avisar al bajar de (%)', default=15,
+        help='Primer escalon: una notificacion discreta de "conecta el '
+             'cargador". No suena como alarma y se puede descartar. '
+             '0 = sin aviso, solo la alarma.')
+    bateria_alarma_pct = fields.Integer(
+        string='Alarma sonora al bajar de (%)', default=10,
+        help='Segundo escalon: suena como una llamada y toma la pantalla '
+             'completa. Tiene que ser MENOR que el aviso. 0 = sin alarma, '
+             'solo el aviso.')
+    bateria_alarma_repetir_min = fields.Integer(
+        string='Repetir la alarma cada (min)', default=10,
+        help='La alarma vuelve a sonar cada tantos minutos mientras no '
+             'conecten el cargador. Al conectarlo se calla sola. '
+             '0 = sonar una sola vez.')
+    bateria_alarma_silencio = fields.Boolean(
+        string='Sonar aunque este en silencio', default=True,
+        help='La alarma usa el canal de ALARMA del telefono, que suena aunque '
+             'el equipo este en vibrador o silencio. Es lo que la hace util en '
+             'la calle. Apagalo si prefieres respetar el modo silencio.')
     # --- Grabacion de la visita (coaching con IA) ---
     # APAGADO de fabrica. Es lo mas sensible del lado movil: graba la
     # conversacion de la visita (micro) para que la IA la analice como gerente
@@ -175,6 +246,15 @@ class FocoSettings(models.Model):
         string='Duracion maxima de grabacion (min)', default=90,
         help='Tope de seguridad: la grabacion se corta a los N minutos aunque '
              'el telefono siga en el sitio.')
+    # --- Coaching de llamadas de WhatsApp (lado del vendedor) ---
+    # El telefono graba el lado del vendedor de una llamada de WhatsApp y lo sube
+    # para el MISMO coaching que las visitas. Encendido de fabrica (el telefono ya
+    # graba con aviso); apagarlo aqui rechaza los audios que lleguen.
+    coaching_llamadas = fields.Boolean(
+        string='Coaching de llamadas de WhatsApp', default=True,
+        help='Apagado, Odoo rechaza el audio de llamadas que suba el telefono y '
+             'no genera coaching. La grabacion del telefono va con aviso en el '
+             'aviso de privacidad que firma el vendedor.')
     # PIN de proteccion (anti-desinstalacion) para equipos que NO se pueden
     # aprovisionar como Device Owner (telefonos ya en uso). El telefono lo pide
     # antes de dejar desinstalar Foco, forzar su detencion o desactivar su
@@ -232,6 +312,29 @@ class FocoSettings(models.Model):
                 vistos.append(p)
         return vistos
 
+    @api.constrains('bateria_aviso_pct', 'bateria_alarma_pct',
+                    'bateria_alarma_repetir_min')
+    def _check_bateria(self):
+        """Los dos escalones tienen que ser un escalon de verdad: si la alarma
+        no queda POR DEBAJO del aviso, los dos se disparan a la vez y el aviso
+        deja de servir para algo."""
+        for r in self:
+            for campo, etiqueta in (('bateria_aviso_pct', 'aviso'),
+                                    ('bateria_alarma_pct', 'alarma')):
+                v = r[campo] or 0
+                if not (0 <= v <= 100):
+                    raise ValidationError(
+                        'El porcentaje de %s debe estar entre 0 y 100.' % etiqueta)
+            if (r.bateria_alarma_repetir_min or 0) < 0:
+                raise ValidationError(
+                    'Los minutos para repetir la alarma no pueden ser negativos.')
+            av, al = r.bateria_aviso_pct or 0, r.bateria_alarma_pct or 0
+            if av and al and al >= av:
+                raise ValidationError(
+                    'La alarma sonora (%d%%) tiene que quedar POR DEBAJO del '
+                    'aviso (%d%%). Si no, suenan las dos a la vez y el aviso '
+                    'no sirve de nada.' % (al, av))
+
     @api.constrains('mobile_uninstall_pin')
     def _check_uninstall_pin(self):
         for r in self:
@@ -253,6 +356,13 @@ class FocoSettings(models.Model):
             'visita_grabar': self.visita_grabar,
             'visita_radio_m': self.visita_grabar_radio_m or 200,
             'visita_max_min': self.visita_grabar_max_min or 90,
+            # Alarma de bateria: viaja SIEMPRE, encendido o no el monitoreo
+            # (el telefono la aplica solo; el servidor no la dispara).
+            'bateria_alarma': self.bateria_alarma_enabled,
+            'bateria_aviso_pct': self.bateria_aviso_pct or 0,
+            'bateria_alarma_pct': self.bateria_alarma_pct or 0,
+            'bateria_repetir_min': self.bateria_alarma_repetir_min or 0,
+            'bateria_silencio': self.bateria_alarma_silencio,
         }
 
     # ---- analisis de llamadas de WhatsApp (laptop) -----------------------
@@ -275,9 +385,16 @@ class FocoSettings(models.Model):
         default='5319275A.WhatsAppDesktop\nWhatsApp.Root.exe\nWhatsApp.exe',
         help='Nombre con el que Windows registra a la app que toma el microfono '
              '(el que aparece en los eventos «Entro a una llamada»). WhatsApp '
-             'de escritorio es 5319275A.WhatsAppDesktop. Una llamada de '
-             'WhatsApp Web dentro de Chrome NO se distingue de otra llamada del '
-             'navegador y no se analiza.')
+             'de escritorio es 5319275A.WhatsAppDesktop. WhatsApp Web (dentro del '
+             'navegador) NO se detecta por aqui -no tiene proceso propio-; para eso '
+             'esta el interruptor de abajo.')
+    call_review_web = fields.Boolean(
+        string='Incluir llamadas de WhatsApp Web (navegador)', default=True,
+        help='Ademas de la app de escritorio, graba la llamada cuando corre en '
+             'web.whatsapp.com dentro del navegador. El agente la detecta cruzando '
+             'que el navegador tomo el microfono con que web.whatsapp.com estuvo al '
+             'frente hace poco. Limite: el audio del interlocutor sale del sonido del '
+             'sistema, que no separa el de otras pestañas del navegador.')
     call_review_notice = fields.Text(
         string='Aviso en pantalla al empezar',
         default='Foco esta analizando esta llamada de WhatsApp para clasificarla como '
@@ -430,6 +547,7 @@ class FocoSettings(models.Model):
         return {
             'enabled': activo,
             'apps': self.call_review_apps_list(),
+            'web': bool(self.call_review_web),
             'aviso': (self.call_review_notice or '').strip(),
             'max_min': self.call_review_max_minutes or 120,
             'chunk_min': self.call_review_chunk_minutes or 3,
@@ -538,6 +656,47 @@ class FocoSettings(models.Model):
         string='Ultimo enviado', readonly=True,
         help='El dia del ultimo reporte enviado por el proceso automatico. Se '
              'envia una vez por dia.')
+    # 16-oct-2026: el reporte salia "enviado" y no llegaba. El remitente era el
+    # correo de la empresa, ningun servidor de salida de Odoo lo cubre y Odoo
+    # lo mandaba por el de marketing con remitente @ferba.odoo.com, que el
+    # proveedor de correo rebota. Con un buzon que tenga su servidor en Odoo,
+    # sale autenticado por ese servidor.
+    reporte_diario_remitente = fields.Char(
+        string='Remitente del reporte',
+        help='Buzon con el que sale el reporte. Tiene que tener su servidor de '
+             'correo saliente en Odoo (Ajustes > Tecnico > Servidores de correo '
+             'saliente, con ese buzon en "Filtro DE"); si no, Odoo lo manda con '
+             'otro remitente por otro servidor y el correo puede rebotar. Vacio = '
+             'el correo de la empresa.')
+    reporte_diario_remitente_aviso = fields.Char(
+        string='Por donde sale', compute='_compute_reporte_diario_remitente_aviso')
+
+    @api.depends('reporte_diario_remitente')
+    def _compute_reporte_diario_remitente_aviso(self):
+        for r in self:
+            remitente = (r.reporte_diario_remitente or '').strip() or (r.company_id.email or '')
+            try:
+                servidor, smtp_from = self.env['ir.mail_server'].sudo()._find_mail_server(remitente)
+            except Exception:
+                r.reporte_diario_remitente_aviso = False
+                continue
+            if not servidor:
+                # El servidor de Odoo.sh SI entrega: si el remitente no es de su
+                # dominio usa su propia direccion y conserva el nombre (probado el
+                # 16-oct-2026 con el servidor de marketing archivado).
+                igual = (smtp_from or '').strip().lower() == remitente.lower()
+                r.reporte_diario_remitente_aviso = (
+                    'Sale por el servidor de Odoo.sh como %s.' % smtp_from if igual else
+                    'Sale por el servidor de Odoo.sh como %s: Odoo usa su propia direccion '
+                    'y conserva el nombre del remitente.' % (smtp_from or '?'))
+            elif not servidor.from_filter or servidor._match_from_filter(remitente, servidor.from_filter):
+                r.reporte_diario_remitente_aviso = 'Sale como %s por %s.' % (remitente, servidor.name)
+            else:
+                # El caso del 15-oct: ningun servidor cubre al remitente y Odoo
+                # toma el primero que hay, con otro remitente.
+                r.reporte_diario_remitente_aviso = (
+                    'Odoo no tiene servidor para %s: lo mandaria como %s por %s y puede '
+                    'rebotar.' % (remitente or '(sin correo)', smtp_from or '?', servidor.name))
 
     @api.constrains('adherencia_gracia_min', 'reporte_diario_hora')
     def _check_adherencia(self):
@@ -683,17 +842,19 @@ class FocoSettings(models.Model):
         sin codigo de version, o con la actualizacion sola apagada. Solo se
         publica una version que tenga huella calculada.
         """
-        self.ensure_one()
-        if not (self.agent_autoupdate and self.installer
-                and self.installer_sha256 and self.agent_version_code):
+        # El instalador es de la PLATAFORMA: lo mismo para los equipos de
+        # cualquier empresa, sin importar sobre que configuracion se llame.
+        g = self.get_settings_global()
+        if not (g.agent_autoupdate and g.installer
+                and g.installer_sha256 and g.agent_version_code):
             return {'ok': True, 'version_code': 0}
         return {
             'ok': True,
-            'version_code': self.agent_version_code,
-            'version_name': self.agent_version_name or '',
-            'sha256': self.installer_sha256,
-            'size': self.installer_size,
-            'name': self.installer_name or 'FERBA-Foco-Setup.exe',
+            'version_code': g.agent_version_code,
+            'version_name': g.agent_version_name or '',
+            'sha256': g.installer_sha256,
+            'size': g.installer_size,
+            'name': g.installer_name or 'FERBA-Foco-Setup.exe',
         }
 
     # ---- app movil (APK) para repartir por QR ---------------------------
@@ -718,9 +879,8 @@ class FocoSettings(models.Model):
              'codigo de teclas.')
 
     def mobile_apk_ready(self):
-        """True si hay un APK publicado para repartir."""
-        self.ensure_one()
-        return bool(self.mobile_apk)
+        """True si hay un APK publicado para repartir (es de la plataforma)."""
+        return bool(self.get_settings_global().mobile_apk)
 
     # ---- APK "stub" de ALTA (pasa Play Protect en el QR) ----------------
     # Google Play Protect BLOQUEA el Foco completo al instalarlo por QR (micro,
@@ -741,8 +901,8 @@ class FocoSettings(models.Model):
 
     def mobile_stub_ready(self):
         """True si hay stub de alta publicado (y el Foco completo que baja)."""
-        self.ensure_one()
-        return bool(self.mobile_stub_apk) and bool(self.mobile_apk)
+        g = self.get_settings_global()
+        return bool(g.mobile_stub_apk) and bool(g.mobile_apk)
 
     # ---- quien puede ver Foco -------------------------------------------
     # Se administra desde aqui y no desde Ajustes > Usuarios para que el
@@ -760,6 +920,16 @@ class FocoSettings(models.Model):
         help='Ademas de ver, clasifican apps y sitios, envian ordenes remotas y '
              'gestionan estos accesos. Incluye de forma automatica el permiso '
              'de consulta.')
+    # Perfil de Recursos Humanos (reunion del 14-oct-2026): solo asistencia,
+    # periodos sin actividad y justificaciones. Quien esta aqui sale de la
+    # lista de consulta: estar en las dos le daria a ver todo.
+    access_rrhh_ids = fields.Many2many(
+        'res.users', string='Recursos Humanos',
+        compute='_compute_accesos', inverse='_inverse_access_rrhh',
+        help='Solo ven la asistencia, los periodos sin actividad y las '
+             'justificaciones, y deciden sobre ellas (aceptar, rechazar, '
+             'aprobar lo de quien no tiene ventana, devolver, marcar revisado). '
+             'No ven el uso de apps, los equipos ni nada mas de Foco.')
 
     def _grupo(self, xmlid):
         return self.env.ref('foco_monitor.' + xmlid, raise_if_not_found=False)
@@ -768,16 +938,20 @@ class FocoSettings(models.Model):
     def _compute_accesos(self):
         g_user = self._grupo('group_foco_user')
         g_admin = self._grupo('group_foco_manager')
+        g_rrhh = self._grupo('group_foco_rrhh')
         for rec in self:
             rec.access_user_ids = g_user.user_ids if g_user else False
             rec.access_manager_ids = g_admin.user_ids if g_admin else False
+            rec.access_rrhh_ids = g_rrhh.user_ids if g_rrhh else False
 
     def _inverse_access_user(self):
         g_user = self._grupo('group_foco_user')
         if not g_user:
             return
         for rec in self:
-            g_user.sudo().user_ids = [(6, 0, rec.access_user_ids.ids)]
+            # Quien es de Recursos Humanos no entra a consulta (veria todo),
+            # sin importar en que orden corran los dos inversos al guardar.
+            g_user.sudo().user_ids = [(6, 0, (rec.access_user_ids - rec.access_rrhh_ids).ids)]
 
     def _inverse_access_manager(self):
         g_admin = self._grupo('group_foco_manager')
@@ -785,6 +959,18 @@ class FocoSettings(models.Model):
             return
         for rec in self:
             g_admin.sudo().user_ids = [(6, 0, rec.access_manager_ids.ids)]
+
+    def _inverse_access_rrhh(self):
+        g_rrhh = self._grupo('group_foco_rrhh')
+        g_user = self._grupo('group_foco_user')
+        if not g_rrhh:
+            return
+        for rec in self:
+            g_rrhh.sudo().user_ids = [(6, 0, rec.access_rrhh_ids.ids)]
+            # Recursos Humanos NO es consulta: si estaba en las dos, veria todo.
+            if g_user and rec.access_rrhh_ids:
+                g_user.sudo().user_ids = [(3, u.id) for u in rec.access_rrhh_ids
+                                          if u in g_user.user_ids]
 
     @api.model
     def action_accesos(self):
@@ -814,9 +1000,13 @@ class FocoSettings(models.Model):
             'views': [(self.env.ref('foco_monitor.foco_settings_view_form_movil').id, 'form')],
         }
 
-    @api.model
     def action_alcance(self):
         """Abre la lista de quien tiene acceso, para repartir departamentos.
+
+        SIN @api.model (14-oct-2026): lo llama el boton "Repartir departamentos"
+        del formulario de Accesos, y en Odoo 19 un boton de registro le pasa los
+        ids; con el decorador tronaba "takes 1 positional argument but 2 were
+        given". Ajustes lo sigue llamando sobre el modelo vacio, y funciona igual.
 
         Se limita a las personas con acceso a Foco: repartir alcance a alguien
         que ni siquiera ve la aplicacion no significa nada, y la lista completa
@@ -824,8 +1014,10 @@ class FocoSettings(models.Model):
         """
         g_ver = self._grupo('group_foco_user')
         g_admin = self._grupo('group_foco_manager')
+        g_rrhh = self._grupo('group_foco_rrhh')
         usuarios = (g_ver.user_ids if g_ver else self.env['res.users'])
         usuarios |= (g_admin.user_ids if g_admin else self.env['res.users'])
+        usuarios |= (g_rrhh.user_ids if g_rrhh else self.env['res.users'])
         return {
             'type': 'ir.actions.act_window',
             'name': 'Que ve cada quien',
@@ -839,9 +1031,132 @@ class FocoSettings(models.Model):
                     '"Quien puede ver Foco".</p>',
         }
 
+    # ---- UNA configuracion POR EMPRESA (15-oct-2026) ----------------------
+    #
+    # Foco funciona por compania: cada empresa tiene sus empleados, sus
+    # metricas y SU configuracion (umbrales, bolsa de 90 min, ventana, IA,
+    # alarma de bateria, perfiles...). `get_settings()` devuelve la de la
+    # empresa en curso: la del selector de empresas en la pantalla, o la del
+    # empleado del equipo/telefono que esta hablando con Odoo (contexto
+    # `foco_company_id`, lo pone el controlador al autenticarlo).
+    #
+    # Lo que NO es de una empresa sino de la plataforma -el instalador del
+    # agente, el APK, la cuenta de Google, la retencion, el tope de tokens de
+    # IA- vive solo en la configuracion de la empresa PRINCIPAL y se lee con
+    # `get_settings_global()`. Las llaves de IA y los accesos ya eran de
+    # plataforma: viven en parametros del sistema y en grupos.
+    company_id = fields.Many2one(
+        'res.company', string='Empresa', index=True, readonly=True,
+        default=lambda self: self.env.company,
+        help='La empresa a la que pertenece esta configuracion.')
+    foco_es_principal = fields.Boolean(
+        compute='_compute_foco_es_principal',
+        help='La configuracion de la empresa principal tambien guarda lo que es '
+             'de toda la plataforma (instalador del agente, APK, consumo de IA).')
+
+    _empresa_uniq = models.Constraint(
+        'unique(company_id)', 'Cada empresa tiene una sola configuracion de Foco.')
+
+    CAMPOS_PLATAFORMA = (
+        'installer', 'installer_name', 'agent_version_name', 'agent_version_code',
+        'agent_autoupdate', 'installer_sha256', 'installer_size', 'installer_uploaded_at',
+        'mobile_apk', 'mobile_apk_name', 'mobile_apk_version_name', 'mobile_apk_version_code',
+        'mobile_apk_token_minutes', 'mobile_stub_apk', 'mobile_stub_apk_name',
+        'mobile_stub_apk_version_code',
+        'amapi_enterprise', 'amapi_enterprise_display', 'amapi_signup_name',
+        'amapi_ultima_sync', 'amapi_ultimo_error',
+        'retention_months', 'retention_last_run', 'retention_last_deleted', 'retention_pending',
+        'ia_tokens_umbral_dia',
+    )
+
     @api.model
-    def get_settings(self):
-        return self.search([], limit=1) or self.create({})
+    def _foco_principal(self):
+        return (self.env.ref('base.main_company', raise_if_not_found=False)
+                or self.env['res.company'].sudo().search([], order='id', limit=1))
+
+    def _compute_foco_es_principal(self):
+        principal = self._foco_principal()
+        for rec in self:
+            rec.foco_es_principal = rec.company_id == principal
+
+    @api.model
+    def _foco_empresa(self):
+        """La empresa en curso: la del equipo que habla con Odoo, o la del selector."""
+        cid = self.env.context.get('foco_company_id')
+        if cid:
+            empresa = self.env['res.company'].sudo().browse(int(cid)).exists()
+            if empresa:
+                return empresa
+        return self.env.company
+
+    @api.model
+    def get_settings(self, crear=True):
+        """La configuracion de la empresa en curso. Si esa empresa todavia no
+        tiene, nace como COPIA de la de la empresa principal (decision del
+        15-oct-2026), con sus perfiles. `crear=False` no la crea (desde un
+        calculo no se crean registros): devuelve la de la principal."""
+        empresa = self._foco_empresa()
+        rec = self.search([('company_id', '=', empresa.id)], limit=1)
+        if rec:
+            return rec
+        if not crear:
+            return self.get_settings_global()
+        return self.browse(self.sudo()._foco_crear_para(empresa).id)
+
+    @api.model
+    def get_settings_global(self):
+        """La configuracion de la PLATAFORMA: la de la empresa principal."""
+        principal = self._foco_principal()
+        rec = self.sudo().search([('company_id', '=', principal.id)], limit=1)
+        if not rec:
+            rec = self.sudo()._foco_crear_para(principal)
+        return self.browse(rec.id)
+
+    @api.model
+    def de_empresa(self, empresa, crear=True):
+        """La configuracion de ESA empresa (sin empresa: la en curso)."""
+        if not empresa:
+            return self.get_settings(crear=crear)
+        return self.with_context(foco_company_id=empresa.id).get_settings(crear=crear)
+
+    @api.model
+    def de_equipo(self, equipo, crear=True):
+        """La configuracion que rige a un equipo o telefono: la de la empresa de
+        su empleado. Sin empleado, la de la empresa en curso."""
+        emp = equipo.sudo().employee_id if equipo else False
+        return self.de_empresa(emp.company_id if emp else False, crear=crear)
+
+    @api.model
+    def _foco_crear_para(self, empresa):
+        """Crea la configuracion de una empresa (sudo).
+
+        La PRINCIPAL adopta el registro que existia antes de que Foco fuera por
+        empresa. Cualquier otra nace como copia de la principal -sin lo de
+        plataforma- y con copia de sus perfiles (reglas, clasificacion y apps
+        del telefono), con el perfil por omision apuntando a SU copia. El
+        registro se crea ANTES de copiar los perfiles: lo que corre al crearlos
+        pide la configuracion de esta empresa y ya debe existir."""
+        principal = self._foco_principal()
+        if empresa == principal:
+            huerfano = self.search([('company_id', '=', False)], order='id', limit=1)
+            if huerfano:
+                huerfano.company_id = empresa.id
+                return huerfano
+            return self.create({'company_id': empresa.id})
+        maestro = self.search([('company_id', '=', principal.id)], limit=1) \
+            or self._foco_crear_para(principal)
+        vals = maestro.copy_data()[0]
+        for campo in self.CAMPOS_PLATAFORMA + ('default_policy_id', 'reporte_diario_ultimo', 'name'):
+            vals.pop(campo, None)
+        vals.update({'company_id': empresa.id, 'name': 'Configuracion · %s' % empresa.name})
+        rec = self.create(vals)
+        mapa = self.env['foco.policy'].with_context(foco_company_id=empresa.id)\
+            ._foco_copiar_para(empresa, principal)
+        if maestro.default_policy_id and mapa.get(maestro.default_policy_id.id):
+            rec.default_policy_id = mapa[maestro.default_policy_id.id].id
+        _logger.info('Foco: configuracion de la empresa %s (%s) creada como copia de la '
+                     'principal, con %d perfiles', empresa.id, empresa.name, len(mapa))
+        return rec
 
     # ---- la jornada: checador primero, calendario despues -----------------
     #
@@ -1362,7 +1677,8 @@ class FocoSettings(models.Model):
         un proceso de borrado que corre en silencio, y del que no se sabe si
         hizo algo, es peor que no tenerlo.
         """
-        ajustes = self.get_settings()
+        # La retencion es de la plataforma: una sola purga para todas las empresas.
+        ajustes = self.get_settings_global()
 
         # Las capturas se purgan SIEMPRE que tengan plazo, aunque la retencion
         # general este apagada. Son dos decisiones distintas: alguien puede

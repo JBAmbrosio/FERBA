@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Tablero de Recursos Humanos: las dos tarjetas del tablero que le
+         tocan a este perfil (asistencia y lo que pide atencion), y nada mas.
+         Usa las clases del tablero (.foco_dash) para que se vea igual. -->
+    <t t-name="foco_monitor.Rrhh">
+        <div class="foco_dash fd_rrhh" t-att-class="{ 'fd-dark': state.dark }" t-ref="root">
+            <header class="fd_head">
+                <div class="fd_head_l">
+                    <h1>Asistencia y justificaciones</h1>
+                    <p class="fd_sub">
+                        <b class="fd_periodo" t-esc="fechaLabel"/>
+                        <span class="sep">·</span>
+                        <span>Recursos Humanos</span>
+                    </p>
+                </div>
+                <div class="fd_head_r">
+                    <div class="fd_datenav" role="group">
+                        <button t-on-click="() => this.mover(-1)" title="Día anterior" aria-label="Día anterior">‹</button>
+                        <label class="fd_fecha" title="Ver otro día">
+                            <i class="fa fa-calendar"/>
+                            <input type="date" t-att-value="state.fecha" t-att-max="hoy"
+                                   t-on-change="(ev) => this.setFecha(ev)"/>
+                        </label>
+                        <button t-on-click="() => this.mover(1)" t-att-disabled="!puedeAdelante"
+                                title="Día siguiente" aria-label="Día siguiente">›</button>
+                    </div>
+                    <div class="fd_seg" role="group">
+                        <button t-att-class="esHoy ? 'on' : ''" t-on-click="() => this.verHoy()">Hoy</button>
+                    </div>
+                </div>
+            </header>
+
+            <t t-if="state.error">
+                <div class="fd_card"><div class="fd_empty small" t-esc="state.error"/></div>
+            </t>
+            <t t-elif="state.datos">
+                <section class="fd_rrhh_grid">
+                    <div class="fd_card">
+                        <div class="fd_card_head">
+                            <h2>Asistencia del día</h2>
+                            <span class="fd_card_hint">
+                                <t t-esc="equipo.a_tiempo or 0"/> a tiempo ·
+                                <t t-esc="equipo.tarde or 0"/> tarde ·
+                                <t t-esc="equipo.sin_registro or 0"/> sin registro
+                            </span>
+                            <button class="btn btn-link btn-sm p-0" t-on-click="() => this.abrir(state.datos.accion_asistencia)">
+                                Ver la asistencia
+                            </button>
+                        </div>
+                        <div class="fd_late">
+                            <t t-foreach="asistencia" t-as="p" t-key="p.id">
+                                <div class="p" t-attf-style="--i:{{ Math.min(p_index, 12) }}" role="button" tabindex="0"
+                                     t-att-title="'Su asistencia de los últimos días'"
+                                     t-on-click="() => this.abrir(p.accion)"
+                                     t-on-keydown="(ev) => this.tecla(ev, p.accion)">
+                                    <span class="fd_ava" t-attf-style="--h:{{ p.hue }}">
+                                        <t t-esc="p.initials"/>
+                                        <img t-attf-src="/web/image/hr.employee.public/{{ p.id }}/avatar_128" t-att-alt="p.name" loading="lazy"/>
+                                    </span>
+                                    <span class="who"><span class="nm" t-esc="p.name"/><span class="ev" t-esc="p.ev"/></span>
+                                    <span t-attf-class="fd_chip2 {{ p.chip }}" t-esc="p.chipTxt"/>
+                                </div>
+                            </t>
+                            <t t-if="!asistencia.length">
+                                <div class="fd_empty small">Todos a tiempo.</div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <div class="fd_card">
+                        <div class="fd_card_head">
+                            <h2>Requiere atención</h2>
+                            <span class="fd_card_hint"><t t-esc="atencion.length"/> tema<t t-if="atencion.length !== 1">s</t></span>
+                        </div>
+                        <div class="fd_atn">
+                            <t t-foreach="atencion" t-as="a" t-key="a.clave">
+                                <div class="it mid abrible" role="button" tabindex="0"
+                                     t-on-click="() => this.abrir(a.accion)"
+                                     t-on-keydown="(ev) => this.tecla(ev, a.accion)">
+                                    <div class="t"><t t-esc="a.titulo"/><b t-esc="a.n"/></div>
+                                    <div class="d">
+                                        <t t-foreach="a.detalle" t-as="l" t-key="l_index"><span t-att-title="l" t-esc="l"/></t>
+                                        <t t-if="a.mas"><span class="mas">y <t t-esc="a.mas"/> más…</span></t>
+                                    </div>
+                                </div>
+                            </t>
+                            <t t-if="!atencion.length"><div class="fd_empty small">Nada que requiera atención.</div></t>
+                        </div>
+                    </div>
+                </section>
+            </t>
+        </div>
+    </t>
+</templates>

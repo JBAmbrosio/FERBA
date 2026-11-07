@@ -171,15 +171,25 @@ class FocoUsage(models.Model):
         # que foco.policy._perfil_vigente: asi WhatsApp cuenta productivo para un
         # perfil y distraccion para otro (reunion 9-oct-2026).
         PolicyCat = self.env['foco.policy.category'].sudo()
-        try:
-            default_pol = self.env['foco.settings'].sudo().get_settings()\
-                .default_policy_id.filtered('active')
-        except Exception:
-            default_pol = self.env['foco.policy']
+        Settings = self.env['foco.settings'].sudo()
+        # El perfil por omision es el de la EMPRESA del empleado de cada equipo
+        # (15-oct-2026): un recalculo que dispara Industrias no puede clasificar
+        # a los equipos de Peru con el perfil de Industrias.
+        omision = {}
+
+        def defecto(computer):
+            empresa = computer.sudo().employee_id.company_id
+            if empresa.id not in omision:
+                try:
+                    omision[empresa.id] = Settings.de_empresa(empresa, crear=False)\
+                        .default_policy_id.filtered('active')
+                except Exception:
+                    omision[empresa.id] = self.env['foco.policy']
+            return omision[empresa.id]
 
         def perfil(computer):
             propio = computer.policy_id.filtered('active')
-            return (propio or default_pol)[:1]
+            return (propio or defecto(computer))[:1]
 
         perfiles = self.env['foco.policy']
         for rec in self:
