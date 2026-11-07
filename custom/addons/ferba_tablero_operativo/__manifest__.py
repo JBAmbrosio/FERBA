@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Tablero Operativo',
-    'version': '19.0.1.0.0',
+    'version': '19.0.2.0.0',
     'category': 'Productivity',
     'summary': 'Tablero del flujo FERBA (ventas, proyectos, compras, almacen y pagos) '
                'para todos los usuarios.',
@@ -24,6 +24,8 @@ compras (solicitud -> requisicion -> RFQ -> orden de compra), almacen
     ],
     'assets': {
         'web.assets_backend': [
+            # Chart.js vendorizado (sin CDN: la cuenta corre en red cerrada)
+            'ferba_tablero_operativo/static/lib/chartjs/chart.umd.min.js',
             'ferba_tablero_operativo/static/src/operativo/ferba_operativo.js',
             'ferba_tablero_operativo/static/src/operativo/ferba_operativo.xml',
             'ferba_tablero_operativo/static/src/operativo/ferba_operativo.scss',

@@ -3,15 +3,22 @@
   <t t-name="ferba_tablero_operativo.Dashboard">
     <div t-attf-class="o_ferba_operativo {{ state.dark ? 'fo-dark' : '' }}">
 
+      <!-- Capa ambiental: luz de color que el cristal refracta -->
+      <div class="fo-ambient" aria-hidden="true">
+        <span class="fo-blob fo-blob-1"/>
+        <span class="fo-blob fo-blob-2"/>
+        <span class="fo-blob fo-blob-3"/>
+      </div>
+
       <t t-if="state.loading">
         <div class="fo-center"><div class="fo-spinner"/><div class="fo-muted mt-2">Cargando el status del flujo…</div></div>
       </t>
 
       <t t-elif="state.error">
-        <div class="fo-wrap"><div class="alert alert-danger">
+        <div class="fo-wrap"><div class="fo-card fo-alert">
           <strong>No se pudo cargar el tablero.</strong>
           <div class="small mt-1" t-esc="state.error"/>
-          <button class="btn btn-sm btn-secondary mt-2" t-on-click="() => this.cargar()">Reintentar</button>
+          <button class="btn btn-sm mt-2 fo-btn" t-on-click="() => this.cargar()">Reintentar</button>
         </div></div>
       </t>
 
@@ -20,28 +27,31 @@
 
           <!-- Encabezado -->
           <header class="fo-head">
-            <div>
+            <div class="fo-head-main">
               <h1 class="fo-title">Tablero Operativo</h1>
               <div class="fo-muted fo-sub-head" t-esc="state.data.meta.empresas.join(' · ')"/>
             </div>
-            <button class="btn btn-sm btn-light fo-refresh" t-on-click="() => this.cargar()" title="Actualizar"><i class="fa fa-refresh"/></button>
+            <button class="btn btn-sm fo-refresh" t-on-click="() => this.cargar()" title="Actualizar">
+              <i class="fa fa-refresh"/><span class="fo-refresh-lbl">Actualizar</span>
+            </button>
           </header>
 
           <!-- CÓMO FUNCIONA EL FLUJO -->
-          <section class="fo-card fo-flow-card fo-animate">
+          <section class="fo-card fo-flow-card">
             <div class="fo-block-head">
               <div class="fo-chip fo-chip-sm fo-neutro"><i class="fa fa-sitemap"/></div>
               <h2 class="fo-block-title">Cómo funciona el flujo</h2>
-              <span class="fo-muted fo-hint ms-2">De la solicitud al pago — clic en cada etapa para ver sus documentos</span>
+              <span class="fo-muted fo-hint ms-2 fo-hint-head">De la solicitud al pago — clic en una etapa para ver sus documentos</span>
             </div>
             <div class="fo-flow">
               <t t-foreach="state.data.flujo" t-as="s" t-key="s.etapa">
                 <div t-attf-class="fo-node fo-click fo-{{ s.accent }}" t-on-click="() => this.abrir(s.model, s.domain, s.etapa)">
+                  <span class="fo-node-dot"/>
                   <div class="fo-node-count" t-esc="num(s.count)"/>
                   <div class="fo-node-name" t-esc="s.etapa"/>
                   <div class="fo-node-desc" t-esc="s.desc"/>
                 </div>
-                <div class="fo-arrow" t-if="!s_last">→</div>
+                <div class="fo-arrow" t-if="!s_last"><i class="fa fa-angle-right"/></div>
               </t>
             </div>
           </section>
@@ -49,67 +59,54 @@
           <!-- KPIs -->
           <div class="fo-kpis">
             <t t-foreach="state.data.kpis" t-as="k" t-key="k.key">
-              <div t-attf-class="fo-card fo-kpi-card fo-click fo-animate fo-{{ k.accent }} {{ k.attn ? 'fo-attn' : '' }}"
+              <div t-attf-class="fo-card fo-kpi-card fo-click fo-{{ k.accent }} {{ k.attn ? 'fo-attn' : '' }}"
                    t-on-click="() => this.abrir(k.model, k.domain, k.label)">
-                <div class="fo-chip"><i t-attf-class="fa {{ k.icon }}"/></div>
+                <div class="fo-kpi-top">
+                  <div class="fo-chip"><i t-attf-class="fa {{ k.icon }}"/></div>
+                  <i class="fa fa-arrow-right fo-kpi-go"/>
+                </div>
                 <div class="fo-kpi-num" t-esc="num(k.value)"/>
                 <div class="fo-kpi-lbl" t-esc="k.label"/>
-                <div class="fo-kpi-sub" t-esc="k.money !== null ? moneyC(k.money) : 'abrir detalle →'"/>
+                <div class="fo-kpi-sub" t-esc="k.money !== null ? moneyC(k.money) : 'ver detalle'"/>
               </div>
             </t>
           </div>
 
-          <!-- GRÁFICAS: tendencia + dona -->
+          <!-- GRÁFICAS -->
           <div class="fo-charts">
-            <section class="fo-card fo-chart-card fo-animate">
+            <section class="fo-card fo-chart-card">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm fo-ventas"><i class="fa fa-line-chart"/></div>
                 <h2 class="fo-block-title">Ventas por mes</h2>
                 <span class="fo-muted fo-hint ms-auto">Ticket prom. <b t-esc="moneyC(state.data.meta.ticket_promedio)"/></span>
               </div>
-              <t t-set="tr" t-value="trend(state.data.ventas.por_mes)"/>
+              <t t-set="um" t-value="state.data.ventas.por_mes.length ? state.data.ventas.por_mes[state.data.ventas.por_mes.length-1] : null"/>
               <t t-if="!state.data.ventas.por_mes.length"><div class="fo-empty">Sin datos</div></t>
               <t t-else="">
-                <div class="fo-trend-val" t-esc="money(tr.ult)"/>
-                <div class="fo-trend-cap fo-muted">último mes</div>
-                <svg class="fo-trend" viewBox="0 0 520 120" preserveAspectRatio="none">
-                  <polygon t-att-points="tr.area" class="fo-trend-area"/>
-                  <polyline t-att-points="tr.line" class="fo-trend-line"/>
-                  <t t-foreach="tr.pts" t-as="p" t-key="p_index">
-                    <circle t-att-cx="p[0]" t-att-cy="p[1]" r="2.5" class="fo-trend-dot"/>
-                  </t>
-                </svg>
-                <div class="fo-trend-axis">
-                  <t t-foreach="state.data.ventas.por_mes" t-as="m" t-key="m_index">
-                    <span t-esc="m.mes"/>
-                  </t>
+                <div class="fo-trend-val" t-esc="money(um.monto)"/>
+                <div class="fo-trend-cap fo-muted">
+                  <span t-esc="um.mes"/> <span t-esc="um.anio"/>
+                  <span t-if="um.parcial"> · mes en curso</span>
+                  <span t-else=""> · último mes cerrado</span>
                 </div>
+                <div class="fo-canvas-wrap fo-canvas-trend"><canvas t-ref="trendCanvas"/></div>
               </t>
             </section>
 
-            <section class="fo-card fo-chart-card fo-animate">
+            <section class="fo-card fo-chart-card">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm fo-ventas"><i class="fa fa-pie-chart"/></div>
                 <h2 class="fo-block-title">Ventas por tipo</h2>
+                <span class="fo-muted fo-hint ms-auto">confirmadas</span>
               </div>
-              <t t-set="dn" t-value="donut(state.data.ventas.por_tipo, 'amount_total')"/>
-              <t t-if="!dn.total"><div class="fo-empty">Sin datos</div></t>
+              <t t-if="!state.data.ventas.por_tipo.length"><div class="fo-empty">Sin datos</div></t>
               <t t-else="">
                 <div class="fo-donut-wrap">
-                  <svg class="fo-donut" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="16" fill="none" class="fo-donut-bg" stroke-width="6"/>
-                    <t t-foreach="dn.segs" t-as="s" t-key="s_index">
-                      <circle cx="20" cy="20" r="16" fill="none" stroke-width="6"
-                              t-att-stroke="s.color"
-                              t-attf-stroke-dasharray="{{ s.dash }} {{ s.gap }}"
-                              t-att-stroke-dashoffset="s.offset"
-                              transform="rotate(-90 20 20)"/>
-                    </t>
-                  </svg>
+                  <div class="fo-canvas-wrap fo-canvas-donut"><canvas t-ref="donutCanvas"/></div>
                   <div class="fo-legend">
                     <t t-foreach="state.data.ventas.por_tipo" t-as="t" t-key="t.code">
                       <div class="fo-leg-row fo-click" t-on-click="() => this.abrir(t.model, t.domain, t.label)">
-                        <span class="fo-dot" t-attf-style="background: {{ dn.segs[t_index] ? dn.segs[t_index].color : '#888' }}"/>
+                        <span class="fo-dot" t-attf-style="background: {{ serie(t_index) }}"/>
                         <span class="fo-leg-lbl" t-esc="t.label"/>
                         <span class="fo-leg-val" t-esc="moneyC(t.amount_total)"/>
                       </div>
@@ -123,7 +120,7 @@
           <!-- BLOQUES -->
           <div class="fo-grid">
 
-            <section class="fo-card fo-block fo-animate fo-ventas">
+            <section class="fo-card fo-block fo-ventas">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-briefcase"/></div>
                 <h2 class="fo-block-title">Ventas por etapa</h2>
@@ -134,7 +131,7 @@
               </t>
             </section>
 
-            <section class="fo-card fo-block fo-animate fo-compras">
+            <section class="fo-card fo-block fo-compras">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-shopping-cart"/></div>
                 <h2 class="fo-block-title">Compras</h2>
@@ -145,7 +142,7 @@
               <t t-call="ferba_tablero_operativo.Bars"><t t-set="filas" t-value="state.data.compras.rfq"/></t>
             </section>
 
-            <section class="fo-card fo-block fo-animate fo-almacen">
+            <section class="fo-card fo-block fo-almacen">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-cubes"/></div>
                 <h2 class="fo-block-title">Almacén</h2>
@@ -161,7 +158,7 @@
               </div>
             </section>
 
-            <section class="fo-card fo-block fo-animate fo-pagos">
+            <section class="fo-card fo-block fo-pagos">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-money"/></div>
                 <h2 class="fo-block-title">Pagos</h2>
@@ -177,7 +174,7 @@
 
           </div>
 
-          <div class="fo-foot fo-muted">Datos en vivo del flujo · empresa activa · clic en cualquier métrica para ver sus registros · ↻ para actualizar</div>
+          <div class="fo-foot fo-muted">Datos en vivo · empresa activa · clic en cualquier métrica para ver sus registros</div>
         </div>
       </t>
     </div>

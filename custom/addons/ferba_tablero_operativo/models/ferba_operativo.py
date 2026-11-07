@@ -5,13 +5,19 @@ proyectos, el embudo de compras (solicitud -> requisicion -> RFQ -> orden de
 compra), almacen (recepciones y traslados) y pagos. Cada metrica trae su
 `model` + `domain` para que el tablero sea CLICKABLE (abre los registros detras).
 
-Notas del dato real (medido en produccion):
+Notas del dato real (medido en produccion y validado por RPC 7-nov-2026):
 - Los estatus de Studio se guardan como CODIGOS ('0','1','2'); la etiqueta se
   resuelve con fields_get.
 - `purchase.order.x_studio_monto_en_uso`/`x_studio_presupuesto` son related NO
   almacenados: no se suman por SQL. Para montos de compra se usa amount_total.
-- Los modelos x_ de Studio no traen company_id confiable: no se filtran por
-  empresa; los nativos si se acotan a las empresas activas.
+- Empresa activa: los modelos nativos se acotan por `company_id`; los modelos de
+  Studio (solicitudes, requisiciones, rfq, pagos) NO tienen `company_id` pero SI
+  `x_studio_company_id` (m2o a res.company, 100% poblado) -> se acotan por el.
+  Asi todo el tablero respeta el selector de empresa de forma consistente.
+- "Ventas" = ordenes CONFIRMADAS (state in sale/done). La dona por tipo y el KPI
+  de ventas de proyecto antes sumaban TODOS los estados (incluidas cotizaciones
+  y canceladas), inflando el total; ahora cuadran con el KPI "Ordenes de venta".
+  El bloque "Ventas por etapa" si muestra el desglose por estado a proposito.
 
 Visibilidad: TODOS los usuarios internos, con montos. Lecturas con sudo().
 """
@@ -21,6 +27,9 @@ import logging
 from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
+
+# Estados que cuentan como venta CONFIRMADA (no cotizacion, no cancelada).
+VENTA_CONFIRMADA = [('state', 'in', ['sale', 'done'])]
 
 
 class FerbaOperativoDashboard(models.AbstractModel):
@@ -45,8 +54,13 @@ class FerbaOperativoDashboard(models.AbstractModel):
             return {}
 
     def _dom_empresa(self, model):
+        """Acota a las empresas activas, por `company_id` (nativos) o, si no
+        existe, por `x_studio_company_id` (modelos de Studio)."""
+        ids = self.env.companies.ids
         if self._campo(model, 'company_id'):
-            return [('company_id', 'in', self.env.companies.ids)]
+            return [('company_id', 'in', ids)]
+        if self._campo(model, 'x_studio_company_id'):
+            return [('x_studio_company_id', 'in', ids)]
         return []
 
     def _contar(self, model, domain=None):
@@ -68,16 +82,19 @@ class FerbaOperativoDashboard(models.AbstractModel):
         except Exception:
             return 0.0
 
-    def _por_estado(self, model, field, montos=None):
+    def _por_estado(self, model, field, montos=None, extra_domain=None):
         """[{code,label,count,<monto>,model,domain}] por un campo selection.
-        `domain` deja la fila CLICKABLE (abre esos registros)."""
+        `extra_domain` filtra el universo (p. ej. solo ventas confirmadas) y se
+        hereda en el `domain` de cada fila para que el drill-down coincida."""
         if not self._existe(model) or not self._campo(model, field):
             return []
         montos = montos or []
+        extra = extra_domain or []
         labels = self._labels(model, field)
         aggs = ['__count'] + ['%s:sum' % m for m in montos]
         try:
-            filas = self.env[model].sudo()._read_group(self._dom_empresa(model), [field], aggs)
+            filas = self.env[model].sudo()._read_group(
+                self._dom_empresa(model) + extra, [field], aggs)
         except Exception as e:
             _logger.warning('Tablero: no se pudo agrupar %s.%s (%s)', model, field, e)
             return []
@@ -86,14 +103,14 @@ class FerbaOperativoDashboard(models.AbstractModel):
             code = fila[0]
             reg = {'code': code or '', 'label': labels.get(code, code or 'Sin estado'),
                    'count': fila[1] or 0, 'model': model,
-                   'domain': [(field, '=', code if code else False)]}
+                   'domain': extra + [(field, '=', code if code else False)]}
             for i, m in enumerate(montos):
                 reg[m] = fila[2 + i] or 0.0
             out.append(reg)
         return out
 
     def _ventas_por_mes(self, meses=12):
-        """Monto de ventas confirmadas por mes (ultimos N). N consultas chicas,
+        """Monto de ventas CONFIRMADAS por mes (ultimos N). N consultas chicas,
         robusto entre versiones (no depende del groupby por periodo)."""
         if not self._existe('sale.order'):
             return []
@@ -109,14 +126,15 @@ class FerbaOperativoDashboard(models.AbstractModel):
         for i in range(meses - 1, -1, -1):
             ini = primero - relativedelta(months=i)
             fin = ini + relativedelta(months=1)
-            dom = [('state', 'in', ['sale', 'done']),
-                   ('date_order', '>=', str(ini)), ('date_order', '<', str(fin))] + comp
+            dom = VENTA_CONFIRMADA + [('date_order', '>=', str(ini)),
+                                      ('date_order', '<', str(fin))] + comp
             try:
                 g = self.env['sale.order'].sudo()._read_group(dom, [], ['amount_total:sum'])
                 monto = (g[0][0] if g else 0.0) or 0.0
             except Exception:
                 monto = 0.0
-            out.append({'mes': MESES[ini.month - 1], 'anio': ini.year, 'monto': monto})
+            out.append({'mes': MESES[ini.month - 1], 'anio': ini.year,
+                        'parcial': i == 0, 'monto': monto})
         return out
 
     # ------------------------------------------------------------------ data
@@ -126,7 +144,10 @@ class FerbaOperativoDashboard(models.AbstractModel):
         out_pick = [('picking_type_id.code', '=', 'outgoing')]
 
         # ---- VENTAS Y PROYECTOS ---------------------------------------------
-        ventas_tipo = self._por_estado('sale.order', 'x_studio_tipo_de_orden', montos=['amount_total'])
+        # Dona + KPI de proyecto: SOLO ventas confirmadas (cuadra con OV).
+        ventas_tipo = self._por_estado('sale.order', 'x_studio_tipo_de_orden',
+                                       montos=['amount_total'], extra_domain=VENTA_CONFIRMADA)
+        # Desglose por estado (aqui si entran cotizaciones y canceladas).
         ventas_estado = self._por_estado('sale.order', 'state', montos=['amount_total'])
         pe = {f['code']: f for f in ventas_estado}
         ov = pe.get('sale', {})
@@ -188,7 +209,8 @@ class FerbaOperativoDashboard(models.AbstractModel):
             {'key': 'proy', 'icon': 'fa-briefcase', 'accent': 'ventas',
              'value': proyectos.get('count', 0), 'label': 'Ventas de proyecto',
              'money': proyectos.get('amount_total', 0.0),
-             'model': 'sale.order', 'domain': [('x_studio_tipo_de_orden', '=', 'Proyecto')]},
+             'model': 'sale.order',
+             'domain': VENTA_CONFIRMADA + [('x_studio_tipo_de_orden', '=', 'Proyecto')]},
             {'key': 'cot', 'icon': 'fa-file-text-o', 'accent': 'ventas',
              'value': cot_n, 'label': 'Cotizaciones abiertas', 'money': cot_monto,
              'model': 'sale.order', 'domain': [('state', 'in', ['draft', 'sent'])]},
