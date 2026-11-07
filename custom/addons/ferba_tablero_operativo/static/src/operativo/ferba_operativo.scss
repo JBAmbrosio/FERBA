@@ -1,0 +1,174 @@
+// Tablero Operativo FERBA — modo Operate. Paleta PROPIA (Odoo no expone --bs-* al
+// addon): claro por defecto, .fo-dark la cambia a oscuro (el componente la pone al
+// detectar fondo oscuro). Sin min()/max() ni rgb(var()) ni @starting-style.
+
+.o_ferba_operativo {
+    --fo-ease: cubic-bezier(0.23, 1, 0.32, 1);
+    --fo-accent: #6c6f76;
+    --fo-surface: #ffffff;
+    --fo-line: rgba(17, 20, 24, 0.10);
+    --fo-text: #1a1d23;
+    --fo-muted: #6b7280;
+    --fo-track: rgba(17, 20, 24, 0.08);
+    --fo-hover: rgba(17, 20, 24, 0.05);
+    --fo-shadow: rgba(16, 18, 22, 0.08);
+    --fo-shadow-hover: rgba(16, 18, 22, 0.16);
+
+    height: 100%;
+    overflow: auto;
+    color: var(--fo-text);
+
+    &.fo-dark {
+        --fo-surface: #262a33;
+        --fo-line: rgba(255, 255, 255, 0.10);
+        --fo-text: #e6e8ec;
+        --fo-muted: #9aa1ab;
+        --fo-track: rgba(255, 255, 255, 0.12);
+        --fo-hover: rgba(255, 255, 255, 0.06);
+        --fo-shadow: rgba(0, 0, 0, 0.40);
+        --fo-shadow-hover: rgba(0, 0, 0, 0.55);
+    }
+
+    .fo-ventas  { --fo-accent: #5b6ee1; }
+    .fo-compras { --fo-accent: #1f8f88; }
+    .fo-almacen { --fo-accent: #cf8325; }
+    .fo-pagos   { --fo-accent: #2e9e5b; }
+    .fo-neutro  { --fo-accent: #8a8f98; }
+
+    .fo-wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 44px; }
+    .fo-muted { color: var(--fo-muted); }
+    .fo-hint { font-size: 0.78rem; }
+
+    // ---- encabezado
+    .fo-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .fo-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; line-height: 1.1; }
+    .fo-sub-head { font-size: 0.82rem; margin-top: 2px; }
+    .fo-refresh { border-radius: 8px; transition: transform 0.15s var(--fo-ease); &:active { transform: scale(0.94); } }
+
+    // ---- tarjetas base
+    .fo-card {
+        background: var(--fo-surface);
+        border: 1px solid var(--fo-line);
+        border-radius: 14px;
+        box-shadow: 0 1px 2px var(--fo-shadow);
+    }
+    .fo-click { cursor: pointer; }
+
+    .fo-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .fo-chip {
+        width: 34px; height: 34px; border-radius: 9px; background: var(--fo-accent);
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        font-size: 15px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(16, 18, 22, 0.14);
+    }
+    .fo-chip-sm { width: 28px; height: 28px; border-radius: 8px; margin-bottom: 0; font-size: 13px; }
+    .fo-block-title { font-size: 1.02rem; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+    .fo-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--fo-muted); font-weight: 600; margin-bottom: 8px; }
+
+    // ---- flujo
+    .fo-flow-card { padding: 16px 18px 18px; margin-bottom: 18px; }
+    .fo-flow { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+    .fo-node {
+        flex: 1 1 130px; min-width: 120px; border: 1px solid var(--fo-line);
+        border-radius: 11px; padding: 12px 12px 11px; border-top: 3px solid var(--fo-accent);
+        transition: transform 0.18s var(--fo-ease), box-shadow 0.18s var(--fo-ease);
+    }
+    .fo-node-count { font-size: 1.5rem; font-weight: 750; line-height: 1; color: var(--fo-accent); font-variant-numeric: tabular-nums; }
+    .fo-node-name { font-weight: 650; font-size: 0.92rem; margin-top: 5px; }
+    .fo-node-desc { font-size: 0.74rem; color: var(--fo-muted); margin-top: 3px; line-height: 1.25; }
+    .fo-arrow { align-self: center; color: var(--fo-muted); font-size: 18px; flex: 0 0 auto; }
+    @media (max-width: 900px) { .fo-arrow { display: none; } }
+
+    // ---- KPIs
+    .fo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .fo-kpi-card { padding: 16px 18px 18px; }
+    .fo-kpi-num { font-size: 2rem; font-weight: 750; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .fo-kpi-lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fo-muted); margin-top: 6px; font-weight: 600; }
+    .fo-kpi-sub { font-size: 0.82rem; color: var(--fo-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .fo-attn .fo-kpi-num { color: var(--fo-accent); }
+
+    // ---- graficas
+    .fo-charts { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 900px) { .fo-charts { grid-template-columns: 1fr; } }
+    .fo-chart-card { padding: 16px 18px 18px; }
+
+    .fo-trend-val { font-size: 1.5rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .fo-trend-cap { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .fo-trend { width: 100%; height: 120px; display: block; }
+    .fo-trend-area { fill: rgba(91, 110, 225, 0.14); stroke: none; }
+    .fo-trend-line { fill: none; stroke: #5b6ee1; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .fo-trend-dot { fill: #5b6ee1; }
+    .fo-trend-axis { display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.66rem; color: var(--fo-muted); }
+    .fo-trend-axis span { flex: 1 1 0; text-align: center; }
+
+    .fo-donut-wrap { display: flex; align-items: center; gap: 16px; }
+    .fo-donut { width: 128px; height: 128px; flex: 0 0 128px; }
+    .fo-donut-bg { stroke: var(--fo-track); }
+    .fo-legend { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .fo-leg-row { display: flex; align-items: center; gap: 8px; border-radius: 6px; padding: 2px 4px; }
+    .fo-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+    .fo-leg-lbl { flex: 1 1 auto; min-width: 0; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fo-leg-val { font-size: 0.8rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
+
+    // ---- bloques
+    .fo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+    .fo-block { padding: 18px 20px 20px; }
+
+    // ---- filas de barra
+    .fo-row { display: flex; align-items: center; gap: 10px; padding: 3px 6px; border-radius: 7px; margin: 0 -6px; }
+    .fo-row-lbl { width: 150px; flex: 0 0 150px; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fo-track { flex: 1 1 auto; min-width: 0; height: 10px; border-radius: 6px; background: var(--fo-track); overflow: hidden; }
+    .fo-bar { height: 100%; border-radius: 6px; background: var(--fo-accent); transform-origin: left center; animation: fo-grow 0.6s var(--fo-ease) both; }
+    .fo-row-val { flex: 0 0 auto; font-size: 0.86rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+    .fo-row-money { flex: 0 0 96px; width: 96px; text-align: right; font-size: 0.78rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
+    .fo-empty { font-size: 0.82rem; color: var(--fo-muted); padding: 6px 0; font-style: italic; }
+
+    // ---- tiles almacen
+    .fo-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fo-tile { border: 1px solid var(--fo-line); border-radius: 11px; padding: 14px 16px; transition: transform 0.18s var(--fo-ease), box-shadow 0.18s var(--fo-ease); }
+    .fo-tile-attn { border-color: var(--fo-accent); }
+    .fo-tile-num { font-size: 1.7rem; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+    .fo-attn-num { color: var(--fo-accent); }
+    .fo-ok { color: #2e9e5b; }
+    .fo-tile-lbl { font-size: 0.74rem; color: var(--fo-muted); margin-top: 6px; }
+
+    .fo-foot { font-size: 0.76rem; margin-top: 18px; text-align: center; }
+
+    // ---- carga
+    .fo-center { height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .fo-spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(128,128,128,0.25); border-top-color: #5b6ee1; animation: fo-spin 0.7s linear infinite; }
+
+    // ---- microinteracciones
+    .fo-animate { opacity: 0; animation: fo-in 0.45s var(--fo-ease) both; }
+    .fo-kpis .fo-animate:nth-child(1){animation-delay:.02s} .fo-kpis .fo-animate:nth-child(2){animation-delay:.06s}
+    .fo-kpis .fo-animate:nth-child(3){animation-delay:.10s} .fo-kpis .fo-animate:nth-child(4){animation-delay:.14s}
+    .fo-kpis .fo-animate:nth-child(5){animation-delay:.18s} .fo-kpis .fo-animate:nth-child(6){animation-delay:.22s}
+    .fo-grid .fo-animate:nth-child(1){animation-delay:.08s} .fo-grid .fo-animate:nth-child(2){animation-delay:.14s}
+    .fo-grid .fo-animate:nth-child(3){animation-delay:.20s} .fo-grid .fo-animate:nth-child(4){animation-delay:.26s}
+
+    @media (hover: hover) and (pointer: fine) {
+        .fo-card { transition: transform 0.2s var(--fo-ease), box-shadow 0.2s var(--fo-ease); }
+        .fo-kpi-card.fo-click:hover, .fo-node.fo-click:hover, .fo-tile.fo-click:hover {
+            transform: translateY(-2px); box-shadow: 0 8px 22px var(--fo-shadow-hover);
+        }
+        .fo-row.fo-click:hover, .fo-leg-row.fo-click:hover { background: var(--fo-hover); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fo-animate { animation: fo-fade 0.2s ease both; }
+        .fo-bar { animation: none; }
+        .fo-card, .fo-node, .fo-tile { transition: none; }
+    }
+
+    @media (max-width: 575px) {
+        .fo-wrap { padding: 16px 14px 32px; }
+        .fo-row-lbl { width: 110px; flex-basis: 110px; }
+        .fo-row-money { display: none; }
+        .fo-tiles { grid-template-columns: 1fr; }
+        .fo-donut-wrap { flex-direction: column; align-items: flex-start; }
+    }
+}
+
+@keyframes fo-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fo-in   { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fo-spin { to { transform: rotate(360deg); } }

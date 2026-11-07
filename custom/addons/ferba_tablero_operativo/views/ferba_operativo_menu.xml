@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ferba_operativo_client_action" model="ir.actions.client">
+        <field name="name">Tablero Operativo</field>
+        <field name="tag">ferba_operativo</field>
+    </record>
+
+    <!-- App visible para TODOS los usuarios internos (base.group_user). -->
+    <menuitem id="menu_ferba_operativo_root"
+              name="Tablero Operativo"
+              groups="base.group_user"
+              sequence="5"/>
+    <menuitem id="menu_ferba_operativo_status"
+              name="Status del flujo"
+              parent="menu_ferba_operativo_root"
+              action="ferba_operativo_client_action"
+              groups="base.group_user"
+              sequence="1"/>
+</odoo>

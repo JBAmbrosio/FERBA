@@ -1,0 +1,218 @@
+"""Tablero operativo de FERBA (datos).
+
+Junta en un viaje el status del flujo que FERBA maneja con Studio: ventas y
+proyectos, el embudo de compras (solicitud -> requisicion -> RFQ -> orden de
+compra), almacen (recepciones y traslados) y pagos. Cada metrica trae su
+`model` + `domain` para que el tablero sea CLICKABLE (abre los registros detras).
+
+Notas del dato real (medido en produccion):
+- Los estatus de Studio se guardan como CODIGOS ('0','1','2'); la etiqueta se
+  resuelve con fields_get.
+- `purchase.order.x_studio_monto_en_uso`/`x_studio_presupuesto` son related NO
+  almacenados: no se suman por SQL. Para montos de compra se usa amount_total.
+- Los modelos x_ de Studio no traen company_id confiable: no se filtran por
+  empresa; los nativos si se acotan a las empresas activas.
+
+Visibilidad: TODOS los usuarios internos, con montos. Lecturas con sudo().
+"""
+
+import logging
+
+from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
+
+
+class FerbaOperativoDashboard(models.AbstractModel):
+    _name = 'ferba.operativo.dashboard'
+    _description = 'Tablero operativo FERBA (datos)'
+
+    # ------------------------------------------------------------------ utiles
+    def _existe(self, model):
+        return model in self.env
+
+    def _campo(self, model, field):
+        try:
+            return field in self.env[model]._fields
+        except Exception:
+            return False
+
+    def _labels(self, model, field):
+        try:
+            info = self.env[model].sudo().fields_get([field]).get(field) or {}
+            return dict(info.get('selection') or [])
+        except Exception:
+            return {}
+
+    def _dom_empresa(self, model):
+        if self._campo(model, 'company_id'):
+            return [('company_id', 'in', self.env.companies.ids)]
+        return []
+
+    def _contar(self, model, domain=None):
+        if not self._existe(model):
+            return 0
+        try:
+            return self.env[model].sudo().search_count((domain or []) + self._dom_empresa(model))
+        except Exception:
+            return 0
+
+    def _suma(self, model, campo, domain=None):
+        """Suma un campo numerico almacenado. 0.0 si no se puede (p. ej. related)."""
+        if not self._existe(model) or not self._campo(model, campo):
+            return 0.0
+        try:
+            g = self.env[model].sudo()._read_group(
+                (domain or []) + self._dom_empresa(model), [], ['%s:sum' % campo])
+            return (g[0][0] if g else 0.0) or 0.0
+        except Exception:
+            return 0.0
+
+    def _por_estado(self, model, field, montos=None):
+        """[{code,label,count,<monto>,model,domain}] por un campo selection.
+        `domain` deja la fila CLICKABLE (abre esos registros)."""
+        if not self._existe(model) or not self._campo(model, field):
+            return []
+        montos = montos or []
+        labels = self._labels(model, field)
+        aggs = ['__count'] + ['%s:sum' % m for m in montos]
+        try:
+            filas = self.env[model].sudo()._read_group(self._dom_empresa(model), [field], aggs)
+        except Exception as e:
+            _logger.warning('Tablero: no se pudo agrupar %s.%s (%s)', model, field, e)
+            return []
+        out = []
+        for fila in filas:
+            code = fila[0]
+            reg = {'code': code or '', 'label': labels.get(code, code or 'Sin estado'),
+                   'count': fila[1] or 0, 'model': model,
+                   'domain': [(field, '=', code if code else False)]}
+            for i, m in enumerate(montos):
+                reg[m] = fila[2 + i] or 0.0
+            out.append(reg)
+        return out
+
+    def _ventas_por_mes(self, meses=12):
+        """Monto de ventas confirmadas por mes (ultimos N). N consultas chicas,
+        robusto entre versiones (no depende del groupby por periodo)."""
+        if not self._existe('sale.order'):
+            return []
+        try:
+            from dateutil.relativedelta import relativedelta
+        except Exception:
+            return []
+        primero = fields.Date.context_today(self).replace(day=1)
+        comp = self._dom_empresa('sale.order')
+        MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+        out = []
+        for i in range(meses - 1, -1, -1):
+            ini = primero - relativedelta(months=i)
+            fin = ini + relativedelta(months=1)
+            dom = [('state', 'in', ['sale', 'done']),
+                   ('date_order', '>=', str(ini)), ('date_order', '<', str(fin))] + comp
+            try:
+                g = self.env['sale.order'].sudo()._read_group(dom, [], ['amount_total:sum'])
+                monto = (g[0][0] if g else 0.0) or 0.0
+            except Exception:
+                monto = 0.0
+            out.append({'mes': MESES[ini.month - 1], 'anio': ini.year, 'monto': monto})
+        return out
+
+    # ------------------------------------------------------------------ data
+    @api.model
+    def data(self):
+        inc = [('picking_type_id.code', '=', 'incoming')]
+        out_pick = [('picking_type_id.code', '=', 'outgoing')]
+
+        # ---- VENTAS Y PROYECTOS ---------------------------------------------
+        ventas_tipo = self._por_estado('sale.order', 'x_studio_tipo_de_orden', montos=['amount_total'])
+        ventas_estado = self._por_estado('sale.order', 'state', montos=['amount_total'])
+        pe = {f['code']: f for f in ventas_estado}
+        ov = pe.get('sale', {})
+        cot_monto = pe.get('draft', {}).get('amount_total', 0.0) + pe.get('sent', {}).get('amount_total', 0.0)
+        cot_n = pe.get('draft', {}).get('count', 0) + pe.get('sent', {}).get('count', 0)
+        proyectos = next((t for t in ventas_tipo if t['label'] == 'Proyecto'), {})
+        por_mes = self._ventas_por_mes()
+
+        # ---- COMPRAS --------------------------------------------------------
+        n_sol = self._contar('x_solicitudes')
+        n_req = self._contar('x_requisiciones')
+        n_rfq = self._contar('x_rfq')
+        n_oc = self._contar('purchase.order')
+        oc_monto = self._suma('purchase.order', 'amount_total')
+        flujo = [
+            {'etapa': 'Solicitud', 'desc': 'Alguien pide material', 'count': n_sol,
+             'model': 'x_solicitudes', 'domain': [], 'accent': 'ventas'},
+            {'etapa': 'Requisicion', 'desc': 'Se formaliza qué comprar', 'count': n_req,
+             'model': 'x_requisiciones', 'domain': [], 'accent': 'compras'},
+            {'etapa': 'RFQ', 'desc': 'Se cotiza con proveedores', 'count': n_rfq,
+             'model': 'x_rfq', 'domain': [], 'accent': 'compras'},
+            {'etapa': 'Orden de compra', 'desc': 'Se autoriza y compra', 'count': n_oc,
+             'model': 'purchase.order', 'domain': [], 'accent': 'compras'},
+            {'etapa': 'Recepción', 'desc': 'Entra al almacén (con firma)',
+             'count': self._contar('stock.picking', inc), 'model': 'stock.picking',
+             'domain': inc, 'accent': 'almacen'},
+            {'etapa': 'Pago', 'desc': 'Se autoriza y paga al proveedor',
+             'count': self._contar('x_gestion_de_pagos'), 'model': 'x_gestion_de_pagos',
+             'domain': [], 'accent': 'pagos'},
+        ]
+        requisiciones = self._por_estado('x_requisiciones', 'x_studio_selection_field_PHzT6')
+        rfq = self._por_estado('x_rfq', 'x_studio_estatus_rfq')
+
+        # ---- ALMACEN --------------------------------------------------------
+        almacen = [
+            {'label': 'Recepciones por aprobar', 'value': self._contar('stock.picking', inc + [('x_studio_estatus', '=', '0')]),
+             'accent': 'almacen', 'attn': True, 'model': 'stock.picking', 'domain': inc + [('x_studio_estatus', '=', '0')]},
+            {'label': 'Recepciones aprobadas', 'value': self._contar('stock.picking', inc + [('x_studio_estatus', '=', '1')]),
+             'accent': 'ok', 'model': 'stock.picking', 'domain': inc + [('x_studio_estatus', '=', '1')]},
+            {'label': 'Entregas pendientes', 'value': self._contar('stock.picking', out_pick + [('state', 'not in', ('done', 'cancel'))]),
+             'model': 'stock.picking', 'domain': out_pick + [('state', 'not in', ('done', 'cancel'))]},
+            {'label': 'Traslados internos', 'value': self._contar('x_traslados_internos'),
+             'model': 'x_traslados_internos', 'domain': []},
+        ]
+
+        # ---- PAGOS ----------------------------------------------------------
+        gestion = self._por_estado('x_gestion_de_pagos', 'x_studio_selection_field_1MYHO',
+                                   montos=['x_studio_monto_de_pago', 'x_studio_monto_aprobado'])
+        por_autorizar = next((g for g in gestion if g['code'] == '0'), {})
+        solicitudes_pago = self._por_estado('x_solicitud_de_pago', 'x_studio_estatus')
+
+        # ---- KPIs (lista uniforme + clickable) ------------------------------
+        n_vent = ov.get('count', 0)
+        monto_vent = ov.get('amount_total', 0.0)
+        kpis = [
+            {'key': 'ov', 'icon': 'fa-shopping-cart', 'accent': 'ventas',
+             'value': n_vent, 'label': 'Órdenes de venta', 'money': monto_vent,
+             'model': 'sale.order', 'domain': [('state', '=', 'sale')]},
+            {'key': 'proy', 'icon': 'fa-briefcase', 'accent': 'ventas',
+             'value': proyectos.get('count', 0), 'label': 'Ventas de proyecto',
+             'money': proyectos.get('amount_total', 0.0),
+             'model': 'sale.order', 'domain': [('x_studio_tipo_de_orden', '=', 'Proyecto')]},
+            {'key': 'cot', 'icon': 'fa-file-text-o', 'accent': 'ventas',
+             'value': cot_n, 'label': 'Cotizaciones abiertas', 'money': cot_monto,
+             'model': 'sale.order', 'domain': [('state', 'in', ['draft', 'sent'])]},
+            {'key': 'oc', 'icon': 'fa-shopping-bag', 'accent': 'compras',
+             'value': n_oc, 'label': 'Órdenes de compra', 'money': oc_monto,
+             'model': 'purchase.order', 'domain': []},
+            {'key': 'rec', 'icon': 'fa-inbox', 'accent': 'almacen', 'attn': True,
+             'value': almacen[0]['value'], 'label': 'Recepciones por aprobar', 'money': None,
+             'model': 'stock.picking', 'domain': almacen[0]['domain']},
+            {'key': 'pag', 'icon': 'fa-money', 'accent': 'pagos', 'attn': True,
+             'value': por_autorizar.get('count', 0), 'label': 'Pagos por autorizar',
+             'money': por_autorizar.get('x_studio_monto_de_pago', 0.0),
+             'model': 'x_gestion_de_pagos', 'domain': [('x_studio_selection_field_1MYHO', '=', '0')]},
+        ]
+        ticket = (monto_vent / n_vent) if n_vent else 0.0
+
+        return {
+            'meta': {'empresas': self.env.companies.mapped('name'),
+                     'moneda': self.env.company.currency_id.symbol or '$',
+                     'ticket_promedio': ticket},
+            'kpis': kpis,
+            'flujo': flujo,
+            'ventas': {'por_tipo': ventas_tipo, 'por_estado': ventas_estado, 'por_mes': por_mes},
+            'compras': {'requisiciones': requisiciones, 'rfq': rfq},
+            'almacen': almacen,
+            'pagos': {'gestion': gestion, 'solicitudes': solicitudes_pago},
+        }
