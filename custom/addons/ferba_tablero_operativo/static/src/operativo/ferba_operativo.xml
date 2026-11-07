@@ -3,13 +3,6 @@
   <t t-name="ferba_tablero_operativo.Dashboard">
     <div t-attf-class="o_ferba_operativo {{ state.dark ? 'fo-dark' : '' }}">
 
-      <!-- Capa ambiental: luz de color que el cristal refracta -->
-      <div class="fo-ambient" aria-hidden="true">
-        <span class="fo-blob fo-blob-1"/>
-        <span class="fo-blob fo-blob-2"/>
-        <span class="fo-blob fo-blob-3"/>
-      </div>
-
       <t t-if="state.loading">
         <div class="fo-center"><div class="fo-spinner"/><div class="fo-muted mt-2">Cargando el status del flujo…</div></div>
       </t>
@@ -39,13 +32,13 @@
           <!-- CÓMO FUNCIONA EL FLUJO -->
           <section class="fo-card fo-flow-card">
             <div class="fo-block-head">
-              <div class="fo-chip fo-chip-sm fo-neutro"><i class="fa fa-sitemap"/></div>
+              <div class="fo-chip fo-chip-sm"><i class="fa fa-sitemap"/></div>
               <h2 class="fo-block-title">Cómo funciona el flujo</h2>
               <span class="fo-muted fo-hint ms-2 fo-hint-head">De la solicitud al pago — clic en una etapa para ver sus documentos</span>
             </div>
             <div class="fo-flow">
               <t t-foreach="state.data.flujo" t-as="s" t-key="s.etapa">
-                <div t-attf-class="fo-node fo-click fo-{{ s.accent }}" t-on-click="() => this.abrir(s.model, s.domain, s.etapa)">
+                <div class="fo-node fo-click" t-on-click="() => this.abrir(s.model, s.domain, s.etapa)">
                   <span class="fo-node-dot"/>
                   <div class="fo-node-count" t-esc="num(s.count)"/>
                   <div class="fo-node-name" t-esc="s.etapa"/>
@@ -59,7 +52,7 @@
           <!-- KPIs -->
           <div class="fo-kpis">
             <t t-foreach="state.data.kpis" t-as="k" t-key="k.key">
-              <div t-attf-class="fo-card fo-kpi-card fo-click fo-{{ k.accent }} {{ k.attn ? 'fo-attn' : '' }}"
+              <div t-attf-class="fo-card fo-kpi-card fo-click {{ k.attn ? 'fo-attn' : '' }}"
                    t-on-click="() => this.abrir(k.model, k.domain, k.label)">
                 <div class="fo-kpi-top">
                   <div class="fo-chip"><i t-attf-class="fa {{ k.icon }}"/></div>
@@ -76,7 +69,7 @@
           <div class="fo-charts">
             <section class="fo-card fo-chart-card">
               <div class="fo-block-head">
-                <div class="fo-chip fo-chip-sm fo-ventas"><i class="fa fa-line-chart"/></div>
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-line-chart"/></div>
                 <h2 class="fo-block-title">Ventas por mes</h2>
                 <span class="fo-muted fo-hint ms-auto">Ticket prom. <b t-esc="moneyC(state.data.meta.ticket_promedio)"/></span>
               </div>
@@ -95,7 +88,7 @@
 
             <section class="fo-card fo-chart-card">
               <div class="fo-block-head">
-                <div class="fo-chip fo-chip-sm fo-ventas"><i class="fa fa-pie-chart"/></div>
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-pie-chart"/></div>
                 <h2 class="fo-block-title">Ventas por tipo</h2>
                 <span class="fo-muted fo-hint ms-auto">confirmadas</span>
               </div>
@@ -120,7 +113,7 @@
           <!-- BLOQUES -->
           <div class="fo-grid">
 
-            <section class="fo-card fo-block fo-ventas">
+            <section class="fo-card fo-block">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-briefcase"/></div>
                 <h2 class="fo-block-title">Ventas por etapa</h2>
@@ -131,7 +124,7 @@
               </t>
             </section>
 
-            <section class="fo-card fo-block fo-compras">
+            <section class="fo-card fo-block">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-shopping-cart"/></div>
                 <h2 class="fo-block-title">Compras</h2>
@@ -142,14 +135,14 @@
               <t t-call="ferba_tablero_operativo.Bars"><t t-set="filas" t-value="state.data.compras.rfq"/></t>
             </section>
 
-            <section class="fo-card fo-block fo-almacen">
+            <section class="fo-card fo-block">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-cubes"/></div>
                 <h2 class="fo-block-title">Almacén</h2>
               </div>
               <div class="fo-tiles">
                 <t t-foreach="state.data.almacen" t-as="tile" t-key="tile.label">
-                  <div t-attf-class="fo-tile fo-click fo-{{ tile.accent or '' }} {{ tile.attn ? 'fo-tile-attn' : '' }}"
+                  <div t-attf-class="fo-tile fo-click {{ tile.attn ? 'fo-tile-attn' : '' }}"
                        t-on-click="() => this.abrir(tile.model, tile.domain, tile.label)">
                     <div t-attf-class="fo-tile-num {{ tile.accent === 'ok' ? 'fo-ok' : '' }} {{ tile.attn ? 'fo-attn-num' : '' }}" t-esc="num(tile.value)"/>
                     <div class="fo-tile-lbl" t-esc="tile.label"/>
@@ -158,7 +151,7 @@
               </div>
             </section>
 
-            <section class="fo-card fo-block fo-pagos">
+            <section class="fo-card fo-block">
               <div class="fo-block-head">
                 <div class="fo-chip fo-chip-sm"><i class="fa fa-money"/></div>
                 <h2 class="fo-block-title">Pagos</h2>

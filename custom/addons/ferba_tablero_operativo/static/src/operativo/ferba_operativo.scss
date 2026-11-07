@@ -1,152 +1,110 @@
-// Tablero Operativo FERBA — modo Operate, material CRISTAL (glassmorfismo).
-// Superficies translucidas con desenfoque sobre una capa de luz ambiental fija
-// que el cristal refracta. Paleta propia (Odoo no expone --bs-* al addon):
-// claro por defecto, .fo-dark para oscuro (el componente lo detecta por luminancia).
+// Tablero Operativo FERBA — modo Operate, estetica NATIVA de Odoo.
+// Tarjetas planas sobre el fondo del cliente web, bordes finos, color de marca
+// (primary = plum #714B67), semanticos solo para significado. Paleta propia
+// porque Odoo compila sus --bs-*/--o-* a valores fijos (no son variables en
+// runtime); se detecta claro/oscuro por luminancia del fondo (.fo-dark).
 
 .o_ferba_operativo {
-    // --- material y color (claro)
-    --fo-ease: cubic-bezier(0.23, 1, 0.32, 1);
-    --fo-ink: #1a1d23;
-    --fo-muted: #5f6672;
-    --fo-surface: rgba(255, 255, 255, 0.72);
-    --fo-surface-2: rgba(255, 255, 255, 0.50);
-    --fo-edge: rgba(255, 255, 255, 0.70);
-    --fo-hair: rgba(17, 20, 24, 0.07);
-    --fo-sheen: rgba(255, 255, 255, 0.55);
-    --fo-shadow: rgba(18, 22, 31, 0.16);
-    --fo-shadow-hi: rgba(18, 22, 31, 0.26);
-    --fo-track: rgba(17, 20, 24, 0.09);
-    --fo-hover: rgba(17, 20, 24, 0.045);
-    --fo-blur: 16px;
-    --fo-accent: #6c6f76;
+    // --- color (claro, valores nativos medidos en Odoo 19) ---------------
+    --fo-ease: cubic-bezier(0.3, 0, 0, 1);
+    --fo-text: #111827;
+    --fo-muted: #6b7280;
+    --fo-surface: #ffffff;
+    --fo-surface-2: #f8f9fa;
+    --fo-border: #dee2e6;
+    --fo-hair: #e9ecef;
+    --fo-track: #e9ecef;
+    --fo-hover: rgba(17, 24, 39, 0.035);
+    --fo-shadow: rgba(17, 24, 39, 0.07);
+    --fo-brand: #714b67;
+    --fo-brand-soft: rgba(113, 75, 103, 0.10);
+    --fo-warn: #b5651d;
+    --fo-ok: #1f9d57;
 
-    position: relative;
     height: 100%;
     overflow: auto;
-    color: var(--fo-ink);
-    // transform => la capa ambiental fixed queda anclada a ESTE cuadro, no al viewport
-    transform: translateZ(0);
-    -webkit-font-smoothing: antialiased;
+    color: var(--fo-text);
+    background: transparent; // deja ver el fondo del cliente web de Odoo
 
     &.fo-dark {
-        --fo-ink: #e7e9ee;
+        --fo-text: #e4e4e4;
         --fo-muted: #9aa1ab;
-        --fo-surface: rgba(40, 44, 54, 0.56);
-        --fo-surface-2: rgba(255, 255, 255, 0.045);
-        --fo-edge: rgba(255, 255, 255, 0.10);
-        --fo-hair: rgba(255, 255, 255, 0.08);
-        --fo-sheen: rgba(255, 255, 255, 0.07);
-        --fo-shadow: rgba(0, 0, 0, 0.42);
-        --fo-shadow-hi: rgba(0, 0, 0, 0.58);
-        --fo-track: rgba(255, 255, 255, 0.11);
-        --fo-hover: rgba(255, 255, 255, 0.06);
+        --fo-surface: #2b2f3a;
+        --fo-surface-2: #242834;
+        --fo-border: rgba(255, 255, 255, 0.09);
+        --fo-hair: rgba(255, 255, 255, 0.07);
+        --fo-track: rgba(255, 255, 255, 0.10);
+        --fo-hover: rgba(255, 255, 255, 0.05);
+        --fo-shadow: rgba(0, 0, 0, 0.30);
+        --fo-brand-soft: rgba(113, 75, 103, 0.22);
+        --fo-warn: #e0a144;
+        --fo-ok: #4fc47e;
     }
 
-    // acentos por dominio (soft = version translucida precalculada; libsass no
-    // soporta color-mix(in srgb,...) y tumbaria el bundle)
-    .fo-ventas  { --fo-accent: #5b6ee1; --fo-accent-soft: rgba(91, 110, 225, 0.18); }
-    .fo-compras { --fo-accent: #1f8f88; --fo-accent-soft: rgba(31, 143, 136, 0.18); }
-    .fo-almacen { --fo-accent: #cf8325; --fo-accent-soft: rgba(207, 131, 37, 0.18); }
-    .fo-pagos   { --fo-accent: #2e9e5b; --fo-accent-soft: rgba(46, 158, 91, 0.18); }
-    .fo-neutro  { --fo-accent: #8a8f98; --fo-accent-soft: rgba(138, 143, 152, 0.18); }
-
-    // --- luz ambiental (refractada por el cristal) -------------------------
-    .fo-ambient {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        overflow: hidden;
-        pointer-events: none;
-    }
-    .fo-blob {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(60px);
-        opacity: 0.5;
-    }
-    .fo-blob-1 { top: -12%; left: -6%; width: 46vw; height: 46vw; background: #5b6ee1; }
-    .fo-blob-2 { top: 18%; right: -10%; width: 42vw; height: 42vw; background: #1f8f88; opacity: 0.42; }
-    .fo-blob-3 { bottom: -18%; left: 32%; width: 40vw; height: 40vw; background: #cf8325; opacity: 0.30; }
-    &.fo-dark {
-        .fo-blob-1 { background: #3a49b8; opacity: 0.55; }
-        .fo-blob-2 { background: #15655f; opacity: 0.50; }
-        .fo-blob-3 { background: #9c6214; opacity: 0.42; }
-    }
-
-    .fo-wrap { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; padding: 26px 20px 48px; }
+    .fo-wrap { max-width: 1320px; margin: 0 auto; padding: 20px 20px 40px; }
     .fo-muted { color: var(--fo-muted); }
-    .fo-hint { font-size: 0.78rem; }
+    .fo-hint { font-size: 0.8125rem; }
 
-    // --- material cristal ---------------------------------------------------
+    // --- tarjeta plana (estilo Odoo) ------------------------------------
     .fo-card {
-        position: relative;
         background: var(--fo-surface);
-        backdrop-filter: blur(var(--fo-blur)) saturate(145%);
-        -webkit-backdrop-filter: blur(var(--fo-blur)) saturate(145%);
-        border: 1px solid var(--fo-edge);
-        border-radius: 16px;
-        box-shadow: 0 14px 34px -18px var(--fo-shadow), inset 0 1px 0 var(--fo-sheen);
+        border: 1px solid var(--fo-border);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px var(--fo-shadow);
     }
     .fo-click { cursor: pointer; }
 
     // --- encabezado
-    .fo-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
-    .fo-title { font-size: 1.65rem; font-weight: 750; letter-spacing: -0.03em; margin: 0; line-height: 1.05; }
-    .fo-sub-head { font-size: 0.82rem; margin-top: 3px; }
+    .fo-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .fo-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; line-height: 1.1; }
+    .fo-sub-head { font-size: 0.8125rem; margin-top: 3px; }
     .fo-refresh {
-        display: inline-flex; align-items: center; gap: 7px; color: var(--fo-ink);
-        background: var(--fo-surface); border: 1px solid var(--fo-edge); border-radius: 10px;
-        padding: 6px 12px; font-size: 0.82rem; font-weight: 600;
-        backdrop-filter: blur(var(--fo-blur)); -webkit-backdrop-filter: blur(var(--fo-blur));
-        box-shadow: 0 6px 16px -10px var(--fo-shadow);
-        transition: transform 0.16s var(--fo-ease), background 0.16s var(--fo-ease);
-        i { transition: transform 0.4s var(--fo-ease); }
+        display: inline-flex; align-items: center; gap: 7px; color: var(--fo-text);
+        background: var(--fo-surface); border: 1px solid var(--fo-border); border-radius: 6px;
+        padding: 5px 12px; font-size: 0.8125rem; font-weight: 500;
+        transition: background 0.15s var(--fo-ease), border-color 0.15s var(--fo-ease);
     }
     @media (hover: hover) and (pointer: fine) {
-        .fo-refresh:hover { background: var(--fo-hover); i { transform: rotate(90deg); } }
+        .fo-refresh:hover { background: var(--fo-hover); border-color: var(--fo-muted); }
     }
-    .fo-refresh:active { transform: scale(0.96); }
+    .fo-refresh:active { background: var(--fo-track); }
 
-    .fo-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+    .fo-block-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .fo-chip {
-        width: 34px; height: 34px; border-radius: 10px; background: var(--fo-accent);
+        width: 32px; height: 32px; border-radius: 7px; background: var(--fo-brand);
         color: #fff; display: flex; align-items: center; justify-content: center;
-        font-size: 15px; flex: 0 0 auto;
-        box-shadow: 0 5px 14px -5px var(--fo-accent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        font-size: 14px; flex: 0 0 auto;
     }
-    .fo-chip-sm { width: 30px; height: 30px; border-radius: 9px; font-size: 13px; }
-    .fo-block-title { font-size: 1.03rem; font-weight: 680; margin: 0; letter-spacing: -0.015em; }
+    .fo-chip-sm { width: 28px; height: 28px; border-radius: 6px; font-size: 13px; }
+    .fo-block-title { font-size: 1rem; font-weight: 600; margin: 0; letter-spacing: -0.005em; }
     .fo-hint-head { align-self: center; }
-    .fo-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--fo-muted); font-weight: 650; margin-bottom: 9px; }
+    .fo-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fo-muted); font-weight: 600; margin-bottom: 8px; }
 
     // --- flujo
-    .fo-flow-card { padding: 17px 19px 19px; margin-bottom: 18px; }
-    .fo-flow { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; }
+    .fo-flow-card { padding: 16px 18px 18px; margin-bottom: 16px; }
+    .fo-flow { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
     .fo-node {
         position: relative; flex: 1 1 130px; min-width: 118px;
         background: var(--fo-surface-2); border: 1px solid var(--fo-hair);
-        border-radius: 13px; padding: 13px 13px 12px; overflow: hidden;
-        transition: transform 0.18s var(--fo-ease), box-shadow 0.18s var(--fo-ease), background 0.18s var(--fo-ease);
+        border-radius: 6px; padding: 12px 13px;
+        transition: border-color 0.15s var(--fo-ease), background 0.15s var(--fo-ease);
     }
-    .fo-node-dot {
-        position: absolute; top: 13px; right: 13px; width: 8px; height: 8px; border-radius: 50%;
-        background: var(--fo-accent); box-shadow: 0 0 0 4px var(--fo-accent-soft);
-    }
-    .fo-node-count { font-size: 1.55rem; font-weight: 780; line-height: 1; color: var(--fo-accent); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-    .fo-node-name { font-weight: 680; font-size: 0.92rem; margin-top: 6px; }
-    .fo-node-desc { font-size: 0.74rem; color: var(--fo-muted); margin-top: 3px; line-height: 1.28; }
-    .fo-arrow { align-self: center; color: var(--fo-muted); font-size: 16px; flex: 0 0 auto; opacity: 0.7; }
+    .fo-node-dot { position: absolute; top: 13px; right: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--fo-brand); }
+    .fo-node-count { font-size: 1.5rem; font-weight: 700; line-height: 1; color: var(--fo-text); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .fo-node-name { font-weight: 600; font-size: 0.875rem; margin-top: 6px; }
+    .fo-node-desc { font-size: 0.75rem; color: var(--fo-muted); margin-top: 3px; line-height: 1.3; }
+    .fo-arrow { align-self: center; color: var(--fo-muted); font-size: 15px; flex: 0 0 auto; opacity: 0.65; }
     @media (max-width: 900px) { .fo-arrow { display: none; } }
 
     // --- KPIs
-    .fo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 14px; margin-bottom: 18px; }
-    .fo-kpi-card { padding: 16px 18px 18px; overflow: hidden; }
+    .fo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .fo-kpi-card { padding: 15px 16px 16px; }
     .fo-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .fo-kpi-go { color: var(--fo-muted); font-size: 12px; opacity: 0; transform: translateX(-4px); transition: opacity 0.18s var(--fo-ease), transform 0.18s var(--fo-ease); }
-    .fo-kpi-num { font-size: 2rem; font-weight: 780; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-    .fo-kpi-lbl { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.055em; color: var(--fo-muted); margin-top: 7px; font-weight: 650; }
-    .fo-kpi-sub { font-size: 0.82rem; color: var(--fo-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
-    .fo-attn .fo-kpi-num { color: var(--fo-accent); }
+    .fo-kpi-go { color: var(--fo-muted); font-size: 12px; opacity: 0; transform: translateX(-4px); transition: opacity 0.15s var(--fo-ease), transform 0.15s var(--fo-ease); }
+    .fo-kpi-num { font-size: 1.875rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .fo-kpi-lbl { font-size: 0.75rem; color: var(--fo-muted); margin-top: 7px; font-weight: 500; }
+    .fo-kpi-sub { font-size: 0.8125rem; color: var(--fo-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .fo-attn .fo-kpi-num { color: var(--fo-warn); }
     @media (hover: hover) and (pointer: fine) {
         .fo-kpi-card:hover .fo-kpi-go { opacity: 1; transform: translateX(0); }
     }
@@ -154,86 +112,76 @@
     // --- graficas (Chart.js)
     .fo-charts { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; margin-bottom: 16px; }
     @media (max-width: 900px) { .fo-charts { grid-template-columns: 1fr; } }
-    .fo-chart-card { padding: 17px 19px 19px; display: flex; flex-direction: column; }
-    .fo-trend-val { font-size: 1.55rem; font-weight: 780; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-    .fo-trend-cap { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .fo-chart-card { padding: 16px 18px 18px; display: flex; flex-direction: column; }
+    .fo-trend-val { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .fo-trend-cap { font-size: 0.75rem; margin-bottom: 8px; }
     .fo-canvas-wrap { position: relative; width: 100%; }
     .fo-canvas-trend { flex: 1 1 auto; min-height: 196px; }
-    .fo-canvas-donut { width: 164px; height: 164px; flex: 0 0 164px; }
+    .fo-canvas-donut { width: 160px; height: 160px; flex: 0 0 160px; }
 
     .fo-donut-wrap { display: flex; align-items: center; gap: 18px; }
     .fo-legend { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .fo-leg-row { display: flex; align-items: center; gap: 9px; border-radius: 8px; padding: 4px 6px; margin: 0 -6px; transition: background 0.14s var(--fo-ease); }
+    .fo-leg-row { display: flex; align-items: center; gap: 9px; border-radius: 6px; padding: 4px 6px; margin: 0 -6px; transition: background 0.14s var(--fo-ease); }
     .fo-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
-    .fo-leg-lbl { flex: 1 1 auto; min-width: 0; font-size: 0.88rem; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .fo-leg-val { font-size: 0.82rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
+    .fo-leg-lbl { flex: 1 1 auto; min-width: 0; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fo-leg-val { font-size: 0.8125rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
 
     // --- bloques
     .fo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
-    .fo-block { padding: 19px 20px 21px; }
+    .fo-block { padding: 16px 18px 18px; }
 
     // --- filas de barra
-    .fo-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 8px; margin: 0 -6px; transition: background 0.14s var(--fo-ease); }
-    .fo-row-lbl { width: 150px; flex: 0 0 150px; font-size: 0.87rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .fo-track { flex: 1 1 auto; min-width: 0; height: 9px; border-radius: 6px; background: var(--fo-track); overflow: hidden; }
-    .fo-bar { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--fo-accent-soft), var(--fo-accent)); transform-origin: left center; animation: fo-grow 0.6s var(--fo-ease) both; }
-    .fo-row-val { flex: 0 0 auto; font-size: 0.87rem; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
-    .fo-row-money { flex: 0 0 96px; width: 96px; text-align: right; font-size: 0.78rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
-    .fo-empty { font-size: 0.82rem; color: var(--fo-muted); padding: 8px 0; font-style: italic; }
+    .fo-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; margin: 0 -6px; transition: background 0.14s var(--fo-ease); }
+    .fo-row-lbl { width: 150px; flex: 0 0 150px; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fo-track { flex: 1 1 auto; min-width: 0; height: 8px; border-radius: 4px; background: var(--fo-track); overflow: hidden; }
+    .fo-bar { height: 100%; border-radius: 4px; background: var(--fo-brand); transform-origin: left center; animation: fo-grow 0.5s var(--fo-ease) both; }
+    .fo-row-val { flex: 0 0 auto; font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+    .fo-row-money { flex: 0 0 96px; width: 96px; text-align: right; font-size: 0.78125rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
+    .fo-empty { font-size: 0.8125rem; color: var(--fo-muted); padding: 8px 0; font-style: italic; }
 
     // --- tiles almacen
     .fo-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .fo-tile {
-        position: relative; background: var(--fo-surface-2); border: 1px solid var(--fo-hair);
-        border-radius: 13px; padding: 15px 16px;
-        transition: transform 0.18s var(--fo-ease), box-shadow 0.18s var(--fo-ease), background 0.18s var(--fo-ease);
+        background: var(--fo-surface-2); border: 1px solid var(--fo-hair);
+        border-radius: 6px; padding: 14px 15px;
+        transition: border-color 0.15s var(--fo-ease), background 0.15s var(--fo-ease);
     }
-    .fo-tile-attn { box-shadow: inset 0 0 0 1.5px var(--fo-accent); }
-    .fo-tile-num { font-size: 1.7rem; font-weight: 780; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-    .fo-attn-num { color: var(--fo-accent); }
-    .fo-ok { color: #2e9e5b; }
+    .fo-tile-attn { border-color: var(--fo-warn); }
+    .fo-tile-num { font-size: 1.625rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .fo-attn-num { color: var(--fo-warn); }
+    .fo-ok { color: var(--fo-ok); }
     .fo-tile-lbl { font-size: 0.75rem; color: var(--fo-muted); margin-top: 7px; }
 
-    .fo-foot { font-size: 0.76rem; margin-top: 20px; text-align: center; }
+    .fo-foot { font-size: 0.75rem; margin-top: 18px; text-align: center; }
 
     // --- error / carga
-    .fo-alert { padding: 18px 20px; max-width: 640px; }
-    .fo-btn { background: var(--fo-accent); color: #fff; border: 0; border-radius: 9px; padding: 6px 14px; font-weight: 600; }
-    .fo-center { height: 58vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1; }
-    .fo-spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--fo-track); border-top-color: #5b6ee1; animation: fo-spin 0.7s linear infinite; }
+    .fo-alert { padding: 16px 18px; max-width: 640px; }
+    .fo-btn { background: var(--fo-brand); color: #fff; border: 0; border-radius: 6px; padding: 5px 14px; font-weight: 500; }
+    .fo-center { height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .fo-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--fo-track); border-top-color: var(--fo-brand); animation: fo-spin 0.7s linear infinite; }
 
-    // --- hover / press (Operate: movimiento = estado, breve)
+    // --- hover / foco (Operate: sobrio)
     @media (hover: hover) and (pointer: fine) {
-        .fo-kpi-card, .fo-node, .fo-tile {
-            transition: transform 0.18s var(--fo-ease), box-shadow 0.18s var(--fo-ease), background 0.18s var(--fo-ease);
+        .fo-kpi-card.fo-click, .fo-node.fo-click, .fo-tile.fo-click {
+            transition: border-color 0.15s var(--fo-ease), box-shadow 0.15s var(--fo-ease), background 0.15s var(--fo-ease);
         }
         .fo-kpi-card.fo-click:hover, .fo-node.fo-click:hover, .fo-tile.fo-click:hover {
-            transform: translateY(-2px);
-            background: var(--fo-surface);
-            box-shadow: 0 18px 38px -18px var(--fo-shadow-hi), inset 0 1px 0 var(--fo-sheen);
+            border-color: var(--fo-brand);
         }
+        .fo-kpi-card.fo-click:hover { box-shadow: 0 2px 8px var(--fo-shadow); }
         .fo-row.fo-click:hover, .fo-leg-row.fo-click:hover { background: var(--fo-hover); }
     }
-    .fo-click:active { transform: scale(0.985); }
 
-    // --- superficies del navegador
-    *::selection { background: rgba(91, 110, 225, 0.28); }
-    .fo-click:focus-visible, .fo-refresh:focus-visible {
-        outline: 2px solid #5b6ee1; outline-offset: 2px; border-radius: 12px;
-    }
-    .fo-wrap ::-webkit-scrollbar { width: 10px; height: 10px; }
-    .fo-wrap ::-webkit-scrollbar-thumb { background: var(--fo-track); border-radius: 6px; }
-
-    // entrada unica y sobria (sin coreografia de carga)
-    .fo-wrap { animation: fo-in 0.32s var(--fo-ease) both; }
+    *::selection { background: var(--fo-brand-soft); }
+    .fo-click:focus-visible, .fo-refresh:focus-visible { outline: 2px solid var(--fo-brand); outline-offset: 2px; border-radius: 8px; }
 
     @media (prefers-reduced-motion: reduce) {
-        .fo-wrap, .fo-bar { animation: none; }
+        .fo-bar { animation: none; }
         .fo-card, .fo-node, .fo-tile, .fo-kpi-card, .fo-refresh { transition: none; }
     }
 
     @media (max-width: 575px) {
-        .fo-wrap { padding: 16px 14px 34px; }
+        .fo-wrap { padding: 14px 12px 30px; }
         .fo-refresh-lbl { display: none; }
         .fo-row-lbl { width: 108px; flex-basis: 108px; }
         .fo-row-money { display: none; }
@@ -244,5 +192,4 @@
 }
 
 @keyframes fo-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes fo-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fo-spin { to { transform: rotate(360deg); } }

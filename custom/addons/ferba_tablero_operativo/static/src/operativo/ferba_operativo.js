@@ -4,16 +4,10 @@ import { Component, useState, useRef, onWillStart, onMounted, onPatched, onWillU
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
-// Acentos por dominio (coinciden con el SCSS).
-const ACENTO = {
-    ventas: "#5b6ee1",
-    compras: "#1f8f88",
-    almacen: "#cf8325",
-    pagos: "#2e9e5b",
-    neutro: "#8a8f98",
-};
-// Paleta de la dona "ventas por tipo".
-const SERIE = ["#5b6ee1", "#1f8f88", "#cf8325", "#b2537e", "#2e9e5b", "#8a8f98"];
+// Color de marca Odoo (primary = plum) + paleta sobria para la dona.
+const BRAND = "#714B67";
+const BRAND_RGB = "113, 75, 103";
+const SERIE = ["#714B67", "#00A09D", "#E6A23C", "#5B6EB4", "#8F6FA8", "#9AA1AB"];
 
 export class FerbaOperativo extends Component {
     setup() {
@@ -72,7 +66,7 @@ export class FerbaOperativo extends Component {
         if (a >= 1e3) return this.moneda + " " + (v / 1e3).toFixed(1).replace(/\.0$/, "") + "k";
         return this.moneda + " " + Math.round(v).toLocaleString("es-MX");
     }
-    acento(key) { return ACENTO[key] || ACENTO.neutro; }
+    acento() { return BRAND; }
     serie(i) { return SERIE[i % SERIE.length]; }
 
     // ---- barras (bloques de estatus)
@@ -80,10 +74,10 @@ export class FerbaOperativo extends Component {
     barPct(count, filas) { return Math.round(((count || 0) / this.maxCount(filas)) * 100); }
 
     // ---- Chart.js ------------------------------------------------------------
-    _ejeColor() { return this.state.dark ? "rgba(230,232,236,0.62)" : "rgba(26,29,35,0.55)"; }
-    _gridColor() { return this.state.dark ? "rgba(255,255,255,0.08)" : "rgba(17,20,24,0.07)"; }
-    _tipFondo() { return this.state.dark ? "rgba(17,19,26,0.94)" : "rgba(255,255,255,0.96)"; }
-    _tipTexto() { return this.state.dark ? "#e6e8ec" : "#1a1d23"; }
+    _ejeColor() { return this.state.dark ? "rgba(228,228,228,0.62)" : "rgba(17,24,39,0.55)"; }
+    _gridColor() { return this.state.dark ? "rgba(255,255,255,0.09)" : "#dee2e6"; }
+    _tipFondo() { return this.state.dark ? "#2b2f3a" : "#ffffff"; }
+    _tipTexto() { return this.state.dark ? "#e4e4e4" : "#111827"; }
 
     _destruyeCharts() {
         for (const k of Object.keys(this.charts)) {
@@ -108,21 +102,21 @@ export class FerbaOperativo extends Component {
                     labels: pm.map((m) => m.mes),
                     datasets: [{
                         data: pm.map((m) => m.monto),
-                        borderColor: ACENTO.ventas,
-                        borderWidth: 2.5,
-                        tension: 0.4,
+                        borderColor: BRAND,
+                        borderWidth: 2,
+                        tension: 0.35,
                         pointRadius: 0,
                         pointHoverRadius: 5,
-                        pointHoverBackgroundColor: ACENTO.ventas,
-                        pointHoverBorderColor: self.state.dark ? "#1b1d26" : "#ffffff",
+                        pointHoverBackgroundColor: BRAND,
+                        pointHoverBorderColor: self.state.dark ? "#2b2f3a" : "#ffffff",
                         pointHoverBorderWidth: 2,
                         fill: true,
                         backgroundColor: (context) => {
                             const { ctx, chartArea } = context.chart;
-                            if (!chartArea) { return "rgba(91,110,225,0.12)"; }
+                            if (!chartArea) { return "rgba(" + BRAND_RGB + ",0.10)"; }
                             const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                            g.addColorStop(0, self.state.dark ? "rgba(91,110,225,0.45)" : "rgba(91,110,225,0.30)");
-                            g.addColorStop(1, "rgba(91,110,225,0.00)");
+                            g.addColorStop(0, self.state.dark ? "rgba(" + BRAND_RGB + ",0.40)" : "rgba(" + BRAND_RGB + ",0.22)");
+                            g.addColorStop(1, "rgba(" + BRAND_RGB + ",0.00)");
                             return g;
                         },
                     }],
@@ -136,7 +130,7 @@ export class FerbaOperativo extends Component {
                         tooltip: {
                             backgroundColor: self._tipFondo(), titleColor: self._tipTexto(),
                             bodyColor: self._tipTexto(), borderColor: self._gridColor(),
-                            borderWidth: 1, padding: 10, displayColors: false, cornerRadius: 10,
+                            borderWidth: 1, padding: 10, displayColors: false, cornerRadius: 4,
                             titleFont: { weight: "600" },
                             callbacks: {
                                 title: (items) => {
@@ -166,7 +160,7 @@ export class FerbaOperativo extends Component {
                     datasets: [{
                         data: pt.map((t) => t.amount_total),
                         backgroundColor: pt.map((t, i) => self.serie(i)),
-                        borderColor: self.state.dark ? "rgba(20,22,30,0.55)" : "rgba(255,255,255,0.65)",
+                        borderColor: self.state.dark ? "#2b2f3a" : "#ffffff",
                         borderWidth: 2,
                         hoverOffset: 6,
                         spacing: 2,
@@ -181,7 +175,7 @@ export class FerbaOperativo extends Component {
                         tooltip: {
                             backgroundColor: self._tipFondo(), titleColor: self._tipTexto(),
                             bodyColor: self._tipTexto(), borderColor: self._gridColor(),
-                            borderWidth: 1, padding: 10, cornerRadius: 10,
+                            borderWidth: 1, padding: 10, cornerRadius: 4,
                             callbacks: {
                                 label: (item) => {
                                     const total = item.dataset.data.reduce((a, b) => a + b, 0) || 1;
