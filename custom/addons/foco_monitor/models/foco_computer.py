@@ -140,6 +140,33 @@ class FocoComputer(models.Model):
     command_count = fields.Integer(compute='_compute_counts')
     pending_command_count = fields.Integer(compute='_compute_counts')
 
+    # ------------------------------------------------- retiro del equipo
+    # Cuando un empleado deja la empresa se RETIRA Foco de su equipo: el servicio
+    # (SYSTEM) libera TODOS los bloqueos de navegacion y desinstala Foco (quita
+    # las tareas, borra Program Files\Foco y los datos locales). Se dispara con el
+    # boton "Retirar Foco" -manual y auditable-; la orden viaja en la respuesta de
+    # /foco/policy (campo `retire`), no en la del agente, porque solo el servicio
+    # -que corre como SYSTEM- puede quitar la politica de HKLM y correr el
+    # desinstalador. El agente, en la sesion del usuario, no podria, y ademas el
+    # watchdog lo reviviria.
+    retire_state = fields.Selection(
+        [('none', 'Activo'),
+         ('requested', 'Retiro solicitado'),
+         ('retired', 'Retirado')],
+        string='Retiro', default='none', required=True, readonly=True, copy=False,
+        tracking=True,
+        help='Activo: opera normal. Retiro solicitado: en su proxima consulta '
+             '(<=5 min) el equipo liberara los bloqueos y se desinstalara solo. '
+             'Retirado: el equipo confirmo que se libero y se desinstala.')
+    retire_requested_at = fields.Datetime(
+        string='Retiro solicitado el', readonly=True, copy=False)
+    retire_requested_uid = fields.Many2one(
+        'res.users', string='Retiro solicitado por', readonly=True, copy=False)
+    retired_at = fields.Datetime(string='Retirado el', readonly=True, copy=False)
+    retire_detail = fields.Char(
+        string='Retiro: detalle', readonly=True, copy=False,
+        help='Lo que el equipo reporto al liberar los bloqueos antes de desinstalarse.')
+
     # ------------------------------------------------------- navegacion
     policy_id = fields.Many2one(
         'foco.policy', string='Perfil de navegacion', ondelete='set null',
@@ -812,6 +839,66 @@ class FocoComputer(models.Model):
     def action_reset_key(self):
         for rec in self:
             rec.api_key = secrets.token_urlsafe(24)
+
+    # ------------------------------------------------- retiro del equipo
+    def action_retirar(self):
+        """Marca el equipo para RETIRO: en su proxima consulta de politica el
+        servicio liberara TODOS los bloqueos y desinstalara Foco. Accion manual y
+        auditable (queda quien y cuando). No se hace nada irreversible aqui: solo
+        se pide; el equipo actua en su proximo ciclo (<=5 min) y lo confirma."""
+        for rec in self:
+            if rec.retire_state == 'retired':
+                continue
+            rec.sudo().write({
+                'retire_state': 'requested',
+                'retire_requested_at': fields.Datetime.now(),
+                'retire_requested_uid': self.env.user.id,
+            })
+            try:
+                rec.message_post(
+                    body=('Retiro de Foco SOLICITADO por %s. En su proxima consulta '
+                          '(hasta 5 min) el equipo liberara los bloqueos de '
+                          'navegacion y se desinstalara solo.' % self.env.user.name),
+                    subject='Foco · retiro solicitado',
+                    message_type='comment', subtype_xmlid='mail.mt_note')
+            except Exception:
+                _logger.exception('Foco: no se pudo anotar el retiro de %s', rec.id)
+        return True
+
+    def action_cancelar_retiro(self):
+        """Cancela un retiro AUN NO EJECUTADO. Si el equipo ya confirmo el retiro
+        (ya se desinstalo) no se puede deshacer desde aqui: habria que reinstalar."""
+        for rec in self:
+            if rec.retire_state == 'requested':
+                rec.sudo().write({'retire_state': 'none',
+                                  'retire_requested_at': False,
+                                  'retire_requested_uid': False})
+                try:
+                    rec.message_post(
+                        body='Retiro de Foco CANCELADO por %s (el equipo aun no se '
+                             'habia desinstalado).' % self.env.user.name,
+                        message_type='comment', subtype_xmlid='mail.mt_note')
+                except Exception:
+                    pass
+        return True
+
+    def marcar_retirado(self, detalle=''):
+        """Lo llama /foco/policy cuando el servicio CONFIRMA que libero los
+        bloqueos y va a desinstalarse. Es la unica via que pone 'retirado':
+        asi el estado refleja lo que el equipo hizo, no solo lo que se pidio."""
+        self.ensure_one()
+        vals = {'retire_state': 'retired', 'retired_at': fields.Datetime.now()}
+        if detalle:
+            vals['retire_detail'] = detalle[:250]
+        self.sudo().write(vals)
+        try:
+            self.message_post(
+                body=('El equipo CONFIRMO el retiro: libero los bloqueos de '
+                      'navegacion y se desinstala. %s' % (detalle or '')),
+                subject='Foco · equipo retirado',
+                message_type='comment', subtype_xmlid='mail.mt_note')
+        except Exception:
+            _logger.exception('Foco: no se pudo anotar el retiro confirmado de %s', self.id)
 
     @api.model
     def _authenticate(self, key):

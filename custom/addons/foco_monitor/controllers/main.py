@@ -2233,5 +2233,17 @@ class FocoController(http.Controller):
             else:
                 computer.sudo().write({'policy_drift': True})
 
+        # Retiro: el servicio confirma que libero TODOS los bloqueos y se va a
+        # desinstalar (lo pidio Odoo con el boton "Retirar Foco"). Se marca aqui,
+        # cuando el equipo lo confirma, no cuando se pidio: asi el estado refleja
+        # lo que paso en la maquina. No puede tumbar la respuesta del endpoint.
+        if data.get('retired'):
+            try:
+                computer.sudo().marcar_retirado((data.get('detail') or '').strip())
+            except Exception as e:
+                if _no_se_traga(e):
+                    raise
+                _logger.exception('Foco: no se pudo marcar retirado %s', computer.id)
+
         return request.make_json_response(
             request.env['foco.policy'].sudo().payload_for(computer.sudo()))

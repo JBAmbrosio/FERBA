@@ -469,6 +469,14 @@ class FocoPolicy(models.Model):
         # Ambito (maquina/usuario) y exentos viajan SIEMPRE, en todas las ramas:
         # un equipo sin el flag recibe scope='machine' y se comporta igual que hoy.
         extra = self._scope_extra(computer, ajustes)
+        # RETIRO del equipo (empleado que deja la empresa): se le ordena RETIRARSE
+        # y se le mandan listas vacias. Va PRIMERO que cualquier otra rama: un
+        # equipo en retiro no debe recibir ningun bloqueo nuevo, solo soltarlo
+        # todo y desinstalarse. El servicio actua el `retire` (libera y desinstala)
+        # y lo confirma por este mismo endpoint (campo `retired`).
+        if computer.retire_state == 'requested':
+            return dict({'version': 'off', 'block': [], 'allow': [], 'kill': [],
+                         'kill_productos': [], 'retire': True}, **extra)
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.
