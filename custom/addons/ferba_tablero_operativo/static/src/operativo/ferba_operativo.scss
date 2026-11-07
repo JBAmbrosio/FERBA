@@ -154,11 +154,11 @@
     // --- graficas (Chart.js)
     .fo-charts { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; margin-bottom: 16px; }
     @media (max-width: 900px) { .fo-charts { grid-template-columns: 1fr; } }
-    .fo-chart-card { padding: 17px 19px 19px; }
+    .fo-chart-card { padding: 17px 19px 19px; display: flex; flex-direction: column; }
     .fo-trend-val { font-size: 1.55rem; font-weight: 780; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
     .fo-trend-cap { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
     .fo-canvas-wrap { position: relative; width: 100%; }
-    .fo-canvas-trend { height: 188px; }
+    .fo-canvas-trend { flex: 1 1 auto; min-height: 196px; }
     .fo-canvas-donut { width: 164px; height: 164px; flex: 0 0 164px; }
 
     .fo-donut-wrap { display: flex; align-items: center; gap: 18px; }

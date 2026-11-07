@@ -108,7 +108,6 @@ export class FerbaOperativo extends Component {
                     labels: pm.map((m) => m.mes),
                     datasets: [{
                         data: pm.map((m) => m.monto),
-                        parsing: false,
                         borderColor: ACENTO.ventas,
                         borderWidth: 2.5,
                         tension: 0.4,
