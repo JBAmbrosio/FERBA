@@ -5,9 +5,11 @@
         <field name="tag">ferba_operativo</field>
     </record>
 
-    <!-- App visible para TODOS los usuarios internos (base.group_user). -->
+    <!-- App visible para TODOS los usuarios internos (base.group_user).
+         web_icon = mosaico en la cuadricula de apps (icono propio). -->
     <menuitem id="menu_ferba_operativo_root"
               name="Tablero Operativo"
+              web_icon="ferba_tablero_operativo,static/description/icon.png"
               groups="base.group_user"
               sequence="5"/>
     <menuitem id="menu_ferba_operativo_status"
