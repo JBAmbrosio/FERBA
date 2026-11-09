@@ -38,6 +38,8 @@ export class FerbaOperativo extends Component {
         this.root = useRef("root");
         this.trendCanvas = useRef("trendCanvas");
         this.donutCanvas = useRef("donutCanvas");
+        this.donutCenterVal = useRef("donutCenterVal");
+        this.donutCenterLbl = useRef("donutCenterLbl");
         this.charts = {};
         this._needCharts = false;
 
@@ -92,6 +94,33 @@ export class FerbaOperativo extends Component {
     get totalTipo() {
         const pt = (this.state.data && this.state.data.ventas && this.state.data.ventas.por_tipo) || [];
         return pt.reduce((a, t) => a + (t.amount_total || 0), 0);
+    }
+
+    // Monto + % de un tipo para la leyenda (se lee sin pasar el raton).
+    legTipo(amount) {
+        const total = this.totalTipo || 1;
+        return this.moneyC(amount) + " · " + Math.round((amount / total) * 100) + "%";
+    }
+
+    // Centro de la dona: en reposo = total; con el raton sobre un tipo = ese
+    // tipo (monto, etiqueta y %, teñido a su color). El centro ES la lectura,
+    // asi no hay tooltip encimado sobre el total (bug del raton sobre la dona).
+    _donutCentro(i) {
+        const valEl = this.donutCenterVal && this.donutCenterVal.el;
+        const lblEl = this.donutCenterLbl && this.donutCenterLbl.el;
+        if (!valEl || !lblEl) { return; }
+        const pt = (this.state.data && this.state.data.ventas && this.state.data.ventas.por_tipo) || [];
+        if (i === null || i === undefined || !pt[i]) {
+            valEl.textContent = this.moneyC(this.totalTipo);
+            valEl.style.color = "";
+            lblEl.textContent = "total";
+            return;
+        }
+        const t = pt[i];
+        const pct = Math.round((t.amount_total / (this.totalTipo || 1)) * 100);
+        valEl.textContent = this.moneyC(t.amount_total);
+        valEl.style.color = this.serie(i);
+        lblEl.textContent = t.label + " · " + pct + "%";
     }
 
     // ---- barras (bloques de estatus)
@@ -230,23 +259,25 @@ export class FerbaOperativo extends Component {
                     responsive: true, maintainAspectRatio: false,
                     cutout: "68%",
                     animation: { duration: 650, easing: "easeOutCubic" },
+                    // El centro ES la lectura: al pasar el raton por un tipo, el
+                    // centro muestra su monto/% (y la rebanada se eleva). Sin
+                    // tooltip encimado sobre el total.
+                    onHover: (evt, active) => {
+                        self._donutCentro(active && active.length ? active[0].index : null);
+                    },
                     plugins: {
                         legend: { display: false },
-                        tooltip: {
-                            backgroundColor: self._tipFondo(), titleColor: self._tipTexto(),
-                            bodyColor: self._tipTexto(), borderColor: self._gridColor(),
-                            borderWidth: 1, padding: 10, cornerRadius: 4,
-                            callbacks: {
-                                label: (item) => {
-                                    const total = item.dataset.data.reduce((a, b) => a + b, 0) || 1;
-                                    const pct = Math.round((item.raw / total) * 100);
-                                    return " " + self.moneyC(item.raw) + "  ·  " + pct + "%";
-                                },
-                            },
-                        },
+                        tooltip: { enabled: false },
                     },
                 },
             });
+            // Al salir del canvas, el centro vuelve al total (onHover no dispara
+            // al abandonar el area). Se engancha una sola vez por elemento.
+            const elD = this.donutCanvas.el;
+            if (!elD._foLeaveBound) {
+                elD._foLeaveBound = true;
+                elD.addEventListener("mouseleave", () => self._donutCentro(null));
+            }
         }
     }
 

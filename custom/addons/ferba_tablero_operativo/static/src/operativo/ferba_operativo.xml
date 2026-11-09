@@ -98,8 +98,8 @@
                   <div class="fo-canvas-wrap fo-canvas-donut">
                     <canvas t-ref="donutCanvas"/>
                     <div class="fo-donut-center">
-                      <div class="fo-donut-center-val" t-esc="moneyC(totalTipo)"/>
-                      <div class="fo-donut-center-lbl">total</div>
+                      <div class="fo-donut-center-val" t-ref="donutCenterVal" t-esc="moneyC(totalTipo)"/>
+                      <div class="fo-donut-center-lbl" t-ref="donutCenterLbl">total</div>
                     </div>
                   </div>
                   <div class="fo-legend">
@@ -107,7 +107,7 @@
                       <div class="fo-leg-row fo-click" t-on-click="() => this.abrir(t.model, t.domain, t.label)">
                         <span class="fo-dot" t-attf-style="background: {{ serie(t_index) }}"/>
                         <span class="fo-leg-lbl" t-esc="t.label"/>
-                        <span class="fo-leg-val" t-esc="moneyC(t.amount_total)"/>
+                        <span class="fo-leg-val" t-esc="legTipo(t.amount_total)"/>
                       </div>
                     </t>
                   </div>

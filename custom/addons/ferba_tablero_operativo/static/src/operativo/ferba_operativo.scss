@@ -139,7 +139,7 @@
         position: absolute; inset: 0; display: flex; flex-direction: column;
         align-items: center; justify-content: center; text-align: center; pointer-events: none;
     }
-    .fo-donut-center-val { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .fo-donut-center-val { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1; font-variant-numeric: tabular-nums; transition: color 0.14s var(--fo-ease); }
     .fo-donut-center-lbl { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fo-muted); font-weight: 600; margin-top: 4px; }
 
     .fo-donut-wrap { display: flex; align-items: center; gap: 18px; }
@@ -147,7 +147,7 @@
     .fo-leg-row { display: flex; align-items: center; gap: 9px; border-radius: 6px; padding: 4px 6px; margin: 0 -6px; transition: background 0.14s var(--fo-ease); }
     .fo-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
     .fo-leg-lbl { flex: 1 1 auto; min-width: 0; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .fo-leg-val { font-size: 0.8125rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; }
+    .fo-leg-val { font-size: 0.8125rem; color: var(--fo-muted); font-variant-numeric: tabular-nums; white-space: nowrap; flex: 0 0 auto; }
 
     // --- bloques
     .fo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
