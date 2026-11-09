@@ -29,6 +29,36 @@
             </button>
           </header>
 
+          <!-- QUÉ ATENDER (pendientes por antigüedad y monto) -->
+          <t t-if="state.data.pendientes and state.data.pendientes.length">
+            <section class="fo-pend-region">
+              <div class="fo-block-head fo-pend-head-row">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-bell-o"/></div>
+                <h2 class="fo-block-title">Qué atender</h2>
+                <span class="fo-muted fo-hint ms-2 fo-hint-head">Lo que pide acción — por antigüedad y monto · clic para ver los documentos</span>
+              </div>
+              <div class="fo-pendientes">
+                <t t-foreach="state.data.pendientes" t-as="p" t-key="p.key">
+                  <div t-attf-class="fo-card fo-pend-card tono-{{ p.tono }} fo-click"
+                       t-on-click="() => this.abrir(p.model, p.domain, p.titulo)">
+                    <div class="fo-pend-top">
+                      <div class="fo-pend-ic"><i t-attf-class="fa {{ p.icon }}"/></div>
+                      <span class="fo-pend-titulo" t-esc="p.titulo"/>
+                      <i class="fa fa-arrow-right fo-kpi-go fo-pend-go"/>
+                    </div>
+                    <div class="fo-pend-headline">
+                      <span class="fo-pend-num" t-att-data-count="p.num" t-esc="num(p.num)"/>
+                      <span class="fo-pend-numlbl" t-esc="p.num_lbl"/>
+                      <span class="fo-pend-monto" t-if="p.monto" t-esc="moneyC(p.monto)"/>
+                    </div>
+                    <div class="fo-pend-sub" t-esc="p.sub"/>
+                    <div class="fo-pend-rezago" t-if="p.rezago" t-esc="p.rezago"/>
+                  </div>
+                </t>
+              </div>
+            </section>
+          </t>
+
           <!-- CÓMO FUNCIONA EL FLUJO -->
           <section class="fo-card fo-flow-card">
             <div class="fo-block-head">

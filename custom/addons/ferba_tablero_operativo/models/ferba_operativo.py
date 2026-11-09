@@ -137,6 +137,139 @@ class FerbaOperativoDashboard(models.AbstractModel):
                         'parcial': i == 0, 'monto': monto})
         return out
 
+    # -------------------------------------------------------- pendientes (hoy)
+    def _mas_viejo(self, model, field, domain=None):
+        """El registro mas antiguo por `field` (para medir antiguedad)."""
+        if not self._existe(model):
+            return None
+        try:
+            rec = self.env[model].sudo().search(
+                (domain or []) + self._dom_empresa(model), order='%s asc' % field, limit=1)
+            return rec[field] if rec else None
+        except Exception:
+            return None
+
+    def _hace(self, valor):
+        """'hace N dias/meses/anios' desde una fecha (date/datetime/str)."""
+        if not valor:
+            return ''
+        try:
+            d = fields.Date.to_date(valor)
+        except Exception:
+            return ''
+        if not d:
+            return ''
+        dias = (fields.Date.context_today(self) - d).days
+        if dias < 1:
+            return 'hoy'
+        if dias < 60:
+            return 'hace %d días' % dias
+        if dias < 730:
+            return 'hace %d meses' % round(dias / 30.0)
+        return 'hace %d años' % round(dias / 365.0)
+
+    def _anio(self, valor):
+        try:
+            d = fields.Date.to_date(valor)
+            return d.year if d else ''
+        except Exception:
+            return ''
+
+    def _mc(self, v, sym):
+        """Monto compacto (Mex$ 33.1M / 416k) para textos armados en servidor.
+        Espeja moneyC del front para que las frases cuadren con los numeros."""
+        v = v or 0.0
+        a = abs(v)
+        if a >= 1e6:
+            return '%s %sM' % (sym, ('%.1f' % (v / 1e6)).rstrip('0').rstrip('.'))
+        if a >= 1e3:
+            return '%s %sk' % (sym, ('%.1f' % (v / 1e3)).rstrip('0').rstrip('.'))
+        return '%s %s' % (sym, format(int(round(v)), ','))
+
+    def _pendientes(self):
+        """'Que atender': por cada flujo, lo RECIENTE/accionable arriba y el
+        rezago historico (estatus que nadie limpia) como nota al pie. Cada
+        tarjeta trae su `domain` para abrir justo ese subconjunto."""
+        try:
+            from dateutil.relativedelta import relativedelta
+        except Exception:
+            return []
+        hoy = fields.Date.context_today(self)
+        hoy_s = str(hoy)
+        d30 = str(hoy - relativedelta(days=30))
+        d90 = str(hoy - relativedelta(days=90))
+        sym = self.env.company.currency_id.symbol or '$'
+        cards = []
+
+        # 1) Pagos por autorizar (urgente = vencidos) -------------------------
+        MP = 'x_gestion_de_pagos'
+        if self._existe(MP):
+            base = [('x_studio_selection_field_1MYHO', '=', '0')]
+            venc = base + [('x_fecha_para_pago', '!=', False),
+                           ('x_fecha_para_pago', '<', hoy_s)]
+            total_n = self._contar(MP, base)
+            venc_n = self._contar(MP, venc)
+            urg = venc if venc_n else base
+            monto = self._suma(MP, 'x_studio_monto_de_pago', urg)
+            viejo = self._mas_viejo(MP, 'x_fecha_para_pago', urg)
+            if total_n:
+                cards.append({
+                    'key': 'pagos', 'icon': 'fa-money', 'tono': 'alto',
+                    'titulo': 'Pagos por autorizar',
+                    'num': venc_n if venc_n else total_n,
+                    'num_lbl': 'vencidos' if venc_n else 'pendientes',
+                    'monto': monto,
+                    'sub': (('de %s pendientes · el más viejo %s'
+                             % (format(total_n, ','), self._hace(viejo))).strip(' ·')
+                            if venc_n else ('el más viejo %s' % self._hace(viejo)).strip()),
+                    'rezago': '',
+                    'model': MP, 'domain': urg,
+                })
+
+        # 2) Cotizaciones por cerrar (urgente = recientes, aun tibias) --------
+        if self._existe('sale.order'):
+            base = [('state', 'in', ['draft', 'sent'])]
+            rec = base + [('date_order', '>=', d30)]
+            rez = base + [('date_order', '<', d90)]
+            rec_n = self._contar('sale.order', rec)
+            rec_monto = self._suma('sale.order', 'amount_total', rec)
+            rez_n = self._contar('sale.order', rez)
+            rez_monto = self._suma('sale.order', 'amount_total', rez)
+            viejo = self._mas_viejo('sale.order', 'date_order', rez)
+            if rec_n or rez_n:
+                cards.append({
+                    'key': 'cot', 'icon': 'fa-file-text-o', 'tono': 'medio',
+                    'titulo': 'Cotizaciones por cerrar',
+                    'num': rec_n, 'num_lbl': 'nuevas (≤30 días)',
+                    'monto': rec_monto,
+                    'sub': 'abiertas y aún tibias para perseguir',
+                    'rezago': ('%s en rezago · %s dormidos · desde %s'
+                               % (format(rez_n, ','), self._mc(rez_monto, sym), self._anio(viejo))) if rez_n else '',
+                    'model': 'sale.order', 'domain': rec if rec_n else base,
+                })
+
+        # 3) Recepciones por firmar (urgente = recientes atrasadas) -----------
+        if self._existe('stock.picking'):
+            base = [('picking_type_id.code', '=', 'incoming'), ('x_studio_estatus', '=', '0')]
+            rec = base + [('scheduled_date', '>=', d30)]
+            rez = base + [('scheduled_date', '<', d90)]
+            rec_n = self._contar('stock.picking', rec)
+            rez_n = self._contar('stock.picking', rez)
+            viejo = self._mas_viejo('stock.picking', 'scheduled_date', rez)
+            if rec_n or rez_n:
+                cards.append({
+                    'key': 'rec', 'icon': 'fa-inbox', 'tono': 'medio',
+                    'titulo': 'Recepciones por firmar',
+                    'num': rec_n, 'num_lbl': 'recientes atrasadas',
+                    'monto': None,
+                    'sub': 'entradas al almacén esperando firma',
+                    'rezago': ('%s en rezago · desde %s'
+                               % (format(rez_n, ','), self._anio(viejo))) if rez_n else '',
+                    'model': 'stock.picking', 'domain': rec if rec_n else base,
+                })
+
+        return cards
+
     # ------------------------------------------------------------------ data
     @api.model
     def data(self):
@@ -231,6 +364,7 @@ class FerbaOperativoDashboard(models.AbstractModel):
             'meta': {'empresas': self.env.companies.mapped('name'),
                      'moneda': self.env.company.currency_id.symbol or '$',
                      'ticket_promedio': ticket},
+            'pendientes': self._pendientes(),
             'kpis': kpis,
             'flujo': flujo,
             'ventas': {'por_tipo': ventas_tipo, 'por_estado': ventas_estado, 'por_mes': por_mes},
