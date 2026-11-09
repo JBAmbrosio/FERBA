@@ -25,6 +25,7 @@ Visibilidad: TODOS los usuarios internos, con montos. Lecturas con sudo().
 import logging
 
 from odoo import api, fields, models
+from odoo.exceptions import AccessError
 
 _logger = logging.getLogger(__name__)
 
@@ -273,6 +274,12 @@ class FerbaOperativoDashboard(models.AbstractModel):
     # ------------------------------------------------------------------ data
     @api.model
     def data(self):
+        # Visibilidad configurable (Ajustes -> Tablero Operativo): si el usuario
+        # no esta en el grupo, ni por URL puede leer los datos.
+        if not self.env.user.has_group('ferba_tablero_operativo.group_ferba_operativo_user'):
+            raise AccessError(
+                "No tienes acceso al Tablero Operativo. "
+                "Solicítalo en Ajustes → Tablero Operativo.")
         inc = [('picking_type_id.code', '=', 'incoming')]
         out_pick = [('picking_type_id.code', '=', 'outgoing')]
 

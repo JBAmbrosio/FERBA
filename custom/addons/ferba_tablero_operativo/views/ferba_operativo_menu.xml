@@ -5,17 +5,20 @@
         <field name="tag">ferba_operativo</field>
     </record>
 
-    <!-- App visible para TODOS los usuarios internos (base.group_user).
+    <!-- Visibilidad CONFIGURABLE desde Ajustes -> Tablero Operativo.
+         El menu se restringe al grupo `group_ferba_operativo_user`, que por
+         defecto implica base.group_user (todos los internos lo ven). Cambiar
+         a "solo seleccionados" en Ajustes ajusta la membresia del grupo.
          web_icon = mosaico en la cuadricula de apps (icono propio). -->
     <menuitem id="menu_ferba_operativo_root"
               name="Tablero Operativo"
               web_icon="ferba_tablero_operativo,static/description/icon.png"
-              groups="base.group_user"
+              groups="ferba_tablero_operativo.group_ferba_operativo_user"
               sequence="5"/>
     <menuitem id="menu_ferba_operativo_status"
               name="Status del flujo"
               parent="menu_ferba_operativo_root"
               action="ferba_operativo_client_action"
-              groups="base.group_user"
+              groups="ferba_tablero_operativo.group_ferba_operativo_user"
               sequence="1"/>
 </odoo>

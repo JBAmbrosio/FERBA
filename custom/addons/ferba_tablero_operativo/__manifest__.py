@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Tablero Operativo',
-    'version': '19.0.3.4.0',
+    'version': '19.0.3.5.0',
     'category': 'Productivity',
     'summary': 'Tablero del flujo FERBA (ventas, proyectos, compras, almacen y pagos) '
                'para todos los usuarios.',
@@ -20,7 +20,9 @@ compras (solicitud -> requisicion -> RFQ -> orden de compra), almacen
     'license': 'LGPL-3',
     'depends': ['base', 'web', 'sale'],
     'data': [
+        'security/ferba_operativo_security.xml',
         'views/ferba_operativo_menu.xml',
+        'views/res_config_settings_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
