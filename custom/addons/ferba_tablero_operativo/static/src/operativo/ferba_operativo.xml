@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+  <t t-name="ferba_tablero_operativo.Dashboard">
+    <div t-ref="root" t-attf-class="o_ferba_operativo {{ state.dark ? 'fo-dark' : '' }}">
+
+      <t t-if="state.loading">
+        <div class="fo-center"><div class="fo-spinner"/><div class="fo-muted mt-2">Cargando el status del flujo…</div></div>
+      </t>
+
+      <t t-elif="state.error">
+        <div class="fo-wrap"><div class="fo-card fo-alert">
+          <strong>No se pudo cargar el tablero.</strong>
+          <div class="small mt-1" t-esc="state.error"/>
+          <button class="btn btn-sm mt-2 fo-btn" t-on-click="() => this.cargar()">Reintentar</button>
+        </div></div>
+      </t>
+
+      <t t-else="">
+        <div class="fo-wrap">
+
+          <!-- Encabezado -->
+          <header class="fo-head">
+            <div class="fo-head-main">
+              <h1 class="fo-title">Tablero Operativo</h1>
+              <div class="fo-muted fo-sub-head" t-esc="state.data.meta.empresas.join(' · ')"/>
+            </div>
+            <button class="btn btn-sm fo-refresh" t-on-click="() => this.cargar()" title="Actualizar">
+              <i class="fa fa-refresh"/><span class="fo-refresh-lbl">Actualizar</span>
+            </button>
+          </header>
+
+          <!-- QUÉ ATENDER (pendientes por antigüedad y monto) -->
+          <t t-if="state.data.pendientes and state.data.pendientes.length">
+            <section class="fo-pend-region">
+              <div class="fo-block-head fo-pend-head-row">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-bell-o"/></div>
+                <h2 class="fo-block-title">Qué atender</h2>
+                <span class="fo-muted fo-hint ms-2 fo-hint-head">Lo que pide acción — por antigüedad y monto · clic para ver los documentos</span>
+              </div>
+              <div class="fo-pendientes">
+                <t t-foreach="state.data.pendientes" t-as="p" t-key="p.key">
+                  <div t-attf-class="fo-card fo-pend-card tono-{{ p.tono }} fo-click"
+                       t-on-click="() => this.abrir(p.model, p.domain, p.titulo)">
+                    <div class="fo-pend-top">
+                      <div class="fo-pend-ic"><i t-attf-class="fa {{ p.icon }}"/></div>
+                      <span class="fo-pend-titulo" t-esc="p.titulo"/>
+                      <i class="fa fa-arrow-right fo-kpi-go fo-pend-go"/>
+                    </div>
+                    <div class="fo-pend-headline">
+                      <span class="fo-pend-num" t-att-data-count="p.num" t-esc="num(p.num)"/>
+                      <span class="fo-pend-numlbl" t-esc="p.num_lbl"/>
+                      <span class="fo-pend-monto" t-if="p.monto" t-esc="moneyC(p.monto)"/>
+                    </div>
+                    <div class="fo-pend-sub" t-esc="p.sub"/>
+                    <div class="fo-pend-rezago" t-if="p.rezago" t-esc="p.rezago"/>
+                  </div>
+                </t>
+              </div>
+            </section>
+          </t>
+
+          <!-- CÓMO FUNCIONA EL FLUJO -->
+          <section class="fo-card fo-flow-card">
+            <div class="fo-block-head">
+              <div class="fo-chip fo-chip-sm"><i class="fa fa-sitemap"/></div>
+              <h2 class="fo-block-title">Cómo funciona el flujo</h2>
+              <span class="fo-muted fo-hint ms-2 fo-hint-head">De la solicitud al pago — clic en una etapa para ver sus documentos</span>
+            </div>
+            <div class="fo-flow">
+              <t t-foreach="state.data.flujo" t-as="s" t-key="s.etapa">
+                <div class="fo-node fo-click" t-on-click="() => this.abrir(s.model, s.domain, s.etapa)">
+                  <span class="fo-node-dot"/>
+                  <div class="fo-node-count" t-att-data-count="s.count" t-esc="num(s.count)"/>
+                  <div class="fo-node-name" t-esc="s.etapa"/>
+                  <div class="fo-node-desc" t-esc="s.desc"/>
+                </div>
+                <div class="fo-arrow" t-if="!s_last"><i class="fa fa-angle-right"/></div>
+              </t>
+            </div>
+          </section>
+
+          <!-- KPIs -->
+          <div class="fo-kpis">
+            <t t-foreach="state.data.kpis" t-as="k" t-key="k.key">
+              <div t-attf-class="fo-card fo-kpi-card fo-click {{ k.attn ? 'fo-attn' : '' }}"
+                   t-on-click="() => this.abrir(k.model, k.domain, k.label)">
+                <div class="fo-kpi-top">
+                  <div class="fo-chip"><i t-attf-class="fa {{ k.icon }}"/></div>
+                  <i class="fa fa-arrow-right fo-kpi-go"/>
+                </div>
+                <div class="fo-kpi-num" t-att-data-count="k.value" t-esc="num(k.value)"/>
+                <div class="fo-kpi-lbl" t-esc="k.label"/>
+                <div class="fo-kpi-sub" t-esc="k.money !== null ? moneyC(k.money) : 'ver detalle'"/>
+              </div>
+            </t>
+          </div>
+
+          <!-- GRÁFICAS -->
+          <div class="fo-charts">
+            <section class="fo-card fo-chart-card">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-line-chart"/></div>
+                <h2 class="fo-block-title">Ventas por mes</h2>
+                <span class="fo-muted fo-hint ms-auto">Ticket prom. <b t-esc="moneyC(state.data.meta.ticket_promedio)"/></span>
+              </div>
+              <t t-set="um" t-value="state.data.ventas.por_mes.length ? state.data.ventas.por_mes[state.data.ventas.por_mes.length-1] : null"/>
+              <t t-if="!state.data.ventas.por_mes.length"><div class="fo-empty">Sin datos</div></t>
+              <t t-else="">
+                <div class="fo-trend-val" t-esc="money(um.monto)"/>
+                <div class="fo-trend-cap fo-muted">
+                  <span t-esc="um.mes"/> <span t-esc="um.anio"/>
+                  <span t-if="um.parcial"> · mes en curso</span>
+                  <span t-else=""> · último mes cerrado</span>
+                </div>
+                <div class="fo-canvas-wrap fo-canvas-trend"><canvas t-ref="trendCanvas"/></div>
+              </t>
+            </section>
+
+            <section class="fo-card fo-chart-card">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-pie-chart"/></div>
+                <h2 class="fo-block-title">Ventas por tipo</h2>
+                <span class="fo-muted fo-hint ms-auto">confirmadas</span>
+              </div>
+              <t t-if="!state.data.ventas.por_tipo.length"><div class="fo-empty">Sin datos</div></t>
+              <t t-else="">
+                <div class="fo-donut-wrap">
+                  <div class="fo-canvas-wrap fo-canvas-donut">
+                    <canvas t-ref="donutCanvas"/>
+                    <div class="fo-donut-center">
+                      <div class="fo-donut-center-val" t-ref="donutCenterVal" t-esc="moneyC(totalTipo)"/>
+                      <div class="fo-donut-center-lbl" t-ref="donutCenterLbl">total</div>
+                    </div>
+                  </div>
+                  <div class="fo-legend">
+                    <t t-foreach="state.data.ventas.por_tipo" t-as="t" t-key="t.code">
+                      <div class="fo-leg-row fo-click" t-on-click="() => this.abrir(t.model, t.domain, t.label)">
+                        <span class="fo-dot" t-attf-style="background: {{ serie(t_index) }}"/>
+                        <span class="fo-leg-lbl" t-esc="t.label"/>
+                        <span class="fo-leg-val" t-esc="legTipo(t.amount_total)"/>
+                      </div>
+                    </t>
+                  </div>
+                </div>
+              </t>
+            </section>
+          </div>
+
+          <!-- BLOQUES -->
+          <div class="fo-grid">
+
+            <section class="fo-card fo-block">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-briefcase"/></div>
+                <h2 class="fo-block-title">Ventas por etapa</h2>
+              </div>
+              <t t-call="ferba_tablero_operativo.Bars">
+                <t t-set="filas" t-value="state.data.ventas.por_estado"/>
+                <t t-set="montokey" t-value="'amount_total'"/>
+              </t>
+            </section>
+
+            <section class="fo-card fo-block">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-shopping-cart"/></div>
+                <h2 class="fo-block-title">Compras</h2>
+              </div>
+              <div class="fo-label">Requisiciones por estatus</div>
+              <t t-call="ferba_tablero_operativo.Bars"><t t-set="filas" t-value="state.data.compras.requisiciones"/></t>
+              <div class="fo-label mt-3">RFQ por estatus</div>
+              <t t-call="ferba_tablero_operativo.Bars"><t t-set="filas" t-value="state.data.compras.rfq"/></t>
+            </section>
+
+            <section class="fo-card fo-block">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-cubes"/></div>
+                <h2 class="fo-block-title">Almacén</h2>
+              </div>
+              <div class="fo-tiles">
+                <t t-foreach="state.data.almacen" t-as="tile" t-key="tile.label">
+                  <div t-attf-class="fo-tile fo-click {{ tile.attn ? 'fo-tile-attn' : '' }}"
+                       t-on-click="() => this.abrir(tile.model, tile.domain, tile.label)">
+                    <div t-attf-class="fo-tile-num {{ tile.accent === 'ok' ? 'fo-ok' : '' }} {{ tile.attn ? 'fo-attn-num' : '' }}" t-att-data-count="tile.value" t-esc="num(tile.value)"/>
+                    <div class="fo-tile-lbl" t-esc="tile.label"/>
+                  </div>
+                </t>
+              </div>
+            </section>
+
+            <section class="fo-card fo-block">
+              <div class="fo-block-head">
+                <div class="fo-chip fo-chip-sm"><i class="fa fa-money"/></div>
+                <h2 class="fo-block-title">Pagos</h2>
+              </div>
+              <div class="fo-label">Gestión de pagos por estatus</div>
+              <t t-call="ferba_tablero_operativo.Bars">
+                <t t-set="filas" t-value="state.data.pagos.gestion"/>
+                <t t-set="montokey" t-value="'x_studio_monto_de_pago'"/>
+              </t>
+              <div class="fo-label mt-3">Solicitudes de pago por estatus</div>
+              <t t-call="ferba_tablero_operativo.Bars"><t t-set="filas" t-value="state.data.pagos.solicitudes"/></t>
+            </section>
+
+          </div>
+
+          <div class="fo-foot fo-muted">Datos en vivo · empresa activa · clic en cualquier métrica para ver sus registros</div>
+        </div>
+      </t>
+    </div>
+  </t>
+
+  <!-- Sub-plantilla de barras (clickable) -->
+  <t t-name="ferba_tablero_operativo.Bars">
+    <t t-if="!filas.length"><div class="fo-empty">Sin datos</div></t>
+    <t t-foreach="filas" t-as="f" t-key="f.code">
+      <div class="fo-row fo-click" t-on-click="() => this.abrir(f.model, f.domain, f.label)">
+        <span class="fo-row-lbl" t-esc="f.label"/>
+        <div class="fo-track"><div class="fo-bar" t-attf-style="width: {{ barPct(f.count, filas) }}%"/></div>
+        <span class="fo-row-val" t-esc="num(f.count)"/>
+        <span class="fo-row-money" t-esc="montokey ? money(f[montokey]) : ''"/>
+      </div>
+    </t>
+  </t>
+</templates>

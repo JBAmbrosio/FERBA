@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!-- Grupo que controla quien ve el Tablero Operativo.
+         Por defecto base.group_user lo IMPLICA => TODOS los usuarios internos
+         lo ven (igual que antes de hacerlo configurable). Desde Ajustes ->
+         Tablero Operativo se puede pasar a "solo usuarios seleccionados".
+         Categoria oculta: la membresia se administra desde Ajustes, no por
+         usuario, para tener una sola fuente de verdad. -->
+    <!-- Odoo 19: res.groups ya NO tiene category_id (paso a privilege_id). El
+         grupo va sin privilegio: se administra desde Ajustes, no por usuario.
+         El default "todos los internos" (group_user implica este grupo) se pone
+         en el post_init_hook `_post_init_visibilidad`, porque `base.group_user`
+         es noupdate=true y Odoo ignora modificarlo por dato. -->
+    <record id="group_ferba_operativo_user" model="res.groups">
+        <field name="name">Tablero Operativo: Ver</field>
+    </record>
+</odoo>

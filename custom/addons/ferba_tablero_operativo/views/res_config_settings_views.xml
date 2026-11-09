@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_ferba_operativo" model="ir.ui.view">
+        <field name="name">res.config.settings.form.ferba.operativo</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Tablero Operativo" name="ferba_tablero_operativo"
+                     logo="/ferba_tablero_operativo/static/description/icon.png">
+                    <block title="Visibilidad" name="ferba_operativo_block_vis">
+                        <setting string="¿Quién puede ver el Tablero Operativo?"
+                                 help="Controla quién ve la app 'Tablero Operativo' en la cuadrícula y puede abrir sus datos.">
+                            <field name="ferba_operativo_visibilidad" widget="radio"/>
+                            <div class="content-group mt-3"
+                                 invisible="ferba_operativo_visibilidad != 'seleccion'">
+                                <field name="ferba_operativo_user_ids" widget="many2many_tags"
+                                       options="{'no_create_edit': True}"
+                                       placeholder="Agrega los usuarios que podrán verlo…"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
