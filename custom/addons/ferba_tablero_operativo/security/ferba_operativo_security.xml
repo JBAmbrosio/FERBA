@@ -6,9 +6,10 @@
          Tablero Operativo se puede pasar a "solo usuarios seleccionados".
          Categoria oculta: la membresia se administra desde Ajustes, no por
          usuario, para tener una sola fuente de verdad. -->
+    <!-- Odoo 19: res.groups ya NO tiene category_id (paso a privilege_id). El
+         grupo va sin privilegio: se administra desde Ajustes, no por usuario. -->
     <record id="group_ferba_operativo_user" model="res.groups">
         <field name="name">Tablero Operativo: Ver</field>
-        <field name="category_id" ref="base.module_category_hidden"/>
     </record>
 
     <record id="base.group_user" model="res.groups">

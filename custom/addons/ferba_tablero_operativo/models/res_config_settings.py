@@ -39,7 +39,8 @@ class ResConfigSettings(models.TransientModel):
         res.update(
             ferba_operativo_visibilidad='todos' if todos else 'seleccion',
             # En "todos" el detalle no se usa (y la lista seria enorme): vacio.
-            ferba_operativo_user_ids=[(6, 0, [] if todos else grupo.users.ids)]
+            # Odoo 19: la membresia del grupo es `user_ids` (antes `users`).
+            ferba_operativo_user_ids=[(6, 0, [] if todos else grupo.user_ids.ids)]
             if grupo else [(6, 0, [])],
         )
         return res
@@ -60,4 +61,4 @@ class ResConfigSettings(models.TransientModel):
             if grupo in g_user.implied_ids:
                 g_user.sudo().write({'implied_ids': [(3, grupo.id)]})
             usuarios = self.ferba_operativo_user_ids or self.env.user
-            grupo.sudo().write({'users': [(6, 0, usuarios.ids)]})
+            grupo.sudo().write({'user_ids': [(6, 0, usuarios.ids)]})
