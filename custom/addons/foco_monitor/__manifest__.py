@@ -1,6 +1,6 @@
 {
     'name': 'Foco - Monitor de Productividad',
-    'version': '19.0.29.61.0',
+    'version': '19.0.29.62.0',
     'summary': 'Mide el uso real de aplicaciones (primer plano vs segundo plano) '
                'por empleado, con control remoto de equipos.',
     'description': """
@@ -78,6 +78,8 @@ mide el tiempo activo (con input) vs inactivo, y lo envia a Odoo.
         'views/foco_sinact_action.xml',
         'views/foco_rrhh_action.xml',
         'views/foco_menus.xml',
+        'views/foco_soporte_views.xml',
+        'data/foco_soporte_data.xml',
         'views/foco_mdm_views.xml',
         'security/foco_mdm_rules.xml',
         'data/foco_mdm_data.xml',

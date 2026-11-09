@@ -167,6 +167,98 @@ class FocoComputer(models.Model):
         string='Retiro: detalle', readonly=True, copy=False,
         help='Lo que el equipo reporto al liberar los bloqueos antes de desinstalarse.')
 
+    # ------------------------------------------------- soporte TI (mantenimiento)
+    # Infra entra por TeamViewer a la sesion del empleado y ACTIVA el modo
+    # soporte con su contrasena (se valida en el servidor, no viaja al equipo).
+    # Mientras este encendido este equipo NO bloquea sitios (payload_for -> off)
+    # y NO abre la ventana de inactividad (conducta_para -> ventana False), y los
+    # huecos de ese rato se marcan 'soporte' (no cuentan contra el empleado ni se
+    # ven como evasion). Infra lo APAGA al terminar; si lo olvida, un cron lo
+    # apaga al cierre de la jornada (respaldo) y la proteccion vuelve esa noche.
+    soporte_activo = fields.Boolean(
+        string='Soporte TI activo', readonly=True, copy=False, tracking=True,
+        help='Encendido: infra tiene una sesion de soporte abierta en este '
+             'equipo. Sin bloqueo ni ventana de inactividad mientras dure; el '
+             'tiempo se registra como mantenimiento. Lo apaga infra al terminar.')
+    soporte_desde = fields.Datetime(
+        string='Soporte TI desde', readonly=True, copy=False)
+    soporte_sesion_ids = fields.One2many(
+        'foco.soporte', 'computer_id', string='Sesiones de soporte TI')
+
+    def abrir_soporte(self, activada_por='Infra (contrasena)', windows_user=None, nota=None):
+        """Activa el modo soporte: abre (o reusa) una sesion y marca el equipo."""
+        self.ensure_one()
+        Soporte = self.env['foco.soporte'].sudo()
+        sesion = Soporte.search(
+            [('computer_id', '=', self.id), ('estado', '=', 'activa')], limit=1)
+        if not sesion:
+            sesion = Soporte.create({
+                'computer_id': self.id,
+                'activada_por': activada_por,
+                'windows_user': windows_user or self.windows_user or '',
+                'nota': nota or '',
+            })
+        self.sudo().write({'soporte_activo': True, 'soporte_desde': sesion.inicio})
+        self.message_post(
+            body='Soporte TI ACTIVADO (%s). Sin bloqueo ni ventana de '
+                 'inactividad; el tiempo se registra como mantenimiento.'
+                 % (activada_por or 'infra'))
+        return sesion
+
+    def cerrar_soporte(self, motivo='infra'):
+        """Apaga el modo soporte y cierra la(s) sesion(es) abierta(s).
+        motivo='respaldo' = lo apago el cron al cierre de la jornada."""
+        self.ensure_one()
+        Soporte = self.env['foco.soporte'].sudo()
+        abiertas = Soporte.search(
+            [('computer_id', '=', self.id), ('estado', '=', 'activa')])
+        if abiertas:
+            abiertas.write({
+                'estado': 'cerrada_respaldo' if motivo == 'respaldo' else 'cerrada',
+                'fin': fields.Datetime.now(),
+            })
+        if self.soporte_activo or self.soporte_desde:
+            self.sudo().write({'soporte_activo': False, 'soporte_desde': False})
+        if motivo == 'respaldo':
+            self.message_post(
+                body='Soporte TI apagado por RESPALDO (cierre de jornada): infra '
+                     'no lo desactivo. La proteccion (bloqueo y ventana) volvio a '
+                     'este equipo.')
+        else:
+            self.message_post(
+                body='Soporte TI DESACTIVADO. La proteccion volvio a este equipo.')
+
+    def _soporte_cubre(self, inicio, fin):
+        """¿Alguna sesion de soporte TI de este equipo solapa [inicio, fin]?"""
+        self.ensure_one()
+        if not inicio or not fin:
+            return False
+        return bool(self.env['foco.soporte'].sudo().search_count([
+            ('computer_id', '=', self.id),
+            ('inicio', '<=', fin),
+            '|', ('fin', '=', False), ('fin', '>=', inicio),
+        ]))
+
+    @api.model
+    def _cron_cerrar_soporte_vencido(self):
+        """Respaldo: apaga el soporte TI que infra olvido, al cierre de la
+        jornada de la empresa del equipo (hora local). Corre cada media hora y
+        cierra solo lo que ya paso su hora de cierre."""
+        import pytz
+        Settings = self.env['foco.settings'].sudo()
+        for eq in self.sudo().search([('soporte_activo', '=', True)]):
+            ajustes = Settings.de_equipo(eq)
+            hora = ajustes.soporte_cierre_hora
+            if hora is None:
+                hora = 20
+            try:
+                tz = Settings._tzinfo_for(eq.employee_id, eq)
+            except Exception:
+                tz = pytz.UTC
+            ahora_local = pytz.UTC.localize(fields.Datetime.now()).astimezone(tz)
+            if ahora_local.hour >= hora:
+                eq.cerrar_soporte(motivo='respaldo')
+
     # ------------------------------------------------------- navegacion
     policy_id = fields.Many2one(
         'foco.policy', string='Perfil de navegacion', ondelete='set null',

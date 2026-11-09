@@ -1951,6 +1951,10 @@ class FocoController(http.Controller):
         return request.make_json_response({
             'ok': True,
             'commands': salida,
+            # Estado del soporte TI en el sondeo ligero: si infra lo apago (o el
+            # respaldo al cierre), el agente restituye la ventana en <=25 s en
+            # vez de esperar el envio pesado de 5 min.
+            'soporte': {'activo': bool(computer.soporte_activo)},
             # El estado del checador va en el sondeo ligero a proposito: una
             # entrada o salida checada tiene que cambiar la etiqueta "en
             # jornada" en segundos, no en cinco minutos.
@@ -1968,6 +1972,38 @@ class FocoController(http.Controller):
                                   .monitor_sitios_para(computer.employee_id),
             },
         })
+
+    @http.route('/foco/soporte', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def soporte(self, **kw):
+        """Soporte TI (TeamViewer): el agente ACTIVA/DESACTIVA el modo
+        mantenimiento en su equipo. Activar exige la contrasena de infra, que se
+        valida AQUI (no viaja al equipo). Desactivar es libre: solo restituye la
+        proteccion. Con el modo activo, /foco/policy responde 'off' (sin bloqueo)
+        y la conducta va sin ventana de inactividad."""
+        return _reintentando(lambda: self._soporte(**kw))
+
+    def _soporte(self, **kw):
+        computer = self._auth()
+        if not computer:
+            return request.make_json_response({'error': 'unauthorized'}, status=401)
+        data = self._body()
+        if data is None:
+            return request.make_json_response({'error': 'bad_json'}, status=400)
+        accion = (data.get('accion') or 'on').strip()
+        if accion == 'off':
+            computer.sudo().cerrar_soporte(motivo='infra')
+            return request.make_json_response({'ok': True, 'activo': False})
+        # Activar exige la contrasena de infra (validada contra el hash, no viaja).
+        ajustes = request.env['foco.settings'].sudo().de_equipo(computer.sudo())
+        if not ajustes.verificar_soporte_pin(data.get('pin') or ''):
+            _logger.warning('Foco soporte TI: contrasena incorrecta, equipo %s (%s)',
+                            computer.id, computer.name)
+            return request.make_json_response({'ok': False, 'error': 'pin'}, status=403)
+        computer.sudo().abrir_soporte(
+            activada_por='Infra (contrasena)',
+            windows_user=(data.get('windows_user') or ''))
+        return request.make_json_response({'ok': True, 'activo': True})
 
     @staticmethod
     def _estado_envio(computer, data):

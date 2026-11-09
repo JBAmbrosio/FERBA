@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="foco_soporte_view_list" model="ir.ui.view">
+        <field name="name">foco.soporte.list</field>
+        <field name="model">foco.soporte</field>
+        <field name="arch" type="xml">
+            <list string="Soporte TI" default_order="estado,inicio desc"
+                  decoration-info="estado == 'activa'"
+                  decoration-danger="estado == 'activa' and activa_horas &gt;= 4"
+                  decoration-warning="estado == 'cerrada_respaldo'"
+                  decoration-muted="estado == 'cerrada'">
+                <field name="computer_id"/>
+                <field name="employee_id"/>
+                <field name="estado"/>
+                <field name="inicio"/>
+                <field name="fin" optional="show"/>
+                <field name="activa_horas" string="Lleva activa (h)" widget="float_time"/>
+                <field name="duracion_min" string="Duracion (min)" digits="[6,1]" optional="show"/>
+                <field name="activada_por" optional="hide"/>
+                <field name="windows_user" optional="hide"/>
+                <field name="company_id" optional="hide" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="foco_soporte_view_form" model="ir.ui.view">
+        <field name="name">foco.soporte.form</field>
+        <field name="model">foco.soporte</field>
+        <field name="arch" type="xml">
+            <form string="Soporte TI">
+                <header>
+                    <button name="action_cerrar" type="object"
+                            string="Cerrar soporte ahora" class="btn-primary"
+                            invisible="estado != 'activa'"
+                            confirm="¿Cerrar el soporte TI de este equipo? La protección (bloqueo y ventana de inactividad) volverá de inmediato."/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="computer_id" readonly="1"/>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="estado" readonly="1"/>
+                            <field name="windows_user" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="inicio" readonly="1"/>
+                            <field name="fin" readonly="1"/>
+                            <field name="duracion_min" readonly="1"/>
+                            <field name="activada_por" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="nota"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="foco_soporte_view_search" model="ir.ui.view">
+        <field name="name">foco.soporte.search</field>
+        <field name="model">foco.soporte</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="computer_id"/>
+                <field name="employee_id"/>
+                <filter name="activas" string="Activas ahora" domain="[('estado','=','activa')]"/>
+                <filter name="olvidadas" string="Olvidadas (cerradas por respaldo)"
+                        domain="[('estado','=','cerrada_respaldo')]"/>
+                <separator/>
+                <filter name="g_equipo" string="Equipo" context="{'group_by':'computer_id'}"/>
+                <filter name="g_empleado" string="Empleado" context="{'group_by':'employee_id'}"/>
+                <filter name="g_estado" string="Estado" context="{'group_by':'estado'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="foco_soporte_action" model="ir.actions.act_window">
+        <field name="name">Soporte TI</field>
+        <field name="res_model">foco.soporte</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="foco_soporte_view_search"/>
+        <field name="context">{'search_default_activas': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin sesiones de soporte TI todavia.</p>
+            <p>Aqui queda registrada cada vez que infraestructura activa el modo
+               soporte en un equipo (TeamViewer): el tiempo cuenta como
+               <b>mantenimiento</b>, no contra el empleado. Las <b>activas</b>
+               salen arriba; si una lleva mucho tiempo encendida (en rojo),
+               probablemente infra olvido desactivarla.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_foco_soporte" name="Soporte TI"
+              parent="menu_foco_sec_equipos" action="foco_soporte_action" sequence="60"
+              groups="foco_monitor.group_foco_manager"/>
+</odoo>
