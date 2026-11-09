@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Tablero Operativo',
-    'version': '19.0.3.5.0',
+    'version': '19.0.3.6.0',
     'category': 'Productivity',
     'summary': 'Tablero del flujo FERBA (ventas, proyectos, compras, almacen y pagos) '
                'para todos los usuarios.',
