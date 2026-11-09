@@ -7,12 +7,11 @@
          Categoria oculta: la membresia se administra desde Ajustes, no por
          usuario, para tener una sola fuente de verdad. -->
     <!-- Odoo 19: res.groups ya NO tiene category_id (paso a privilege_id). El
-         grupo va sin privilegio: se administra desde Ajustes, no por usuario. -->
+         grupo va sin privilegio: se administra desde Ajustes, no por usuario.
+         El default "todos los internos" (group_user implica este grupo) se pone
+         en el post_init_hook `_post_init_visibilidad`, porque `base.group_user`
+         es noupdate=true y Odoo ignora modificarlo por dato. -->
     <record id="group_ferba_operativo_user" model="res.groups">
         <field name="name">Tablero Operativo: Ver</field>
-    </record>
-
-    <record id="base.group_user" model="res.groups">
-        <field name="implied_ids" eval="[(4, ref('group_ferba_operativo_user'))]"/>
     </record>
 </odoo>

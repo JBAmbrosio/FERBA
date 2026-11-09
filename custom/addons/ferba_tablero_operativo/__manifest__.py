@@ -35,4 +35,5 @@ compras (solicitud -> requisicion -> RFQ -> orden de compra), almacen
     },
     'installable': True,
     'application': True,
+    'post_init_hook': '_post_init_visibilidad',
 }
