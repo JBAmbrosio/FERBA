@@ -218,6 +218,12 @@ class FocoPolicy(models.Model):
         # perfil (por eso pisa el `ventana` que venia del perfil). Se decide por
         # EQUIPO -no por empleado- porque solo los equipos tienen Foco.
         bloque['ventana'] = bool(computer.foco_ventana_inactividad)
+        # Soporte TI: mientras infra trabaja en el equipo NO se abre la ventana
+        # de inactividad (su idle no es del empleado). El flag va en el bloque y
+        # dentro del hash para que el agente lo adopte rapido.
+        bloque['soporte'] = bool(computer.soporte_activo)
+        if bloque['soporte']:
+            bloque['ventana'] = False
         bloque['version'] = self._hash(bloque)
         return bloque
 
@@ -477,6 +483,12 @@ class FocoPolicy(models.Model):
         if computer.retire_state == 'requested':
             return dict({'version': 'off', 'block': [], 'allow': [], 'kill': [],
                          'kill_productos': [], 'retire': True}, **extra)
+        # Soporte TI activo: infra esta trabajando en el equipo (TeamViewer). Se
+        # LEVANTA el bloqueo -listas vacias, igual que el interruptor general
+        # apagado, el servicio hace limpiar()- hasta que infra lo desactive (o el
+        # respaldo al cierre de la jornada).
+        if computer.soporte_activo:
+            return dict({'version': 'off', 'block': [], 'allow': [], 'kill': []}, **extra)
         if not ajustes.block_enabled:
             # El interruptor general apagado publica listas vacias A PROPOSITO:
             # asi el equipo LIMPIA lo que tuviera puesto en vez de conservarlo.

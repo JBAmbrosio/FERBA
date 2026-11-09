@@ -520,6 +520,59 @@ class FocoSettings(models.Model):
             self.env['ir.config_parameter'].sudo().set_param(
                 'foco.openai_api_key', (rec.openai_api_key or '').strip())
 
+    # ---- Soporte TI (TeamViewer): UNA contrasena de infra, validada en el
+    # servidor (nunca viaja al equipo), guardada HASHEADA como parametro del
+    # sistema. Infra la teclea en el equipo para activar el modo soporte.
+    soporte_pin = fields.Char(
+        string='Contrasena de soporte TI (infra)',
+        compute='_compute_soporte_pin', inverse='_inverse_soporte_pin',
+        help='Una sola contrasena para infraestructura. Al activar el modo '
+             'soporte en un equipo (TeamViewer), infra la teclea y se valida '
+             'AQUI en el servidor: no viaja a los equipos y se guarda cifrada. '
+             'Escribe una nueva para cambiarla; vacia = sin contrasena (soporte '
+             'deshabilitado).')
+    soporte_cierre_hora = fields.Integer(
+        string='Apagar soporte TI a las (hora)', default=20,
+        help='Si infra olvida desactivar el soporte, se apaga solo a esta hora '
+             '(0-23, hora local de la empresa) y la proteccion vuelve esa noche.')
+
+    def _compute_soporte_pin(self):
+        tiene = bool(self.env['ir.config_parameter'].sudo().get_param('foco.soporte_pin_hash'))
+        for rec in self:
+            rec.soporte_pin = '********' if tiene else ''
+
+    def _inverse_soporte_pin(self):
+        from werkzeug.security import generate_password_hash
+        ICP = self.env['ir.config_parameter'].sudo()
+        for rec in self:
+            val = (rec.soporte_pin or '').strip()
+            if val == '********':
+                continue                       # placeholder: no se toco, no cambia
+            if not val:
+                ICP.set_param('foco.soporte_pin_hash', '')   # vaciar = deshabilitar
+            else:
+                ICP.set_param('foco.soporte_pin_hash', generate_password_hash(val))
+
+    @api.model
+    def verificar_soporte_pin(self, pin):
+        """True si `pin` coincide con la contrasena de soporte TI configurada."""
+        from werkzeug.security import check_password_hash
+        h = self.env['ir.config_parameter'].sudo().get_param('foco.soporte_pin_hash')
+        pin = (pin or '').strip()
+        if not h or not pin:
+            return False
+        try:
+            return check_password_hash(h, pin)
+        except Exception:
+            return False
+
+    @api.constrains('soporte_cierre_hora')
+    def _check_soporte_cierre_hora(self):
+        for r in self:
+            if not (0 <= (r.soporte_cierre_hora or 0) <= 23):
+                raise ValidationError(
+                    'La hora de apagado del soporte TI debe estar entre 0 y 23.')
+
     @api.constrains('call_review_chunk_minutes', 'call_review_max_minutes')
     def _check_call_review(self):
         for r in self:

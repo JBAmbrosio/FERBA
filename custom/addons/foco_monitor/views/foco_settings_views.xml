@@ -109,6 +109,21 @@
                         por su nombre. El cambio llega a cada equipo en su siguiente envío
                         (unos minutos), sin reinstalar nada.
                     </div>
+                    <group string="Soporte de TI (TeamViewer)">
+                        <field name="soporte_pin" password="True"
+                               placeholder="Escribe una nueva para cambiarla..."/>
+                        <field name="soporte_cierre_hora"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Una sola contraseña para <b>infraestructura</b>. Al entrar por
+                        TeamViewer a un equipo, infra activa el <b>modo soporte</b> con esta
+                        contraseña: mientras dura, ese equipo <b>no bloquea sitios</b> y
+                        <b>no abre la ventana de inactividad</b>, y el tiempo se registra como
+                        <b>mantenimiento</b> (se ve en <b>Equipos ▸ Soporte TI</b>). Infra lo
+                        <b>desactiva</b> al terminar; si lo olvida, se apaga solo a la hora de
+                        arriba y la protección vuelve esa noche. La contraseña se valida en el
+                        servidor y <b>no viaja a los equipos</b>.
+                    </div>
                     <group string="La meta del día">
                         <field name="meta_productiva_h" widget="float_time"/>
                     </group>

@@ -196,7 +196,8 @@ class FocoAbsence(models.Model):
          ('justificada', 'Justificada'),
          ('por_decidir', 'Por decidir (admin)'),
          ('rechazada', 'Rechazada por el admin'),
-         ('no_justificado', 'No justificado (se le paso el dia)')],
+         ('no_justificado', 'No justificado (se le paso el dia)'),
+         ('soporte', 'Soporte TI (mantenimiento)')],
         string='Estado', default='pendiente', index=True, required=True)
     devuelta_admin_at = fields.Datetime(
         string='Devuelta por el admin el', readonly=True,
@@ -485,7 +486,12 @@ class FocoAbsence(models.Model):
             # Regla del mismo dia: un hueco que empezo un dia que YA TERMINO
             # -se fue a las 16:26, dejo la PC prendida y el hueco se cierra al
             # tocarla a la manana siguiente- ya no se le pregunta. Entra cerrado.
-            if de_vacaciones:
+            if computer._soporte_cubre(start, fin):
+                # Rato de soporte TI (infra en el equipo): mantenimiento, no se
+                # le pregunta ni cuenta contra el empleado. No es 'pendiente', asi
+                # que queda fuera de la ventana y del "sin explicar" del tablero.
+                estado = 'soporte'
+            elif de_vacaciones:
                 estado = 'auto'
             elif employee and self._dia_local(employee, start) < \
                     self._dia_local(employee, fields.Datetime.now()):
