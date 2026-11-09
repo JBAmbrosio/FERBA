@@ -56,9 +56,9 @@ class ResConfigSettings(models.TransientModel):
                 g_user.sudo().write({'implied_ids': [(4, grupo.id)]})
         else:
             # Solo seleccionados: quitar la implicacion y fijar la membresia
-            # EXACTA. Si no eligieron a nadie, se incluye al admin que configura
-            # para no dejar el tablero sin nadie por accidente.
+            # EXACTA. La lista VACIA es valida y significa NADIE (tablero oculto
+            # para todos); el admin lo reactiva desde Ajustes cuando quiera, ya
+            # que Ajustes no depende de este grupo.
             if grupo in g_user.implied_ids:
                 g_user.sudo().write({'implied_ids': [(3, grupo.id)]})
-            usuarios = self.ferba_operativo_user_ids or self.env.user
-            grupo.sudo().write({'user_ids': [(6, 0, usuarios.ids)]})
+            grupo.sudo().write({'user_ids': [(6, 0, self.ferba_operativo_user_ids.ids)]})
