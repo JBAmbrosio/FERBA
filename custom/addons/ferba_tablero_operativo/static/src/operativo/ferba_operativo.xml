@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates xml:space="preserve">
   <t t-name="ferba_tablero_operativo.Dashboard">
-    <div t-attf-class="o_ferba_operativo {{ state.dark ? 'fo-dark' : '' }}">
+    <div t-ref="root" t-attf-class="o_ferba_operativo {{ state.dark ? 'fo-dark' : '' }}">
 
       <t t-if="state.loading">
         <div class="fo-center"><div class="fo-spinner"/><div class="fo-muted mt-2">Cargando el status del flujo…</div></div>
@@ -40,7 +40,7 @@
               <t t-foreach="state.data.flujo" t-as="s" t-key="s.etapa">
                 <div class="fo-node fo-click" t-on-click="() => this.abrir(s.model, s.domain, s.etapa)">
                   <span class="fo-node-dot"/>
-                  <div class="fo-node-count" t-esc="num(s.count)"/>
+                  <div class="fo-node-count" t-att-data-count="s.count" t-esc="num(s.count)"/>
                   <div class="fo-node-name" t-esc="s.etapa"/>
                   <div class="fo-node-desc" t-esc="s.desc"/>
                 </div>
@@ -58,7 +58,7 @@
                   <div class="fo-chip"><i t-attf-class="fa {{ k.icon }}"/></div>
                   <i class="fa fa-arrow-right fo-kpi-go"/>
                 </div>
-                <div class="fo-kpi-num" t-esc="num(k.value)"/>
+                <div class="fo-kpi-num" t-att-data-count="k.value" t-esc="num(k.value)"/>
                 <div class="fo-kpi-lbl" t-esc="k.label"/>
                 <div class="fo-kpi-sub" t-esc="k.money !== null ? moneyC(k.money) : 'ver detalle'"/>
               </div>
@@ -95,7 +95,13 @@
               <t t-if="!state.data.ventas.por_tipo.length"><div class="fo-empty">Sin datos</div></t>
               <t t-else="">
                 <div class="fo-donut-wrap">
-                  <div class="fo-canvas-wrap fo-canvas-donut"><canvas t-ref="donutCanvas"/></div>
+                  <div class="fo-canvas-wrap fo-canvas-donut">
+                    <canvas t-ref="donutCanvas"/>
+                    <div class="fo-donut-center">
+                      <div class="fo-donut-center-val" t-esc="moneyC(totalTipo)"/>
+                      <div class="fo-donut-center-lbl">total</div>
+                    </div>
+                  </div>
                   <div class="fo-legend">
                     <t t-foreach="state.data.ventas.por_tipo" t-as="t" t-key="t.code">
                       <div class="fo-leg-row fo-click" t-on-click="() => this.abrir(t.model, t.domain, t.label)">
@@ -144,7 +150,7 @@
                 <t t-foreach="state.data.almacen" t-as="tile" t-key="tile.label">
                   <div t-attf-class="fo-tile fo-click {{ tile.attn ? 'fo-tile-attn' : '' }}"
                        t-on-click="() => this.abrir(tile.model, tile.domain, tile.label)">
-                    <div t-attf-class="fo-tile-num {{ tile.accent === 'ok' ? 'fo-ok' : '' }} {{ tile.attn ? 'fo-attn-num' : '' }}" t-esc="num(tile.value)"/>
+                    <div t-attf-class="fo-tile-num {{ tile.accent === 'ok' ? 'fo-ok' : '' }} {{ tile.attn ? 'fo-attn-num' : '' }}" t-att-data-count="tile.value" t-esc="num(tile.value)"/>
                     <div class="fo-tile-lbl" t-esc="tile.label"/>
                   </div>
                 </t>

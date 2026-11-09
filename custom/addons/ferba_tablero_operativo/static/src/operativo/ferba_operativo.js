@@ -9,21 +9,42 @@ const BRAND = "#714B67";
 const BRAND_RGB = "113, 75, 103";
 const SERIE = ["#714B67", "#00A09D", "#E6A23C", "#5B6EB4", "#8F6FA8", "#9AA1AB"];
 
+// Guia vertical en la linea: orienta la lectura al pasar el raton por un mes.
+const CROSSHAIR = {
+    id: "foCrosshair",
+    afterDatasetsDraw(chart) {
+        const act = chart.tooltip && chart.tooltip._active;
+        if (!act || !act.length) { return; }
+        const x = act[0].element.x;
+        const { top, bottom } = chart.chartArea;
+        const c = chart.ctx;
+        c.save();
+        c.beginPath();
+        c.moveTo(x, top);
+        c.lineTo(x, bottom);
+        c.lineWidth = 1;
+        c.strokeStyle = "rgba(" + BRAND_RGB + ", 0.35)";
+        c.stroke();
+        c.restore();
+    },
+};
+
 export class FerbaOperativo extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
         // Tema detectado ANTES del primer render (evita parpadeo y pinta los charts bien).
         this.state = useState({ loading: true, data: null, error: null, dark: this._esOscuro() });
+        this.root = useRef("root");
         this.trendCanvas = useRef("trendCanvas");
         this.donutCanvas = useRef("donutCanvas");
         this.charts = {};
         this._needCharts = false;
 
         onWillStart(() => this.cargar());
-        onMounted(() => this._dibujaCharts());
+        onMounted(() => this._postRender());
         onPatched(() => {
-            if (this._needCharts) { this._needCharts = false; this._dibujaCharts(); }
+            if (this._needCharts) { this._needCharts = false; this._postRender(); }
         });
         onWillUnmount(() => this._destruyeCharts());
     }
@@ -68,6 +89,10 @@ export class FerbaOperativo extends Component {
     }
     acento() { return BRAND; }
     serie(i) { return SERIE[i % SERIE.length]; }
+    get totalTipo() {
+        const pt = (this.state.data && this.state.data.ventas && this.state.data.ventas.por_tipo) || [];
+        return pt.reduce((a, t) => a + (t.amount_total || 0), 0);
+    }
 
     // ---- barras (bloques de estatus)
     maxCount(filas) { return Math.max(1, ...(filas || []).map((f) => f.count || 0)); }
@@ -78,6 +103,35 @@ export class FerbaOperativo extends Component {
     _gridColor() { return this.state.dark ? "rgba(255,255,255,0.09)" : "#dee2e6"; }
     _tipFondo() { return this.state.dark ? "#2b2f3a" : "#ffffff"; }
     _tipTexto() { return this.state.dark ? "#e4e4e4" : "#111827"; }
+
+    _postRender() {
+        this._dibujaCharts();
+        this._animaNumeros();
+    }
+
+    // Conteo animado de los numeros grandes (KPIs, flujo, tiles). Escribe
+    // directo en el DOM (fuera de OWL) para no re-renderizar en cada frame.
+    _animaNumeros() {
+        const root = this.root.el;
+        if (!root) { return; }
+        const nodes = root.querySelectorAll("[data-count]");
+        const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const fmt = (v) => Math.round(v).toLocaleString("es-MX");
+        const ease = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+        nodes.forEach((n) => {
+            const target = parseFloat(n.getAttribute("data-count")) || 0;
+            if (reduce || target <= 0) { n.textContent = fmt(target); return; }
+            n.textContent = fmt(0); // arranca en cero antes del primer pintado
+            const dur = 680;
+            const t0 = performance.now();
+            const step = (now) => {
+                const p = Math.min(1, (now - t0) / dur);
+                n.textContent = fmt(target * ease(p));
+                if (p < 1) { requestAnimationFrame(step); }
+            };
+            requestAnimationFrame(step);
+        });
+    }
 
     _destruyeCharts() {
         for (const k of Object.keys(this.charts)) {
@@ -98,6 +152,7 @@ export class FerbaOperativo extends Component {
             const pm = d.ventas.por_mes;
             this.charts.trend = new Chart(this.trendCanvas.el, {
                 type: "line",
+                plugins: [CROSSHAIR],
                 data: {
                     labels: pm.map((m) => m.mes),
                     datasets: [{
@@ -125,6 +180,11 @@ export class FerbaOperativo extends Component {
                     responsive: true, maintainAspectRatio: false,
                     animation: { duration: 650, easing: "easeOutCubic" },
                     layout: { padding: { top: 6 } },
+                    // Clave del fix: la linea no tiene puntos visibles, asi que con
+                    // intersect el tooltip nunca disparaba. En modo indice sale al
+                    // pasar el raton por cualquier parte del mes.
+                    interaction: { mode: "index", intersect: false },
+                    hover: { mode: "index", intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {

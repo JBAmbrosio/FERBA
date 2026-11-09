@@ -54,6 +54,23 @@
     }
     .fo-click { cursor: pointer; }
 
+    // --- entrada escalonada (al cargar y al actualizar). `backwards` deja la
+    // tarjeta en su estado natural al terminar, para no pisar el :hover.
+    .fo-flow-card, .fo-kpi-card, .fo-chart-card, .fo-block {
+        animation: fo-rise 0.42s var(--fo-ease) backwards;
+    }
+    .fo-kpis .fo-kpi-card:nth-child(1) { animation-delay: 0.04s; }
+    .fo-kpis .fo-kpi-card:nth-child(2) { animation-delay: 0.08s; }
+    .fo-kpis .fo-kpi-card:nth-child(3) { animation-delay: 0.12s; }
+    .fo-kpis .fo-kpi-card:nth-child(4) { animation-delay: 0.16s; }
+    .fo-kpis .fo-kpi-card:nth-child(5) { animation-delay: 0.20s; }
+    .fo-kpis .fo-kpi-card:nth-child(6) { animation-delay: 0.24s; }
+    .fo-charts .fo-chart-card:nth-child(2) { animation-delay: 0.08s; }
+    .fo-grid .fo-block:nth-child(1) { animation-delay: 0.04s; }
+    .fo-grid .fo-block:nth-child(2) { animation-delay: 0.10s; }
+    .fo-grid .fo-block:nth-child(3) { animation-delay: 0.16s; }
+    .fo-grid .fo-block:nth-child(4) { animation-delay: 0.22s; }
+
     // --- encabezado
     .fo-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
     .fo-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin: 0; line-height: 1.1; }
@@ -118,6 +135,12 @@
     .fo-canvas-wrap { position: relative; width: 100%; }
     .fo-canvas-trend { flex: 1 1 auto; min-height: 196px; }
     .fo-canvas-donut { width: 160px; height: 160px; flex: 0 0 160px; }
+    .fo-donut-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; pointer-events: none;
+    }
+    .fo-donut-center-val { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .fo-donut-center-lbl { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fo-muted); font-weight: 600; margin-top: 4px; }
 
     .fo-donut-wrap { display: flex; align-items: center; gap: 18px; }
     .fo-legend { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -163,12 +186,14 @@
     // --- hover / foco (Operate: sobrio)
     @media (hover: hover) and (pointer: fine) {
         .fo-kpi-card.fo-click, .fo-node.fo-click, .fo-tile.fo-click {
-            transition: border-color 0.15s var(--fo-ease), box-shadow 0.15s var(--fo-ease), background 0.15s var(--fo-ease);
+            transition: border-color 0.15s var(--fo-ease), box-shadow 0.15s var(--fo-ease),
+                        background 0.15s var(--fo-ease), transform 0.15s var(--fo-ease);
         }
         .fo-kpi-card.fo-click:hover, .fo-node.fo-click:hover, .fo-tile.fo-click:hover {
             border-color: var(--fo-brand);
         }
-        .fo-kpi-card.fo-click:hover { box-shadow: 0 2px 8px var(--fo-shadow); }
+        .fo-kpi-card.fo-click:hover { box-shadow: 0 4px 14px var(--fo-shadow); transform: translateY(-2px); }
+        .fo-kpi-card.fo-click:active { transform: translateY(0); }
         .fo-row.fo-click:hover, .fo-leg-row.fo-click:hover { background: var(--fo-hover); }
     }
 
@@ -177,7 +202,9 @@
 
     @media (prefers-reduced-motion: reduce) {
         .fo-bar { animation: none; }
+        .fo-flow-card, .fo-kpi-card, .fo-chart-card, .fo-block { animation: none; }
         .fo-card, .fo-node, .fo-tile, .fo-kpi-card, .fo-refresh { transition: none; }
+        .fo-kpi-card.fo-click:hover { transform: none; }
     }
 
     @media (max-width: 575px) {
@@ -193,3 +220,4 @@
 
 @keyframes fo-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes fo-spin { to { transform: rotate(360deg); } }
+@keyframes fo-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
