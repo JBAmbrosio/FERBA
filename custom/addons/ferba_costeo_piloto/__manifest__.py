@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
     "name": "FERBA Costeo - Piloto Transportador de Banda",
-    "version": "19.0.1.0.0",
-    "summary": "Prueba de concepto de costeo: TBM 40x8 costeado desde precios.xlsx, replica el flujo BoM/MO de la cadena existente",
+    "version": "19.0.1.1.0",
+    "summary": "Prueba de concepto de costeo: TBM 40x8 costeado desde precios.xlsx, replica el flujo BoM/MO de la cadena existente (sube la precision 'Product Unit' a 6 para costear por fraccion de tramo)",
     "description": """
 Piloto AUTOCONTENIDO y REVERSIBLE para validar el costeo de maquinaria en Odoo.
 

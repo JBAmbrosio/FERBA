@@ -28,6 +28,16 @@ def _upsert_producto(env, code, name, cost, es_maquina=False):
 
 
 def post_init_hook(env):
+    # El costeo por FRACCION DE TRAMO necesita mas de 2 decimales en la cantidad.
+    # En Odoo 19 la precision de cantidad es la decimal.precision "Product Unit"
+    # (default 2 -> redondea 0.2771 a 0.28 y el total se desvia). La subimos a 6
+    # ANTES de crear las lineas; clear_cache para que surta efecto en esta misma
+    # transaccion (el digits del campo se resuelve de la decimal.precision vigente).
+    dp = env["decimal.precision"].search([("name", "=", "Product Unit")], limit=1)
+    if dp and dp.digits < 6:
+        dp.digits = 6
+        env.registry.clear_cache()
+
     comps = []
     for c in DATA["components"]:
         prod = _upsert_producto(env, c["code"], c["name"], c["cost"])
@@ -55,16 +65,11 @@ def post_init_hook(env):
         })
 
     total = sum(p.standard_price * q for p, q in comps)
-    machine.write({"standard_price": total})
+    machine.write({"standard_price": round(total, 2)})
     _logger.info(
         "FERBA COSTEO PILOTO: BoM %s -> costo componentes = %.2f (esperado %s, venta x1.5 = %s)",
         DATA["bom_code"], total, DATA["total_esperado"], DATA["venta_esperada"],
     )
-    # intento opcional de usar el calculo nativo de Odoo (si existe en esta version)
-    try:
-        machine.product_tmpl_id.button_bom_cost()
-    except Exception as e:
-        _logger.info("FERBA COSTEO PILOTO: calculo nativo de precio no invocado (%s)", e)
 
 
 def uninstall_hook(env):
