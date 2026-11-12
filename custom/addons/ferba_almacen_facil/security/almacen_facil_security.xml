@@ -1,13 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="0">
+    <!-- Sección propia en Ajustes → Usuarios → Permisos de acceso, para que el
+         rol se asigne con un control normal (sin modo desarrollador). En Odoo 19
+         las secciones de permisos se arman por ir.module.category → privilegio. -->
+    <record id="module_category_almacen_facil" model="ir.module.category">
+        <field name="name">Almacén Fácil</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="privilege_almacenista" model="res.groups.privilege">
+        <field name="name">Almacenista</field>
+        <field name="category_id" ref="module_category_almacen_facil"/>
+        <field name="sequence">10</field>
+    </record>
+
     <!-- Rol "Almacenista": solo ve Almacén Fácil, nada del inventario completo.
          Implica base.group_user (es un usuario interno). NO implica
          stock.group_stock_user a propósito: así no le aparece la app de
-         Inventario; las operaciones de stock corren con sudo() desde el modelo.
-         Odoo 19: res.groups ya no usa category_id (privilege_id); se deja sin
-         privilegio y el admin asigna la membresía al almacenista. -->
+         Inventario; las operaciones de stock corren con sudo() desde el modelo. -->
     <record id="group_ferba_almacenista" model="res.groups">
-        <field name="name">Almacén Fácil: Almacenista</field>
+        <field name="name">Almacenista</field>
+        <field name="privilege_id" ref="privilege_almacenista"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 </odoo>
