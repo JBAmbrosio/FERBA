@@ -8,6 +8,7 @@
     <!-- App propia, visible solo para el grupo Almacenista (y super usuarios). -->
     <menuitem id="menu_ferba_almacen_facil_root"
               name="Almacén Fácil"
+              web_icon="ferba_almacen_facil,static/description/icon.png"
               groups="ferba_almacen_facil.group_ferba_almacenista"
               sequence="4"/>
     <menuitem id="menu_ferba_almacen_facil_app"
