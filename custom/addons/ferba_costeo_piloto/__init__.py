@@ -73,13 +73,17 @@ def post_init_hook(env):
 
 
 def uninstall_hook(env):
-    # reversible: borra el piloto (BoM + productos [PILOTO-...])
+    # reversible: borra el piloto (BoM + productos [PILOTO-...]).
+    # OJO Odoo 19: product.product.unlink revienta con
+    # "Cannot convert product.template.product_variant_id to SQL" -> se borra por
+    # la PLANTILLA (cascada a variantes); si algo lo referencia, se archiva.
     bom = env["mrp.bom"].search([("code", "=", DATA["bom_code"])])
     if bom:
         bom.bom_line_ids.unlink()
         bom.unlink()
-    prods = env["product.product"].search([("default_code", "like", "PILOTO-")])
+    tmpls = env["product.template"].search([("default_code", "like", "PILOTO-")])
     try:
-        prods.unlink()
+        tmpls.unlink()
     except Exception as e:
-        _logger.info("FERBA COSTEO PILOTO: no se pudieron borrar algunos productos piloto (%s)", e)
+        tmpls.write({"active": False})
+        _logger.info("FERBA COSTEO PILOTO: productos piloto archivados (no se pudieron borrar): %s", e)
