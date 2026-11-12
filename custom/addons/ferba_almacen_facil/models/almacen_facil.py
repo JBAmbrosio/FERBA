@@ -20,6 +20,11 @@ DOM_RECEP_PEND = [
     ('picking_type_code', '=', 'incoming'),
     ('state', 'in', ['assigned', 'confirmed', 'waiting']),
 ]
+# Una entrega está "pendiente" si es de salida y aún no se validó.
+DOM_ENTREGA_PEND = [
+    ('picking_type_code', '=', 'outgoing'),
+    ('state', 'in', ['assigned', 'confirmed', 'waiting']),
+]
 
 
 class AlmacenFacil(models.AbstractModel):
@@ -58,18 +63,16 @@ class AlmacenFacil(models.AbstractModel):
         return {
             'usuario': self.env.user.name,
             'recepciones': P.search_count(DOM_RECEP_PEND),
+            'entregas': P.search_count(DOM_ENTREGA_PEND),
         }
 
     # ------------------------------------------------------------------ lista
-    @api.model
-    def lista_recepciones(self):
-        self._check_acceso()
+    def _lista(self, dom):
         P = self.env['stock.picking'].sudo()
-        pickings = P.search(DOM_RECEP_PEND, order='scheduled_date asc, id asc')
+        pickings = P.search(dom, order='scheduled_date asc, id asc')
         res = []
         for p in pickings:
             piezas = sum(p.move_ids.mapped('product_uom_qty'))
-            dias = self._dias(p.scheduled_date or p.create_date)
             res.append({
                 'id': p.id,
                 'name': p.name,
@@ -78,10 +81,20 @@ class AlmacenFacil(models.AbstractModel):
                 'origen': p.origin or '',
                 'piezas': round(piezas, 2),
                 'renglones': len(p.move_ids),
-                'dias': dias,
+                'dias': self._dias(p.scheduled_date or p.create_date),
                 'listo': p.state == 'assigned',
             })
         return res
+
+    @api.model
+    def lista_recepciones(self):
+        self._check_acceso()
+        return self._lista(DOM_RECEP_PEND)
+
+    @api.model
+    def lista_entregas(self):
+        self._check_acceso()
+        return self._lista(DOM_ENTREGA_PEND)
 
     # ------------------------------------------------------------------ detalle
     @api.model
@@ -112,19 +125,24 @@ class AlmacenFacil(models.AbstractModel):
             'renglones': renglones,
         }
 
-    # ------------------------------------------------------------------ recibir
-    @api.model
-    def recibir(self, picking_id, firma=None):
+    # ------------------------------------------------------------ recibir/entregar
+    def _procesar(self, picking_id, firma, accion):
+        """Valida un picking (accion 'recibir' = entrada, 'entregar' = salida) con
+        firma. Robusto: la validación del stock va PRIMERO; firma, banderas y nota
+        son best-effort y nunca revierten una operación ya hecha."""
         self._check_acceso()
+        es_recibir = accion == 'recibir'
+        fem = 'recibida' if es_recibir else 'entregada'
+        verbo = 'Recibido' if es_recibir else 'Entregado'
         p = self.env['stock.picking'].sudo().browse(int(picking_id))
         if not p.exists():
-            return {'ok': False, 'msg': 'La recepción ya no existe.'}
+            return {'ok': False, 'msg': 'El documento ya no existe.'}
         if p.state == 'done':
-            return {'ok': False, 'msg': 'Esta recepción ya estaba recibida.'}
+            return {'ok': False, 'msg': 'Este documento ya estaba %s.' % fem}
         if p.state not in ('assigned', 'confirmed', 'waiting'):
-            return {'ok': False, 'msg': 'Esta recepción no se puede recibir ahora.'}
+            return {'ok': False, 'msg': 'Este documento no se puede procesar ahora.'}
         try:
-            # 1) Asegura disponibilidad y recibe TODO (cantidad hecha = demanda).
+            # 1) Asegura disponibilidad y procesa TODO (cantidad hecha = demanda).
             if p.state in ('confirmed', 'waiting'):
                 p.action_assign()
             for m in p.move_ids:
@@ -135,12 +153,13 @@ class AlmacenFacil(models.AbstractModel):
             # 2) Validar el picking (operación CRÍTICA): mueve el stock.
             p.with_context(skip_backorder=True, skip_sms=True).button_validate()
             if p.state != 'done':
-                return {'ok': False, 'msg': 'No se completó (quedó en %s). Avisa a un supervisor.' % p.state}
+                extra = '' if es_recibir else ' ¿Hay existencia suficiente?'
+                return {'ok': False, 'msg': 'No se completó (quedó en %s).%s Avisa a un supervisor.' % (p.state, extra)}
         except Exception as e:
-            _logger.warning("Almacén Fácil: error al recibir %s: %s", p.name, e)
+            _logger.warning("Almacén Fácil: error al %s %s: %s", accion, p.name, e)
             return {'ok': False, 'msg': str(e)}
 
-        # 3) Firma, banderas y nota: best-effort. NUNCA revierten un recibo exitoso
+        # 3) Firma, banderas y nota: best-effort. NUNCA revierten la operación
         #    (el stock ya se movió). Cada paso en su propio try/except.
         flags = {}
         if 'x_studio_aprobar' in p._fields:
@@ -162,12 +181,12 @@ class AlmacenFacil(models.AbstractModel):
 
         # Nota en el chatter (plana, siempre confiable).
         try:
-            p.message_post(body="Recibido desde <b>Almacén Fácil</b> por %s." % self.env.user.name)
+            p.message_post(body="%s desde <b>Almacén Fácil</b> por %s." % (verbo, self.env.user.name))
         except Exception as e:
             _logger.warning("Almacén Fácil: no se publicó la nota en %s: %s", p.name, e)
 
         # Firma como adjunto DIRECTO del picking (ir.attachment): queda ligada y
-        # visible en el botón de adjuntos. Su try/except no afecta el recibo.
+        # visible en el botón de adjuntos. Su try/except no afecta la operación.
         if firma_b64:
             try:
                 self.env['ir.attachment'].sudo().create({
@@ -180,7 +199,15 @@ class AlmacenFacil(models.AbstractModel):
             except Exception as e:
                 _logger.warning("Almacén Fácil: no se guardó la firma (adjunto) en %s: %s", p.name, e)
 
-        return {'ok': True, 'name': p.name, 'msg': 'Recibido: ' + p.name}
+        return {'ok': True, 'name': p.name, 'msg': '%s: %s' % (verbo, p.name)}
+
+    @api.model
+    def recibir(self, picking_id, firma=None):
+        return self._procesar(picking_id, firma, 'recibir')
+
+    @api.model
+    def entregar(self, picking_id, firma=None):
+        return self._procesar(picking_id, firma, 'entregar')
 
     # ------------------------------------------------------------------ buscar
     @api.model

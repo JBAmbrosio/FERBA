@@ -25,19 +25,26 @@
             </header>
 
             <div class="af-tiles">
-              <button class="af-tile af-tile-recibir" t-on-click="() => this.abrirLista()">
+              <button class="af-tile af-tile-recibir" t-on-click="() => this.abrirLista('recibir')">
                 <div class="af-tile-ico">📥</div>
                 <div class="af-tile-nombre">Recibir</div>
                 <div class="af-tile-sub">lo que llega</div>
                 <div class="af-badge" t-esc="state.resumen.recepciones"/>
               </button>
 
-              <button class="af-tile af-tile-buscar" t-on-click="() => this.irBuscar()">
-                <div class="af-tile-ico">🔎</div>
-                <div class="af-tile-nombre">Buscar</div>
-                <div class="af-tile-sub">pieza u orden</div>
+              <button class="af-tile af-tile-entregar" t-on-click="() => this.abrirLista('entregar')">
+                <div class="af-tile-ico">📤</div>
+                <div class="af-tile-nombre">Entregar</div>
+                <div class="af-tile-sub">lo que sale</div>
+                <div class="af-badge af-badge-azul" t-esc="state.resumen.entregas"/>
               </button>
             </div>
+
+            <button class="af-tile af-tile-wide af-tile-buscar" t-on-click="() => this.irBuscar()">
+              <div class="af-tile-ico">🔎</div>
+              <div class="af-tile-nombre">Buscar</div>
+              <div class="af-tile-sub">pieza u orden</div>
+            </button>
           </div>
         </t>
 
@@ -46,14 +53,14 @@
           <div class="af-wrap">
             <header class="af-top">
               <button class="af-volver" t-on-click="() => this.volver()">‹</button>
-              <div class="af-top-titulo">Lo que llega</div>
+              <div class="af-top-titulo" t-esc="state.modo === 'entregar' ? 'Lo que sale' : 'Lo que llega'"/>
               <div class="af-top-conteo" t-esc="state.lista.length"/>
             </header>
 
             <t t-if="state.lista.length === 0">
               <div class="af-vacio">
                 <div class="af-vacio-ico">✅</div>
-                <div>¡No hay nada pendiente por recibir!</div>
+                <div t-esc="state.modo === 'entregar' ? '¡No hay nada pendiente por entregar!' : '¡No hay nada pendiente por recibir!'"/>
               </div>
             </t>
 
@@ -115,7 +122,7 @@
             <!-- Firma -->
             <div class="af-firma-bloque">
               <div class="af-firma-label">
-                <span>✍️ Firma de quien recibe</span>
+                <span t-esc="state.modo === 'entregar' ? '✍️ Firma de entrega' : '✍️ Firma de quien recibe'"/>
                 <button class="af-firma-limpia" t-on-click="() => this.firmaLimpia()">Borrar</button>
               </div>
               <canvas t-ref="firma" class="af-firma" width="600" height="180"
@@ -127,8 +134,9 @@
 
             <!-- Acciones -->
             <div class="af-acciones">
-              <button class="af-btn af-btn-recibir" t-att-disabled="state.enviando" t-on-click="() => this.recibir()">
-                <t t-if="state.enviando">Recibiendo…</t>
+              <button t-attf-class="af-btn {{ state.modo === 'entregar' ? 'af-btn-entregar' : 'af-btn-recibir' }}" t-att-disabled="state.enviando" t-on-click="() => this.procesar()">
+                <t t-if="state.enviando">Procesando…</t>
+                <t t-elif="state.modo === 'entregar'">📤 ENTREGAR TODO</t>
                 <t t-else="">✅ RECIBIR TODO</t>
               </button>
             </div>

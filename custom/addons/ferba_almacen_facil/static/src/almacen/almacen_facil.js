@@ -12,8 +12,9 @@ export class AlmacenFacil extends Component {
         this.notification = useService("notification");
         this.state = useState({
             screen: "inicio",
+            modo: "recibir",
             loading: true,
-            resumen: { usuario: "", recepciones: 0 },
+            resumen: { usuario: "", recepciones: 0, entregas: 0 },
             lista: [],
             detalle: null,
             busqueda: "",
@@ -37,11 +38,13 @@ export class AlmacenFacil extends Component {
     }
 
     // ---------------------------------------------------------------- lista
-    async abrirLista() {
+    async abrirLista(modo) {
+        this.state.modo = modo || "recibir";
         this.state.screen = "lista";
         this.state.loading = true;
         try {
-            this.state.lista = await this.orm.call(MODEL, "lista_recepciones", []);
+            const metodo = this.state.modo === "entregar" ? "lista_entregas" : "lista_recepciones";
+            this.state.lista = await this.orm.call(MODEL, metodo, []);
         } catch (e) { this._err(e); }
         this.state.loading = false;
     }
@@ -58,25 +61,26 @@ export class AlmacenFacil extends Component {
     }
 
     volver() {
-        if (this.state.screen === "detalle") { this.abrirLista(); }
+        if (this.state.screen === "detalle") { this.abrirLista(this.state.modo); }
         else { this.cargarInicio(); }
     }
 
-    // ---------------------------------------------------------------- recibir
-    async recibir() {
+    // ---------------------------------------------------------- recibir/entregar
+    async procesar() {
         if (this.state.enviando || !this.state.detalle) { return; }
         this.state.enviando = true;
         let firma = null;
         const c = this.firmaRef.el;
         if (c && this._firmado) { firma = c.toDataURL("image/png"); }
         try {
-            const r = await this.orm.call(MODEL, "recibir", [this.state.detalle.id, firma]);
+            const metodo = this.state.modo === "entregar" ? "entregar" : "recibir";
+            const r = await this.orm.call(MODEL, metodo, [this.state.detalle.id, firma]);
             if (r && r.ok) {
-                this.notification.add("✅ " + (r.msg || "Recibido"), { type: "success" });
-                await this.abrirLista();
+                this.notification.add("✅ " + (r.msg || "Listo"), { type: "success" });
+                await this.abrirLista(this.state.modo);
                 this.orm.call(MODEL, "resumen", []).then((s) => { this.state.resumen = s; });
             } else {
-                this.notification.add("⚠️ " + ((r && r.msg) || "No se pudo recibir"), { type: "danger", sticky: true });
+                this.notification.add("⚠️ " + ((r && r.msg) || "No se pudo completar"), { type: "danger", sticky: true });
             }
         } catch (e) { this._err(e); }
         this.state.enviando = false;

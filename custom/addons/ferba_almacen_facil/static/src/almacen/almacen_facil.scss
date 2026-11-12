@@ -70,12 +70,15 @@
     .af-tile-nombre { font-size: 24px; font-weight: 800; margin-top: 10px; }
     .af-tile-sub { color: var(--af-muted); font-size: 15px; margin-top: 2px; }
     .af-tile-recibir { border-top: 6px solid var(--af-brand); }
+    .af-tile-entregar { border-top: 6px solid #0E7490; }
     .af-tile-buscar { border-top: 6px solid #5B6EB4; }
+    .af-tile-wide { width: 100%; margin-top: 16px; }
     .af-badge {
         position: absolute; top: 14px; right: 14px; min-width: 34px; height: 34px;
         padding: 0 9px; border-radius: 17px; background: var(--af-rojo); color: #fff;
         font-weight: 800; font-size: 17px; display: flex; align-items: center; justify-content: center;
     }
+    .af-badge-azul { background: #0E7490; }
 
     // ---- cabeceras ----
     .af-top {
@@ -169,6 +172,7 @@
     .af-btn:active { transform: scale(.98); }
     .af-btn[disabled] { filter: grayscale(.4) opacity(.7); cursor: default; }
     .af-btn-recibir { background: var(--af-ok); color: var(--af-ok-ink); box-shadow: 0 6px 18px rgba(22,163,74,.35); }
+    .af-btn-entregar { background: #0E7490; color: #fff; box-shadow: 0 6px 18px rgba(14,116,137,.35); }
 
     // ---- buscar ----
     .af-buscador {
