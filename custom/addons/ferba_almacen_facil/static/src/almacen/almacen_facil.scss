@@ -1,18 +1,22 @@
 .o_ferba_almacen {
     // ---- tokens (claro) ----
-    --af-bg: #f3f4f6;
+    --af-bg: #f4f5f7;
     --af-card: #ffffff;
     --af-ink: #111827;
     --af-muted: #6b7280;
-    --af-line: #e5e7eb;
-    --af-brand: #714B67;
+    --af-line: #e6e8ec;
+    --af-brand: #714B67;        // plum Odoo
+    --af-teal: #0E7490;
+    --af-indigo: #5B6EB4;
     --af-ok: #16a34a;
-    --af-ok-ink: #ffffff;
     --af-rojo: #dc2626;
     --af-ambar: #d97706;
     --af-verde: #16a34a;
-    --af-chip: #f3f4f6;
-    --af-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06);
+    --af-chip: #eef0f4;
+    --af-slate: #374151;
+    --af-shadow: 0 1px 2px rgba(17,24,39,.05), 0 6px 20px rgba(17,24,39,.06);
+    --af-shadow-hover: 0 2px 4px rgba(17,24,39,.06), 0 12px 30px rgba(17,24,39,.10);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
     position: absolute;
     inset: 0;
@@ -23,21 +27,27 @@
     -webkit-tap-highlight-color: transparent;
 
     * { box-sizing: border-box; }
+    i.fa { line-height: 1; }
 
     .af-wrap {
         max-width: 820px;
         margin: 0 auto;
-        padding: 16px 16px 40px;
+        padding: 18px 16px 44px;
     }
+
+    // entrada suave de cada pantalla (ocasional: una por navegación)
+    .af-fade { animation: af-in 220ms var(--ease-out) both; }
+    @keyframes af-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
     // ---- cargando / vacío ----
     .af-center, .af-vacio {
-        min-height: 60vh;
+        min-height: 58vh;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 14px; text-align: center; color: var(--af-muted);
     }
-    .af-vacio-ico { font-size: 56px; }
-    .af-vacio { font-size: 20px; font-weight: 600; }
+    .af-vacio { font-size: 19px; font-weight: 600; }
+    .af-vacio-ico { font-size: 54px; color: var(--af-verde); line-height: 1; }
+    .af-vacio-ico-muted { color: var(--af-muted); }
     .af-spinner {
         width: 42px; height: 42px; border-radius: 50%;
         border: 4px solid var(--af-line); border-top-color: var(--af-brand);
@@ -46,94 +56,110 @@
     @keyframes af-spin { to { transform: rotate(360deg); } }
     .af-muted { color: var(--af-muted); }
 
-    // ---- inicio ----
-    .af-hola {
-        display: flex; align-items: center; gap: 14px;
-        margin: 12px 4px 22px;
+    // ---- icono-chip (hace que los iconos finos de Odoo se vean intencionales) ----
+    .af-ico {
+        width: 64px; height: 64px; border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 27px; flex: 0 0 auto;
     }
-    .af-hola-emoji { font-size: 40px; }
-    .af-hola-txt { color: var(--af-muted); font-size: 16px; }
-    .af-hola-nombre { font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .af-ico-recibir  { background: rgba(113, 75, 103, .12); color: var(--af-brand); }
+    .af-ico-entregar { background: rgba(14, 116, 137, .12); color: var(--af-teal); }
+    .af-ico-buscar   { background: rgba(91, 110, 180, .12); color: var(--af-indigo); }
 
-    .af-tiles {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    // ---- inicio: hero ----
+    .af-hero { display: flex; align-items: center; gap: 14px; margin: 6px 2px 24px; }
+    .af-hero-chip {
+        width: 52px; height: 52px; border-radius: 16px; flex: 0 0 auto;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(113, 75, 103, .12); color: var(--af-brand); font-size: 23px;
     }
+    .af-hero-app { font-size: 22px; font-weight: 800; line-height: 1.1; letter-spacing: -0.015em; }
+    .af-hero-hola { color: var(--af-muted); font-size: 15px; margin-top: 2px; }
+
+    // ---- inicio: azulejos ----
+    .af-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .af-tile {
         position: relative;
-        border: none; border-radius: 22px; padding: 26px 18px 30px;
+        border: none; border-radius: 20px; padding: 24px 16px 26px;
         background: var(--af-card); box-shadow: var(--af-shadow);
         color: var(--af-ink); text-align: center; cursor: pointer;
-        transition: transform .12s cubic-bezier(0.23,1,0.32,1), box-shadow .12s ease-out;
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        transition: transform .14s var(--ease-out), box-shadow .14s var(--ease-out);
     }
+    .af-tile .af-ico { margin-bottom: 6px; }
     .af-tile:active { transform: scale(.97); }
-    .af-tile-ico { font-size: 54px; line-height: 1; }
-    .af-tile-nombre { font-size: 24px; font-weight: 800; margin-top: 10px; }
-    .af-tile-sub { color: var(--af-muted); font-size: 15px; margin-top: 2px; }
-    .af-tile-recibir { border-top: 6px solid var(--af-brand); }
-    .af-tile-entregar { border-top: 6px solid #0E7490; }
-    .af-tile-buscar { border-top: 6px solid #5B6EB4; }
-    .af-tile-wide { width: 100%; margin-top: 16px; }
-    .af-badge {
-        position: absolute; top: 14px; right: 14px; min-width: 34px; height: 34px;
-        padding: 0 9px; border-radius: 17px; background: var(--af-rojo); color: #fff;
-        font-weight: 800; font-size: 17px; display: flex; align-items: center; justify-content: center;
+    @media (hover: hover) and (pointer: fine) {
+        .af-tile:hover { box-shadow: var(--af-shadow-hover); transform: translateY(-1px); }
+        .af-tile:active { transform: scale(.97); }
     }
-    .af-badge-azul { background: #0E7490; }
+    .af-tile-nombre { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+    .af-tile-sub { color: var(--af-muted); font-size: 14px; }
 
-    // ---- cabeceras ----
-    .af-top {
-        display: flex; align-items: center; gap: 10px; margin: 2px 0 18px;
+    .af-tile-wide {
+        width: 100%; margin-top: 14px; flex-direction: row; justify-content: flex-start;
+        gap: 16px; padding: 18px 20px; text-align: left;
     }
+    .af-tile-wide .af-ico { margin-bottom: 0; width: 56px; height: 56px; font-size: 24px; }
+    .af-tile-txt-wide { display: flex; flex-direction: column; }
+
+    .af-badge {
+        position: absolute; top: 12px; right: 12px; min-width: 30px; height: 30px;
+        padding: 0 8px; border-radius: 15px; background: var(--af-rojo); color: #fff;
+        font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center;
+        font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px rgba(220, 38, 38, .3);
+    }
+    .af-badge-azul { background: var(--af-teal); box-shadow: 0 2px 6px rgba(14, 116, 137, .3); }
+
+    // ---- cabeceras (lista/detalle/buscar) ----
+    .af-top { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; }
     .af-volver {
         border: none; background: var(--af-card); box-shadow: var(--af-shadow);
-        width: 46px; height: 46px; border-radius: 14px; font-size: 30px; line-height: 1;
+        width: 44px; height: 44px; border-radius: 14px; font-size: 22px; line-height: 1;
         color: var(--af-ink); cursor: pointer; flex: 0 0 auto;
-        transition: transform .12s ease-out;
+        display: flex; align-items: center; justify-content: center;
+        transition: transform .14s var(--ease-out);
     }
-    .af-volver:active { transform: scale(.94); }
-    .af-top-titulo { font-size: 22px; font-weight: 800; flex: 1 1 auto; }
-    .af-top-conteo, .af-badge { font-variant-numeric: tabular-nums; }
+    .af-volver:active { transform: scale(.92); }
+    .af-top-titulo { font-size: 21px; font-weight: 800; flex: 1 1 auto; letter-spacing: -0.015em; }
     .af-top-conteo {
         background: var(--af-chip); color: var(--af-muted); font-weight: 800;
-        padding: 4px 12px; border-radius: 14px;
+        padding: 4px 12px; border-radius: 14px; font-variant-numeric: tabular-nums;
     }
 
-    // ---- tarjetas de recepción ----
-    .af-cards { display: flex; flex-direction: column; gap: 12px; }
+    // ---- tarjetas ----
+    .af-cards { display: flex; flex-direction: column; gap: 10px; }
     .af-card {
         width: 100%; text-align: left; border: none; cursor: pointer;
-        background: var(--af-card); border-radius: 18px; padding: 16px 16px 14px;
-        box-shadow: var(--af-shadow); border-left: 7px solid var(--af-line);
-        transition: transform .12s cubic-bezier(0.23,1,0.32,1);
+        background: var(--af-card); border-radius: 16px; padding: 15px 16px 13px;
+        box-shadow: var(--af-shadow); border-left: 5px solid var(--af-line);
+        transition: transform .14s var(--ease-out), box-shadow .14s var(--ease-out);
     }
     .af-card:active { transform: scale(.985); }
+    @media (hover: hover) and (pointer: fine) {
+        .af-card:hover { box-shadow: var(--af-shadow-hover); }
+    }
     .af-card.af-rojo  { border-left-color: var(--af-rojo); }
     .af-card.af-ambar { border-left-color: var(--af-ambar); }
     .af-card.af-verde { border-left-color: var(--af-verde); }
-    .af-card-head { display: flex; align-items: center; gap: 8px; }
-    .af-punto { width: 12px; height: 12px; border-radius: 50%; background: var(--af-line); flex: 0 0 auto; }
-    .af-rojo  .af-punto { background: var(--af-rojo); }
-    .af-ambar .af-punto { background: var(--af-ambar); }
-    .af-verde .af-punto { background: var(--af-verde); }
-    .af-card-folio { font-weight: 800; font-size: 18px; }
-    .af-card-dias { margin-left: auto; color: var(--af-muted); font-size: 14px; font-weight: 600; }
-    .af-card-socio { font-size: 18px; font-weight: 600; margin-top: 6px; }
-    .af-card-proy { color: var(--af-muted); font-size: 14px; margin-top: 2px; }
+    .af-card-head { display: flex; align-items: baseline; gap: 8px; }
+    .af-card-folio { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+    .af-card-dias { margin-left: auto; color: var(--af-muted); font-size: 13px; font-weight: 600; }
+    .af-card-socio { font-size: 17px; font-weight: 600; margin-top: 5px; }
+    .af-card-proy { color: var(--af-muted); font-size: 13px; margin-top: 2px; }
     .af-card-pie { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
     .af-chip {
-        background: var(--af-brand); color: #fff; border-radius: 12px;
-        padding: 5px 11px; font-size: 15px; font-weight: 600;
+        background: var(--af-slate); color: #fff; border-radius: 10px;
+        padding: 4px 10px; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
     }
     .af-chip-soft { background: var(--af-chip); color: var(--af-muted); }
-    .af-flecha { margin-left: auto; font-size: 26px; color: var(--af-muted); }
+    .af-flecha { margin-left: auto; font-size: 20px; color: var(--af-muted); display: flex; align-items: center; }
 
     // ---- detalle ----
     .af-detcab { margin: 0 2px 14px; }
     .af-detcab-socio { font-size: 20px; font-weight: 700; }
     .af-detcab-proy { color: var(--af-muted); margin-top: 2px; }
     .af-renglones {
-        background: var(--af-card); border-radius: 18px; box-shadow: var(--af-shadow);
-        overflow: hidden;
+        background: var(--af-card); border-radius: 16px; box-shadow: var(--af-shadow); overflow: hidden;
     }
     .af-renglon {
         display: flex; align-items: center; gap: 12px; padding: 14px 16px;
@@ -144,7 +170,7 @@
     .af-renglon-prod { font-size: 16px; font-weight: 600; }
     .af-renglon-cod { color: var(--af-muted); font-size: 13px; margin-top: 1px; }
     .af-renglon-cant { text-align: right; flex: 0 0 auto; }
-    .af-cant-num { font-size: 24px; font-weight: 800; }
+    .af-cant-num { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
     .af-cant-uni { color: var(--af-muted); font-size: 13px; margin-left: 4px; }
 
     // ---- firma ----
@@ -153,62 +179,80 @@
         display: flex; align-items: center; justify-content: space-between;
         color: var(--af-muted); font-weight: 600; margin-bottom: 6px; padding: 0 2px;
     }
+    .af-firma-label i { margin-right: 4px; }
     .af-firma-limpia {
         border: none; background: transparent; color: var(--af-brand); font-weight: 700;
-        cursor: pointer; font-size: 15px;
+        cursor: pointer; font-size: 14px;
     }
     .af-firma {
         width: 100%; height: 180px; background: #fff; border: 2px dashed var(--af-line);
         border-radius: 16px; touch-action: none; display: block;
     }
 
-    // ---- acciones ----
+    // ---- acción ----
     .af-acciones { margin-top: 20px; }
     .af-btn {
-        width: 100%; border: none; border-radius: 18px; padding: 20px;
-        font-size: 22px; font-weight: 800; cursor: pointer;
-        transition: transform .12s cubic-bezier(0.23,1,0.32,1), filter .12s ease-out;
+        width: 100%; border: none; border-radius: 16px; padding: 19px;
+        font-size: 20px; font-weight: 800; letter-spacing: .01em; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        transition: transform .14s var(--ease-out), filter .14s var(--ease-out), box-shadow .14s var(--ease-out);
     }
+    .af-btn i { font-size: 19px; }
     .af-btn:active { transform: scale(.98); }
-    .af-btn[disabled] { filter: grayscale(.4) opacity(.7); cursor: default; }
-    .af-btn-recibir { background: var(--af-ok); color: var(--af-ok-ink); box-shadow: 0 6px 18px rgba(22,163,74,.35); }
-    .af-btn-entregar { background: #0E7490; color: #fff; box-shadow: 0 6px 18px rgba(14,116,137,.35); }
+    .af-btn[disabled] { filter: grayscale(.35) opacity(.75); cursor: default; }
+    .af-btn-recibir  { background: var(--af-ok);   color: #fff; box-shadow: 0 6px 18px rgba(22, 163, 74, .32); }
+    .af-btn-entregar { background: var(--af-teal); color: #fff; box-shadow: 0 6px 18px rgba(14, 116, 137, .32); }
+    .af-btn-spin {
+        display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, .45); border-top-color: #fff;
+        animation: af-spin .7s linear infinite;
+    }
 
     // ---- buscar ----
     .af-buscador {
         display: flex; align-items: center; gap: 10px; background: var(--af-card);
-        border-radius: 16px; padding: 4px 14px; box-shadow: var(--af-shadow); margin-bottom: 18px;
+        border-radius: 16px; padding: 4px 16px; box-shadow: var(--af-shadow); margin-bottom: 18px;
     }
-    .af-buscador-ico { font-size: 22px; }
+    .af-buscador-ico { font-size: 19px; color: var(--af-muted); }
     .af-input {
         flex: 1 1 auto; border: none; outline: none; background: transparent;
-        font-size: 19px; padding: 16px 0; color: var(--af-ink);
+        font-size: 18px; padding: 16px 0; color: var(--af-ink);
     }
-    .af-seccion { font-weight: 800; color: var(--af-muted); margin: 18px 4px 8px; text-transform: uppercase; font-size: 13px; letter-spacing: .04em; }
+    .af-seccion {
+        font-weight: 800; color: var(--af-muted); margin: 18px 4px 8px;
+        text-transform: uppercase; font-size: 12px; letter-spacing: .05em;
+    }
     .af-res {
         display: flex; align-items: center; gap: 12px; background: var(--af-card);
-        border-radius: 16px; padding: 14px 16px; box-shadow: var(--af-shadow);
+        border-radius: 14px; padding: 14px 16px; box-shadow: var(--af-shadow);
     }
     .af-res-info { flex: 1 1 auto; min-width: 0; }
     .af-res-nombre { font-size: 16px; font-weight: 600; }
     .af-res-cod { color: var(--af-muted); font-size: 13px; margin-top: 1px; }
     .af-res-stock { text-align: right; flex: 0 0 auto; }
-    .af-stock-num { font-size: 22px; font-weight: 800; }
+    .af-stock-num { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
     .af-stock-uni { color: var(--af-muted); font-size: 13px; margin-left: 4px; }
     .af-res-estado { font-weight: 700; color: var(--af-brand); }
     .af-ayuda { color: var(--af-muted); text-align: center; padding: 30px 0; }
 
-    // ---- responsive (PC): tiles un poco más amplios, todo centrado ----
+    // ---- responsive ----
     @media (min-width: 720px) {
         font-size: 17px;
-        .af-tile { padding: 34px 20px 38px; }
-        .af-tile-ico { font-size: 64px; }
+        .af-tile { padding: 30px 18px 32px; }
+        .af-ico { width: 68px; height: 68px; font-size: 29px; }
     }
     @media (max-width: 360px) {
         .af-tiles { grid-template-columns: 1fr; }
     }
 
-    // ---- modo oscuro ----
+    // ---- menos movimiento si el usuario lo pide ----
+    @media (prefers-reduced-motion: reduce) {
+        .af-fade { animation: none; }
+        .af-tile, .af-card, .af-btn, .af-volver { transition: none; }
+        @media (hover: hover) and (pointer: fine) { .af-tile:hover { transform: none; } }
+    }
+
+    // ---- modo oscuro (auto) ----
     @media (prefers-color-scheme: dark) {
         &:not(.af-light) {
             --af-bg: #0f1115;
@@ -217,12 +261,14 @@
             --af-muted: #9aa1ab;
             --af-line: #2b313c;
             --af-chip: #262b34;
-            --af-shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.4);
+            --af-slate: #39414f;
+            --af-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.4);
+            --af-shadow-hover: 0 2px 4px rgba(0,0,0,.5), 0 14px 32px rgba(0,0,0,.5);
         }
     }
 }
 
-// Odoo tema oscuro (data-theme), por si el usuario lo fuerza.
+// Odoo en tema oscuro forzado (data-color-scheme)
 .o_web_client.o_dark_theme .o_ferba_almacen,
 :root[data-color-scheme="dark"] .o_ferba_almacen {
     --af-bg: #0f1115;
@@ -231,5 +277,7 @@
     --af-muted: #9aa1ab;
     --af-line: #2b313c;
     --af-chip: #262b34;
-    --af-shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.4);
+    --af-slate: #39414f;
+    --af-shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.4);
+    --af-shadow-hover: 0 2px 4px rgba(0,0,0,.5), 0 14px 32px rgba(0,0,0,.5);
 }

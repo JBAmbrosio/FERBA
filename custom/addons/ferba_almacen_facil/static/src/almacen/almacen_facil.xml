@@ -15,52 +15,54 @@
 
         <!-- ====================== INICIO ====================== -->
         <t t-if="state.screen === 'inicio'">
-          <div class="af-wrap">
-            <header class="af-hola">
-              <div class="af-hola-emoji">👋</div>
-              <div>
-                <div class="af-hola-txt">Hola</div>
-                <div class="af-hola-nombre" t-esc="state.resumen.usuario"/>
+          <div class="af-wrap af-fade">
+            <header class="af-hero">
+              <span class="af-hero-chip"><i class="fa fa-archive"/></span>
+              <div class="af-hero-txt">
+                <div class="af-hero-app">Almacén Fácil</div>
+                <div class="af-hero-hola">Hola, <t t-esc="state.resumen.usuario"/></div>
               </div>
             </header>
 
             <div class="af-tiles">
-              <button class="af-tile af-tile-recibir" t-on-click="() => this.abrirLista('recibir')">
-                <div class="af-tile-ico">📥</div>
-                <div class="af-tile-nombre">Recibir</div>
-                <div class="af-tile-sub">lo que llega</div>
-                <div class="af-badge" t-esc="state.resumen.recepciones"/>
+              <button class="af-tile" t-on-click="() => this.abrirLista('recibir')">
+                <span class="af-ico af-ico-recibir"><i class="fa fa-download"/></span>
+                <span class="af-tile-nombre">Recibir</span>
+                <span class="af-tile-sub">lo que llega</span>
+                <span class="af-badge" t-esc="state.resumen.recepciones"/>
               </button>
 
-              <button class="af-tile af-tile-entregar" t-on-click="() => this.abrirLista('entregar')">
-                <div class="af-tile-ico">📤</div>
-                <div class="af-tile-nombre">Entregar</div>
-                <div class="af-tile-sub">lo que sale</div>
-                <div class="af-badge af-badge-azul" t-esc="state.resumen.entregas"/>
+              <button class="af-tile" t-on-click="() => this.abrirLista('entregar')">
+                <span class="af-ico af-ico-entregar"><i class="fa fa-upload"/></span>
+                <span class="af-tile-nombre">Entregar</span>
+                <span class="af-tile-sub">lo que sale</span>
+                <span class="af-badge af-badge-azul" t-esc="state.resumen.entregas"/>
               </button>
             </div>
 
-            <button class="af-tile af-tile-wide af-tile-buscar" t-on-click="() => this.irBuscar()">
-              <div class="af-tile-ico">🔎</div>
-              <div class="af-tile-nombre">Buscar</div>
-              <div class="af-tile-sub">pieza u orden</div>
+            <button class="af-tile af-tile-wide" t-on-click="() => this.irBuscar()">
+              <span class="af-ico af-ico-buscar"><i class="fa fa-search"/></span>
+              <span class="af-tile-txt-wide">
+                <span class="af-tile-nombre">Buscar</span>
+                <span class="af-tile-sub">pieza u orden</span>
+              </span>
             </button>
           </div>
         </t>
 
-        <!-- ====================== LISTA RECIBIR ====================== -->
+        <!-- ====================== LISTA ====================== -->
         <t t-if="state.screen === 'lista'">
-          <div class="af-wrap">
+          <div class="af-wrap af-fade">
             <header class="af-top">
-              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <button class="af-volver" aria-label="Volver" t-on-click="() => this.volver()"><i class="fa fa-angle-left"/></button>
               <div class="af-top-titulo" t-esc="state.modo === 'entregar' ? 'Lo que sale' : 'Lo que llega'"/>
               <div class="af-top-conteo" t-esc="state.lista.length"/>
             </header>
 
             <t t-if="state.lista.length === 0">
               <div class="af-vacio">
-                <div class="af-vacio-ico">✅</div>
-                <div t-esc="state.modo === 'entregar' ? '¡No hay nada pendiente por entregar!' : '¡No hay nada pendiente por recibir!'"/>
+                <span class="af-vacio-ico"><i class="fa fa-check-circle"/></span>
+                <div t-esc="state.modo === 'entregar' ? 'No hay nada pendiente por entregar' : 'No hay nada pendiente por recibir'"/>
               </div>
             </t>
 
@@ -68,7 +70,6 @@
               <t t-foreach="state.lista" t-as="r" t-key="r.id">
                 <button t-attf-class="af-card af-{{ color(r.dias) }}" t-on-click="() => this.abrirDetalle(r.id)">
                   <div class="af-card-head">
-                    <span class="af-punto"/>
                     <span class="af-card-folio" t-esc="r.name"/>
                     <span class="af-card-dias" t-esc="textoDias(r.dias)"/>
                   </div>
@@ -79,7 +80,7 @@
                   <div class="af-card-pie">
                     <span class="af-chip"><b t-esc="r.piezas"/> piezas</span>
                     <span class="af-chip af-chip-soft"><t t-esc="r.renglones"/> renglones</span>
-                    <span class="af-flecha">›</span>
+                    <span class="af-flecha"><i class="fa fa-angle-right"/></span>
                   </div>
                 </button>
               </t>
@@ -89,9 +90,9 @@
 
         <!-- ====================== DETALLE ====================== -->
         <t t-if="state.screen === 'detalle' and state.detalle">
-          <div class="af-wrap">
+          <div class="af-wrap af-fade">
             <header class="af-top">
-              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <button class="af-volver" aria-label="Volver" t-on-click="() => this.volver()"><i class="fa fa-angle-left"/></button>
               <div class="af-top-titulo" t-esc="state.detalle.name"/>
             </header>
 
@@ -122,7 +123,7 @@
             <!-- Firma -->
             <div class="af-firma-bloque">
               <div class="af-firma-label">
-                <span t-esc="state.modo === 'entregar' ? '✍️ Firma de entrega' : '✍️ Firma de quien recibe'"/>
+                <span><i class="fa fa-pencil"/> <t t-esc="state.modo === 'entregar' ? 'Firma de entrega' : 'Firma de quien recibe'"/></span>
                 <button class="af-firma-limpia" t-on-click="() => this.firmaLimpia()">Borrar</button>
               </div>
               <canvas t-ref="firma" class="af-firma" width="600" height="180"
@@ -132,12 +133,11 @@
                       t-on-pointerleave="() => this.firmaFin()"/>
             </div>
 
-            <!-- Acciones -->
+            <!-- Acción -->
             <div class="af-acciones">
               <button t-attf-class="af-btn {{ state.modo === 'entregar' ? 'af-btn-entregar' : 'af-btn-recibir' }}" t-att-disabled="state.enviando" t-on-click="() => this.procesar()">
-                <t t-if="state.enviando">Procesando…</t>
-                <t t-elif="state.modo === 'entregar'">📤 ENTREGAR TODO</t>
-                <t t-else="">✅ RECIBIR TODO</t>
+                <t t-if="state.enviando"><span class="af-btn-spin"/> Procesando…</t>
+                <t t-else=""><i class="fa fa-check"/> <t t-esc="state.modo === 'entregar' ? 'ENTREGAR TODO' : 'RECIBIR TODO'"/></t>
               </button>
             </div>
           </div>
@@ -145,20 +145,19 @@
 
         <!-- ====================== BUSCAR ====================== -->
         <t t-if="state.screen === 'buscar'">
-          <div class="af-wrap">
+          <div class="af-wrap af-fade">
             <header class="af-top">
-              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <button class="af-volver" aria-label="Volver" t-on-click="() => this.volver()"><i class="fa fa-angle-left"/></button>
               <div class="af-top-titulo">Buscar</div>
             </header>
 
             <div class="af-buscador">
-              <span class="af-buscador-ico">🔎</span>
+              <span class="af-buscador-ico"><i class="fa fa-search"/></span>
               <input type="text" class="af-input" placeholder="Pieza, código u orden…"
                      t-att-value="state.busqueda" t-on-input="(ev) => this.buscar(ev)"/>
             </div>
 
             <t t-if="state.resultados">
-              <!-- Piezas -->
               <t t-if="state.resultados.productos.length">
                 <div class="af-seccion">Piezas</div>
                 <div class="af-cards">
@@ -176,7 +175,6 @@
                   </t>
                 </div>
               </t>
-              <!-- Órdenes -->
               <t t-if="state.resultados.ordenes.length">
                 <div class="af-seccion">Órdenes / recepciones</div>
                 <div class="af-cards">
@@ -192,7 +190,10 @@
                 </div>
               </t>
               <t t-if="!state.resultados.productos.length and !state.resultados.ordenes.length">
-                <div class="af-vacio"><div class="af-vacio-ico">🤔</div><div>No encontré nada con eso.</div></div>
+                <div class="af-vacio">
+                  <span class="af-vacio-ico af-vacio-ico-muted"><i class="fa fa-search"/></span>
+                  <div>No encontré nada con eso</div>
+                </div>
               </t>
             </t>
             <t t-else="">
