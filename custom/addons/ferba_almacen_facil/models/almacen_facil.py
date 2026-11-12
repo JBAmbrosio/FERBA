@@ -8,6 +8,7 @@ completo de Odoo; la trazabilidad se guarda con la firma (x_studio_firma_de_
 responsable) y una nota en el chatter con el usuario que recibió.
 """
 
+import base64
 import logging
 
 from odoo import api, fields, models
@@ -124,34 +125,59 @@ class AlmacenFacil(models.AbstractModel):
         if p.state not in ('assigned', 'confirmed', 'waiting'):
             return {'ok': False, 'msg': 'Esta recepción no se puede recibir ahora.'}
         try:
-            # Asegura disponibilidad antes de recibir.
+            # 1) Asegura disponibilidad y recibe TODO (cantidad hecha = demanda).
             if p.state in ('confirmed', 'waiting'):
                 p.action_assign()
-            # Recibir TODO: cantidad hecha = demanda en cada movimiento.
             for m in p.move_ids:
                 if m.state in ('done', 'cancel'):
                     continue
                 m.quantity = m.product_uom_qty
                 m.picked = True
-            # Firma + banderas del flujo custom.
-            vals = {}
-            if firma and 'x_studio_firma_de_responsable' in p._fields:
-                vals['x_studio_firma_de_responsable'] = firma.split(',')[-1]
-            if 'x_studio_aprobar' in p._fields:
-                vals['x_studio_aprobar'] = True
-            if 'x_studio_estatus' in p._fields:
-                vals['x_studio_estatus'] = '1'
-            if vals:
-                p.write(vals)
-            # Validar sin pedir backorder (se recibe todo) ni SMS.
+            # 2) Validar el picking (operación CRÍTICA): mueve el stock.
             p.with_context(skip_backorder=True, skip_sms=True).button_validate()
-            if p.state == 'done':
-                p.message_post(body="Recibido desde <b>Almacén Fácil</b> por %s." % self.env.user.name)
-                return {'ok': True, 'name': p.name, 'msg': 'Recibido: ' + p.name}
-            return {'ok': False, 'msg': 'No se completó (quedó en %s). Avisa a un supervisor.' % p.state}
+            if p.state != 'done':
+                return {'ok': False, 'msg': 'No se completó (quedó en %s). Avisa a un supervisor.' % p.state}
         except Exception as e:
             _logger.warning("Almacén Fácil: error al recibir %s: %s", p.name, e)
             return {'ok': False, 'msg': str(e)}
+
+        # 3) Firma, banderas y nota: best-effort. NUNCA revierten un recibo exitoso
+        #    (el stock ya se movió). Cada paso en su propio try/except.
+        flags = {}
+        if 'x_studio_aprobar' in p._fields:
+            flags['x_studio_aprobar'] = True
+        if 'x_studio_estatus' in p._fields:
+            flags['x_studio_estatus'] = '1'
+        if flags:
+            try:
+                p.write(flags)
+            except Exception as e:
+                _logger.warning("Almacén Fácil: no se marcaron banderas en %s: %s", p.name, e)
+
+        firma_b64 = firma.split(',')[-1] if firma else None
+        if firma_b64 and 'x_studio_firma_de_responsable' in p._fields:
+            try:
+                p.write({'x_studio_firma_de_responsable': firma_b64})
+            except Exception as e:
+                _logger.warning("Almacén Fácil: no se guardó la firma en el campo de %s: %s", p.name, e)
+
+        # La firma SIEMPRE queda en el chatter como adjunto (robusto y visible),
+        # aunque el campo binario de Studio la rechace.
+        try:
+            adjuntos = []
+            if firma_b64:
+                try:
+                    adjuntos = [('firma_%s.png' % (p.name or '').replace('/', '_'), base64.b64decode(firma_b64))]
+                except Exception:
+                    adjuntos = []
+            p.message_post(
+                body="Recibido desde <b>Almacén Fácil</b> por %s." % self.env.user.name,
+                attachments=adjuntos,
+            )
+        except Exception as e:
+            _logger.warning("Almacén Fácil: no se publicó la nota en %s: %s", p.name, e)
+
+        return {'ok': True, 'name': p.name, 'msg': 'Recibido: ' + p.name}
 
     # ------------------------------------------------------------------ buscar
     @api.model

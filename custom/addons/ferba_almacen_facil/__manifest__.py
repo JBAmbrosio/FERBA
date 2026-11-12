@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Almacén Fácil',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Inventory',
     'summary': 'Pantalla simple y didáctica para el almacenista: recibir lo que '
                'llega y buscar piezas, sin entrar al inventario completo de Odoo.',
