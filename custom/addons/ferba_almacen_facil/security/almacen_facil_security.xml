@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!-- Rol "Almacenista": solo ve Almacén Fácil, nada del inventario completo.
+         Implica base.group_user (es un usuario interno). NO implica
+         stock.group_stock_user a propósito: así no le aparece la app de
+         Inventario; las operaciones de stock corren con sudo() desde el modelo.
+         Odoo 19: res.groups ya no usa category_id (privilege_id); se deja sin
+         privilegio y el admin asigna la membresía al almacenista. -->
+    <record id="group_ferba_almacenista" model="res.groups">
+        <field name="name">Almacén Fácil: Almacenista</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+</odoo>

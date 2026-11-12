@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ferba_almacen_facil_client_action" model="ir.actions.client">
+        <field name="name">Almacén Fácil</field>
+        <field name="tag">ferba_almacen_facil</field>
+    </record>
+
+    <!-- App propia, visible solo para el grupo Almacenista (y super usuarios). -->
+    <menuitem id="menu_ferba_almacen_facil_root"
+              name="Almacén Fácil"
+              groups="ferba_almacen_facil.group_ferba_almacenista"
+              sequence="4"/>
+    <menuitem id="menu_ferba_almacen_facil_app"
+              name="Almacén"
+              parent="menu_ferba_almacen_facil_root"
+              action="ferba_almacen_facil_client_action"
+              groups="ferba_almacen_facil.group_ferba_almacenista"
+              sequence="1"/>
+</odoo>

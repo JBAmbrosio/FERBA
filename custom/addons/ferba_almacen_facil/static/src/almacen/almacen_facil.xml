@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+  <t t-name="ferba_almacen_facil.App">
+    <div class="o_ferba_almacen">
+
+      <!-- ====================== CARGANDO ====================== -->
+      <t t-if="state.loading">
+        <div class="af-center">
+          <div class="af-spinner"/>
+          <div class="af-muted">Un momento…</div>
+        </div>
+      </t>
+
+      <t t-else="">
+
+        <!-- ====================== INICIO ====================== -->
+        <t t-if="state.screen === 'inicio'">
+          <div class="af-wrap">
+            <header class="af-hola">
+              <div class="af-hola-emoji">👋</div>
+              <div>
+                <div class="af-hola-txt">Hola</div>
+                <div class="af-hola-nombre" t-esc="state.resumen.usuario"/>
+              </div>
+            </header>
+
+            <div class="af-tiles">
+              <button class="af-tile af-tile-recibir" t-on-click="() => this.abrirLista()">
+                <div class="af-tile-ico">📥</div>
+                <div class="af-tile-nombre">Recibir</div>
+                <div class="af-tile-sub">lo que llega</div>
+                <div class="af-badge" t-esc="state.resumen.recepciones"/>
+              </button>
+
+              <button class="af-tile af-tile-buscar" t-on-click="() => this.irBuscar()">
+                <div class="af-tile-ico">🔎</div>
+                <div class="af-tile-nombre">Buscar</div>
+                <div class="af-tile-sub">pieza u orden</div>
+              </button>
+            </div>
+          </div>
+        </t>
+
+        <!-- ====================== LISTA RECIBIR ====================== -->
+        <t t-if="state.screen === 'lista'">
+          <div class="af-wrap">
+            <header class="af-top">
+              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <div class="af-top-titulo">Lo que llega</div>
+              <div class="af-top-conteo" t-esc="state.lista.length"/>
+            </header>
+
+            <t t-if="state.lista.length === 0">
+              <div class="af-vacio">
+                <div class="af-vacio-ico">✅</div>
+                <div>¡No hay nada pendiente por recibir!</div>
+              </div>
+            </t>
+
+            <div class="af-cards">
+              <t t-foreach="state.lista" t-as="r" t-key="r.id">
+                <button t-attf-class="af-card af-{{ color(r.dias) }}" t-on-click="() => this.abrirDetalle(r.id)">
+                  <div class="af-card-head">
+                    <span class="af-punto"/>
+                    <span class="af-card-folio" t-esc="r.name"/>
+                    <span class="af-card-dias" t-esc="textoDias(r.dias)"/>
+                  </div>
+                  <div class="af-card-socio" t-esc="r.socio"/>
+                  <t t-if="r.proyecto">
+                    <div class="af-card-proy" t-esc="r.proyecto"/>
+                  </t>
+                  <div class="af-card-pie">
+                    <span class="af-chip"><b t-esc="r.piezas"/> piezas</span>
+                    <span class="af-chip af-chip-soft"><t t-esc="r.renglones"/> renglones</span>
+                    <span class="af-flecha">›</span>
+                  </div>
+                </button>
+              </t>
+            </div>
+          </div>
+        </t>
+
+        <!-- ====================== DETALLE ====================== -->
+        <t t-if="state.screen === 'detalle' and state.detalle">
+          <div class="af-wrap">
+            <header class="af-top">
+              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <div class="af-top-titulo" t-esc="state.detalle.name"/>
+            </header>
+
+            <div class="af-detcab">
+              <div class="af-detcab-socio" t-esc="state.detalle.socio"/>
+              <t t-if="state.detalle.proyecto">
+                <div class="af-detcab-proy" t-esc="state.detalle.proyecto"/>
+              </t>
+            </div>
+
+            <div class="af-renglones">
+              <t t-foreach="state.detalle.renglones" t-as="l" t-key="l_index">
+                <div class="af-renglon">
+                  <div class="af-renglon-info">
+                    <div class="af-renglon-prod" t-esc="l.producto"/>
+                    <t t-if="l.codigo">
+                      <div class="af-renglon-cod" t-esc="l.codigo"/>
+                    </t>
+                  </div>
+                  <div class="af-renglon-cant">
+                    <span class="af-cant-num" t-esc="l.cantidad"/>
+                    <span class="af-cant-uni" t-esc="l.unidad"/>
+                  </div>
+                </div>
+              </t>
+            </div>
+
+            <!-- Firma -->
+            <div class="af-firma-bloque">
+              <div class="af-firma-label">
+                <span>✍️ Firma de quien recibe</span>
+                <button class="af-firma-limpia" t-on-click="() => this.firmaLimpia()">Borrar</button>
+              </div>
+              <canvas t-ref="firma" class="af-firma" width="600" height="180"
+                      t-on-pointerdown="(ev) => this.firmaInicio(ev)"
+                      t-on-pointermove="(ev) => this.firmaMueve(ev)"
+                      t-on-pointerup="() => this.firmaFin()"
+                      t-on-pointerleave="() => this.firmaFin()"/>
+            </div>
+
+            <!-- Acciones -->
+            <div class="af-acciones">
+              <button class="af-btn af-btn-recibir" t-att-disabled="state.enviando" t-on-click="() => this.recibir()">
+                <t t-if="state.enviando">Recibiendo…</t>
+                <t t-else="">✅ RECIBIR TODO</t>
+              </button>
+            </div>
+          </div>
+        </t>
+
+        <!-- ====================== BUSCAR ====================== -->
+        <t t-if="state.screen === 'buscar'">
+          <div class="af-wrap">
+            <header class="af-top">
+              <button class="af-volver" t-on-click="() => this.volver()">‹</button>
+              <div class="af-top-titulo">Buscar</div>
+            </header>
+
+            <div class="af-buscador">
+              <span class="af-buscador-ico">🔎</span>
+              <input type="text" class="af-input" placeholder="Pieza, código u orden…"
+                     t-att-value="state.busqueda" t-on-input="(ev) => this.buscar(ev)"/>
+            </div>
+
+            <t t-if="state.resultados">
+              <!-- Piezas -->
+              <t t-if="state.resultados.productos.length">
+                <div class="af-seccion">Piezas</div>
+                <div class="af-cards">
+                  <t t-foreach="state.resultados.productos" t-as="p" t-key="'p'+p.id">
+                    <div class="af-res">
+                      <div class="af-res-info">
+                        <div class="af-res-nombre" t-esc="p.nombre"/>
+                        <t t-if="p.codigo"><div class="af-res-cod" t-esc="p.codigo"/></t>
+                      </div>
+                      <div class="af-res-stock">
+                        <span class="af-stock-num" t-esc="p.existencia"/>
+                        <span class="af-stock-uni" t-esc="p.unidad"/>
+                      </div>
+                    </div>
+                  </t>
+                </div>
+              </t>
+              <!-- Órdenes -->
+              <t t-if="state.resultados.ordenes.length">
+                <div class="af-seccion">Órdenes / recepciones</div>
+                <div class="af-cards">
+                  <t t-foreach="state.resultados.ordenes" t-as="o" t-key="'o'+o.id">
+                    <div class="af-res">
+                      <div class="af-res-info">
+                        <div class="af-res-nombre"><t t-esc="o.tipo"/> <t t-esc="o.name"/></div>
+                        <t t-if="o.origen"><div class="af-res-cod" t-esc="o.origen"/></t>
+                      </div>
+                      <div class="af-res-estado" t-esc="o.estado"/>
+                    </div>
+                  </t>
+                </div>
+              </t>
+              <t t-if="!state.resultados.productos.length and !state.resultados.ordenes.length">
+                <div class="af-vacio"><div class="af-vacio-ico">🤔</div><div>No encontré nada con eso.</div></div>
+              </t>
+            </t>
+            <t t-else="">
+              <div class="af-ayuda">Escribe al menos 2 letras para buscar.</div>
+            </t>
+          </div>
+        </t>
+
+      </t>
+    </div>
+  </t>
+</templates>
