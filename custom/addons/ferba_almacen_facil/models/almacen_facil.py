@@ -8,7 +8,6 @@ completo de Odoo; la trazabilidad se guarda con la firma (x_studio_firma_de_
 responsable) y una nota en el chatter con el usuario que recibió.
 """
 
-import base64
 import logging
 
 from odoo import api, fields, models
@@ -161,21 +160,25 @@ class AlmacenFacil(models.AbstractModel):
             except Exception as e:
                 _logger.warning("Almacén Fácil: no se guardó la firma en el campo de %s: %s", p.name, e)
 
-        # La firma SIEMPRE queda en el chatter como adjunto (robusto y visible),
-        # aunque el campo binario de Studio la rechace.
+        # Nota en el chatter (plana, siempre confiable).
         try:
-            adjuntos = []
-            if firma_b64:
-                try:
-                    adjuntos = [('firma_%s.png' % (p.name or '').replace('/', '_'), base64.b64decode(firma_b64))]
-                except Exception:
-                    adjuntos = []
-            p.message_post(
-                body="Recibido desde <b>Almacén Fácil</b> por %s." % self.env.user.name,
-                attachments=adjuntos,
-            )
+            p.message_post(body="Recibido desde <b>Almacén Fácil</b> por %s." % self.env.user.name)
         except Exception as e:
             _logger.warning("Almacén Fácil: no se publicó la nota en %s: %s", p.name, e)
+
+        # Firma como adjunto DIRECTO del picking (ir.attachment): queda ligada y
+        # visible en el botón de adjuntos. Su try/except no afecta el recibo.
+        if firma_b64:
+            try:
+                self.env['ir.attachment'].sudo().create({
+                    'name': 'Firma %s.png' % (p.name or ''),
+                    'datas': firma_b64,
+                    'res_model': 'stock.picking',
+                    'res_id': p.id,
+                    'mimetype': 'image/png',
+                })
+            except Exception as e:
+                _logger.warning("Almacén Fácil: no se guardó la firma (adjunto) en %s: %s", p.name, e)
 
         return {'ok': True, 'name': p.name, 'msg': 'Recibido: ' + p.name}
 
