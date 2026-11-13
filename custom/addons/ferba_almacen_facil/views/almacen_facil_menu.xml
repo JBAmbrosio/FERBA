@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="ferba_almacen_facil_client_action" model="ir.actions.client">
-        <field name="name">Almacén Fácil</field>
+        <field name="name">Almacén</field>
         <field name="tag">ferba_almacen_facil</field>
     </record>
 
     <!-- App propia, visible solo para el grupo Almacenista (y super usuarios). -->
     <menuitem id="menu_ferba_almacen_facil_root"
-              name="Almacén Fácil"
+              name="Almacén"
               web_icon="ferba_almacen_facil,static/description/icon.png"
               groups="ferba_almacen_facil.group_ferba_almacenista"
               sequence="4"/>

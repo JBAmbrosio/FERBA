@@ -4,7 +4,7 @@
          rol se asigne con un control normal (sin modo desarrollador). En Odoo 19
          las secciones de permisos se arman por ir.module.category → privilegio. -->
     <record id="module_category_almacen_facil" model="ir.module.category">
-        <field name="name">Almacén Fácil</field>
+        <field name="name">Almacén</field>
         <field name="sequence">20</field>
     </record>
 
