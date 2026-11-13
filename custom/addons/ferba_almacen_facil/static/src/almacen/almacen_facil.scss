@@ -173,6 +173,69 @@
     .af-cant-num { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
     .af-cant-uni { color: var(--af-muted); font-size: 13px; margin-left: 4px; }
 
+    // ---- renglón con cantidad editable (parciales) + novedad ----
+    .af-renglon { flex-wrap: wrap; }
+    .af-renglon-info { flex: 1 1 58%; }
+    .af-renglon-meta {
+        display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline;
+        margin-top: 3px; color: var(--af-muted); font-size: 13px;
+    }
+    .af-renglon-ped { font-weight: 700; color: var(--af-slate); }
+    .af-disp-bajo { color: var(--af-rojo); font-weight: 800; }
+    .af-nov-chip {
+        display: inline-flex; align-items: center; gap: 5px; margin-top: 7px;
+        background: rgba(217, 119, 6, .14); color: var(--af-ambar);
+        border-radius: 9px; padding: 3px 9px; font-size: 12px; font-weight: 800;
+    }
+    .af-renglon-ctrl {
+        flex: 0 0 auto; margin-left: auto;
+        display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
+    }
+    .af-stepper { display: flex; align-items: center; gap: 6px; }
+    .af-step {
+        width: 42px; height: 42px; border-radius: 12px; border: none; cursor: pointer;
+        background: var(--af-chip); color: var(--af-ink); font-size: 15px;
+        display: flex; align-items: center; justify-content: center;
+        transition: transform .14s var(--ease-out);
+    }
+    .af-step:active { transform: scale(.9); }
+    .af-step-num {
+        width: 66px; height: 42px; text-align: center; border: 2px solid var(--af-line);
+        border-radius: 12px; background: var(--af-card); color: var(--af-ink);
+        font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; outline: none;
+        -moz-appearance: textfield; appearance: textfield;
+    }
+    .af-step-num::-webkit-outer-spin-button,
+    .af-step-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .af-step-num:focus { border-color: var(--af-brand); }
+    .af-nov-btn {
+        border: none; background: transparent; color: var(--af-muted); cursor: pointer;
+        font-size: 13px; font-weight: 700; padding: 3px 4px; border-radius: 9px;
+        display: inline-flex; align-items: center; gap: 5px;
+        transition: transform .14s var(--ease-out), color .14s var(--ease-out);
+    }
+    .af-nov-btn:active { transform: scale(.94); }
+    @media (hover: hover) and (pointer: fine) {
+        .af-nov-btn:hover { color: var(--af-ambar); }
+    }
+    .af-nov-panel {
+        display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 16px 14px;
+        border-bottom: 1px solid var(--af-line); background: var(--af-card);
+    }
+    .af-nov-op {
+        border: 2px solid var(--af-line); background: var(--af-card); color: var(--af-ink);
+        border-radius: 12px; padding: 8px 14px; font-size: 14px; font-weight: 700; cursor: pointer;
+        transition: transform .14s var(--ease-out), border-color .14s var(--ease-out), color .14s var(--ease-out);
+    }
+    .af-nov-op:active { transform: scale(.95); }
+    .af-nov-op.on { border-color: var(--af-ambar); color: var(--af-ambar); background: rgba(217, 119, 6, .08); }
+
+    .af-parcial-aviso {
+        margin-top: 11px; text-align: center; color: var(--af-muted);
+        font-size: 13px; font-weight: 600;
+    }
+    .af-parcial-aviso i { margin-right: 5px; color: var(--af-brand); }
+
     // ---- firma ----
     .af-firma-bloque { margin-top: 18px; }
     .af-firma-label {

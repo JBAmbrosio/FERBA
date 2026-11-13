@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Almacén',
-    'version': '19.0.2.4.0',
+    'version': '19.0.2.5.0',
     'category': 'Inventory',
     'summary': 'Pantalla simple y didáctica para el almacenista: recibir lo que '
                'llega, entregar lo que sale y buscar piezas, sin entrar al '

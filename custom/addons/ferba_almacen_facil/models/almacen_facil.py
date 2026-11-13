@@ -104,14 +104,19 @@ class AlmacenFacil(models.AbstractModel):
         if not p.exists():
             return {'error': 'La recepción ya no existe.'}
         renglones = []
+        es_salida = p.picking_type_code == 'outgoing'
         for m in p.move_ids:
             if m.state == 'cancel':
                 continue
             renglones.append({
+                'move_id': m.id,
                 'producto': m.product_id.display_name,
                 'codigo': m.product_id.default_code or '',
-                'cantidad': round(m.product_uom_qty, 2),
+                'demanda': round(m.product_uom_qty, 2),
+                'cantidad': round(m.product_uom_qty, 2),  # compat
                 'unidad': m.product_uom.name or '',
+                # Solo en salidas: cuánto hay, para avisar si no alcanza.
+                'disponible': round(m.product_id.qty_available, 2) if es_salida else None,
             })
         return {
             'id': p.id,
@@ -126,10 +131,17 @@ class AlmacenFacil(models.AbstractModel):
         }
 
     # ------------------------------------------------------------ recibir/entregar
-    def _procesar(self, picking_id, firma, accion):
+    def _procesar(self, picking_id, firma, accion, lineas=None, novedades=None):
         """Valida un picking (accion 'recibir' = entrada, 'entregar' = salida) con
-        firma. Robusto: la validación del stock va PRIMERO; firma, banderas y nota
-        son best-effort y nunca revierten una operación ya hecha."""
+        firma. Soporta PARCIALES: si `lineas` trae cantidades menores a la demanda,
+        Odoo crea un backorder con el resto (reaparece en pendientes). Robusto: la
+        validación del stock va PRIMERO; firma, banderas, nota y novedades son
+        best-effort y nunca revierten una operación ya hecha.
+
+        lineas: lista opcional [{'move_id': id, 'cantidad': n}, ...]. Sin ella se
+                procesa TODO (cantidad hecha = demanda), como antes.
+        novedades: lista opcional de textos a dejar como nota (dañado, etc.).
+        """
         self._check_acceso()
         es_recibir = accion == 'recibir'
         fem = 'recibida' if es_recibir else 'entregada'
@@ -141,16 +153,38 @@ class AlmacenFacil(models.AbstractModel):
             return {'ok': False, 'msg': 'Este documento ya estaba %s.' % fem}
         if p.state not in ('assigned', 'confirmed', 'waiting'):
             return {'ok': False, 'msg': 'Este documento no se puede procesar ahora.'}
+
+        # Mapa move_id -> cantidad marcada (parciales). Sin 'lineas' => TODO.
+        pedir = {}
+        if lineas:
+            for it in lineas:
+                try:
+                    pedir[int(it.get('move_id'))] = max(0.0, float(it.get('cantidad') or 0))
+                except Exception:
+                    continue
+
+        total_proc = 0.0
+        total_dem = 0.0
         try:
-            # 1) Asegura disponibilidad y procesa TODO (cantidad hecha = demanda).
+            # 1) Asegura disponibilidad y fija la cantidad hecha de cada renglón.
             if p.state in ('confirmed', 'waiting'):
                 p.action_assign()
             for m in p.move_ids:
                 if m.state in ('done', 'cancel'):
                     continue
-                m.quantity = m.product_uom_qty
-                m.picked = True
+                dem = m.product_uom_qty
+                total_dem += dem
+                # Cantidad a procesar: la marcada para este renglón, o la demanda
+                # completa si no vino en 'lineas'.
+                cant = pedir.get(m.id, dem) if lineas else dem
+                m.quantity = cant
+                m.picked = bool(cant > 0)
+                total_proc += cant
+            if total_proc <= 0:
+                return {'ok': False, 'msg': 'No marcaste ninguna cantidad para %s.' % ('recibir' if es_recibir else 'entregar')}
             # 2) Validar el picking (operación CRÍTICA): mueve el stock.
+            #    skip_backorder=True no abre el asistente; si quedó faltante, Odoo
+            #    crea el backorder automáticamente con el resto.
             p.with_context(skip_backorder=True, skip_sms=True).button_validate()
             if p.state != 'done':
                 extra = '' if es_recibir else ' ¿Hay existencia suficiente?'
@@ -159,8 +193,8 @@ class AlmacenFacil(models.AbstractModel):
             _logger.warning("Almacén Fácil: error al %s %s: %s", accion, p.name, e)
             return {'ok': False, 'msg': str(e)}
 
-        # 3) Firma, banderas y nota: best-effort. NUNCA revierten la operación
-        #    (el stock ya se movió). Cada paso en su propio try/except.
+        # 3) Firma, banderas, nota y novedades: best-effort. NUNCA revierten la
+        #    operación (el stock ya se movió). Cada paso en su propio try/except.
         flags = {}
         if 'x_studio_aprobar' in p._fields:
             flags['x_studio_aprobar'] = True
@@ -181,9 +215,18 @@ class AlmacenFacil(models.AbstractModel):
 
         # Nota en el chatter (plana, siempre confiable).
         try:
-            p.message_post(body="%s desde <b>Almacén Fácil</b> por %s." % (verbo, self.env.user.name))
+            p.message_post(body="%s desde <b>Almacén</b> por %s." % (verbo, self.env.user.name))
         except Exception as e:
             _logger.warning("Almacén Fácil: no se publicó la nota en %s: %s", p.name, e)
+
+        # Novedades reportadas por el almacenista (dañado, incorrecto, sobrante…).
+        if novedades:
+            try:
+                items = "".join("<li>%s</li>" % n for n in novedades if n)
+                if items:
+                    p.message_post(body="<b>Novedades</b> (%s):<ul>%s</ul>" % (self.env.user.name, items))
+            except Exception as e:
+                _logger.warning("Almacén Fácil: no se registraron novedades en %s: %s", p.name, e)
 
         # Firma como adjunto DIRECTO del picking (ir.attachment): queda ligada y
         # visible en el botón de adjuntos. Su try/except no afecta la operación.
@@ -199,15 +242,31 @@ class AlmacenFacil(models.AbstractModel):
             except Exception as e:
                 _logger.warning("Almacén Fácil: no se guardó la firma (adjunto) en %s: %s", p.name, e)
 
-        return {'ok': True, 'name': p.name, 'msg': '%s: %s' % (verbo, p.name)}
+        # ¿Quedó un backorder (recepción/entrega parcial)? Avisar al usuario.
+        backorder = ''
+        try:
+            bo = self.env['stock.picking'].sudo().search(
+                [('backorder_id', '=', p.id)], order='id desc', limit=1)
+            backorder = bo.name or ''
+        except Exception:
+            pass
+        parcial = bool(backorder)
+
+        msg = '%s: %s' % (verbo, p.name)
+        if parcial:
+            msg += ' — parcial; el resto quedó pendiente'
+            if backorder:
+                msg += ' (%s)' % backorder
+        return {'ok': True, 'name': p.name, 'msg': msg, 'parcial': parcial,
+                'backorder': backorder, 'faltante': round(max(0.0, total_dem - total_proc), 2)}
 
     @api.model
-    def recibir(self, picking_id, firma=None):
-        return self._procesar(picking_id, firma, 'recibir')
+    def recibir(self, picking_id, firma=None, lineas=None, novedades=None):
+        return self._procesar(picking_id, firma, 'recibir', lineas, novedades)
 
     @api.model
-    def entregar(self, picking_id, firma=None):
-        return self._procesar(picking_id, firma, 'entregar')
+    def entregar(self, picking_id, firma=None, lineas=None, novedades=None):
+        return self._procesar(picking_id, firma, 'entregar', lineas, novedades)
 
     # ------------------------------------------------------------------ buscar
     @api.model

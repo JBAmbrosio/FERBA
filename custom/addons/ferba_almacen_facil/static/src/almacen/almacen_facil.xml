@@ -19,7 +19,7 @@
             <header class="af-hero">
               <span class="af-hero-chip"><i class="fa fa-archive"/></span>
               <div class="af-hero-txt">
-                <div class="af-hero-app">Almacén Fácil</div>
+                <div class="af-hero-app">Almacén</div>
                 <div class="af-hero-hola">Hola, <t t-esc="state.resumen.usuario"/></div>
               </div>
             </header>
@@ -108,15 +108,35 @@
                 <div class="af-renglon">
                   <div class="af-renglon-info">
                     <div class="af-renglon-prod" t-esc="l.producto"/>
-                    <t t-if="l.codigo">
-                      <div class="af-renglon-cod" t-esc="l.codigo"/>
+                    <div class="af-renglon-meta">
+                      <t t-if="l.codigo"><span class="af-renglon-cod" t-esc="l.codigo"/></t>
+                      <span class="af-renglon-ped"><t t-esc="state.modo === 'entregar' ? 'Salen:' : 'Pedido:'"/> <t t-esc="l.demanda"/> <t t-esc="l.unidad"/></span>
+                      <t t-if="l.disponible !== null">
+                        <span t-attf-class="af-renglon-disp {{ l.disponible &lt; (parseFloat(l.recibido) || 0) ? 'af-disp-bajo' : '' }}">· Hay <t t-esc="l.disponible"/></span>
+                      </t>
+                    </div>
+                    <t t-if="l.novedad">
+                      <span class="af-nov-chip"><i class="fa fa-exclamation-triangle"/> <t t-esc="l.novedad"/></span>
                     </t>
                   </div>
-                  <div class="af-renglon-cant">
-                    <span class="af-cant-num" t-esc="l.cantidad"/>
-                    <span class="af-cant-uni" t-esc="l.unidad"/>
+                  <div class="af-renglon-ctrl">
+                    <div class="af-stepper">
+                      <button class="af-step" aria-label="menos" t-on-click="() => this.dec(l)"><i class="fa fa-minus"/></button>
+                      <input class="af-step-num" type="number" inputmode="decimal" min="0" step="1"
+                             t-att-value="l.recibido" t-on-input="(ev) => this.setCant(l, ev)"/>
+                      <button class="af-step" aria-label="más" t-on-click="() => this.inc(l)"><i class="fa fa-plus"/></button>
+                    </div>
+                    <button class="af-nov-btn" t-on-click="() => this.toggleNovedad(l)"><i class="fa fa-flag"/> Novedad</button>
                   </div>
                 </div>
+                <t t-if="l.novedadAbierta">
+                  <div class="af-nov-panel">
+                    <button t-attf-class="af-nov-op {{ l.novedad === 'Dañado' ? 'on' : '' }}" t-on-click="() => this.setNovedad(l, 'Dañado')">Dañado</button>
+                    <button t-attf-class="af-nov-op {{ l.novedad === 'Incorrecto' ? 'on' : '' }}" t-on-click="() => this.setNovedad(l, 'Incorrecto')">Incorrecto</button>
+                    <button t-attf-class="af-nov-op {{ l.novedad === 'Sobrante' ? 'on' : '' }}" t-on-click="() => this.setNovedad(l, 'Sobrante')">Sobrante</button>
+                    <button t-attf-class="af-nov-op {{ l.novedad === 'Otro' ? 'on' : '' }}" t-on-click="() => this.setNovedad(l, 'Otro')">Otro</button>
+                  </div>
+                </t>
               </t>
             </div>
 
@@ -137,8 +157,19 @@
             <div class="af-acciones">
               <button t-attf-class="af-btn {{ state.modo === 'entregar' ? 'af-btn-entregar' : 'af-btn-recibir' }}" t-att-disabled="state.enviando" t-on-click="() => this.procesar()">
                 <t t-if="state.enviando"><span class="af-btn-spin"/> Procesando…</t>
-                <t t-else=""><i class="fa fa-check"/> <t t-esc="state.modo === 'entregar' ? 'ENTREGAR TODO' : 'RECIBIR TODO'"/></t>
+                <t t-else="">
+                  <i class="fa fa-check"/>
+                  <t t-if="hayParcial()">
+                    <t t-esc="state.modo === 'entregar' ? 'ENTREGAR LO MARCADO' : 'RECIBIR LO QUE LLEGÓ'"/>
+                  </t>
+                  <t t-else="">
+                    <t t-esc="state.modo === 'entregar' ? 'ENTREGAR TODO' : 'RECIBIR TODO'"/>
+                  </t>
+                </t>
               </button>
+              <t t-if="hayParcial()">
+                <div class="af-parcial-aviso"><i class="fa fa-info-circle"/> Lo que falte quedará pendiente para después.</div>
+              </t>
             </div>
           </div>
         </t>

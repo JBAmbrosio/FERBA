@@ -55,7 +55,15 @@ export class AlmacenFacil extends Component {
         this.state.loading = true;
         this._firmado = false;
         try {
-            this.state.detalle = await this.orm.call(MODEL, "detalle", [id]);
+            const d = await this.orm.call(MODEL, "detalle", [id]);
+            if (d && d.renglones) {
+                for (const l of d.renglones) {
+                    l.recibido = l.demanda;   // pre-llenado al total (camino feliz)
+                    l.novedad = "";
+                    l.novedadAbierta = false;
+                }
+            }
+            this.state.detalle = d;
         } catch (e) { this._err(e); }
         this.state.loading = false;
     }
@@ -65,22 +73,56 @@ export class AlmacenFacil extends Component {
         else { this.cargarInicio(); }
     }
 
+    // ------------------------------------------------- cantidades y novedades
+    dec(l) { l.recibido = Math.max(0, Math.round(((parseFloat(l.recibido) || 0) - 1) * 100) / 100); }
+    inc(l) { l.recibido = Math.round(((parseFloat(l.recibido) || 0) + 1) * 100) / 100; }
+    setCant(l, ev) {
+        let v = parseFloat(ev.target.value);
+        if (isNaN(v) || v < 0) { v = 0; }
+        l.recibido = v;
+    }
+    toggleNovedad(l) { l.novedadAbierta = !l.novedadAbierta; }
+    setNovedad(l, tipo) {
+        l.novedad = (l.novedad === tipo) ? "" : tipo;
+        l.novedadAbierta = false;
+    }
+    hayParcial() {
+        const d = this.state.detalle;
+        if (!d || !d.renglones) { return false; }
+        return d.renglones.some((l) => (parseFloat(l.recibido) || 0) < l.demanda);
+    }
+    totalMarcado() {
+        const d = this.state.detalle;
+        if (!d || !d.renglones) { return 0; }
+        return d.renglones.reduce((s, l) => s + (parseFloat(l.recibido) || 0), 0);
+    }
+
     // ---------------------------------------------------------- recibir/entregar
     async procesar() {
         if (this.state.enviando || !this.state.detalle) { return; }
+        const d = this.state.detalle;
+        if (this.totalMarcado() <= 0) {
+            this.notification.add("Marca al menos una cantidad.", { type: "warning" });
+            return;
+        }
         this.state.enviando = true;
         let firma = null;
         const c = this.firmaRef.el;
         if (c && this._firmado) { firma = c.toDataURL("image/png"); }
+        const lineas = d.renglones.map((l) => ({ move_id: l.move_id, cantidad: parseFloat(l.recibido) || 0 }));
+        const etiqueta = { "Dañado": "Dañado", "Incorrecto": "Producto incorrecto", "Sobrante": "Sobrante", "Otro": "Otro" };
+        const novedades = d.renglones
+            .filter((l) => l.novedad)
+            .map((l) => l.producto + " — " + (etiqueta[l.novedad] || l.novedad));
         try {
             const metodo = this.state.modo === "entregar" ? "entregar" : "recibir";
-            const r = await this.orm.call(MODEL, metodo, [this.state.detalle.id, firma]);
+            const r = await this.orm.call(MODEL, metodo, [d.id, firma, lineas, novedades]);
             if (r && r.ok) {
-                this.notification.add("✅ " + (r.msg || "Listo"), { type: "success" });
+                this.notification.add((r.msg || "Listo"), { type: "success" });
                 await this.abrirLista(this.state.modo);
                 this.orm.call(MODEL, "resumen", []).then((s) => { this.state.resumen = s; });
             } else {
-                this.notification.add("⚠️ " + ((r && r.msg) || "No se pudo completar"), { type: "danger", sticky: true });
+                this.notification.add(((r && r.msg) || "No se pudo completar"), { type: "danger", sticky: true });
             }
         } catch (e) { this._err(e); }
         this.state.enviando = false;
