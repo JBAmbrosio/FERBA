@@ -381,13 +381,29 @@ class FocoMobileAppMdm(models.Model):
     #      codigo abierto), NUNCA apps de la Play Store (esas se instalan desde
     #      la Play Store real; ver la solicitud/aprobacion).
     apk = fields.Binary(string='APK', attachment=True,
-                        help='El archivo .apk de la app. Solo apps propias o de código abierto.')
+                        help='El archivo .apk de la app. Apps propias, de código '
+                             'abierto, o públicas que la empresa mantiene por APK '
+                             '(marca «APK de app pública»).')
     apk_name = fields.Char(string='Nombre del archivo')
     apk_version_code = fields.Integer(
         string='Versión del APK (código)',
         help='El versionCode del APK. El teléfono compara con lo instalado: si el '
              'de aquí es mayor, actualiza la app sola.')
     apk_sha256 = fields.Char(string='Huella del APK', compute='_compute_apk_sha256', store=True, readonly=True)
+    # Caso WhatsApp: una app de la Play Store que, en un equipo gestionado, no se
+    # mantiene sola (la tienda va oculta/cerrada y su auto-update depende de una
+    # ventana nocturna fragil). WhatsApp caduca su propio build y deja al vendedor
+    # sin poder usarlo. La empresa sube el APK OFICIAL (whatsapp.com/android) y Foco
+    # lo instala/actualiza en silencio como dueña del equipo: sin Play, sin cuenta
+    # de Google, sin ventana horaria. Esta bandera deja constancia de que el admin
+    # lo hace a proposito (no es una app propia) y cambia el texto de la ficha.
+    apk_publica = fields.Boolean(
+        string='APK de app pública (p.ej. WhatsApp)',
+        help='Enciéndelo cuando el APK que subes es de una app PÚBLICA que la '
+             'empresa mantiene al día por su cuenta (WhatsApp publica su APK '
+             'oficial en whatsapp.com/android). Foco la instala y la actualiza '
+             'sola como dueña del equipo, sin Play Store ni ventana horaria. '
+             'Déjalo apagado para apps propias o de código abierto.')
 
     @api.depends('apk')
     def _compute_apk_sha256(self):
@@ -1180,6 +1196,36 @@ class FocoMobileDeviceMdm(models.Model):
         (hay OpenAI configurado). Los textos de los botones los trae el agente de
         fábrica (es/en); aquí solo se decide el respaldo IA."""
         return {'ia': bool(self.env['foco.openai'].sudo().configurado())}
+
+    def _aplicar_instalar_hechos(self, hechos):
+        """Lo que el teléfono reporta tras una instalación SILENCIOSA (Instalador,
+        PackageInstaller): lista de {package, version(code), estado}. Actualiza el
+        inventario con la versión que de verdad quedó, para que el admin vea si las
+        apps empujadas por APK (WhatsApp y demás) están al día en la flota.
+        'en_proceso'/'fallo' no tocan el inventario: aún no quedó instalada."""
+        self.ensure_one()
+        if not hechos:
+            return
+        Inst = self.env['foco.mobile.installed'].sudo()
+        Apps = self.env['foco.mobile.app'].sudo()
+        for h in hechos:
+            if not isinstance(h, dict):
+                continue
+            pkg = (h.get('package') or '').strip()
+            if not pkg or h.get('estado') != 'instalada':
+                continue
+            ver = str(h.get('version') or '')
+            app = Apps.search([('package', '=', pkg)], limit=1)
+            nombre = (app.app_label if app else '') or pkg
+            vals = {'name': nombre, 'version': ver, 'state': 'instalada', 'source': 'otro'}
+            existente = Inst.search([('device_id', '=', self.id), ('package', '=', pkg)], limit=1)
+            if existente:
+                existente.write(vals)
+            else:
+                Inst.create(dict(vals, device_id=self.id, package=pkg))
+            # Cierra la solicitud de esa app si el teléfono la pidió y ya quedó.
+            self.request_ids.filtered(
+                lambda q: q.state == 'aprobada' and q.package == pkg).write({'state': 'instalada'})
 
     def _mdm_json(self):
         """La politica tal como la entiende Google (Android Management API)."""

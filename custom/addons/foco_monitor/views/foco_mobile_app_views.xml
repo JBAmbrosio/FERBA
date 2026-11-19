@@ -44,20 +44,32 @@
                         de privacidad aparte (banca, contrasenas), este o no
                         registrada.
                     </div>
-                    <group string="APK propio · empuje silencioso desde Odoo" class="mt16">
-                        <div colspan="2" class="alert alert-light border" role="alert">
-                            Sube aquí el <b>.apk</b> de una app <b>propia o de código abierto</b>
-                            (nunca una de la Play Store). Foco, como dueña del equipo, la
-                            instala y la actualiza sola, sin que la persona toque nada. Para
-                            que llegue a los teléfonos, agrégala en el perfil como
-                            <b>«instalar sola»</b>: <b>Navegación permitida</b> › el perfil ›
-                            <b>En el celular</b> › <b>Apps del perfil</b>. Sin APK, «instalar
-                            sola» no puede hacer nada.
+                    <group string="APK · empuje silencioso desde Odoo" class="mt16">
+                        <div colspan="2" class="alert alert-light border" role="alert"
+                             invisible="apk_publica">
+                            Sube aquí el <b>.apk</b> de una app <b>propia o de código abierto</b>.
+                            Foco, como dueña del equipo, la instala y la actualiza sola, sin que
+                            la persona toque nada. Para que llegue a los teléfonos, agrégala como
+                            <b>«instalar sola»</b> en el perfil o en el puesto. Sin APK, «instalar
+                            sola» no puede hacer nada. Si es una app <b>pública</b> como WhatsApp,
+                            enciende «APK de app pública» abajo.
+                        </div>
+                        <div colspan="2" class="alert alert-info border" role="alert"
+                             invisible="not apk_publica">
+                            <b>App pública mantenida por APK (p.ej. WhatsApp).</b> En un equipo
+                            gestionado la Play va oculta y su auto-update depende de una ventana
+                            nocturna frágil; WhatsApp caduca su propio build y deja al vendedor
+                            sin poder usarlo. Sube aquí el <b>APK OFICIAL</b>
+                            (<b>whatsapp.com/android</b>), pon su <b>versión (código)</b> y
+                            agrégala como <b>«instalar sola»</b> al puesto <b>Vendedor</b>: Foco
+                            la instala y la actualiza sola, sin Play ni ventana horaria.
+                            <b>Mantén el APK al día</b> (WhatsApp expira builds viejos).
                         </div>
                         <group>
                             <field name="apk" filename="apk_name"/>
                             <field name="apk_name" invisible="1"/>
                             <field name="apk_version_code"/>
+                            <field name="apk_publica"/>
                         </group>
                         <group>
                             <field name="apk_sha256" readonly="1" invisible="not apk"/>

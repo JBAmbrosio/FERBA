@@ -1542,6 +1542,11 @@ class FocoController(http.Controller):
         request.env['foco.mobile.app.request'].sudo().aplicar_play_hechos(
             data.get('play_hechos') or [])
 
+        # Resultados de las instalaciones SILENCIOSAS por APK (Instalador): la
+        # versión que de verdad quedó instalada (WhatsApp y demás apps empujadas
+        # por APK). Actualiza el inventario del teléfono para ver la flota al día.
+        dev.sudo()._aplicar_instalar_hechos(data.get('instalar_hechos') or [])
+
         # Las solicitudes de apps y su respuesta viajan en CADA envio, con o
         # sin monitoreo: pedir una app no es un dato medido de la persona, es
         # un tramite suyo, y la respuesta le tiene que llegar.
