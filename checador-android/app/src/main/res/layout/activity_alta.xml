@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/alta_margen"
+        android:paddingVertical="36dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="-0.01"
+            android:text="Dar de alta esta tableta"
+            android:textColor="@color/texto"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:lineSpacingMultiplier="1.2"
+            android:text="En Odoo abre Asistencias › Checador › Tabletas, elige el checador y pulsa «Generar código de alta». Escríbelo aquí: sirve una sola vez."
+            android:textColor="@color/texto_suave"
+            android:textSize="17sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Servidor"
+            android:textColor="@color/texto"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/servidor"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/campo"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/texto"
+            android:textSize="18sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Código de alta (8 dígitos)"
+            android:textColor="@color/texto"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/codigo"
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/campo"
+            android:fontFamily="@font/barlow_semicondensed"
+            android:fontFeatureSettings="tnum"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:letterSpacing="0.3"
+            android:maxLength="8"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/texto"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnAlta"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="28dp"
+            android:background="@drawable/boton"
+            android:stateListAnimator="@animator/pulsar"
+            android:text="Dar de alta"
+            android:textAllCaps="false"
+            android:textColor="@color/sobre_color"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/estado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="24dp"
+            android:textColor="@color/texto"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:textColor="@color/texto_suave"
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>

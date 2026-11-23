@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Checador: reloj checador de pared.
+  ESCENA: tableta fija junto a la entrada, luz de dia, se lee a un metro y se toca de paso.
+  Por eso el fondo es claro (papel frio) y la tinta casi negra; el color se guarda para
+  dos lugares: el riel del reloj (tinta verde profunda) y la pantalla de confirmacion,
+  que se inunda del color del resultado.
+-->
+<resources>
+    <color name="fondo">#EEF1EF</color>
+    <color name="superficie">#FFFFFF</color>
+    <color name="superficie_alta">#E0E6E2</color>
+    <color name="borde">#CCD5D0</color>
+    <color name="texto">#14201C</color>
+    <color name="texto_suave">#56655F</color>
+    <color name="acento">#0F5D4E</color>
+    <color name="acento_pulsado">#0A4539</color>
+
+    <!-- Riel del reloj -->
+    <color name="riel">#10241F</color>
+    <color name="riel_texto">#F3F7F5</color>
+    <color name="riel_suave">#9FB5AD</color>
+    <color name="riel_ok">#6FD7A8</color>
+    <color name="riel_error">#FFA094</color>
+    <color name="riel_aviso">#F2C46D</color>
+
+    <!-- Resultado de la marca -->
+    <color name="entrada">#12805C</color>
+    <color name="salida">#1F5FBF</color>
+    <color name="error">#C23B32</color>
+    <color name="aviso">#A85A0A</color>
+    <color name="sobre_color">#FFFFFF</color>
+    <color name="sobre_color_suave">#E6FFFFFF</color>
+
+    <color name="velo">#D9EEF1EF</color>
+    <color name="ic_fondo">#10241F</color>
+</resources>

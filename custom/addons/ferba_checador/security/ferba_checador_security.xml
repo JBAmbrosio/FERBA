@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Quien da de alta, configura y revoca las tabletas (IT). Se cambia de
+         persona moviendola de grupo, sin tocar codigo. -->
+    <record id="group_checador_alta" model="res.groups">
+        <field name="name">FERBA / Checador: alta de tabletas</field>
+        <field name="comment">Da de alta, configura y revoca las tabletas del checador,
+            y ve su bitacora.</field>
+    </record>
+
+    <!-- Quien revisa la bitacora y las fotos (RH). No puede dar de alta. -->
+    <record id="group_checador_revision" model="res.groups">
+        <field name="name">FERBA / Checador: revisar bitacora</field>
+        <field name="comment">Ve la bitacora del checador (marcas, intentos fallidos y fotos)
+            y desbloquea tarjetas.</field>
+    </record>
+
+    <record id="rule_checador_empresa" model="ir.rule">
+        <field name="name">Checador: solo de mis empresas</field>
+        <field name="model_id" ref="model_ferba_checador"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_checador_evento_empresa" model="ir.rule">
+        <field name="name">Bitacora del checador: solo de mis empresas</field>
+        <field name="model_id" ref="model_ferba_checador_evento"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

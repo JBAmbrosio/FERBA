@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_checador_alta,ferba.checador alta,model_ferba_checador,group_checador_alta,1,1,1,0
+access_checador_revision,ferba.checador revision,model_ferba_checador,group_checador_revision,1,0,0,0
+access_checador_evento_alta,ferba.checador.evento alta,model_ferba_checador_evento,group_checador_alta,1,0,0,0
+access_checador_evento_revision,ferba.checador.evento revision,model_ferba_checador_evento,group_checador_revision,1,0,0,0
+access_checador_app_alta,ferba.checador.app alta,model_ferba_checador_app,group_checador_alta,1,1,1,1

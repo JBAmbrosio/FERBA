@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="tecla_alto">68dp</dimen>
+    <dimen name="teclado_ancho">340dp</dimen>
+    <dimen name="alta_margen">28dp</dimen>
+    <dimen name="reloj">44sp</dimen>
+    <dimen name="camara_lado">132dp</dimen>
+    <dimen name="res_titulo">52sp</dimen>
+</resources>
