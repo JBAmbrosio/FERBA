@@ -1,0 +1,13 @@
+# Se versiona el CODIGO; no el build, ni binarios, ni secretos.
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+**/build/
+*.apk
+*.aab
+# Firma (el keystore vive en C:\dev\Ferba\keys, fuera del repo)
+*.jks
+*.keystore
+keystore.properties

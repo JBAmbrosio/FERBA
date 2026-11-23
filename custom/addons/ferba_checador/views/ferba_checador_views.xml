@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================= Checadores (tabletas) ================= -->
+    <record id="view_ferba_checador_list" model="ir.ui.view">
+        <field name="name">ferba.checador.list</field>
+        <field name="model">ferba.checador</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="ubicacion"/>
+                <field name="estado" widget="badge"
+                       decoration-success="estado == 'activo'"
+                       decoration-warning="estado == 'pendiente'"
+                       decoration-danger="estado == 'revocado'"/>
+                <field name="en_linea" widget="boolean_toggle" readonly="1"/>
+                <field name="ultima_senal"/>
+                <field name="bateria"/>
+                <field name="version_app"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_checador_form" model="ir.ui.view">
+        <field name="name">ferba.checador.form</field>
+        <field name="model">ferba.checador</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_generar_codigo" type="object" class="btn-primary"
+                            string="Generar codigo de alta"
+                            groups="ferba_checador.group_checador_alta"
+                            invisible="estado == 'activo'"/>
+                    <button name="action_generar_codigo" type="object"
+                            string="Cambiar de tableta"
+                            groups="ferba_checador.group_checador_alta"
+                            invisible="estado != 'activo'"
+                            confirm="Se generara un codigo nuevo. Al usarlo en otra tableta, la tableta actual dejara de funcionar. ¿Continuar?"/>
+                    <button name="action_revocar" type="object" string="Revocar"
+                            groups="ferba_checador.group_checador_alta"
+                            invisible="estado != 'activo'"
+                            confirm="La tableta dejara de funcionar de inmediato y habra que darla de alta otra vez. ¿Revocar?"/>
+                    <field name="estado" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_ver_eventos" type="object" class="oe_stat_button"
+                                icon="fa-list">
+                            <field name="evento_count" widget="statinfo" string="Bitacora"/>
+                        </button>
+                    </div>
+                    <div class="alert alert-info" role="alert" invisible="not codigo_alta">
+                        Teclea este codigo en la tableta:
+                        <strong style="font-size: 1.6rem; letter-spacing: .2rem;">
+                            <field name="codigo_alta" readonly="1" class="d-inline"/>
+                        </strong>
+                        <br/>Sirve una sola vez y vence el <field name="codigo_vence" readonly="1" class="d-inline"/>.
+                    </div>
+                    <group>
+                        <group string="Checador">
+                            <field name="name"/>
+                            <field name="company_id" readonly="estado == 'activo'"/>
+                            <field name="ubicacion"/>
+                        </group>
+                        <group string="Tableta">
+                            <field name="en_linea"/>
+                            <field name="ultima_senal"/>
+                            <field name="modelo"/>
+                            <field name="android"/>
+                            <field name="version_app"/>
+                            <field name="actualizacion" invisible="not actualizacion"/>
+                            <field name="bateria"/>
+                            <field name="cargando"/>
+                            <field name="ip"/>
+                            <field name="alta_el"/>
+                            <field name="alta_por"/>
+                        </group>
+                    </group>
+                    <group string="Reglas">
+                        <group>
+                            <field name="max_fallos"/>
+                            <field name="minutos_bloqueo"/>
+                            <field name="segundos_doble_marca"/>
+                            <field name="permite_offline"/>
+                            <field name="horas_offline" invisible="not permite_offline"/>
+                        </group>
+                        <group>
+                            <field name="exige_foto"/>
+                            <field name="segundos_regreso"/>
+                            <field name="pin_mantenimiento" password="True"
+                                   groups="ferba_checador.group_checador_alta"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_checador" model="ir.actions.act_window">
+        <field name="name">Checadores</field>
+        <field name="res_model">ferba.checador</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Da de alta la primera tableta</p>
+            <p>Crea el checador, pulsa "Generar codigo de alta" y teclea ese codigo
+               en la app de la tableta.</p>
+        </field>
+    </record>
+
+    <!-- ================= Bitacora ================= -->
+    <record id="view_ferba_checador_evento_list" model="ir.ui.view">
+        <field name="name">ferba.checador.evento.list</field>
+        <field name="model">ferba.checador.evento</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0"
+                  decoration-danger="resultado in ('nip_fallido', 'bloqueado')"
+                  decoration-warning="resultado in ('vencida', 'conflicto')"
+                  decoration-muted="resultado in ('doble', 'sin_nip')">
+                <field name="fecha"/>
+                <field name="employee_id"/>
+                <field name="resultado" widget="badge"
+                       decoration-success="resultado == 'entrada'"
+                       decoration-info="resultado == 'salida'"
+                       decoration-danger="resultado in ('nip_fallido', 'bloqueado')"
+                       decoration-warning="resultado in ('vencida', 'conflicto')"/>
+                <field name="foto" widget="image" options="{'size': [48, 48]}"/>
+                <field name="sin_foto" optional="show"/>
+                <field name="offline" optional="show"/>
+                <field name="create_date" string="Recibida" optional="hide"/>
+                <field name="checador_id"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_checador_evento_form" model="ir.ui.view">
+        <field name="name">ferba.checador.evento.form</field>
+        <field name="model">ferba.checador.evento</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <sheet>
+                    <field name="foto" widget="image" class="oe_avatar"
+                           options="{'size': [320, 320]}"/>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="resultado"/>
+                            <field name="fecha"/>
+                            <field name="sin_foto"/>
+                            <field name="offline"/>
+                            <field name="create_date" string="Recibida por el servidor"
+                                   invisible="not offline"/>
+                            <field name="hora_dispositivo" invisible="not offline"/>
+                        </group>
+                        <group>
+                            <field name="checador_id"/>
+                            <field name="attendance_id"/>
+                            <field name="uuid"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_ferba_checador_evento_search" model="ir.ui.view">
+        <field name="name">ferba.checador.evento.search</field>
+        <field name="model">ferba.checador.evento</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="checador_id"/>
+                <filter name="hoy" string="Hoy"
+                        domain="[('fecha', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="aceptadas" string="Marcas aceptadas"
+                        domain="[('aceptado', '=', True)]"/>
+                <filter name="rechazadas" string="Intentos rechazados"
+                        domain="[('aceptado', '=', False)]"/>
+                <filter name="nip" string="NIP incorrecto / bloqueo"
+                        domain="[('resultado', 'in', ('nip_fallido', 'bloqueado'))]"/>
+                <filter name="sinfoto" string="Aceptadas sin foto"
+                        domain="[('sin_foto', '=', True)]"/>
+                <filter name="offline" string="Hechas sin conexion"
+                        domain="[('offline', '=', True)]"/>
+                <filter name="porrevisar" string="Sin conexion por revisar"
+                        domain="[('resultado', 'in', ('vencida', 'conflicto'))]"/>
+                <group>
+                    <filter name="g_emp" string="Empleado" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_res" string="Resultado" context="{'group_by': 'resultado'}"/>
+                    <filter name="g_dia" string="Dia" context="{'group_by': 'fecha:day'}"/>
+                    <filter name="g_chk" string="Checador" context="{'group_by': 'checador_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_ferba_checador_evento" model="ir.actions.act_window">
+        <field name="name">Bitacora del checador</field>
+        <field name="res_model">ferba.checador.evento</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_hoy': 1}</field>
+    </record>
+
+    <!-- ================= Empleado: bloqueo del checador ================= -->
+    <record id="view_employee_form_checador" model="ir.ui.view">
+        <field name="name">hr.employee.form.checador</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='pin']" position="after">
+                <field name="checador_bloqueado_hasta" readonly="1"
+                       invisible="not checador_bloqueado_hasta"/>
+                <button name="action_checador_desbloquear" type="object"
+                        string="Desbloquear en el checador" class="btn-link"
+                        invisible="not checador_bloqueado_hasta"
+                        groups="ferba_checador.group_checador_revision,ferba_checador.group_checador_alta"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================= Menus (dentro de Asistencias) ================= -->
+    <menuitem id="menu_ferba_checador_root" name="Checador"
+              parent="hr_attendance.menu_hr_attendance_root" sequence="40"
+              groups="group_checador_alta,group_checador_revision"/>
+    <menuitem id="menu_ferba_checador_evento" name="Bitacora"
+              parent="menu_ferba_checador_root" action="action_ferba_checador_evento"
+              sequence="10"/>
+    <!-- ================= Versiones de la app ================= -->
+    <record id="view_ferba_checador_app_list" model="ir.ui.view">
+        <field name="name">ferba.checador.app.list</field>
+        <field name="model">ferba.checador.app</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="not activa">
+                <field name="name"/>
+                <field name="version_code"/>
+                <field name="activa" widget="boolean_toggle"/>
+                <field name="checador_ids" widget="many2many_tags" optional="show"/>
+                <field name="instaladas"/>
+                <field name="create_date" string="Subida"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ferba_checador_app_form" model="ir.ui.view">
+        <field name="name">ferba.checador.app.form</field>
+        <field name="model">ferba.checador.app</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Las tabletas dadas de alta descargan esta version en su siguiente
+                        sincronizacion y la instalan solas cuando nadie esta marcando. Para
+                        probarla primero, elige una sola tableta en "Solo en estas tabletas".
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name" placeholder="1.2.0"/>
+                            <field name="version_code"/>
+                            <field name="apk" filename="apk_nombre"/>
+                            <field name="apk_nombre" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="activa"/>
+                            <field name="checador_ids" widget="many2many_tags"/>
+                            <field name="instaladas"/>
+                            <field name="tamano"/>
+                            <field name="sha256"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notas" placeholder="Que cambia en esta version"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ferba_checador_app" model="ir.actions.act_window">
+        <field name="name">Versiones de la app</field>
+        <field name="res_model">ferba.checador.app</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_ferba_checador_app" name="Versiones de la app"
+              parent="menu_ferba_checador_root" action="action_ferba_checador_app"
+              sequence="30" groups="group_checador_alta"/>
+
+    <menuitem id="menu_ferba_checador" name="Tabletas"
+              parent="menu_ferba_checador_root" action="action_ferba_checador"
+              sequence="20" groups="group_checador_alta"/>
+</odoo>

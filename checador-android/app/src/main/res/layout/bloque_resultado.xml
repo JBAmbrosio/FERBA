@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Confirmacion: la pantalla entera toma el color del resultado. Se lee de lejos. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/panelResultado"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:visibility="gone">
+
+    <ImageView
+        android:id="@+id/resIcono"
+        android:layout_width="104dp"
+        android:layout_height="104dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/resTitulo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/barlow_semicondensed"
+        android:fontFeatureSettings="tnum"
+        android:gravity="center"
+        android:letterSpacing="-0.01"
+        android:textColor="@color/sobre_color"
+        android:textSize="@dimen/res_titulo"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/resNombre"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:textColor="@color/sobre_color"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/resDetalle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.15"
+        android:maxWidth="560dp"
+        android:textColor="@color/sobre_color_suave"
+        android:textSize="20sp" />
+</LinearLayout>

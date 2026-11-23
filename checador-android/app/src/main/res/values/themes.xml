@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Checador" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:statusBarColor">@color/riel</item>
+        <item name="android:navigationBarColor">@color/riel</item>
+        <item name="colorPrimary">@color/acento</item>
+        <item name="colorAccent">@color/acento</item>
+        <item name="colorControlActivated">@color/acento</item>
+        <item name="android:textColorPrimary">@color/texto</item>
+        <item name="android:textColorSecondary">@color/texto_suave</item>
+        <item name="android:textColorHint">@color/texto_suave</item>
+        <item name="android:textColorHighlight">#330F5D4E</item>
+        <item name="android:fontFamily">@font/barlow</item>
+        <item name="fontFamily">@font/barlow</item>
+    </style>
+
+    <!-- Teclas del NIP: grandes, para atinarles de paso. -->
+    <style name="Tecla">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">@dimen/tecla_alto</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_gravity">fill</item>
+        <item name="android:layout_margin">6dp</item>
+        <item name="android:background">@drawable/tecla</item>
+        <item name="android:fontFamily">@font/barlow_semicondensed</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:stateListAnimator">@animator/pulsar</item>
+    </style>
+
+    <style name="Tecla.Texto">
+        <item name="android:fontFamily">@font/barlow</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/texto_suave</item>
+    </style>
+
+    <style name="Tecla.Ok">
+        <item name="android:background">@drawable/tecla_ok</item>
+        <item name="android:textColor">@color/sobre_color</item>
+        <item name="android:textSize">26sp</item>
+    </style>
+</resources>

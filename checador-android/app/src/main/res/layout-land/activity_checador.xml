@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  THESIS: un reloj checador de pared, no una app. El reloj manda; la lista es la tarea.
+  OWN-WORLD: papel frio + tinta verde profunda; riel oscuro con la hora en numeros de
+    senaletica (Barlow Semi Condensed); mosaicos blancos sin borde ni sombra.
+  STORY: llego, veo la hora, toco mi cara, tecleo mi NIP, la pantalla entera me confirma.
+  FIRST VIEWPORT: riel fijo a la izquierda (hora enorme, fecha, estado de conexion);
+    a la derecha buscador + mosaico de personas.
+  FORM: riel + mosaico en horizontal; en vertical el riel se vuelve cabecera.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/raiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo">
+
+    <!-- ============ Lista ============ -->
+    <LinearLayout
+        android:id="@+id/lista"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="320dp"
+            android:layout_height="match_parent"
+            android:background="@color/riel"
+            android:orientation="vertical"
+            android:paddingHorizontal="32dp"
+            android:paddingVertical="28dp">
+
+            <TextView
+                android:id="@+id/titulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="Checador"
+                android:textColor="@color/riel_suave"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/reloj"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/barlow_semicondensed"
+                android:fontFeatureSettings="tnum"
+                android:includeFontPadding="false"
+                android:letterSpacing="-0.02"
+                android:textColor="@color/riel_texto"
+                android:textSize="@dimen/reloj"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/fecha"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/riel_texto"
+                android:textSize="20sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:lineSpacingMultiplier="1.15"
+                android:text="Toca tu nombre y escribe tu NIP para marcar."
+                android:textColor="@color/riel_suave"
+                android:textSize="17sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/conexion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/riel_suave"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="24dp">
+
+            <include layout="@layout/bloque_buscar" />
+
+            <TextView
+                android:id="@+id/vacio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:gravity="center"
+                android:textColor="@color/texto_suave"
+                android:textSize="18sp"
+                android:visibility="gone" />
+
+            <GridView
+                android:id="@+id/grid"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="16dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:columnWidth="156dp"
+                android:horizontalSpacing="12dp"
+                android:listSelector="@android:color/transparent"
+                android:numColumns="auto_fit"
+                android:paddingBottom="24dp"
+                android:scrollbars="none"
+                android:stretchMode="columnWidth"
+                android:verticalSpacing="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ============ NIP: la persona a la izquierda, el teclado a la derecha ============ -->
+    <LinearLayout
+        android:id="@+id/panelNip"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/fondo"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/superficie"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:id="@+id/nipFoto"
+                android:layout_width="136dp"
+                android:layout_height="136dp"
+                android:background="@drawable/circulo"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop" />
+
+            <TextView
+                android:id="@+id/nipNombre"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:textColor="@color/texto"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/nipAccion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="21sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/camaraCaja"
+                android:layout_width="220dp"
+                android:layout_height="165dp"
+                android:layout_marginTop="28dp"
+                android:background="@drawable/camara_marco">
+
+                <TextureView
+                    android:id="@+id/camara"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/camaraNota"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Se toma una foto al marcar"
+                android:textColor="@color/texto_suave"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:padding="24dp">
+
+            <include
+                layout="@layout/bloque_teclado"
+                android:layout_width="@dimen/teclado_ancho"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <include layout="@layout/bloque_resultado" />
+
+    <!-- Espera mientras se registra -->
+    <FrameLayout
+        android:id="@+id/espera"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/velo"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/acento" />
+    </FrameLayout>
+</FrameLayout>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NIP: puntos, aviso, teclado y cancelar. Lo comparten la vista vertical y la horizontal. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/teclado_ancho"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Escribe tu NIP"
+        android:textColor="@color/texto_suave"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/nipPuntos"
+        android:layout_width="wrap_content"
+        android:layout_height="52dp"
+        android:gravity="center"
+        android:letterSpacing="0.35"
+        android:textColor="@color/acento"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/nipError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:minHeight="26dp"
+        android:textColor="@color/error"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <GridLayout
+        android:id="@+id/teclado"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:columnCount="3">
+
+        <Button style="@style/Tecla" android:tag="1" android:text="1" />
+        <Button style="@style/Tecla" android:tag="2" android:text="2" />
+        <Button style="@style/Tecla" android:tag="3" android:text="3" />
+        <Button style="@style/Tecla" android:tag="4" android:text="4" />
+        <Button style="@style/Tecla" android:tag="5" android:text="5" />
+        <Button style="@style/Tecla" android:tag="6" android:text="6" />
+        <Button style="@style/Tecla" android:tag="7" android:text="7" />
+        <Button style="@style/Tecla" android:tag="8" android:text="8" />
+        <Button style="@style/Tecla" android:tag="9" android:text="9" />
+        <Button style="@style/Tecla.Texto" android:tag="borrar" android:text="Borrar" />
+        <Button style="@style/Tecla" android:tag="0" android:text="0" />
+        <Button style="@style/Tecla.Ok" android:tag="ok" android:text="OK" />
+    </GridLayout>
+
+    <Button
+        android:id="@+id/nipCancelar"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:color/transparent"
+        android:paddingHorizontal="32dp"
+        android:stateListAnimator="@animator/pulsar"
+        android:text="Cancelar"
+        android:textAllCaps="false"
+        android:textColor="@color/texto_suave"
+        android:textSize="18sp" />
+</LinearLayout>

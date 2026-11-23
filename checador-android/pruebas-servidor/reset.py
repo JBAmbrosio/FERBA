@@ -1,0 +1,5 @@
+env.cr.execute('DELETE FROM ferba_checador_evento')
+env.cr.execute('DELETE FROM hr_attendance')
+env.cr.execute('UPDATE hr_employee SET checador_fallos = 0, checador_bloqueado_hasta = NULL')
+env.cr.commit()
+print('RESET')
