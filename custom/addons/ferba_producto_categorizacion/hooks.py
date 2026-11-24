@@ -27,6 +27,7 @@ def uninstall_hook(env):
         active_test=False, ferba_sin_categorizacion=True).search(
         [('ferba_categorizacion', '=', 'pendiente')])
     if pendientes:
-        pendientes.write({'active': True})
+        # active_test=True para que Odoo reactive tambien las variantes (ver _ferba_categorizar).
+        pendientes.with_context(active_test=True).write({'active': True})
         _logger.info('ferba_producto_categorizacion: %d productos por categorizar reactivados al desinstalar',
                      len(pendientes))

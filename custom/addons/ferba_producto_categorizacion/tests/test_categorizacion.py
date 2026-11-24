@@ -58,6 +58,8 @@ class TestCategorizacion(TransactionCase):
         self.assertEqual(p.unspsc_code_id, self.clave)
         self.assertEqual(p.ferba_categorizado_por_id, self.gestor)
         self.assertTrue(p.product_variant_ids.filtered('active'))
+        self.assertTrue(self.env['product.product'].with_user(self.alta).search([('product_tmpl_id', '=', p.id)]),
+                        'la variante tambien queda activa y se encuentra')
         self.assertFalse(p.activity_ids.filtered(lambda a: a.summary and a.summary.startswith(RESUMEN)))
 
     def test_asistente_varios_con_sugerencia(self):

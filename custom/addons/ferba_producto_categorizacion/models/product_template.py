@@ -322,7 +322,10 @@ class ProductTemplate(models.Model):
                 vals['unspsc_code_id'] = clave.id
             if era != 'categorizado':
                 vals.update(ferba_categorizacion='categorizado', ferba_categorizacion_motivo=False, active=True)
-            producto.with_context(**{SIN_REGLAS: True}).write(vals)
+            # active_test=True a proposito: al activar, Odoo reactiva las variantes solo si la plantilla
+            # "no tiene variantes activas", y con active_test=False cuenta tambien las archivadas y no
+            # las reactiva (la plantilla quedaba activa y la variante oculta; visto en staging 24-nov).
+            producto.with_context(active_test=True, **{SIN_REGLAS: True}).write(vals)
             if era != 'categorizado':
                 producto._ferba_cerrar_actividades('Categorizado en %s' % categ.display_name)
                 producto._ferba_nota('%s lo categorizo en %s%s. Ya se puede usar.' % (
