@@ -1,6 +1,6 @@
 {
     'name': 'FERBA - Categorizacion de productos',
-    'version': '19.0.1.0.4',
+    'version': '19.0.1.0.5',
     'summary': 'Un producto nuevo queda oculto hasta que un categorizador le asigna su categoria contable '
                '(cuentas y clave SAT). Avisos por chat y actividad, como la aprobacion de cotizaciones.',
     'description': """

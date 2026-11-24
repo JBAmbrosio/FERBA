@@ -8,7 +8,9 @@
         <field name="inherit_id" ref="product.product_template_form_view"/>
         <field name="priority">110</field>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('oe_title')]" position="before">
+            <!-- Al inicio de la hoja: el aviso ocupa todo el ancho, hasta arriba, y la foto del producto
+                 queda debajo (antes del titulo quedaba a un lado de la foto, con un hueco arriba). -->
+            <xpath expr="//sheet/*[1]" position="before">
                 <field name="ferba_categorizacion" invisible="1"/>
                 <field name="ferba_categorizacion_activa" invisible="1"/>
                 <field name="ferba_puede_categorizar" invisible="1"/>
