@@ -30,8 +30,7 @@
                 </div>
                 <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert"
                      invisible="ferba_categorizacion != 'rechazado'">
-                    <span class="flex-grow-1"><strong>Alta rechazada:</strong>
-                        <field name="ferba_categorizacion_motivo" class="d-inline"/></span>
+                    <span class="flex-grow-1"><strong>Alta rechazada:&#160;</strong><field name="ferba_categorizacion_motivo" class="d-inline"/></span>
                     <button name="action_ferba_categorizar" type="object" string="Categorizar de todos modos"
                             class="btn btn-secondary btn-sm" invisible="not ferba_puede_categorizar"/>
                 </div>
