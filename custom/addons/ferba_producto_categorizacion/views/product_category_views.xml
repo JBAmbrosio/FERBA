@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ferba_categoria_sat solo muestra la Clave SAT de la categoria en Francisco (17). Tambien se ve
+         donde la categorizacion es obligatoria. -->
+    <record id="product_category_form_clave_sat_categorizacion" model="ir.ui.view">
+        <field name="name">product.category.form.clave.sat.ferba.categorizacion</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="ferba_categoria_sat.product_category_form_view_clave_sat"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='ferba_unspsc_code_id']" position="attributes">
+                <attribute name="invisible">not ferba_ve_clave_sat</attribute>
+            </xpath>
+            <xpath expr="//field[@name='ferba_unspsc_code_id']" position="before">
+                <field name="ferba_ve_clave_sat" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

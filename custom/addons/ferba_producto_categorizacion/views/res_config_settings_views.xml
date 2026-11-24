@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_categorizacion" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.ferba.categorizacion</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='account']" position="inside">
+                <block title="Categorizacion de productos" name="ferba_categorizacion_block">
+                    <setting id="ferba_categorizacion_setting" company_dependent="1"
+                             string="Productos nuevos requieren categorizacion"
+                             help="Un producto dado de alta por alguien que no es categorizador queda oculto hasta que un categorizador le asigna su categoria contable (cuentas y clave SAT). A los categorizadores les llega un chat y una actividad; a quien lo dio de alta, un chat cuando queda listo.">
+                        <field name="ferba_categorizacion_obligatoria"/>
+                        <div class="content-group">
+                            <div class="row mt16">
+                                <label for="ferba_categorizadores_ids" string="Categorizadores"
+                                       class="col-lg-4 o_light_label"/>
+                                <field name="ferba_categorizadores_ids" widget="many2many_tags"
+                                       options="{'no_create': True, 'no_quick_create': True}"
+                                       domain="[('share', '=', False)]"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="ferba_categ_raiz_id" string="Categorias contables"
+                                       class="col-lg-4 o_light_label"/>
+                                <field name="ferba_categ_raiz_id" options="{'no_create': True}"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

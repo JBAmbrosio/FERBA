@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Donde da de alta productos cada quien: Inventario, Ventas (Laura) y Compras (Isaura). Y en
+         Contabilidad para los categorizadores. -->
+    <menuitem id="menu_por_categorizar_inventario" name="Por categorizar"
+              parent="stock.menu_stock_inventory_control" action="action_productos_por_categorizar" sequence="2"/>
+    <menuitem id="menu_por_categorizar_ventas" name="Por categorizar"
+              parent="sale.product_menu_catalog" action="action_productos_por_categorizar" sequence="2"/>
+    <menuitem id="menu_por_categorizar_compras" name="Por categorizar"
+              parent="purchase.menu_purchase_products" action="action_productos_por_categorizar" sequence="2"/>
+    <menuitem id="menu_por_categorizar_contabilidad" name="Productos por categorizar"
+              parent="account.menu_finance_configuration" action="action_productos_por_categorizar" sequence="1"
+              groups="ferba_categoria_sat.group_gestor_categorias"/>
+</odoo>

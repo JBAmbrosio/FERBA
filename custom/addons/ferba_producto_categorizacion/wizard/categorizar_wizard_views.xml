@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ferba_producto_categorizar_form" model="ir.ui.view">
+        <field name="name">ferba.producto.categorizar.form</field>
+        <field name="model">ferba.producto.categorizar</field>
+        <field name="arch" type="xml">
+            <form string="Categorizar productos">
+                <field name="ferba_categ_raiz_id" invisible="1"/>
+                <group>
+                    <field name="modo" widget="radio" options="{'horizontal': true}"/>
+                    <field name="product_tmpl_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="categ_id" invisible="modo != 'categorizar'" required="modo == 'categorizar'"
+                           options="{'no_create': True, 'no_open': True}"
+                           domain="[('id', 'child_of', ferba_categ_raiz_id), ('id', '!=', ferba_categ_raiz_id)] if ferba_categ_raiz_id else []"/>
+                    <field name="motivo" invisible="modo != 'rechazar'" required="modo == 'rechazar'"
+                           placeholder="Duplicado de otro producto, nombre mal capturado..."/>
+                </group>
+                <footer>
+                    <button name="action_aplicar" type="object" string="Aplicar" class="btn-primary"/>
+                    <button special="cancel" string="Cancelar"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- En la lista de productos: Acciones > Categorizar / rechazar, para varios a la vez. Solo lo ven
+         los categorizadores. -->
+    <record id="action_categorizar_seleccion" model="ir.actions.act_window">
+        <field name="name">Categorizar / rechazar</field>
+        <field name="res_model">ferba.producto.categorizar</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_view_types">list</field>
+        <field name="group_ids" eval="[(4, ref('ferba_categoria_sat.group_gestor_categorias'))]"/>
+    </record>
+</odoo>

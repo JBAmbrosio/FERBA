@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Formulario base del producto (lo heredan plantilla y variante): aviso arriba, botones para el
+         categorizador, categoria de solo lectura para los demas y "Categoria sugerida". -->
+    <record id="product_template_form_categorizacion" model="ir.ui.view">
+        <field name="name">product.template.form.ferba.categorizacion</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <field name="ferba_categorizacion" invisible="1"/>
+                <field name="ferba_categorizacion_activa" invisible="1"/>
+                <field name="ferba_puede_categorizar" invisible="1"/>
+                <field name="ferba_categ_raiz_id" invisible="1"/>
+                <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert"
+                     invisible="ferba_categorizacion != 'pendiente'">
+                    <span class="flex-grow-1"><strong>Por categorizar.</strong> Este producto no aparece ni se puede
+                        usar en ventas, compras, inventario o facturas hasta que un categorizador le asigne su
+                        categoria contable (de ella salen sus cuentas y su clave SAT).</span>
+                    <button name="action_ferba_categorizar" type="object" string="Categorizar"
+                            class="btn btn-primary btn-sm" invisible="not ferba_puede_categorizar"/>
+                    <button name="action_ferba_rechazar" type="object" string="Rechazar alta"
+                            class="btn btn-secondary btn-sm" invisible="not ferba_puede_categorizar"/>
+                </div>
+                <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert"
+                     invisible="ferba_categorizacion != 'rechazado'">
+                    <span class="flex-grow-1"><strong>Alta rechazada:</strong>
+                        <field name="ferba_categorizacion_motivo" class="d-inline"/></span>
+                    <button name="action_ferba_categorizar" type="object" string="Categorizar de todos modos"
+                            class="btn btn-secondary btn-sm" invisible="not ferba_puede_categorizar"/>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='categ_id']" position="attributes">
+                <attribute name="readonly">ferba_categorizacion_activa and not ferba_puede_categorizar</attribute>
+            </xpath>
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="ferba_categ_sugerida_id"
+                       invisible="not ferba_categorizacion_activa or (ferba_categorizacion == 'categorizado' and not ferba_categ_sugerida_id)"
+                       readonly="ferba_categorizacion == 'categorizado'"
+                       domain="[('id', 'child_of', ferba_categ_raiz_id), ('id', '!=', ferba_categ_raiz_id)] if ferba_categ_raiz_id else []"
+                       options="{'no_create': True, 'no_open': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Dominio de la categoria. Va en la vista de plantilla, DESPUES de la vista de datos 6661 (prioridad 100),
+         que ya restringe la categoria en Francisco (17) a las hijas de "CATEGORIAS CONTABLES": esta la
+         reemplaza con la misma regla para Francisco y la extiende a las empresas con la categorizacion
+         encendida. El "obligatorio" de 6661 no se toca. -->
+    <record id="product_template_only_form_categorizacion_dominio" model="ir.ui.view">
+        <field name="name">product.template.only.form.ferba.categorizacion.dominio</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="attributes">
+                <attribute name="domain">[('id', 'child_of', ferba_categ_raiz_id), ('id', '!=', ferba_categ_raiz_id)] if ferba_categ_raiz_id else []</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_normal_form_categorizacion_dominio" model="ir.ui.view">
+        <field name="name">product.product.form.ferba.categorizacion.dominio</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="attributes">
+                <attribute name="domain">[('id', 'child_of', ferba_categ_raiz_id), ('id', '!=', ferba_categ_raiz_id)] if ferba_categ_raiz_id else []</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Busqueda de productos: filtros de categorizacion. -->
+    <record id="product_template_search_categorizacion" model="ir.ui.view">
+        <field name="name">product.template.search.ferba.categorizacion</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Por categorizar" name="ferba_por_categorizar"
+                        domain="[('ferba_categorizacion', '=', 'pendiente')]"/>
+                <filter string="Alta rechazada" name="ferba_rechazados"
+                        domain="[('ferba_categorizacion', '=', 'rechazado')]"/>
+                <filter string="Sin categoria contable" name="ferba_sin_categoria_contable"
+                        domain="[('ferba_sin_categoria_contable', '=', True)]"/>
+                <filter string="Categorizacion" name="group_by_ferba_categorizacion"
+                        context="{'group_by': 'ferba_categorizacion'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Lista de la bandeja "Por categorizar". -->
+    <record id="product_template_list_por_categorizar" model="ir.ui.view">
+        <field name="name">product.template.list.ferba.por.categorizar</field>
+        <field name="model">product.template</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <list string="Productos por categorizar" create="0"
+                  decoration-danger="ferba_categorizacion == 'rechazado'">
+                <field name="ferba_puede_categorizar" column_invisible="1"/>
+                <field name="default_code" optional="show"/>
+                <field name="name"/>
+                <field name="type" optional="show"/>
+                <field name="company_id" optional="show" groups="base.group_multi_company"/>
+                <field name="create_uid" string="Dio de alta" widget="many2one_avatar_user"/>
+                <field name="create_date" string="Fecha de alta"/>
+                <field name="ferba_categ_sugerida_id" optional="show"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="ferba_categorizacion" widget="badge"
+                       decoration-warning="ferba_categorizacion == 'pendiente'"
+                       decoration-danger="ferba_categorizacion == 'rechazado'"
+                       decoration-success="ferba_categorizacion == 'categorizado'"/>
+                <field name="ferba_categorizacion_motivo" optional="hide"/>
+                <button name="action_ferba_categorizar" type="object" string="Categorizar" icon="fa-tags"
+                        invisible="not ferba_puede_categorizar or ferba_categorizacion == 'categorizado'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_productos_por_categorizar" model="ir.actions.act_window">
+        <field name="name">Productos por categorizar</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('ferba_categorizacion', 'in', ('pendiente', 'rechazado'))]</field>
+        <field name="context">{'active_test': False, 'search_default_ferba_por_categorizar': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('product_template_list_por_categorizar')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('product.product_template_only_form_view')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay productos esperando categoria</p>
+            <p>Cuando alguien que no es categorizador da de alta un producto en una empresa con la categorizacion
+               obligatoria, el producto queda aqui, oculto, hasta que un categorizador le asigna su categoria.</p>
+        </field>
+    </record>
+</odoo>
