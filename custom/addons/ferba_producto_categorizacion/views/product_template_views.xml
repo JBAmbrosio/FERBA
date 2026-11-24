@@ -13,6 +13,11 @@
                 <field name="ferba_categorizacion_activa" invisible="1"/>
                 <field name="ferba_puede_categorizar" invisible="1"/>
                 <field name="ferba_categ_raiz_id" invisible="1"/>
+                <div class="alert alert-info" role="status"
+                     invisible="id or not ferba_categorizacion_activa or ferba_puede_categorizar">
+                    <strong>Al guardar, este producto quedara oculto</strong> hasta que un categorizador le asigne su
+                    categoria contable. Si sabes cual le toca, ponla en «Categoria sugerida»: le llega con el aviso.
+                </div>
                 <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert"
                      invisible="ferba_categorizacion != 'pendiente'">
                     <span class="flex-grow-1"><strong>Por categorizar.</strong> Este producto no aparece ni se puede
@@ -35,9 +40,11 @@
                 <attribute name="readonly">ferba_categorizacion_activa and not ferba_puede_categorizar</attribute>
             </xpath>
             <xpath expr="//field[@name='categ_id']" position="after">
+                <!-- En un alta nueva el estado todavia dice "categorizado" (valor por defecto): por eso las
+                     condiciones distinguen el registro nuevo (sin id). -->
                 <field name="ferba_categ_sugerida_id"
-                       invisible="not ferba_categorizacion_activa or (ferba_categorizacion == 'categorizado' and not ferba_categ_sugerida_id)"
-                       readonly="ferba_categorizacion == 'categorizado'"
+                       invisible="not ferba_categorizacion_activa or (not id and ferba_puede_categorizar) or (id and ferba_categorizacion == 'categorizado' and not ferba_categ_sugerida_id)"
+                       readonly="id and ferba_categorizacion == 'categorizado'"
                        domain="[('id', 'child_of', ferba_categ_raiz_id), ('id', '!=', ferba_categ_raiz_id)] if ferba_categ_raiz_id else []"
                        options="{'no_create': True, 'no_open': True}"/>
             </xpath>
