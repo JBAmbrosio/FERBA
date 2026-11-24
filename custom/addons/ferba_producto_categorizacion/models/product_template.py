@@ -147,9 +147,12 @@ class ProductTemplate(models.Model):
         self.ensure_one()
         return '%s/odoo/product.template/%d' % (self.get_base_url(), self.id)
 
-    @api.model
     def _ferba_url_cola(self):
-        return '%s/odoo/action-%s' % (self.get_base_url(), ACCION_COLA)
+        # get_base_url() exige un solo registro (el modulo website lo sobrescribe con ensure_one): en un
+        # alta masiva self trae varios (visto en staging 24-nov).
+        base = (self[:1].get_base_url() if self
+                else self.env['ir.config_parameter'].sudo().get_param('web.base.url'))
+        return '%s/odoo/action-%s' % (base, ACCION_COLA)
 
     def _ferba_nota(self, texto):
         """Rastro en el chatter del producto, sin destinatarios: avisar es trabajo del chat."""
@@ -207,11 +210,11 @@ class ProductTemplate(models.Model):
                 _logger.warning('ferba_producto_categorizacion: no hay categorizadores con acceso a %s', empresa.name)
                 continue
             if len(productos) > MAX_AVISOS_INDIVIDUALES:
-                self._ferba_chat(
+                productos._ferba_chat(
                     categorizadores.partner_id,
                     'Di de alta %d productos en %s que necesitan categoria antes de poder usarse.'
                     % (len(productos), empresa.name),
-                    self._ferba_url_cola(), 'Ver productos por categorizar')
+                    productos._ferba_url_cola(), 'Ver productos por categorizar')
                 continue
             for producto in productos:
                 sugerida = producto.ferba_categ_sugerida_id

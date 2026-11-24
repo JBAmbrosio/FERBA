@@ -127,6 +127,13 @@ class TestCategorizacion(TransactionCase):
         with self.assertRaises(UserError):
             p.with_user(self.gestor)._ferba_rechazar('otra vez (prueba)')
 
+    def test_alta_masiva_un_solo_aviso(self):
+        productos = self.env['product.template'].with_user(self.alta).create(
+            [{'name': 'MASIVO %d (prueba)' % i} for i in range(7)])
+        self.assertEqual(set(productos.mapped('ferba_categorizacion')), {'pendiente'})
+        self.assertFalse(any(productos.mapped('active')))
+        self.assertFalse(productos.activity_ids, 'en altas masivas no hay una actividad por producto')
+
     def test_alta_rapida_de_variante_queda_oculta(self):
         pid, _nombre = self.env['product.product'].with_user(self.alta).name_create('RAPIDO (prueba)')
         variante = self.env['product.product'].with_context(active_test=False).browse(pid)
