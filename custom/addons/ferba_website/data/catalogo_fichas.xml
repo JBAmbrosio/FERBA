@@ -204,7 +204,7 @@
         <field name="imagen">catalogo/recepcion/volcador-bins/galeria-5.webp</field>
     </record>
 
-    <!-- Volcador de cajas por torsión  (fiel al PDF: hero con badge "HASTA 900 CAJAS/HORA",
+    <!-- Volcador de cajas por torsión  (fiel al PDF: hero con badge "HASTA 5,000 CAJAS/HORA",
          split con render, beneficios en sección oscura, datos en blanco con tarjeta de
          destacados a la derecha; sin pasos ni galería) -->
     <record id="maq_volcador_cajas_tor" model="ferba.maquina">
@@ -216,7 +216,7 @@
         ]]></field>
         <field name="hero_badge_icono">catalogo/recepcion/volcador-cajas-torsion/hero-gauge.webp</field>
         <field name="hero_badge_prefijo">Hasta</field>
-        <field name="hero_badge_valor">900</field>
+        <field name="hero_badge_valor">5,000</field>
         <field name="hero_badge_etiqueta">cajas/hora</field>
 
         <field name="beneficios_pos">seccion</field>
@@ -230,8 +230,8 @@
 
         <field name="cierre_titulo">¿Necesitas automatizar la descarga de cajas?</field>
         <field name="cierre_texto">Cuéntanos qué producto procesas, qué capacidad necesitas y qué etapa quieres mejorar. Nuestro equipo puede ayudarte a definir si tu operación requiere una línea completa, modernización, automatización o un proyecto llave en mano.</field>
-        <field name="meta_titulo">Volcador de cajas por torsión: descarga progresiva hasta 900 cajas/hora | FERBA</field>
-        <field name="meta_descripcion">El Volcador de Cajas por Torsión FERBA vacía de 12 a 15 cajas por minuto con dos líneas de cadenas que inclinan progresivamente el contenedor, integrando la descarga en el mismo flujo de transporte.</field>
+        <field name="meta_titulo">Volcador de cajas por torsión: descarga progresiva hasta 5,000 cajas/hora | FERBA</field>
+        <field name="meta_descripcion">El Volcador de Cajas por Torsión FERBA vacía hasta 5,000 cajas por hora con dos líneas de cadenas que inclinan progresivamente el contenedor, integrando la descarga en el mismo flujo de transporte.</field>
     </record>
 
     <record id="blo_vct_split" model="ferba.maquina.bloque">
@@ -298,7 +298,7 @@
     <record id="pt_vct_chip2" model="ferba.maquina.punto">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">chip</field><field name="secuencia">20</field>
         <field name="icono">catalogo/recepcion/volcador-cajas-torsion/chip-capacidad.webp</field>
-        <field name="titulo">720-900 cajas/hora</field>
+        <field name="titulo">5,000 cajas/hora</field>
     </record>
     <record id="pt_vct_chip3" model="ferba.maquina.punto">
         <field name="maquina_id" ref="maq_volcador_cajas_tor"/><field name="seccion">chip</field><field name="secuencia">30</field>
