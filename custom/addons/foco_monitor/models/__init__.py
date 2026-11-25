@@ -14,6 +14,9 @@ from . import foco_command
 from . import foco_capture
 from . import foco_watch
 from . import foco_mobile
+# Clientes desde el telefono (contactos, edicion, baja) y su bitacora: extiende
+# foco.mobile.device, asi que va despues de foco_mobile.
+from . import foco_cliente_bitacora
 from . import foco_mobile_login
 from . import foco_ir_http
 from . import foco_app_token

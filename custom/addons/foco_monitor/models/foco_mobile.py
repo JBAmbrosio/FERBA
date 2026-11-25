@@ -803,6 +803,7 @@ class FocoMobileDevice(models.Model):
         # cargaria el blob de cada cliente. Asi solo marcamos un booleano.
         con_foto = set(Partner.search(
             [('foco_cliente_ventas', '=', True), ('image_1920', '!=', False)]).ids)
+        yo = self._vendedor()
         for c in Partner.search([('foco_cliente_ventas', '=', True)], limit=3000):
             filas.append({
                 'id': c.id, 'name': c.display_name,
@@ -824,11 +825,18 @@ class FocoMobileDevice(models.Model):
                 'contacto': c.foco_contacto or '',
                 # todos ven a todos: la ficha dice de quien es el cliente
                 'vendedor': c.user_id.name or '',
+                # el directorio del telefono filtra «Míos» sin comparar nombres
+                'mio': bool(yo and c.user_id == yo),
                 'ultima_visita': (fields.Datetime.to_string(c.foco_ultima_visita)
                                   if c.foco_ultima_visita else ''),
                 # Todos sus telefonos (el del cliente y los de sus contactos):
                 # el vendedor elige a cual llamar o escribir (15-oct-2026).
                 'telefonos': self._telefonos_de(c),
+                # Nombre a secas (display_name de una ubicacion trae "Empresa,
+                # Oficina") y las PERSONAS de la empresa con su puesto: la ficha
+                # las muestra y deja editarlas (29.64.0, pedido de Jose Watanabe).
+                'nombre': c.name or '',
+                'contactos': self._contactos_de(c),
             })
         return filas
 
@@ -1058,7 +1066,9 @@ class FocoMobileDevice(models.Model):
         if not cliente:
             raise UserError('Ese cliente ya no existe en Odoo.')
         cliente = cliente.commercial_partner_id
+        antes = cliente.phone or ''
         cliente.write({'phone': numero})
+        self._bitacora(cliente, 'telefono', self._cambio('Número', antes, numero))
         return {'ok': True, 'mensaje': 'Guardé %s en %s.' % (numero, cliente.display_name)}
 
     def cliente_ubicacion(self, partner_id, lat, lon, precision=0.0):
@@ -1080,7 +1090,10 @@ class FocoMobileDevice(models.Model):
         cliente = self.env['res.partner'].with_user(user).browse(int(partner_id or 0)).exists()
         if not cliente:
             raise UserError('Ese cliente ya no existe en Odoo.')
+        antes = '%.6f, %.6f' % (cliente.partner_latitude, cliente.partner_longitude)
         cliente.write({'partner_latitude': lat, 'partner_longitude': lon})
+        self._bitacora(cliente, 'pin', '%s. %s' % (
+            cliente.name, self._cambio('Pin', antes, '%.6f, %.6f' % (lat, lon))))
         try:
             cliente.message_post(body='Ubicación corregida desde el teléfono (%.6f, %.6f%s).'
                                       % (lat, lon, ', ±%dm' % int(precision) if precision else ''))
@@ -1097,7 +1110,8 @@ class FocoMobileDevice(models.Model):
                        'otro': 'Otra ubicación'}
 
     def crear_cliente(self, nombre, lat, lon, telefono='', precision=0.0,
-                      parent_id=None, tipo_ubicacion=None, nota=None, foto=None):
+                      parent_id=None, tipo_ubicacion=None, nota=None, foto=None,
+                      contacto_nombre='', contacto_puesto=''):
         """Registra un cliente NUEVO (prospecto) con su pin, o una UBICACION nueva
         (oficina/almacen/campo) que cuelga de una razon social EXISTENTE, sin estar
         en el sitio. La ubicacion llega de lo que el cliente compartio por
@@ -1133,19 +1147,32 @@ class FocoMobileDevice(models.Model):
         elif not nombre:
             raise UserError('Ponle un nombre al cliente.')
         que = 'la ubicación' if razon else 'el cliente'
-        try:
-            lat = float(lat)
-            lon = float(lon)
-        except (TypeError, ValueError):
-            raise UserError('No tengo una ubicación válida para %s.' % que)
-        if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
-            raise UserError('No tengo una ubicación válida para %s.' % que)
+        # Un cliente NUEVO puede nacer SIN ubicacion (directorio del telefono,
+        # 29.64.0): el vendedor lo anota cuando lo conoce y le pone el pin despues,
+        # desde su ficha. Solo vale cuando no mandan NINGUNA coordenada; una
+        # ubicacion hija sin pin no tiene sentido y sigue siendo obligatoria.
+        # (con `is`/`==''` y no con `in (None, '', False)`: 0 == False en Python y
+        # un 0,0 explicito -coordenada invalida- pasaria por "sin ubicacion")
+        def _falta(v):
+            return v is None or (isinstance(v, str) and not v.strip())
+        sin_ubic = bool(not razon and _falta(lat) and _falta(lon))
+        if sin_ubic:
+            lat = lon = 0.0
+        else:
+            try:
+                lat = float(lat)
+                lon = float(lon)
+            except (TypeError, ValueError):
+                raise UserError('No tengo una ubicación válida para %s.' % que)
+            if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+                raise UserError('No tengo una ubicación válida para %s.' % que)
         vals = {
             'name': nombre[:120],
             'foco_cliente_ventas': True,
             'user_id': (razon.user_id.id if razon and razon.user_id else user.id),
-            'partner_latitude': lat, 'partner_longitude': lon,
         }
+        if not sin_ubic:
+            vals.update({'partner_latitude': lat, 'partner_longitude': lon})
         if razon:
             vals.update({'parent_id': razon.id, 'type': 'other',
                          'foco_tipo_ubicacion': tipo})
@@ -1161,14 +1188,24 @@ class FocoMobileDevice(models.Model):
         empresa = False
         if razon:
             empresa = razon.company_id
-        elif _pais_de_punto(lat, lon) == 'US':
+        elif not sin_ubic and _pais_de_punto(lat, lon) == 'US':
             us = user.company_id.sudo().foco_us_company_id
             if us and us.id in user.company_ids.ids:
                 empresa = us
         if empresa:
             vals['company_id'] = empresa.id
         tel = (telefono or '').strip()
-        if tel:
+        # Con CONTACTO (29.64.0): el numero es de la persona, no de la empresa. Se
+        # guarda en el contacto (un hijo con su puesto) y la empresa queda sin
+        # numero propio, para no tener el mismo telefono en dos lados que luego se
+        # desfasan al editar. Sin contacto, el numero va en la empresa como siempre.
+        c_nombre = (contacto_nombre or '').strip()[:120] if not razon else ''
+        c_puesto = (contacto_puesto or '').strip()[:120] if not razon else ''
+        if c_puesto and not c_nombre:
+            raise UserError('Pon el nombre del contacto, además de su puesto.')
+        if c_nombre:
+            vals['foco_contacto'] = c_nombre
+        elif tel:
             vals['phone'] = tel[:32]
         # Nota libre y foto de la ubicacion (opcionales), lo que pidio el Ing: una
         # descripcion de lo que el quiera y una foto del lugar.
@@ -1179,12 +1216,32 @@ class FocoMobileDevice(models.Model):
         if foto_b64:
             vals['image_1920'] = foto_b64
         cliente = self.env['res.partner'].with_user(user).create(vals)
+        if c_nombre:
+            c_vals = {'name': c_nombre, 'function': c_puesto, 'phone': tel[:32],
+                      'parent_id': cliente.id, 'type': 'contact', 'is_company': False,
+                      'user_id': user.id}
+            if empresa:
+                c_vals['company_id'] = empresa.id
+            self.env['res.partner'].with_user(user).create(c_vals)
+        if sin_ubic:
+            detalle = 'Cliente «%s» (sin ubicación)' % cliente.name
+        else:
+            detalle = '%s «%s» (%.6f, %.6f)' % (
+                'Ubicación %s' % self.TIPOS_UBICACION[tipo] if razon else 'Cliente',
+                cliente.name, lat, lon)
+        if c_nombre:
+            detalle += '; contacto «%s»%s' % (c_nombre, ', puesto «%s»' % c_puesto if c_puesto else '')
+        if tel:
+            detalle += '; número «%s»' % tel[:32]
+        self._bitacora(cliente, 'ubicacion_alta' if razon else 'alta', detalle)
         marca = ', ±%dm' % int(precision) if precision else ''
         try:
             if razon:
                 cuerpo = ('Ubicación «%s» (%s) registrada desde el teléfono para %s '
                           '(%.6f, %.6f%s).' % (cliente.name, self.TIPOS_UBICACION[tipo],
                                                razon.display_name, lat, lon, marca))
+            elif sin_ubic:
+                cuerpo = 'Cliente registrado desde el teléfono, todavía sin ubicación.'
             else:
                 cuerpo = ('Cliente registrado desde el teléfono con la ubicación '
                           'compartida (%.6f, %.6f%s).' % (lat, lon, marca))
@@ -1225,6 +1282,7 @@ class FocoMobileDevice(models.Model):
         except Exception:  # noqa: BLE001
             pass
         ubic.write({'active': False})
+        self._bitacora(razon, 'ubicacion_baja', 'Ubicación «%s» archivada.' % ubic.name)
         return {'ok': True, 'id': ubic.id,
                 'mensaje': 'Borré la ubicación %s de %s.' % (nombre, razon.display_name)}
 
@@ -1278,6 +1336,7 @@ class FocoMobileDevice(models.Model):
             if 'image_1920' in vals:
                 partes.append('foto')
             ubic.message_post(body='Ubicación reemplazada desde el teléfono: %s.' % ', '.join(partes))
+            self._bitacora(ubic, 'ubicacion_edicion', 'Ubicación «%s»: %s.' % (ubic.name, ', '.join(partes)))
         except Exception:  # noqa: BLE001
             pass
         return {'ok': True, 'id': ubic.id,
@@ -1354,8 +1413,15 @@ class FocoMobileDevice(models.Model):
         tipos = dict(self.env['foco.viatico'].TIPOS)
         tipo = datos.get('tipo') if datos.get('tipo') in tipos else 'otro'
         foto = self._b64(datos.get('foto'))
-        if not foto:
+        # Sin foto solo entra el gasto que el vendedor DECLARA sin comprobante y
+        # con su motivo (lugares que no dan nota ni ticket). Si mandan foto, la
+        # foto manda: no se marca "sin comprobante" aunque venga la bandera.
+        sin_comp = bool(datos.get('sin_comprobante')) and not foto
+        motivo = (datos.get('motivo_sin_comprobante') or '').strip()[:200]
+        if not foto and not sin_comp:
             raise UserError('Falta la foto del ticket.')
+        if sin_comp and len(motivo) < 5:
+            raise UserError('Explica por qué no te dieron nota o ticket.')
         try:
             monto = float(datos.get('monto') or 0)
         except (TypeError, ValueError):
@@ -1377,6 +1443,8 @@ class FocoMobileDevice(models.Model):
             'lat': float(datos.get('lat') or 0.0), 'lon': float(datos.get('lon') or 0.0),
             'ocr_json': datos.get('ocr_json') or False,
             'uuid': cuid or False,
+            'sin_comprobante': sin_comp,
+            'motivo_sin_comprobante': motivo if sin_comp else False,
         }
         try:
             if datos.get('tipo_cambio'):
@@ -1419,6 +1487,7 @@ class FocoMobileDevice(models.Model):
                              'hasta': str(pres.hasta)} if pres else None),
             'gastos': [{'id': g.id, 'tipo': g.tipo, 'fecha': str(g.fecha), 'monto': g.monto,
                         'lugar': g.lugar or '', 'estado': g.estado,
+                        'sin_comprobante': bool(g.sin_comprobante),
                         'vehiculo': g.vehiculo_id.name or ''} for g in gastos],
         }
 
