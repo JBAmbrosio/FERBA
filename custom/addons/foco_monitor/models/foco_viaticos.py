@@ -20,7 +20,7 @@ from datetime import date
 from math import asin, cos, radians, sin, sqrt
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 # Umbral de bandera por caida de rendimiento vs el esperado del vehiculo. Es un
 # arranque razonable; el Ing. decide el valor fino (decision pendiente en la
@@ -354,7 +354,17 @@ class FocoViatico(models.Model):
                                help='USD->moneda local, cuando aplica (p.ej. Peru).')
 
     # La evidencia: la foto del ticket SIEMPRE se conserva (es la "hoja de gastos").
-    foto = fields.Image(string='Foto del ticket', max_width=1920, max_height=1920, required=True)
+    # Unica excepcion (29.64.0, pedido de los vendedores): hay lugares que no dan nota
+    # ni ticket -un puesto de comida, un estacionamiento-. Ahi el gasto entra SIN
+    # foto, pero el vendedor escribe por que y queda marcado para quien valida. Por
+    # eso `foto` ya no es required en la columna: lo exige `_check_evidencia`.
+    foto = fields.Image(string='Foto del ticket', max_width=1920, max_height=1920)
+    sin_comprobante = fields.Boolean(
+        # default explicito: asi el campo SIEMPRE viaja en el create y la
+        # restriccion de abajo corre aunque no manden ni foto ni bandera
+        string='Sin comprobante', index=True, copy=False, default=False,
+        help='El vendedor declaro que no le dieron nota ni ticket. Revisar el motivo antes de validar.')
+    motivo_sin_comprobante = fields.Char(string='Por qué no hay comprobante')
     foto_odometro = fields.Image(string='Foto del odometro', max_width=1920, max_height=1920,
                                  help='Solo gasolina: la foto del cuentakilometros.')
     ocr_json = fields.Text(string='Lectura de la IA (JSON)',
@@ -393,6 +403,18 @@ class FocoViatico(models.Model):
     # administrador. Diego: hay que tomarle foto al odometro al cargar gasolina.
     odometro_incompleto = fields.Boolean(string='Odometro sin foto', store=True, index=True,
                                          compute='_compute_odometro_incompleto')
+
+    @api.constrains('foto', 'sin_comprobante', 'motivo_sin_comprobante')
+    def _check_evidencia(self):
+        """Todo gasto lleva la foto de su ticket; el que no, lleva el motivo."""
+        for v in self:
+            if v.foto:
+                continue
+            if not v.sin_comprobante:
+                raise ValidationError('Falta la foto del ticket.')
+            if len((v.motivo_sin_comprobante or '').strip()) < 5:
+                raise ValidationError('Un gasto sin comprobante necesita el motivo: '
+                                      'explica por qué no te dieron nota o ticket.')
 
     @api.depends('tipo', 'foto_odometro')
     def _compute_odometro_incompleto(self):

@@ -112,3 +112,5 @@ access_foco_vehiculo_asignacion_rrhh,foco.vehiculo.asignacion rrhh,model_foco_ve
 access_foco_vehiculo_mantenimiento_user,foco.vehiculo.mantenimiento user,model_foco_vehiculo_mantenimiento,group_foco_user,1,0,0,0
 access_foco_vehiculo_mantenimiento_manager,foco.vehiculo.mantenimiento manager,model_foco_vehiculo_mantenimiento,group_foco_manager,1,1,1,1
 access_foco_vehiculo_mantenimiento_rrhh,foco.vehiculo.mantenimiento rrhh,model_foco_vehiculo_mantenimiento,group_foco_rrhh,1,1,1,0
+access_foco_cliente_bitacora_user,foco.cliente.bitacora user,model_foco_cliente_bitacora,group_foco_user,1,0,0,0
+access_foco_cliente_bitacora_manager,foco.cliente.bitacora manager,model_foco_cliente_bitacora,group_foco_manager,1,0,0,0

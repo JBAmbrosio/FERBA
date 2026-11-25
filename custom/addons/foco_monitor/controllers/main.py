@@ -1178,7 +1178,45 @@ class FocoController(http.Controller):
             data.get('telefono') or '', data.get('accuracy') or 0.0,
             parent_id=data.get('parent_id') or None,
             tipo_ubicacion=data.get('tipo_ubicacion') or None,
-            nota=data.get('nota'), foto=data.get('foto')))
+            nota=data.get('nota'), foto=data.get('foto'),
+            contacto_nombre=data.get('contacto_nombre') or '',
+            contacto_puesto=data.get('contacto_puesto') or ''))
+        return error or request.make_json_response(res)
+
+    # ---- clientes desde el telefono: editar, contactos y eliminar (29.64.0) ----
+    # Todos los vendedores pueden; cada cambio queda en foco.cliente.bitacora.
+    @http.route('/foco/mobile/editar_cliente', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_editar_cliente(self, **kw):
+        """Corrige el nombre de la empresa."""
+        res, error = self._ventas(lambda dev, data: dev.editar_cliente(
+            data.get('partner_id'), data.get('nombre')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/guardar_contacto', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_guardar_contacto(self, **kw):
+        """Agrega un contacto a la empresa o edita uno (con `contacto_id`)."""
+        res, error = self._ventas(lambda dev, data: dev.guardar_contacto(
+            data.get('partner_id'), contacto_id=data.get('contacto_id') or None,
+            nombre=data.get('nombre') or '', puesto=data.get('puesto') or '',
+            numero=data.get('numero') or ''))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/borrar_contacto', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_borrar_contacto(self, **kw):
+        """Quita (archiva) un contacto de la empresa."""
+        res, error = self._ventas(lambda dev, data: dev.borrar_contacto(
+            data.get('partner_id'), data.get('contacto_id')))
+        return error or request.make_json_response(res)
+
+    @http.route('/foco/mobile/borrar_cliente', type='http', auth='public',
+                methods=['POST'], csrf=False)
+    def mobile_borrar_cliente(self, **kw):
+        """Elimina (archiva, reversible) un cliente con sus ubicaciones y contactos."""
+        res, error = self._ventas(lambda dev, data: dev.borrar_cliente(
+            data.get('partner_id')))
         return error or request.make_json_response(res)
 
     @http.route('/foco/mobile/editar_ubicacion', type='http', auth='public',
