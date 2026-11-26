@@ -25,3 +25,9 @@ class ResCompany(models.Model):
              "empresa (no en la de Mexico). Debe ser una empresa con pais "
              "Estados Unidos, y el vendedor debe tenerla entre sus empresas "
              "permitidas para poder verla y registrar en ella.")
+
+    foco_clientes_propios = fields.Boolean(
+        string='Contactos propios de la empresa', default=False,
+        help="Los contactos que crean los usuarios de esta empresa (en Odoo o "
+             "desde el telefono) nacen en ella y no compartidos, para que no se "
+             "vean en las demas empresas. Apagado, quedan como hasta hoy.")

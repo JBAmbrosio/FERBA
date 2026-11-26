@@ -110,6 +110,31 @@ class ResPartner(models.Model):
     foco_ultima_visita = fields.Datetime(string='Ultima visita',
                                          compute='_compute_foco_visita')
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Contactos PROPIOS de la empresa (res.company.foco_clientes_propios).
+
+        Un contacto sin empresa se ve en TODAS. Para una empresa que no debe
+        mezclar su cartera con las demas (Peru, 26-nov-2026: los clientes de su
+        vendedor aparecian en Industrias), lo que crean sus usuarios nace ya en
+        ella: en Odoo y desde el telefono (crear_cliente corre con el usuario del
+        vendedor, asi que `env.company` es la suya). Un contacto HIJO sigue a su
+        razon social, tenga empresa o no. Quien manda la empresa explicita gana."""
+        empresa = self.env.company
+        if empresa.sudo().foco_clientes_propios:
+            padres = self.browse(
+                [v['parent_id'] for v in vals_list if v.get('parent_id')]).sudo()
+            emp_padre = {p.id: p.company_id.id for p in padres.exists()}
+            for vals in vals_list:
+                if vals.get('company_id'):
+                    continue
+                if vals.get('parent_id'):
+                    if emp_padre.get(vals['parent_id']):
+                        vals['company_id'] = emp_padre[vals['parent_id']]
+                else:
+                    vals['company_id'] = empresa.id
+        return super().create(vals_list)
+
     @api.depends('foco_cliente_ventas', 'partner_latitude', 'partner_longitude',
                  'state_id')
     def _compute_foco_estado(self):

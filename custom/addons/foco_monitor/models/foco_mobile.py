@@ -1821,6 +1821,11 @@ class FocoMobileDevice(models.Model):
                     'foco_cliente_ventas': True, 'foco_estatus': 'prospecto',
                     'user_id': user.id if user else False,
                     'partner_latitude': lat, 'partner_longitude': lon,
+                    # Aqui no se crea con el usuario del vendedor: la empresa
+                    # propia (res.company.foco_clientes_propios) se pone a mano.
+                    'company_id': (user.company_id.id if user and
+                                   user.company_id.sudo().foco_clientes_propios
+                                   else False),
                 })
             if partner is None:
                 continue
